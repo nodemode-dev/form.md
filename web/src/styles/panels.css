@@ -1,0 +1,208 @@
+.menu {
+  position: fixed;
+  z-index: var(--z-dropdown);
+  display: grid;
+  min-inline-size: 220px;
+  max-inline-size: 320px;
+  max-block-size: min(480px, calc(100dvh - var(--space-8)));
+  overflow: auto;
+  padding: var(--space-1);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.menu[data-side="top"] {
+  transform: translateY(2px);
+}
+
+.menu.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.menu__item {
+  display: grid;
+  grid-template-columns: var(--icon) minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-2);
+  min-block-size: var(--row);
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+  text-align: start;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.menu__item:hover,
+.menu__item:focus-visible {
+  background: var(--hover);
+  outline: none;
+}
+
+.menu__item[data-danger="true"] {
+  color: var(--danger);
+}
+
+.menu__item .icon {
+  color: var(--text-muted);
+}
+
+.menu__item[data-danger="true"] .icon {
+  color: inherit;
+}
+
+.menu__label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.menu__hint {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.menu__check {
+  color: var(--accent);
+}
+
+.menu__sep {
+  block-size: 1px;
+  margin: var(--space-1) var(--space-1);
+  background: var(--border);
+}
+
+.menu__heading {
+  padding: var(--space-2) var(--space-2) var(--space-1);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.menu__item .tile,
+.menu__item .avatar {
+  inline-size: var(--icon);
+  block-size: var(--icon);
+  font-size: var(--text-2xs);
+}
+
+.dialog--sm {
+  inline-size: min(420px, calc(100vw - var(--space-8)));
+}
+
+.dialog--lg {
+  inline-size: min(860px, calc(100vw - var(--space-8)));
+  block-size: min(640px, 82vh);
+  max-block-size: none;
+  inset-block-start: 9vh;
+}
+
+.dialog__layout {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  min-block-size: 0;
+}
+
+.dialog__nav {
+  display: grid;
+  align-content: start;
+  row-gap: 2px;
+  min-block-size: 0;
+  overflow: auto;
+  padding: var(--space-3) var(--space-2);
+  background: var(--surface);
+  border-inline-end: 1px solid var(--border);
+}
+
+.dialog__tab {
+  display: grid;
+  grid-template-columns: var(--icon) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-2);
+  min-block-size: var(--row);
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+  text-align: start;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.dialog__tab:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.dialog__tab[aria-selected="true"] {
+  color: var(--text);
+  background: var(--active);
+}
+
+.dialog__panels {
+  min-block-size: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.dialog__panel {
+  display: grid;
+  align-content: start;
+  row-gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-8);
+}
+
+.dialog__panel-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-block-start: 1px solid var(--border);
+}
+
+.dialog--sm .dialog__body,
+.dialog--confirm .dialog__body {
+  row-gap: var(--space-3);
+}
+
+@media (max-width: 767px) {
+  .dialog--lg {
+    inset-block-start: 0;
+    inline-size: 100vw;
+    block-size: 100dvh;
+    border-radius: 0;
+  }
+
+  .dialog__layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .dialog__nav {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--border);
+  }
+
+  .dialog__panel {
+    padding: var(--space-4);
+  }
+}

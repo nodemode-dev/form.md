@@ -33,6 +33,19 @@
   --tooltip-text: #121215;
   --tooltip-kbd: rgba(0, 0, 0, 0.1);
 
+  --c-violet: #a78bfa;
+  --c-blue: #60a5fa;
+  --c-cyan: #22d3ee;
+  --c-teal: #2dd4bf;
+  --c-green: #4ade80;
+  --c-lime: #a3e635;
+  --c-amber: #fbbf24;
+  --c-orange: #fb923c;
+  --c-rose: #fb7185;
+  --c-pink: #f472b6;
+  --tint-strength: 22%;
+  --qr-bg: #ffffff;
+
   --shadow-sheet: 0 10px 30px rgba(0, 0, 0, 0.35);
   --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--border-strong);
 
@@ -117,6 +130,18 @@
   --tooltip-bg: #1d1c1a;
   --tooltip-text: #f6f4f0;
   --tooltip-kbd: rgba(255, 255, 255, 0.16);
+
+  --c-violet: #7c3aed;
+  --c-blue: #2563eb;
+  --c-cyan: #0e7490;
+  --c-teal: #0f766e;
+  --c-green: #15803d;
+  --c-lime: #4d7c0f;
+  --c-amber: #b45309;
+  --c-orange: #c2410c;
+  --c-rose: #e11d48;
+  --c-pink: #db2777;
+  --tint-strength: 14%;
 
   --shadow-sheet: 0 1px 2px rgba(40, 30, 10, 0.05), 0 10px 30px rgba(40, 30, 10, 0.06);
   --shadow-pop: 0 16px 40px rgba(40, 30, 10, 0.16), 0 0 0 1px var(--border-strong);
