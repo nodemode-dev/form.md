@@ -1,4 +1,6 @@
 import { h, setAttr, setText } from "./dom";
+import { parseIcon } from "./glyphs";
+import { paintGlyph, paintPicture } from "./pageicon";
 
 export const COLORS = ["violet", "blue", "cyan", "teal", "green", "lime", "amber", "orange", "rose", "pink"] as const;
 
@@ -18,24 +20,48 @@ export function tileColor(name: string): string {
   return COLORS[hash % COLORS.length] ?? "violet";
 }
 
-export function avatar(name: string, color: string, large = false): HTMLSpanElement {
+export function avatar(name: string, color: string, large = false, picture = ""): HTMLSpanElement {
   const el = h("span", { class: large ? "avatar avatar--lg" : "avatar", attrs: { "aria-hidden": "true" } });
-  updateAvatar(el, name, color);
+  updateAvatar(el, name, color, picture);
   return el;
 }
 
-export function updateAvatar(el: HTMLElement, name: string, color: string): void {
+function paintLetters(el: HTMLElement, text: string): void {
+  if (el.firstElementChild) el.replaceChildren();
+  delete el.dataset.glyph;
+  setText(el, text);
+}
+
+export function updateAvatar(el: HTMLElement, name: string, color: string, picture = ""): void {
   setAttr(el, "data-color", color);
-  setText(el, initials(name));
+  const ref = parseIcon(picture);
+  setAttr(el, "data-kind", ref.kind === "file" ? "picture" : null);
+  if (ref.kind === "file") paintPicture(el, ref.id);
+  else paintLetters(el, initials(name));
 }
 
-export function tile(name: string): HTMLSpanElement {
+export function tile(name: string, icon = "", image = ""): HTMLSpanElement {
   const el = h("span", { class: "tile", attrs: { "aria-hidden": "true" } });
-  updateTile(el, name);
+  updateTile(el, name, icon, image);
   return el;
 }
 
-export function updateTile(el: HTMLElement, name: string): void {
+export function updateTile(el: HTMLElement, name: string, icon = "", image = ""): void {
+  const picture = parseIcon(image);
+  const glyph = parseIcon(icon);
+  if (picture.kind === "file" || glyph.kind === "file") {
+    setAttr(el, "data-kind", "picture");
+    setAttr(el, "data-color", null);
+    paintPicture(el, picture.kind === "file" ? picture.id : glyph.kind === "file" ? glyph.id : "");
+    return;
+  }
+  if (glyph.kind === "glyph") {
+    setAttr(el, "data-kind", "glyph");
+    setAttr(el, "data-color", glyph.tint || tileColor(name));
+    paintGlyph(el, glyph.name);
+    return;
+  }
+  setAttr(el, "data-kind", null);
   setAttr(el, "data-color", tileColor(name));
-  setText(el, [...initials(name)][0] ?? "");
+  paintLetters(el, [...initials(name)][0] ?? "");
 }

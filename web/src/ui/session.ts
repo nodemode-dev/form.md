@@ -24,14 +24,14 @@ export function mountSession(engine: Engine): void {
   const paintWorkspace = () => {
     const w = engine.workspace();
     const name = w?.name ?? "";
-    updateTile(wsTile, name);
+    updateTile(wsTile, name, w?.icon ?? "", w?.image ?? "");
     setText(wsName, name);
     setAttr(wsSwitch, "aria-label", t("Workspace: {name}", { name }));
   };
   const paintUser = () => {
     const u = state.get("me")?.user;
     if (!u) return;
-    updateAvatar(avatarEl, u.name, u.color);
+    updateAvatar(avatarEl, u.name, u.color, u.avatar);
     setText(userName, u.name);
     setAttr(document.documentElement, "data-font", u.prefs.system_font ? "system" : null);
     setAttr(chip, "aria-label", t("Account menu for {name}", { name: u.name }));
@@ -62,7 +62,7 @@ export function mountSession(engine: Engine): void {
       const current = state.get("workspaceId");
       const entries: MenuEntry[] = [{ kind: "heading", label: t("Workspaces") }];
       for (const w of me?.workspaces ?? []) {
-        entries.push({ label: w.name, lead: tile(w.name), hint: roleHint(w), checked: w.id === current, run: () => state.set("workspaceId", w.id) });
+        entries.push({ label: w.name, lead: tile(w.name, w.icon, w.image), hint: roleHint(w), checked: w.id === current, run: () => state.set("workspaceId", w.id) });
       }
       const withheld = me?.withheld_workspaces ?? 0;
       if (withheld > 0 && me?.user.role === "owner") {

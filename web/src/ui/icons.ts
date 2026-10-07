@@ -49,6 +49,21 @@ const PATHS = {
   download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 19.5h15"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
   external: '<path d="M13.5 4.5h6v6M19.5 4.5l-8 8M10 5.5H6.5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V14"/>',
+  library: '<path d="M5 4.5v15M9 4.5v15"/><path d="m13 5.25 3.4-.9 3.6 13.5-3.4.9Z"/><path d="M3.5 19.5h17"/>',
+  star: '<path d="m12 3.5 2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9Z"/>',
+  "star-fill": '<path d="m12 3.5 2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9Z" fill="currentColor"/>',
+  tag: '<path d="M3.5 12.1V5A1.5 1.5 0 0 1 5 3.5h7.1a1.5 1.5 0 0 1 1.06.44l7.4 7.4a1.5 1.5 0 0 1 0 2.12l-7.1 7.1a1.5 1.5 0 0 1-2.12 0l-7.4-7.4a1.5 1.5 0 0 1-.44-1.06Z"/><path d="M8 8h.01"/>',
+  restore: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4.25h4.25"/>',
+  "move-to": '<path d="M4.5 19.5v-6a4 4 0 0 1 4-4h11"/><path d="m15.5 5.5 4 4-4 4"/>',
+  "move-up": '<path d="M19.5 19.5h-6a4 4 0 0 1-4-4v-11"/><path d="m5.5 8.5 4-4 4 4"/>',
+  image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 9.5h.01"/><path d="m3.5 17 5-5 4 4 2.5-2.5 5.5 5.5"/>',
+  "align-left": '<path d="M4.5 6.5h15M4.5 11h10M4.5 15.5h15M4.5 20h8"/>',
+  upload: '<path d="M12 15.5V4M7.5 8.5 12 4l4.5 4.5M4.5 19.5h15"/>',
+  shape: '<circle cx="8" cy="8" r="3.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/><path d="m16.5 4 3.5 6h-7Z"/>',
+  "new-tab": '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M3.5 9h17M12 12v4.5M9.75 14.25h4.5"/>',
+  filter: '<path d="M4 5.5h16l-6.25 7.5v5.5l-3.5 1.5V13Z"/>',
+  "list-tree": '<path d="M4.5 5.5h6M8.5 12h6M8.5 18.5h6M6 5.5v13h2.5M6 12h2.5"/><path d="M16.5 5.5h3M18.5 12h1M18.5 18.5h1"/>',
+  cards: '<rect x="3.5" y="4.5" width="17" height="6" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6" rx="1.5"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;
