@@ -97,11 +97,11 @@ export function mountTree(engine: Engine): void {
   const favList = h("ul", { class: "sb-list", attrs: { role: "list" } });
   const cloud = h("div", { class: "tag-cloud" });
   const root = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Pages") } });
-  const empty = h("p", { class: "sb-empty", text: t("No pages yet") });
+  const empty = h("p", { class: "sb-empty", text: t("Empty for now") });
   const filterLabel = h("span", { class: "sb-filter__tag" });
   const filterClear = h("button", { class: "link-btn", attrs: { type: "button" }, text: t("Clear filter") });
   const filterList = h("ul", { class: "sb-list", attrs: { role: "list" } });
-  const filterEmpty = h("p", { class: "sb-empty", text: t("No pages.") });
+  const filterEmpty = h("p", { class: "sb-empty", text: t("Nothing carries this tag.") });
   const filter = h("div", { class: "sb-filter" }, h("div", { class: "sb-filter__bar" }, iconNode("filter"), filterLabel, filterClear), filterList, filterEmpty);
   const noteChips = h("div", { class: "notes-filters" });
   const noteList = h("ul", { class: "notes-list", attrs: { role: "list" } });
@@ -398,7 +398,7 @@ export function mountTree(engine: Engine): void {
       else cursor = cursor.nextElementSibling;
     }
     for (const el of cards.values()) el.remove();
-    setText(noteEmpty, tag ? t("No notes tagged #{tag}.", { tag }) : notesUntagged ? t("Every note has a tag.") : t("No notes yet. Write the first one."));
+    setText(noteEmpty, tag ? t("Nothing carries #{tag} yet.", { tag }) : notesUntagged ? t("Every note has a tag.") : t("Start with Alt+N."));
     noteEmpty.hidden = list.length > 0;
   };
 

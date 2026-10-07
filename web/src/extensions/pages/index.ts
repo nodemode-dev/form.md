@@ -61,7 +61,7 @@ function setup(engine: Engine): void {
     }),
     commands.register({
       id: "page.favorite",
-      label: () => t("Add or remove favorite"),
+      label: () => t("Star or unstar this page"),
       group: PAGES,
       enabled: () => !!currentId(engine),
       run: () => void pages.toggleFavorite(currentId(engine)).catch(engine.reportError),

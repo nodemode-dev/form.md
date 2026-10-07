@@ -11,7 +11,7 @@ import { toast } from "./toast";
 type Sort = "changed" | "name" | "created" | "opened";
 
 const VIEWS: { id: LibraryView; label: () => string; icon: IconName }[] = [
-  { id: "recent", label: () => t("Recently used"), icon: "clock" },
+  { id: "recent", label: () => t("Recent"), icon: "clock" },
   { id: "favorites", label: () => t("Favorites"), icon: "star" },
   { id: "shared", label: () => t("Shared"), icon: "users" },
   { id: "private", label: () => t("Private"), icon: "lock" },
@@ -41,10 +41,10 @@ export function mountLibraryView(engine: Engine): void {
   const count = h("p", { class: "lib-count" });
   const head = h("div", { class: "lib-row lib-row--head", attrs: { "aria-hidden": "true" } }, h("span", { text: t("Page") }), h("span", { text: t("Workspace") }), h("span", { text: t("Changed") }), h("span", { text: t("Created by") }), h("span"));
   const list = h("div", { class: "lib-list", attrs: { role: "list" } });
-  const empty = h("p", { class: "lib-empty", text: t("No pages.") });
+  const empty = h("p", { class: "lib-empty", text: t("Nothing to show here.") });
   const treeText = h("pre", { class: "lib-tree" });
   const treeCopy = h("button", { class: "btn btn--ghost", attrs: { type: "button" } }, iconNode("copy"), h("span", { text: t("Copy") }));
-  const treeLead = h("p", { class: "section__lead", text: t("This is the structure an agent reads over MCP: every page as a stable Markdown link, nested like the sidebar.") });
+  const treeLead = h("p", { class: "section__lead", text: t("The outline an agent gets over MCP: one line per page with its id, indented by nesting.") });
   const treeBox = h("div", { class: "lib-treebox" }, h("div", { class: "lib-treebox__bar" }, treeLead, treeCopy), treeText);
   const table = h("div", { class: "lib-table" }, head, list, empty);
   view.append(h("div", { class: "lib" }, h("h1", { class: "lib-title", text: t("Library") }), tabs, toolbar, count, table, treeBox));
@@ -151,7 +151,7 @@ export function mountLibraryView(engine: Engine): void {
     count.hidden = isTree;
     treeBox.hidden = !isTree;
     if (isTree) {
-      const text = treeMarkdown() || t("No pages.");
+      const text = treeMarkdown() || t("Nothing to show here.");
       setText(treeText, text);
       return;
     }

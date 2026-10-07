@@ -13,7 +13,7 @@ export function mountTrashView(engine: Engine): void {
   const { state, pages } = engine;
   const view = ref("view-trash");
 
-  const search = h("input", { class: "input", attrs: { type: "search", placeholder: t("Search the trash"), "aria-label": t("Search the trash"), autocomplete: "off", spellcheck: "false" } });
+  const search = h("input", { class: "input", attrs: { type: "search", placeholder: t("Find in trash"), "aria-label": t("Find in trash"), autocomplete: "off", spellcheck: "false" } });
   const emptyBtn = button(t("Empty trash"), "danger", "trash");
   const lead = h("p", { class: "section__lead", text: t("Pages you trash wait here. Restore brings back everything that was trashed together.") });
   const list = h("div", { class: "trash-list", attrs: { role: "list" } });
@@ -85,7 +85,7 @@ export function mountTrashView(engine: Engine): void {
       else cursor = cursor.nextElementSibling;
     }
     for (const el of existing.values()) el.remove();
-    setText(empty, search.value.trim() ? t("Nothing in the trash matches.") : t("The trash is empty."));
+    setText(empty, search.value.trim() ? t("No trashed page matches that.") : t("The trash is empty."));
     empty.hidden = items.length > 0 || loadedFor !== state.get("workspaceId");
   };
 

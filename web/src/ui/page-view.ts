@@ -73,7 +73,7 @@ export function mountPageView(engine: Engine): void {
   const addDesc = h("button", { class: "adder", attrs: { type: "button", "data-action": "describe" } }, iconNode("align-left"), h("span", { text: t("Add description") }));
   const adders = h("div", { class: "page-head__adders" }, addIcon, addCover, addDesc);
   const title = h("textarea", { class: "page-title", attrs: { rows: "1", placeholder: t("Untitled"), "aria-label": t("Title"), spellcheck: "true", maxlength: "500" } });
-  const desc = h("textarea", { class: "page-desc", attrs: { rows: "1", placeholder: t("Add a description"), "aria-label": t("Description"), maxlength: "2000" } });
+  const desc = h("textarea", { class: "page-desc", attrs: { rows: "1", placeholder: t("Say what this page is for"), "aria-label": t("Description"), maxlength: "2000" } });
   const chips = h("span", { class: "page-tags__chips" });
   const tagInput = h("input", { class: "page-tags__input", attrs: { type: "text", "aria-label": t("Add a tag"), autocomplete: "off", spellcheck: "false", maxlength: "40" } });
   const tagsRow = h("div", { class: "page-tags" }, iconNode("tag"), chips, tagInput);
