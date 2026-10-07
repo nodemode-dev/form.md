@@ -7,15 +7,15 @@
 <p align="center"><b>One workspace for people & agents: documents, databases & realtime editing in a single binary.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.2.1-9a8cff" alt="version v0.2.1" />
+  <img src="https://img.shields.io/badge/version-v0.3.0-9a8cff" alt="version v0.3.0" />
   <img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+" />
   <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
 </p>
 
-form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 2 of 11**: the binary, storage, client shell, accounts, workspaces, the policy gate & every account, workspace & instance settings screen exist; pages, the editor, databases & the agent surface follow per the roadmap.
+form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 3 of 11**: the binary, storage, accounts, workspaces & the policy gate, plus the workspace shell: the page tree, tabs, favorites, tags, trash, the library, covers & icons, uploads & live updates between browsers. The editor, databases & the agent surface follow per the roadmap.
 
-**Stack:** Go 1.26 · pure-Go SQLite (modernc) · vanilla TypeScript & Vite · no UI framework · **Scale:** 13 MB static binary, 33 KB JS & 7 KB CSS gzipped for the whole client so far
+**Stack:** Go 1.26 · pure-Go SQLite (modernc) · vanilla TypeScript & Vite · no UI framework · **Scale:** 14 MB static binary, 63 KB JS & 12 KB CSS gzipped for the whole client so far
 
 ## Highlights
 
@@ -23,6 +23,10 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 - **Reads never queue behind writes** · one SQLite writer connection plus a query-only reader pool, numbered migrations in one transaction each, WAL checkpointed on clean shutdown
 - **Zero first-paint flash** · the server renders the sign-in state, the account & the current workspace into the page, & an inline boot script applies theme & sidebar before CSS paints; Inter & JetBrains Mono are preloaded w/ metric-matched fallbacks, so text never reflows when a font arrives; verified frame by frame under 4x CPU & 500 kbps throttling, dark & light, signed out & signed in
 - **Zero layout shift** · every async value has reserved space; measured CLS 0 across load & every shell interaction
+- **Live without refetching** · one event stream per tab w/ sequence ids & replay; another browser's rename, move or trash patches exactly the rows involved, never the whole list; private pages reach only their owner; a watchdog reconnects & a reset refetches without losing newer events
+- **A tree that keeps up** · pointer drag w/ before, after & inside zones, auto-expand & auto-scroll; full keyboard walk; optimistic moves on fractional keys, so a reorder writes one row; trash in batches w/ undo
+- **Tabs that behave like a browser's** · middle or modifier click opens a tab, back & forward restore the exact tab set, tabs persist across reloads
+- **Icons without emoji** · 99 hand-drawn line icons in ten tints or an uploaded picture, enforced by the server; twelve gradient covers that collapse to a strip as you scroll
 - **One stacking scale, one popover primitive, one layer stack** · no raw `z-index` outside the tokens file; Escape, outside-press, inert focus trapping & focus return handled in one place
 - **Accounts done properly** · argon2id w/ equal-time unknown accounts, TOTP w/ replay protection & recovery codes, Google, Microsoft & any OpenID Connect provider w/ verified ID-token signatures, single-use invitations, API tokens narrowed by scope & workspace
 - **One policy gate** · sessions & tokens resolve to one principal; a credential can only narrow its person; per-workspace agent policy (open, strict, closed); anything unreadable answers not found
@@ -78,7 +82,7 @@ Start-up settings come from environment variables; there is no config file. `for
 | `FORMMD_DATA` | Data directory for the database & uploads, default `./data` |
 | `FORMMD_TLS_CERT` | TLS certificate path; set together w/ `FORMMD_TLS_KEY` |
 | `FORMMD_TLS_KEY` | TLS private key path; set together w/ `FORMMD_TLS_CERT` |
-| `FORMMD_TRASH_DAYS` | Default for emptying the trash (Phase 3); a value saved in Instance settings wins |
+| `FORMMD_TRASH_DAYS` | Default for emptying the trash automatically, in days (0 disables); a value saved in Instance settings wins |
 | `FORMMD_UPDATE_CHECK` | Default for the daily version check; a value saved in Instance settings wins |
 
 ## Architecture
@@ -93,6 +97,11 @@ form.md/
 │   ├── auth/           passwords, sessions, TOTP, API tokens, SSO, invitations
 │   ├── policy/         the principal & the single workspace gate
 │   ├── workspace/      workspaces, members, agent policy & rules
+│   ├── page/           the page tree, privacy, moves, duplicates, trash, favorites, tags, recents
+│   ├── order/          fractional sort keys
+│   ├── files/          uploads & access-checked file serving
+│   ├── events/         the live event stream w/ replay & audience filtering
+│   ├── icon/           the icon rule shared w/ the client's icon set
 │   ├── admin/          users, ownership, emergency access, instance settings
 │   ├── settings/       typed instance settings w/ sealed secrets
 │   ├── secrets/        AES-GCM sealing & token minting
@@ -106,9 +115,9 @@ form.md/
 ├── web/                vanilla TypeScript client
 │   ├── index.html      page template the server fills: shell, sign-in screens, pre-paint theme boot
 │   └── src/
-│       ├── engine/     headless state, commands, keymap, typed API client, i18n, formatting
+│       ├── engine/     headless state, page store, live stream, router & tabs, commands, keymap, API client, i18n
 │       ├── extensions/ feature modules registered w/ the engine
-│       ├── ui/         DOM layer: layers, menus, dialogs, forms, sign-in, settings, theme tokens
+│       ├── ui/         DOM layer: sidebar tree, top bar, page header, library, trash, pickers, dialogs, settings, tokens
 │       └── styles/     component styles on the token system
 ├── tools/              Go side install & boot scripts, NOTICES generator
 ├── assets/             repo-level art for this README, not part of the build
@@ -123,8 +132,26 @@ form.md/
 - **Accounts & sign-in:** built. Put HTTPS in front before exposing an instance (built-in certificates arrive in Phase 10).
 - **Mail:** SMTP only; Gmail & Microsoft Graph sending arrive in Phase 10.
 - **German:** the language setting exists; the German translation arrives in Phase 10.
-- **Pages, editor, realtime, databases, search, agents (MCP):** not built yet (Phases 3 to 8).
+- **Pages & the shell:** built: tree, tabs, favorites, tags, notes mode, library, trash, covers, icons, uploads, live updates. A page has a header & its subpages but no body yet.
+- **Editor, realtime co-editing, databases, search, agents (MCP):** not built yet (Phases 4 to 8).
 - **Windows scripts:** written but not yet run on a Windows host.
+
+## Shortcuts
+
+| Keys | Action |
+|---|---|
+| `Alt+N` | New page |
+| `F` | Add or remove the open page from favorites |
+| `L` | Library |
+| `M` | Notes mode on or off |
+| `[` · `Ctrl+\` | Show or hide the sidebar |
+| `Alt+Shift+→` · `Alt+Shift+←` | Next or previous tab (also `Ctrl+Alt+→/←` outside macOS) |
+| `Alt+W` | Close the tab |
+| `↑ ↓ ← →` · `Enter` · `F2` | Walk, fold & open the page tree; F2 renames |
+| `Ctrl+Backspace` | Move the focused tree row to the trash, w/ undo |
+| `?` | Every shortcut that is live right now |
+
+On macOS, `Ctrl` reads as `Cmd`.
 
 ## Development
 
@@ -134,7 +161,7 @@ form.md/
 
 ## Status
 
-Phases 1 & 2 (skeleton binary, client shell, accounts, workspaces & the single policy gate) are complete at this version. Phase 3, pages, the page tree, trash, favorites & live updates, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
+Phases 1 to 3 (skeleton binary, accounts, workspaces, the policy gate & the workspace shell w/ pages & live updates) are complete at this version. Phase 4, the document engine & the block editor w/ realtime co-editing, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
 
 ## Contributors
 
