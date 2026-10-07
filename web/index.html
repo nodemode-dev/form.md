@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-theme-pref="dark" data-sidebar="expanded" data-drawer="closed">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="form.md: one workspace for people and agents." />
+    <title>form.md</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>(function(){var d=document.documentElement,p="dark";try{var s=localStorage.getItem("formmd.theme");if(s==="light"||s==="dark"||s==="auto")p=s;if(localStorage.getItem("formmd.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed")}catch(e){}var t=p==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):p;d.setAttribute("data-theme",t);d.setAttribute("data-theme-pref",p)})()</script>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <div id="app" class="app">
+      <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+        <div class="sidebar__inner">
+          <header class="sidebar__head">
+            <a class="brand" href="/" aria-label="form.md home">
+              <i data-icon="logo" class="brand__mark"></i>
+              <span class="brand__name">form.md</span>
+            </a>
+            <button class="icon-btn" type="button" data-command="shell.toggleSidebar" data-tip="Hide sidebar" aria-label="Hide sidebar">
+              <i data-icon="panel-left"></i>
+            </button>
+          </header>
+          <nav class="sidebar__nav" aria-label="Pages">
+            <section class="nav-section">
+              <h2 class="nav-section__title">Pages</h2>
+              <p class="nav-empty">Your pages will appear here.</p>
+            </section>
+          </nav>
+          <footer class="sidebar__foot">
+            <div class="segmented" role="group" aria-label="Theme">
+              <button type="button" class="segmented__btn" data-theme-choice="light" aria-pressed="false" data-tip="Light theme" aria-label="Light theme"><i data-icon="sun"></i></button>
+              <button type="button" class="segmented__btn" data-theme-choice="auto" aria-pressed="false" data-tip="Match system theme" aria-label="Match system theme"><i data-icon="monitor"></i></button>
+              <button type="button" class="segmented__btn" data-theme-choice="dark" aria-pressed="true" data-tip="Dark theme" aria-label="Dark theme"><i data-icon="moon"></i></button>
+            </div>
+            <span class="sidebar__version" data-ref="version"></span>
+          </footer>
+        </div>
+      </aside>
+      <div class="drawer-scrim" aria-hidden="true"></div>
+      <main class="sheet" id="sheet">
+        <header class="topbar" data-ref="topbar">
+          <button class="icon-btn topbar__menu" type="button" data-command="shell.toggleSidebar" data-tip="Show sidebar" aria-label="Show sidebar">
+            <i data-icon="panel-left"></i>
+          </button>
+          <nav class="crumbs" aria-label="Breadcrumb">
+            <span class="crumbs__item" aria-current="page"><i data-icon="page"></i><span>Home</span></span>
+          </nav>
+          <div class="topbar__actions">
+            <button class="icon-btn" type="button" data-command="shell.showShortcuts" data-tip="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+              <i data-icon="keyboard"></i>
+            </button>
+          </div>
+        </header>
+        <div class="scroller" data-ref="scroller">
+          <article class="doc">
+            <p class="doc__eyebrow">Welcome</p>
+            <h1 class="doc__title">form.md</h1>
+            <p class="doc__lead">One workspace where people and agents write documents, run databases and edit together in realtime. This build is the empty shell: pages, the editor and databases arrive in the next phases.</p>
+            <section class="status-card" aria-labelledby="status-title" data-ref="status" data-state="idle">
+              <header class="status-card__head">
+                <span class="status-dot" aria-hidden="true"></span>
+                <h2 class="status-card__title" id="status-title" data-ref="status-label">Connecting</h2>
+                <button class="text-btn" type="button" data-command="shell.checkConnection" data-tip="Check the connection now">
+                  <i data-icon="refresh"></i><span>Check</span>
+                </button>
+              </header>
+              <dl class="status-grid">
+                <div class="status-grid__item"><dt>Server</dt><dd data-ref="status-server"></dd></div>
+                <div class="status-grid__item"><dt>Version</dt><dd data-ref="status-version"></dd></div>
+                <div class="status-grid__item"><dt>Storage</dt><dd data-ref="status-storage"></dd></div>
+                <div class="status-grid__item"><dt>Latency</dt><dd data-ref="status-latency"></dd></div>
+              </dl>
+            </section>
+            <p class="doc__hint">Press <kbd>?</kbd> for keyboard shortcuts.</p>
+          </article>
+        </div>
+      </main>
+    </div>
+    <div id="overlay-root"></div>
+    <div id="toast-root" aria-live="polite" aria-relevant="additions"></div>
+  </body>
+</html>

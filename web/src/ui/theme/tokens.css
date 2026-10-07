@@ -1,0 +1,123 @@
+:root {
+  color-scheme: dark;
+
+  --ground: #08080a;
+  --ground-dot: rgba(255, 255, 255, 0.05);
+  --sheet: #0f0f12;
+  --sheet-highlight: rgba(255, 255, 255, 0.035);
+  --surface: #141418;
+  --surface-2: #1b1b21;
+  --hover: rgba(255, 255, 255, 0.05);
+  --active: rgba(255, 255, 255, 0.085);
+  --border: rgba(255, 255, 255, 0.075);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --scrim: rgba(0, 0, 0, 0.56);
+  --scrollbar: rgba(255, 255, 255, 0.14);
+
+  --text: #e6e6e9;
+  --text-muted: #8d8d95;
+  --text-faint: #5d5d66;
+
+  --accent: #9a8cff;
+  --accent-hover: #b2a7ff;
+  --accent-wash: rgba(154, 140, 255, 0.14);
+  --on-accent: #0c0b14;
+  --focus: rgba(154, 140, 255, 0.6);
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #7dd3fc;
+
+  --tooltip-bg: #f2f2f4;
+  --tooltip-text: #121215;
+  --tooltip-kbd: rgba(0, 0, 0, 0.1);
+
+  --shadow-sheet: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--border-strong);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  --text-2xs: 10.5px;
+  --text-xs: 11.5px;
+  --text-sm: 12.5px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-title: 36px;
+  --leading: 1.55;
+  --leading-tight: 1.15;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 680;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-14: 56px;
+  --space-24: 96px;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-sheet: 14px;
+
+  --icon: 16px;
+  --control: 28px;
+  --row: 30px;
+  --hit-touch: 44px;
+  --sidebar-w: 264px;
+  --topbar-h: 44px;
+  --doc-w: 720px;
+  --dialog-w: 560px;
+  --toast-w: 380px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --tip-delay: 450ms;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ground: #f3f1ed;
+  --ground-dot: rgba(0, 0, 0, 0.07);
+  --sheet: #fdfcfa;
+  --sheet-highlight: rgba(255, 255, 255, 0.8);
+  --surface: #f6f4f0;
+  --surface-2: #eeebe5;
+  --hover: rgba(0, 0, 0, 0.045);
+  --active: rgba(0, 0, 0, 0.075);
+  --border: rgba(0, 0, 0, 0.085);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --scrim: rgba(28, 24, 18, 0.32);
+  --scrollbar: rgba(0, 0, 0, 0.18);
+
+  --text: #1d1c1a;
+  --text-muted: #6c6963;
+  --text-faint: #9c988f;
+
+  --accent: #5a46e0;
+  --accent-hover: #4a36cc;
+  --accent-wash: rgba(90, 70, 224, 0.1);
+  --on-accent: #ffffff;
+  --focus: rgba(90, 70, 224, 0.5);
+
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #c2410c;
+  --info: #0369a1;
+
+  --tooltip-bg: #1d1c1a;
+  --tooltip-text: #f6f4f0;
+  --tooltip-kbd: rgba(255, 255, 255, 0.16);
+
+  --shadow-sheet: 0 1px 2px rgba(40, 30, 10, 0.05), 0 10px 30px rgba(40, 30, 10, 0.06);
+  --shadow-pop: 0 16px 40px rgba(40, 30, 10, 0.16), 0 0 0 1px var(--border-strong);
+}
