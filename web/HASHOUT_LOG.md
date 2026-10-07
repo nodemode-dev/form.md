@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.2.1
-Last updated: 2026-10-07 · fonts, appearance, panes patched in place
+Current build version: v0.3.0
+Last updated: 2026-10-07 · page store, live updates, workspace shell
 
 ---
 
@@ -26,7 +26,11 @@ web/
     ├── main.ts                      read boot and auth, set language, create engine, mount, start
     ├── fonts/                       Inter and JetBrains Mono variable woff2 (latin, latin-ext) plus OFL texts
     ├── engine/                      headless: no DOM access
-    │   ├── index.ts                 Engine, EngineState (auth, me, workspace), createEngine, Platform contract
+    │   ├── index.ts                 Engine, EngineState (auth, me, workspace, route, tabs, detail, live), createEngine, Platform contract
+    │   ├── pages.ts                 PageStore: pages by parent, edits, moves, favorites, tags, store changes
+    │   ├── live.ts                  Live: event stream client with watchdog, backoff and cursor
+    │   ├── router.ts                routes, paths and the pure tab operations
+    │   ├── order.ts                 fractional sort keys for optimistic placement
     │   ├── state.ts                 per-key observable state
     │   ├── commands.ts              command registry
     │   ├── keymap.ts                scoped shortcut registry, chord parse, match, format
@@ -41,12 +45,24 @@ web/
     │   ├── registry.ts              register, activateAll, disposeAll
     │   ├── shell/
     │   │   └── index.ts             shell commands and their shortcuts
-    │   └── account/
-    │       └── index.ts             account, workspace and admin commands, Ctrl or Cmd plus comma
+    │   ├── account/
+    │   │   └── index.ts             account, workspace and admin commands, Ctrl or Cmd plus comma
+    │   └── pages/
+    │       └── index.ts             page, library, notes and tab commands and their shortcuts
     ├── ui/                          DOM layer: renders engine state, dispatches commands
     │   ├── app.ts                   mountUI, platform and storage adapters, command click delegation
     │   ├── auth.ts                  set-up, sign-in, sign-up and invitation screens, workspace cookie
     │   ├── session.ts               workspace switcher and account menu, live names and tiles
+    │   ├── routes.ts                data-route, document title, scroll memory, home view
+    │   ├── tree.ts                  sidebar: favorites, tags, page tree, notes list, filter, trash link, drag
+    │   ├── topbar.ts                breadcrumb, page actions, tab strip, update notice
+    │   ├── page-view.ts             page header: cover, icon, title, description, tags, pages inside
+    │   ├── page-actions.ts          the shared page menu and its actions
+    │   ├── pickers.ts               icon picker, cover picker, picture upload
+    │   ├── library-view.ts          library route
+    │   ├── trash-view.ts            trash route
+    │   ├── glyphs.ts                the hand-drawn page icon set, tints, icon references
+    │   ├── pageicon.ts              paint a glyph, a picture or the default in place
     │   ├── account.ts               account settings: profile, security, tokens, language and time
     │   ├── workspace-settings.ts    workspace settings and the new-workspace dialog
     │   ├── admin.ts                 instance settings: general, sign-in, email, users, workspaces, about
@@ -81,6 +97,7 @@ web/
         ├── overlays.css             tooltip, scrim, dialog, shortcut rows, toasts
         ├── panels.css               menus, dialog sizes, tabbed dialog layout
         ├── settings.css             settings dialog parts: swatches, option cards, users pane
+        ├── pages.css                sidebar sections and rows, tabs, views, page header, covers, pickers, library, trash
         └── auth.css                 sign-in card and the data-auth visibility rules
 ```
 
@@ -115,6 +132,8 @@ web/
 - [Phase 2: settings dialogs](#p2-settings)
 - [Phase 2: styles](#p2-styles)
 - [v0.2.1: fonts, appearance and in-place panes](#v021)
+- [Phase 3: engine](#p3-engine)
+- [Phase 3: shell](#p3-shell)
 
 ---
 
@@ -762,3 +781,130 @@ Built once; a reload of the rules only sets its texts and visibility. "Load into
 - logged: v0.2.1 · 2026-10-07
 
 These are the remaining places that replace a container's children, all on purpose: the two-factor steps (off, enrol, recovery codes, on) after a click, the one-time token and invitation link after a click, and a settings tab built for a different workspace while its dialog is opening (before it paints). Each builds the new content off the page and swaps it in one operation. Do not add a refresh path that calls them for unchanged content.
+
+---
+
+## Phase 3: engine {#p3-engine}
+
+### src/engine/pages.ts · PageStore
+- refers-to: src/engine/pages.ts :: `PageStore`, `StoreChange`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+One map of pages by id plus a set of child ids per `workspace:parent` slot; sorted child lists are cached per slot and dropped when a page enters or leaves it. Every change is one `StoreChange` (`upsert` with the previous version, `remove`, `loaded`, `favorites`, `tags`, `trash`), so views patch exactly the rows involved. A listener that throws is logged and does not stop the others or the write in progress. Pages from workspaces that are not loaded (favorites, tabs) live in the same map; `isLoaded` says whether a workspace's whole tree is there.
+
+### src/engine/pages.ts · edit and flush
+- refers-to: src/engine/pages.ts :: `edit`, `flush`, `withEdits`
+- kind: warning-context
+- logged: v0.3.0 · 2026-10-07
+
+Field edits apply locally at once and go to the server 350 ms after the last keystroke (immediately for icon, cover, tags and visibility). While a request is in flight, its values and any newer local values overlay whatever the server or the event stream sends, so an echo of an older title can never jump the caret back. On failure the edit is dropped, an error is reported and the page is fetched fresh. `flushAll` runs on page hide.
+
+### src/engine/pages.ts · optimistic moves
+- refers-to: src/engine/pages.ts :: `move`, `keyFor`, `wouldCycle`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Within a workspace the page is placed at once with a client-side key between its new neighbours; the server's answer carries the real key, which sorts the same way, so nothing moves twice. A failed move puts the page back. Moves to another workspace are not optimistic: the page leaves when the server says so.
+
+### src/engine/live.ts · stream client
+- refers-to: src/engine/live.ts :: `Live`
+- kind: rationale
+- logged: v0.3.0 · 2026-10-07
+
+Uses `EventSource` but does its own reconnecting, because the built-in retry has no backoff and no watchdog. Any message (including the 20 second ping) re-arms a 45 second watchdog; silence reconnects. Errors back off 1, 2, 5, 10, 20 seconds. The cursor is the last event id seen; it is replaced by the hello's sequence only on reset or first contact, so replayed events still advance it.
+
+### src/engine/index.ts · start, resync and queueing
+- refers-to: src/engine/index.ts :: `start`, `resync`, `dispatch`, `onEvent`
+- kind: warning-context
+- logged: v0.3.0 · 2026-10-07
+
+With boot data the store is seeded synchronously and the stream starts at the boot cursor. Without it (the Vite dev server) the stream starts first and the first hello triggers a load. A hello with `reset` refetches every loaded workspace, favorites, the account and the open page; events that arrive meanwhile are queued and applied in order afterwards, so the snapshot never overwrites something newer. A hello with a different server version than the first one sets `newVersion`. Workspace `members`, `settings`, `rules` and `deleted` notices and user `workspaces` notices refresh the account.
+
+### src/engine/router.ts and index.ts · tabs and history
+- refers-to: src/engine/router.ts :: `openTab`, `openNewTab`, `closeTab`, `cycleTab`; src/engine/index.ts :: `commit`, `restoreNav`, `landing`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Opening a page reuses its tab, else replaces the active tab, else appends; opening in a new tab inserts after the active one. Every history entry stores the tab list and route, so back and forward restore the exact tab set. Tabs persist in `formmd.tabs`. Closing the active tab activates the neighbour that slides in, else the previous one, else home. Home is a waypoint: once the workspace's tree is loaded it opens the last page seen in that workspace (`formmd.last.<workspace>`), a tab from it, or its first page. The current workspace follows the open page.
+
+---
+
+## Phase 3: shell {#p3-shell}
+
+### src/ui/tree.ts · keyed rendering
+- refers-to: src/ui/tree.ts :: `renderList`, `syncChildren`, `patchRow`, `renderParent`, `onChange`
+- kind: warning-context
+- logged: v0.3.0 · 2026-10-07
+
+Each page has one `li` for its lifetime (in `nodes`), with the row first and the child group second. A store change re-renders only the parents involved; a content change patches one row. The insertion cursor is recomputed from the previous sibling on every step, and leftovers are removed only if they are still in the list being rendered, because rendering a child group can pull a node out of the list the outer loop is walking (a page dropped inside its own former neighbour). Getting either wrong throws `NotFoundError` or deletes a row that just moved.
+
+### src/ui/tree.ts · reveal and expansion
+- refers-to: src/ui/tree.ts :: `setActive`, `revealActive`, `toggle`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Expanded rows persist per workspace in `formmd.expanded.<workspace>`. Opening a page expands its ancestors and scrolls its row into view; this runs again when the tree loads, since the shell mounts before the store is seeded.
+
+### src/ui/tree.ts · pointer drag
+- refers-to: src/ui/tree.ts :: `pointerdown` handler, `resolveTarget`, `updateDrag`, `endDrag`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Pointer events, not HTML drag and drop, so the ghost, zones and scrolling are ours. A drag starts after 5 px. The top 30 percent of a row means before, the bottom 30 percent after, the middle inside; dropping into the page's own subtree is not a target. After an expanded row with children means first child. Hovering inside for 650 ms expands the row; the list scrolls near its edges. Favorites accept before and after, and a tree row dropped there becomes a favorite at that spot. Escape cancels; the click that ends a drag is swallowed. Touch keeps native scrolling and does not drag.
+
+### src/ui/tree.ts · keyboard
+- refers-to: src/ui/tree.ts :: `keydown` handler, `setRoving`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+One row at a time has `tabindex="0"`. Up and down walk visible rows, right expands or enters, left collapses or climbs, Home and End jump, Enter opens (with Ctrl or Cmd in a new tab), F2 opens and focuses the title, Ctrl or Cmd plus Backspace (or Delete) trashes with an undo toast and hands focus to the next row, Shift+F10 or the context-menu key opens the menu.
+
+### src/ui/page-view.ts · in-place header
+- refers-to: src/ui/page-view.ts :: `paint`, `setValue`
+- kind: warning-context
+- logged: v0.3.0 · 2026-10-07
+
+The header is built once. Switching pages rewrites its fields in one pass; until the next page's data exists (a link to a page outside the loaded tree) the previous page stays rather than blanking. A focused title or description is never overwritten except when the page changes. `field-sizing: content` sizes the textareas where supported; elsewhere `autosize` sets the height.
+
+### src/ui/page-view.ts · tags
+- refers-to: src/ui/page-view.ts :: `suggestTags`, `cleanTag`, tag input handlers
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Suggestions come from the workspace's tags by frequency: prefix matches, then substring matches, then close spellings (edit distance 1 from three letters, 2 from five). Enter, comma or Tab add the typed text unless a suggestion was chosen with the arrows; Backspace in an empty field removes the last tag. Tags are trimmed, lose a leading `#`, and spaces become hyphens, matching the server. A chip opens a menu to filter by the tag, set its workspace colour or remove it.
+
+### src/ui/pickers.ts · popovers
+- refers-to: src/ui/pickers.ts :: `popover`, `openIconPicker`, `openCoverPicker`, `uploadPicture`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Pickers are anchored, non-modal layers on the popover layer, so they open above dialogs (workspace settings) and close on an outside press or Escape. The icon grid filters by hiding buttons, never rebuilding; a tint chosen while the page already has an icon recolours it at once. Uploads go through a temporary file input and report progress, success or the server's refusal in one toast.
+
+### src/ui/routes.ts · views
+- refers-to: src/ui/routes.ts :: `mountRoutes`; src/styles/pages.css :: `.view` rules
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+All four views exist in the document; `data-route` on the root shows one (the server sets it too, so the first paint shows the right one). Scroll positions are remembered per route and page.
+
+### src/ui/topbar.ts · update notice
+- refers-to: src/ui/topbar.ts :: `paintBanner`; src/styles/pages.css :: `.banner`
+- kind: rationale
+- logged: v0.3.0 · 2026-10-07
+
+The notice floats over the sheet instead of taking a grid row, so its arrival never pushes the page down. Reload flushes pending edits first.
+
+### src/styles/pages.css · picture placeholders
+- refers-to: src/styles/pages.css :: `.tile[data-kind]`, `.avatar[data-kind]`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+The server renders the initial letter and the kind of picture; until the client paints the icon or image, the letter is transparent, so a workspace with an icon never flashes its letter first.
+
+### z-index: menus and popovers
+- refers-to: src/styles/panels.css :: `.menu`; src/styles/pages.css :: `.popover`, `.drag-ghost`
+- kind: warning-context
+- logged: v0.3.0 · 2026-10-07
+
+Menus, popovers and the drag ghost moved from `--z-dropdown` to `--z-popover`: anything anchored must be able to open from inside a modal dialog, which sits on `--z-overlay`. `--z-dropdown` is now unused and kept in the scale.

@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.2.1
-Last updated: 2026-10-07 · icon rule, fonts, system font preference
+Current build version: v0.3.0
+Last updated: 2026-10-07 · pages, files, live events, boot document
 
 ---
 
@@ -42,8 +42,12 @@ form.md/
 │   │   └── module.go                route table for /api/auth, /api/setup, /api/me, invites
 │   ├── config/
 │   │   └── config.go                FORMMD_* env vars, defaults, validation
+│   ├── events/
+│   │   └── events.go                Hub: sequenced events, replay ring, audience filter, GET /api/events (SSE)
+│   ├── files/
+│   │   └── files.go                 uploads, sniffing, access-checked serving at /files/{id}, sweep
 │   ├── icon/
-│   │   └── icon.go                  the one rule for icon values: icon-set name or uploaded file, never free text
+│   │   └── icon.go                  the one rule for icon values: a name from the shared set or an uploaded file
 │   ├── httpx/
 │   │   ├── router.go                ServeMux wrapper, middleware chain, /api/ 404 catch-all
 │   │   ├── middleware.go            request id, panic recovery, access log, security headers
@@ -54,6 +58,14 @@ form.md/
 │   │   └── ids.go                   128-bit random ids, lowercase base32
 │   ├── mail/
 │   │   └── mail.go                  Mailer: SMTP (TLS, STARTTLS, none), OAuth sender registry
+│   ├── order/
+│   │   └── order.go                 fractional base62 sort keys: Between, After, Before, Valid
+│   ├── page/
+│   │   ├── page.go                  Meta, Service, access check, private owner, title and tag cleaning, emit
+│   │   ├── tree.go                  Tree, Trash listing, Get with path, tags and tag colours
+│   │   ├── write.go                 create, update, move (in and across workspaces), duplicate, trash, restore, purge
+│   │   ├── extras.go                favorites with order, visits, recent pages
+│   │   └── module.go                route table for pages, trash, tags, favorites, recent
 │   ├── policy/
 │   │   ├── principal.go             Principal: one shape for every credential, context helpers
 │   │   └── gate.go                  Gate.Workspace access check, agent policy, emergency grants, memberships
@@ -72,7 +84,8 @@ form.md/
 │   │   ├── instance.go              instance id and last app version
 │   │   └── migrations/
 │   │       ├── 0001_instance.sql    instance key/value table
-│   │       └── 0002_accounts.sql    accounts, sessions, workspaces, tokens, invites, emergency, audit
+│   │       ├── 0002_accounts.sql    accounts, sessions, workspaces, tokens, invites, emergency, audit
+│   │       └── 0003_pages.sql       pages, favorites, page visits, tag colours, files
 │   └── workspace/
 │       ├── workspace.go             workspaces, members, access, rules, proposals, emergency log
 │       └── module.go                route table for /api/workspaces
@@ -116,6 +129,7 @@ form.md/
 - [internal/server/server.go](#internal-server-server-go)
 - [Phase 2 formatting and comment moves](#phase-2-housekeeping)
 - [v0.2.1: icons, fonts and the system font](#v021)
+- [Phase 3: pages, files and live events](#p3)
 
 ---
 
@@ -742,3 +756,98 @@ For a document rendered with `data-font="system"`, every `<link rel="preload" ..
 - logged: v0.2.1 · 2026-10-07
 
 The font files are not a Go module or an npm dependency (they were copied from `@fontsource-variable/inter` and `@fontsource-variable/jetbrains-mono` 5.3.0 into `web/src/fonts/` with their licence texts), so `fontFiles` lists them by hand: update the version there when the files are refreshed. The OFL check comes first in `classify` because the OFL's permission paragraph also starts with "Permission is hereby granted, free of charge", which the MIT check matched.
+
+---
+
+## Phase 3: pages, files and live events {#p3}
+
+### internal/order/order.go · key shape
+- refers-to: internal/order/order.go :: `Between`, `midpoint`, `After`, `Before`, `Valid`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Sibling order is a base62 string compared bytewise. `Between(a, b)` returns a key strictly between, with `""` meaning open on that side. A key never ends in `0`, so there is always room below it, and nothing is ever renumbered: a reorder writes one row. When two neighbours are adjacent digits the result grows by one character; repeated inserts at the same spot lengthen keys slowly (about one character per 30 inserts), which is fine for sidebars. The client has a port in `web/src/engine/order.ts` for optimistic placement only; the server always computes the stored key from `before_id`/`after_id`.
+
+### internal/store/migrations/0003_pages.sql · schema notes
+- refers-to: internal/store/migrations/0003_pages.sql
+- kind: rationale
+- logged: v0.3.0 · 2026-10-07
+
+`trashed_at` is 0 for live pages (not NULL) so live lookups use plain equality on the index. `trash_batch` groups a subtree trashed together; restore brings back exactly that batch, never descendants trashed earlier on their own. `parent_id` cascades, so deleting a batch root deletes its whole subtree. `files.page_id` is set null when a page goes, so an attachment survives as an orphan until the sweep. `tag_colors.tag` is NOCASE so `Plan` and `plan` share a colour. `page_visits` keeps one row per user and page, updated in place.
+
+### internal/page/page.go · private pages
+- refers-to: internal/page/page.go :: `privateOwner`, `check`; internal/page/tree.go :: `visibleIn`
+- kind: rationale
+- logged: v0.3.0 · 2026-10-07
+
+A private page and everything under it is readable by its owner only. `privateOwner` walks the ancestor chain: no private ancestor gives `""`, one owner gives that owner, two different owners give `"-"`, which matches nobody. Private pages stay hidden from workspace admins and from emergency access too; that is stricter than the reference on purpose. Personal spaces are private as a whole, so setting a page there to private is refused as pointless. Every unreadable page answers 404 like a missing one.
+
+### internal/page/write.go · Move and moveAcross
+- refers-to: internal/page/write.go :: `Move`, `moveAcross`, `republish`
+- kind: warning-context
+- logged: v0.3.0 · 2026-10-07
+
+A same-workspace move checks for cycles with a recursive query and republishes the subtree when its privacy owner changed: everyone but the new owner gets `page_removed`, then each page is emitted with its own owner (never the root's, which would leak a deeper private page). A move to another workspace needs write access on both sides, takes the whole subtree and its files along, and is refused with `hidden_subpages` when the subtree holds someone else's private page: moving it would hand that page to a workspace where its owner may not be. Audit records `page.move_out` in the source and `page.move_in` in the target.
+
+### internal/page/write.go · Duplicate
+- refers-to: internal/page/write.go :: `Duplicate`, `DuplicateInput`; internal/page/page.go :: `OnDuplicate`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Copies only what the caller can see, beside the original. The copy's root is titled from the request (the client sends a translated "Copy of …") or "Copy of " plus the title, cut to 500 characters. Copies are never templates; the copier owns them. Phase 4 registers a copier through `OnDuplicate` to copy document content inside the same transaction.
+
+### internal/page/write.go · TrashPage, Restore, Purge
+- refers-to: internal/page/write.go :: `TrashPage`, `Restore`, `DeleteForever`, `EmptyTrash`, `Purge`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Trashing stamps the live subtree (including pages the caller cannot see, as the reference does) with one batch id. Restore clears that batch only and moves the page to the top level when its parent is no longer live. Restoring a page from the middle of a batch is allowed. Delete forever and empty trash delete batch roots and let the cascade take the rest. `Purge` runs from housekeeping every 30 minutes, deletes batch roots older than `trash.days` (0 disables) and audits each as `system`.
+
+### internal/page/extras.go · favorites
+- refers-to: internal/page/extras.go :: `SetFavorite`, `FavoriteInput`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+`PUT /api/favorites/{id}` with no body adds at the end and is a no-op for an existing favorite; `after_id` places it after another favorite, `top` places it first. Favorites span workspaces and list only pages the caller can still read. Changes publish a `user` event so the person's other tabs follow.
+
+### internal/files/files.go · uploads
+- refers-to: internal/files/files.go :: `Upload`, `store`, `authorize`
+- kind: warning-context
+- logged: v0.3.0 · 2026-10-07
+
+The multipart form must send its text fields before the file part, since the body is streamed and never buffered. The limit comes from `files.max_upload_mb` on every request. The type is sniffed from content, not trusted from the client. Covers, icons and pictures must be PNG, JPEG, GIF or WebP; SVG is accepted for icons and workspace pictures only, and every file is served with a sandboxing CSP and `nosniff`, so a script inside an SVG never runs. Avatars belong to their uploader and to no workspace.
+
+### internal/files/files.go · serving and sweep
+- refers-to: internal/files/files.go :: `Serve`, `Sweep`, `Owned`, `InWorkspace`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+`/files/{id}` checks read access to the page, else the workspace, else (avatars) any signed-in account. The id is the ETag and the content never changes, so the cache is private and immutable. The sweep deletes rows nothing points at after a day (page gone, avatar or workspace picture replaced) and then files on disk with no row after an hour; it is the only place a deleted workspace's files leave the disk.
+
+### internal/events/events.go · delivery and replay
+- refers-to: internal/events/events.go :: `Hub`, `publish`, `audience`, `subscribe`, `Handler`
+- kind: rationale
+- logged: v0.3.0 · 2026-10-07
+
+Every event gets a sequence number and goes into a ring of 2048. A client resumes with `Last-Event-ID` (or `?after=`); a cursor still inside the ring is replayed, one older or newer than the server's counter (after a restart) gets `reset: true` in the hello so the client refetches. Workspace events reach members and active emergency holders whose credential reaches the workspace and passes its agent policy; private page events reach their owner only; `Except` skips one user (the new owner during a republish). A subscriber whose queue of 128 fills up is dropped and reconnects with its cursor, rather than slowing everyone. A ping every 20 seconds keeps proxies and the client watchdog satisfied. Revoking a user's credentials closes their streams; shutdown closes all of them so a graceful stop does not wait out its grace period.
+
+### internal/server/server.go · boot document
+- refers-to: internal/server/server.go :: `renderDocument`, `landing`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+The signed-in document carries the event cursor (taken before any data is read, so replay may repeat an event but never miss one), the current workspace's tree, tags and the person's favorites, and for `/p/{id}` the page with its path. A page link selects the page's own workspace. `/` redirects to the last page visited in the workspace, else its first top-level page, so the first paint is never an empty home that the client would then replace. `data-route` and the tile and avatar kinds are attributes so CSS shows the right view and hides placeholder letters before the client runs.
+
+### internal/app/app.go · Stopper
+- refers-to: internal/app/app.go :: `Stopper`, `Run`
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+A module that implements `Stop()` is registered with `RegisterOnShutdown`. Only the events module does today.
+
+### internal/workspace · notices
+- refers-to: internal/workspace/workspace.go :: `Notifier`, `Changed`, `MemberIDs`; internal/workspace/module.go; internal/admin/admin.go
+- kind: explainer
+- logged: v0.3.0 · 2026-10-07
+
+Handlers call `Changed` after a successful write: settings, rules and members notify the workspace; added, removed and regraded people, members of a deleted workspace, and the owner after an emergency grant or its end get a `user` notice so their workspace list refreshes. Member ids of a workspace about to be deleted are read before the delete.
