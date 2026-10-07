@@ -29,6 +29,7 @@ func main() {
 	comps = append(comps, stdlib())
 	comps = append(comps, goModules(root)...)
 	comps = append(comps, webPackages(root)...)
+	comps = append(comps, fonts(root)...)
 
 	sort.SliceStable(comps[1:], func(i, j int) bool { return comps[1+i].name < comps[1+j].name })
 
@@ -107,6 +108,21 @@ func webPackages(root string) []component {
 	return comps
 }
 
+var fontFiles = []struct{ name, version, file string }{
+	{"Inter (font files from @fontsource-variable/inter)", "5.3.0", "Inter-OFL.txt"},
+	{"JetBrains Mono (font files from @fontsource-variable/jetbrains-mono)", "5.3.0", "JetBrainsMono-OFL.txt"},
+}
+
+func fonts(root string) []component {
+	var comps []component
+	for _, f := range fontFiles {
+		text, err := os.ReadFile(filepath.Join(root, "web", "src", "fonts", f.file))
+		check(err)
+		comps = append(comps, component{name: f.name, version: f.version, license: classify(string(text)), text: string(text)})
+	}
+	return comps
+}
+
 func readLicense(dir string) string {
 	for _, f := range licenseFiles {
 		if b, err := os.ReadFile(filepath.Join(dir, f)); err == nil {
@@ -120,6 +136,8 @@ func readLicense(dir string) string {
 
 func classify(text string) string {
 	switch {
+	case strings.Contains(text, "SIL Open Font License, Version 1.1"):
+		return "OFL-1.1"
 	case strings.Contains(text, "Apache License") && strings.Contains(text, "Version 2.0"):
 		return "Apache-2.0"
 	case strings.Contains(text, "Permission is hereby granted, free of charge"):

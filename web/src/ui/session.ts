@@ -33,6 +33,7 @@ export function mountSession(engine: Engine): void {
     if (!u) return;
     updateAvatar(avatarEl, u.name, u.color);
     setText(userName, u.name);
+    setAttr(document.documentElement, "data-font", u.prefs.system_font ? "system" : null);
     setAttr(chip, "aria-label", t("Account menu for {name}", { name: u.name }));
   };
 

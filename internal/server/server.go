@@ -158,6 +158,9 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		if u, ok := me["user"].(*auth.User); ok {
 			userLang = u.Prefs.Lang
 			slots["user-name"], slots["user-initials"], slots["user-color"] = u.Name, Initials(u.Name), u.Color
+			if u.Prefs.SystemFont {
+				attrs["font"] = "system"
+			}
 		}
 		if list, ok := me["workspaces"].([]*workspace.Workspace); ok {
 			cur := currentWorkspace(r, list)

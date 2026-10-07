@@ -69,6 +69,8 @@ var inlineScript = regexp.MustCompile(`(?s)<script>(.*?)</script>`)
 
 var slotPattern = regexp.MustCompile(`<!--slot:([a-z-]+)-->`)
 
+var fontPreload = regexp.MustCompile(`\s*<link rel="preload"[^>]*as="font"[^>]*>`)
+
 var compressible = map[string]bool{
 	".html": true, ".js": true, ".mjs": true, ".css": true, ".svg": true,
 	".json": true, ".webmanifest": true, ".txt": true, ".map": true,
@@ -162,6 +164,9 @@ func RenderIndex(index []byte, doc Document) ([]byte, error) {
 	})
 	if doc.Lang != "" && doc.Lang != "en" {
 		out = bytes.Replace(out, langMarker, []byte(`<html lang="`+doc.Lang+`"`), 1)
+	}
+	if doc.Attrs["font"] == "system" {
+		out = fontPreload.ReplaceAll(out, nil)
 	}
 	return bytes.Replace(out, bootMarker, append(append([]byte(`<script type="application/json" id="boot">`), boot...), []byte(`</script>`)...), 1), nil
 }

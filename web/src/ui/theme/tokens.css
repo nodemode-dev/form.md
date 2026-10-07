@@ -49,8 +49,10 @@
   --shadow-sheet: 0 10px 30px rgba(0, 0, 0, 0.35);
   --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--border-strong);
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  --font-system-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-system-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --font-sans: "Inter Variable", "Inter Fallback", var(--font-system-sans);
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono Fallback", var(--font-system-mono);
   --text-2xs: 10.5px;
   --text-xs: 11.5px;
   --text-sm: 12.5px;
@@ -145,4 +147,9 @@
 
   --shadow-sheet: 0 1px 2px rgba(40, 30, 10, 0.05), 0 10px 30px rgba(40, 30, 10, 0.06);
   --shadow-pop: 0 16px 40px rgba(40, 30, 10, 0.16), 0 0 0 1px var(--border-strong);
+}
+
+:root[data-font="system"] {
+  --font-sans: var(--font-system-sans);
+  --font-mono: var(--font-system-mono);
 }

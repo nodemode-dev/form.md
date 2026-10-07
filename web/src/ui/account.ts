@@ -1,4 +1,4 @@
-import type { Engine, Me, Prefs, SessionInfo, Token } from "../engine";
+import type { Engine, Me, Prefs, SessionInfo, ThemePref, Token } from "../engine";
 import { formatDateTime, formatRelative, weekStart } from "../engine/format";
 import { currentLang, t } from "../engine/i18n";
 import { avatar, COLORS, updateAvatar } from "./avatar";
@@ -167,10 +167,37 @@ function profileTab(engine: Engine): Tab {
       email.append(emailForm);
       const password = section(t("Password"), t("A new password signs out every other session and revokes your API tokens."));
       password.append(pwForm);
-      panel.append(identity, email, password);
+
+      const theme = choices<ThemePref>(
+        "profile-theme",
+        [
+          ["dark", t("Dark")],
+          ["light", t("Light")],
+          ["auto", t("Match the system")],
+        ],
+        engine.state.get("themePref"),
+      );
+      theme.el.addEventListener("change", () => engine.state.set("themePref", theme.value()));
+      engine.state.watch("themePref", (v) => theme.set(v));
+      const font = toggle(t("Use the system font"), u.prefs.system_font, t("Instead of Inter for text and JetBrains Mono for code. Follows your account to every device."));
+      const fontStatus = status();
+      font.input.addEventListener("change", async () => {
+        fontStatus.clear();
+        try {
+          engine.setMe(await engine.api.me.update({ prefs: { ...me(engine).user.prefs, system_font: font.input.checked } }));
+        } catch (err) {
+          font.input.checked = !font.input.checked;
+          fontStatus.error(err);
+        }
+      });
+      const appearance = section(t("Appearance"), t("The theme is remembered on this device."));
+      appearance.append(field(t("Theme"), theme.el), font.el, fontStatus.el);
+
+      panel.append(identity, appearance, email, password);
       return () => {
         paintEmail();
         updateAvatar(preview, me(engine).user.name, me(engine).user.color);
+        font.input.checked = me(engine).user.prefs.system_font;
       };
     },
   };
@@ -379,15 +406,12 @@ function tokensTab(engine: Engine): Tab {
       const picks = h("div", { class: "check-list" });
       picks.hidden = true;
       const fillPicks = () => {
-        const chosen = new Set([...picks.querySelectorAll<HTMLInputElement>("input:checked")].map((i) => i.value));
-        picks.replaceChildren(
-          ...me(engine)
-            .workspaces.filter((w) => !w.break_glass)
-            .map((w) => {
-              const box = h("input", { attrs: { type: "checkbox", value: w.id } });
-              box.checked = chosen.has(w.id);
-              return h("label", { class: "check" }, box, h("span", { text: w.name }));
-            }),
+        reconcile(
+          picks,
+          me(engine).workspaces.filter((w) => !w.break_glass),
+          (w) => w.id,
+          (w) => h("label", { class: "check" }, h("input", { attrs: { type: "checkbox", value: w.id } }), h("span")),
+          (el, w) => setText(el.querySelector("span")!, w.name),
         );
       };
       limit.input.addEventListener("change", () => {
