@@ -1,23 +1,48 @@
-import { type FetchFn, request } from "./api";
+import { type FetchFn, request, upload } from "./api";
 import type {
   AccessWorkspace,
   AdminUser,
   BreakGlassGrant,
   DeletionPlan,
   EmergencyGrant,
+  Favorite,
+  FileInfo,
+  FilePurpose,
   Invite,
   InviteInfo,
   Me,
   Member,
+  Page,
+  PageDetail,
   Prefs,
+  RecentPage,
   Rules,
   SessionInfo,
   SettingsMap,
   StrandedWorkspace,
+  TagInfo,
   Token,
+  TrashItem,
+  Visibility,
   Workspace,
   WorkspaceRole,
 } from "./types";
+
+export interface PageChanges {
+  title?: string;
+  icon?: string;
+  cover?: string;
+  description?: string;
+  tags?: string[];
+  visibility?: Visibility;
+}
+
+export interface MoveTarget {
+  workspace_id?: string;
+  parent_id?: string;
+  before_id?: string;
+  after_id?: string;
+}
 
 export function createClient(f: FetchFn) {
   const get = <T>(path: string) => request<T>(f, "GET", path);
@@ -41,7 +66,7 @@ export function createClient(f: FetchFn) {
     },
     me: {
       get: () => get<Me>("/api/me"),
-      update: (body: { name?: string; color?: string; prefs?: Prefs }) => patch<Me>("/api/me", body),
+      update: (body: { name?: string; color?: string; avatar?: string; prefs?: Prefs }) => patch<Me>("/api/me", body),
       password: (current: string, next: string) => post<void>("/api/me/password", { current, next }),
       email: (password: string, email: string) => post<Me>("/api/me/email", { password, email }),
       totpSetup: () => post<{ secret: string; uri: string; qr_svg: string }>("/api/me/totp/setup"),
@@ -73,6 +98,40 @@ export function createClient(f: FetchFn) {
       dismissProposal: (id: string) => del(`/api/workspaces/${enc(id)}/rules/proposal`),
       emergency: (id: string) => get<{ grants: EmergencyGrant[] }>(`/api/workspaces/${enc(id)}/emergency`),
       endEmergency: (id: string, grant: string) => del(`/api/workspaces/${enc(id)}/emergency/${enc(grant)}`),
+      pages: (id: string) => get<{ pages: Page[] }>(`/api/workspaces/${enc(id)}/pages`),
+      trash: (id: string, q = "") => get<{ items: TrashItem[] }>(`/api/workspaces/${enc(id)}/trash${q ? `?q=${enc(q)}` : ""}`),
+      emptyTrash: (id: string) => request<{ deleted: number }>(f, "DELETE", `/api/workspaces/${enc(id)}/trash`),
+      tags: (id: string) => get<{ tags: TagInfo[] }>(`/api/workspaces/${enc(id)}/tags`),
+      setTagColor: (id: string, tag: string, color: string) => put<void>(`/api/workspaces/${enc(id)}/tags/${enc(tag)}`, { color }),
+      files: (id: string) => get<{ files: FileInfo[] }>(`/api/workspaces/${enc(id)}/files`),
+    },
+    pages: {
+      get: (id: string) => get<{ page: PageDetail }>(`/api/pages/${enc(id)}`),
+      create: (body: { workspace_id: string; parent_id?: string; after_id?: string; title?: string; icon?: string }) => post<{ page: Page }>("/api/pages", body),
+      update: (id: string, body: PageChanges) => patch<{ page: Page }>(`/api/pages/${enc(id)}`, body),
+      move: (id: string, body: MoveTarget) => post<{ page: Page }>(`/api/pages/${enc(id)}/move`, body),
+      duplicate: (id: string, title = "") => post<{ page: Page }>(`/api/pages/${enc(id)}/duplicate`, title ? { title } : {}),
+      trash: (id: string) => request<{ trashed: string[] }>(f, "DELETE", `/api/pages/${enc(id)}`),
+      restore: (id: string) => post<{ page: Page }>(`/api/pages/${enc(id)}/restore`),
+      deleteForever: (id: string) => del(`/api/pages/${enc(id)}/forever`),
+      visit: (id: string) => post<void>(`/api/pages/${enc(id)}/visit`),
+      recent: (limit = 50) => get<{ pages: RecentPage[] }>(`/api/recent?limit=${limit}`),
+    },
+    favorites: {
+      list: () => get<{ favorites: Favorite[] }>("/api/favorites"),
+      add: (id: string, body: { after_id?: string; top?: boolean } = {}) => put<void>(`/api/favorites/${enc(id)}`, body),
+      remove: (id: string) => del(`/api/favorites/${enc(id)}`),
+    },
+    files: {
+      upload: (file: Blob, purpose: FilePurpose, target: { workspace_id?: string; page_id?: string; name?: string } = {}) => {
+        const form = new FormData();
+        form.append("purpose", purpose);
+        if (target.workspace_id) form.append("workspace_id", target.workspace_id);
+        if (target.page_id) form.append("page_id", target.page_id);
+        if (target.name) form.append("name", target.name);
+        form.append("file", file);
+        return upload<{ file: FileInfo }>(f, "/api/files", form);
+      },
     },
     admin: {
       users: () => get<{ users: AdminUser[] }>("/api/admin/users"),

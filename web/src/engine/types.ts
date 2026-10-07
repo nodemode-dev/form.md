@@ -65,7 +65,94 @@ export interface Boot {
   signup?: "open" | "closed";
   instance_name?: string;
   workspace_id?: string;
+  seq?: number;
+  pages?: Page[];
+  favorites?: Favorite[];
+  tags?: TagInfo[];
+  page?: PageDetail;
 }
+
+export type PageKind = "doc" | "collection";
+export type Visibility = "workspace" | "private";
+
+export interface Page {
+  id: string;
+  workspace_id: string;
+  parent_id: string;
+  kind: PageKind;
+  sort_key: string;
+  title: string;
+  icon: string;
+  cover: string;
+  description: string;
+  tags: string[];
+  visibility: Visibility;
+  owner_id: string;
+  is_template: boolean;
+  snippet: string;
+  thumb: string;
+  created_at: number;
+  created_by: string;
+  updated_at: number;
+  updated_by: string;
+  trashed_at?: number;
+  trashed_by?: string;
+  trashed_by_kind?: string;
+}
+
+export interface Crumb {
+  id: string;
+  title: string;
+  icon: string;
+}
+
+export interface PageDetail extends Page {
+  path: Crumb[];
+  can_write: boolean;
+}
+
+export interface Favorite extends Page {
+  favorite_key: string;
+}
+
+export interface RecentPage extends Page {
+  visited_at: number;
+}
+
+export interface TagInfo {
+  tag: string;
+  count: number;
+  color: string;
+}
+
+export interface TrashItem extends Page {
+  trashed_by_name: string;
+  pages: number;
+}
+
+export type FilePurpose = "attachment" | "cover" | "icon" | "avatar" | "workspace";
+
+export interface FileInfo {
+  id: string;
+  workspace_id: string;
+  page_id: string;
+  owner_id: string;
+  purpose: FilePurpose;
+  name: string;
+  mime: string;
+  size: number;
+  created_at: number;
+  url: string;
+  ref: string;
+}
+
+export type LiveEvent =
+  | { type: "hello"; version: string; seq: number; reset: boolean }
+  | { type: "ping"; seq: number }
+  | { type: "page"; seq: number; workspace_id: string; page: Page }
+  | { type: "page_removed"; seq: number; workspace_id: string; ids: string[] }
+  | { type: "workspace"; seq: number; workspace_id: string; what: string }
+  | { type: "user"; seq: number; what: string };
 
 export interface Member {
   user_id: string;

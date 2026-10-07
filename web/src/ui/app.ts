@@ -15,6 +15,10 @@ export function platformAdapter(): Platform {
     isNarrow: () => narrow.matches,
     prefersLight: () => light.matches,
     navigate: (path) => location.assign(path),
+    location: () => ({ path: location.pathname, search: location.search, state: history.state as unknown }),
+    pushHistory: (state, url) => history.pushState(state, "", url),
+    replaceHistory: (state, url) => history.replaceState(state, "", url),
+    eventSource: (url) => new EventSource(url, { withCredentials: true }),
   };
 }
 
@@ -51,5 +55,13 @@ export function mountUI(engine: Engine): void {
     if (!el || !id || el.closest("[inert]")) return;
     e.preventDefault();
     engine.commands.run(id);
+  });
+
+  window.addEventListener("popstate", (e) => engine.restoreNav(e.state));
+  window.addEventListener("online", () => engine.reconnect());
+  window.addEventListener("pagehide", () => engine.pages.flushAll());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") engine.reconnect();
+    else engine.pages.flushAll();
   });
 }
