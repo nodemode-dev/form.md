@@ -14,8 +14,11 @@ import (
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/config"
+	"github.com/nodemode-ai/form.md/internal/events"
+	"github.com/nodemode-ai/form.md/internal/files"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/mail"
+	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/secrets"
 	"github.com/nodemode-ai/form.md/internal/settings"
@@ -34,6 +37,9 @@ type Server struct {
 	Work     *workspace.Service
 	Mail     *mail.Mailer
 	Admin    *admin.Service
+	Hub      *events.Hub
+	Pages    *page.Service
+	Files    *files.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -51,7 +57,21 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	authSvc := auth.New(st, box, set, gate, log)
 	ws := workspace.New(st, gate, al, log)
 	adm := admin.New(st, authSvc, ws, set, mailer, al, log)
+	hub := events.New(st, log, app.Version)
+	pages := page.New(st, gate, al, hub, set, log)
+	fsvc, err := files.New(st, gate, pages, set, al, log, cfg.DataDir)
+	if err != nil {
+		return nil, err
+	}
 
+	ws.SetNotifier(hub)
+	ws.SetImageCheck(func(ctx context.Context, ref, workspaceID string) bool {
+		return fsvc.InWorkspace(ctx, ref, workspaceID, "workspace")
+	})
+	authSvc.SetAvatarCheck(func(ctx context.Context, ref, userID string) bool {
+		return fsvc.Owned(ctx, ref, userID, "avatar")
+	})
+	authSvc.OnRevoke(func(_ context.Context, userID string) { hub.CloseUser(userID) })
 	authSvc.SetAccountHooks(ws)
 	authSvc.SetMailer(mailer)
 	ws.SetCreatePolicy(func(p *policy.Principal) bool { return p.IsAdmin() || set.Bool("workspaces.member_create") })
@@ -63,7 +83,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{authSvc.Middleware},
@@ -74,6 +94,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		authSvc.Module(),
 		ws.Module(authSvc),
 		adm.Module(),
+		hub.Module(authSvc),
+		pages.Module(authSvc),
+		fsvc.Module(authSvc),
 		static.Module(s.renderDocument),
 	}
 	return s, nil
@@ -90,6 +113,12 @@ func (s *Server) housekeeping(ctx context.Context) {
 	for {
 		s.Auth.SweepSessions(ctx)
 		_, _ = s.Deps.Store.W.ExecContext(ctx, "DELETE FROM invites WHERE accepted_at = 0 AND expires_at < ?", store.NowMS()-int64(30*24*time.Hour/time.Millisecond))
+		if n, err := s.Pages.Purge(ctx); err != nil {
+			s.Deps.Log.Warn("trash purge failed", "err", err)
+		} else if n > 0 {
+			s.Deps.Log.Info("trash purged", "pages", n)
+		}
+		s.Files.Sweep(ctx)
 		select {
 		case <-ctx.Done():
 			return
