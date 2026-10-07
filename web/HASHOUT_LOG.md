@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.1.0
-Last updated: 2026-10-07 · Phase 1 client shell
+Current build version: v0.2.0
+Last updated: 2026-10-07 · Phase 2 sign-in, session chrome and settings
 
 ---
 
@@ -23,21 +23,38 @@ web/
 │   └── favicon.svg                  brand mark on dark tile
 ├── dist/                            build output, embedded into the Go binary (only .gitkeep is tracked)
 └── src/
-    ├── main.ts                      create engine, register extensions, mount UI, start
+    ├── main.ts                      read boot and auth, set language, create engine, mount, start
     ├── engine/                      headless: no DOM access
-    │   ├── index.ts                 Engine, EngineState, createEngine, Platform adapter contract
+    │   ├── index.ts                 Engine, EngineState (auth, me, workspace), createEngine, Platform contract
     │   ├── state.ts                 per-key observable state
     │   ├── commands.ts              command registry
     │   ├── keymap.ts                scoped shortcut registry, chord parse, match, format
-    │   ├── api.ts                   fetch wrapper with typed ApiError
+    │   ├── api.ts                   request() and getJSON with typed ApiError (code, message, data)
+    │   ├── client.ts                typed API client: auth, me, workspaces, admin
+    │   ├── types.ts                 wire types mirroring the Go JSON
+    │   ├── i18n.ts                  t(), plural(), lazy catalogs, language resolution
+    │   ├── format.ts                Intl date, time and relative formatting from account preferences
     │   ├── health.ts                server health polling
     │   └── prefs.ts                 persisted preference keys and readers
     ├── extensions/
     │   ├── registry.ts              register, activateAll, disposeAll
-    │   └── shell/
-    │       └── index.ts             shell commands and their shortcuts
+    │   ├── shell/
+    │   │   └── index.ts             shell commands and their shortcuts
+    │   └── account/
+    │       └── index.ts             account, workspace and admin commands, Ctrl or Cmd plus comma
     ├── ui/                          DOM layer: renders engine state, dispatches commands
     │   ├── app.ts                   mountUI, platform and storage adapters, command click delegation
+    │   ├── auth.ts                  set-up, sign-in, sign-up and invitation screens, workspace cookie
+    │   ├── session.ts               workspace switcher and account menu, live names and tiles
+    │   ├── account.ts               account settings: profile, security, tokens, language and time
+    │   ├── workspace-settings.ts    workspace settings and the new-workspace dialog
+    │   ├── admin.ts                 instance settings: general, sign-in, email, users, workspaces, about
+    │   ├── dialog.ts                tabbed, simple, confirm and typed-confirm dialogs, overlay binding
+    │   ├── menu.ts                  anchored menus and menu buttons
+    │   ├── form.ts                  form controls, status line, busy state
+    │   ├── list.ts                  keyed list reconcile
+    │   ├── errors.ts                API error codes to sentences
+    │   ├── avatar.ts                avatars, workspace tiles, palette, tile colour hash
     │   ├── dom.ts                   ref, setText, setAttr, h, delayedIndicator
     │   ├── icons.ts                 inline currentColor SVG icons (shared with vite.config.ts)
     │   ├── layers.ts                dismissable layer stack, inert, focus return
@@ -50,15 +67,19 @@ web/
     │   ├── status.ts                server status card and connection toasts
     │   ├── theme.ts                 theme attributes and the segmented control
     │   └── theme/
-    │       ├── tokens.css           every colour, size, space, radius and motion token
+    │       ├── tokens.css           every colour, size, space, radius and motion token, tint palette
     │       └── z-layers.css         the one stacking scale
     └── styles/
         ├── main.css                 import order
-        ├── base.css                 reset, body ground, kbd, focus ring, reduced motion
+        ├── base.css                 reset, body ground, kbd, focus ring, hidden, reduced motion
         ├── controls.css             icon button, text button, segmented control
-        ├── shell.css                app grid, sidebar, sheet, topbar, drawer
+        ├── forms.css                tints, avatars, tiles, buttons, fields, switches, rows, badges, callouts
+        ├── shell.css                app grid, sidebar, workspace switch, user chip, sheet, topbar, drawer
         ├── doc.css                  document column and status card
-        └── overlays.css             tooltip, scrim, dialog, shortcut rows, toasts
+        ├── overlays.css             tooltip, scrim, dialog, shortcut rows, toasts
+        ├── panels.css               menus, dialog sizes, tabbed dialog layout
+        ├── settings.css             settings dialog parts: swatches, option cards, users pane
+        └── auth.css                 sign-in card and the data-auth visibility rules
 ```
 
 ---
@@ -85,6 +106,12 @@ web/
 - [src/ui/theme/z-layers.css](#src-ui-theme-z-layers-css)
 - [src/styles/shell.css](#src-styles-shell-css)
 - [src/styles/overlays.css](#src-styles-overlays-css)
+- [Phase 2: document contract and start-up](#p2-start)
+- [Phase 2: engine](#p2-engine)
+- [Phase 2: sign-in and session](#p2-auth)
+- [Phase 2: dialogs, menus and forms](#p2-kit)
+- [Phase 2: settings dialogs](#p2-settings)
+- [Phase 2: styles](#p2-styles)
 
 ---
 
@@ -395,3 +422,253 @@ A fixed or z-indexed overlay root would be a stacking context of its own and tra
 ```
 
 Replaced before the first commit for the stacking reason above.
+
+---
+
+## Phase 2: document contract and start-up {#p2-start}
+
+### index.html · server-rendered hooks
+- refers-to: index.html :: `data-auth="pending"`, `<!--slot:...-->`, `#boot`
+- kind: warning-context
+- logged: v0.2.0 · 2026-10-07
+
+`index.html` is a template the Go server fills per request (see `internal/server/server.go · renderDocument contract` in the backend log). `data-auth="pending"` must stay exactly that string on the html tag, slot comments must sit directly inside the element whose text they become, and the boot placeholder must stay `<script type="application/json" id="boot">null</script>`. The auth screens live in `#auth` next to `#app`; `auth.css` shows one or the other from `data-auth`, so the right screen is the first frame. Static English text in this file is translated server-side in Phase 10 (German), not by the client, to keep that guarantee.
+
+### src/main.ts · start order
+- refers-to: src/main.ts :: `start`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Read `data-auth` and the boot block, load the language catalog (a no-op for English), create the engine, register extensions, mount the always-present UI and the auth screens, and mount the session chrome and settings dialogs only when signed in. Health polling starts only in the app; the sign-in page makes no background requests.
+
+### src/main.ts · devBoot
+- refers-to: src/main.ts :: `devBoot`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Stands in for the server-rendered document when Vite serves the raw page on :5750, by asking `/api/auth/policy` and `/api/me` for the same state and setting `data-sso` and `data-signup` itself. Production documents always arrive with `data-auth` and the boot block filled in, so this path never runs there. In development the screen can therefore change after first paint; that is expected and is the only place it happens. (Moved here from a source comment.)
+
+### src/main.ts · guardSession
+- refers-to: src/main.ts :: `guardSession`
+- kind: rationale
+- logged: v0.2.0 · 2026-10-07
+
+Sends the person back to `/login?next=...` when their session ends while the app is open (expired, signed out elsewhere, revoked by a password change), instead of leaving every later request failing in place. It reacts only to the `unauthorized` code while signed in, never to sign-in errors such as `bad_credentials` or `totp_required`. (Moved here from a source comment.)
+
+---
+
+## Phase 2: engine {#p2-engine}
+
+### src/engine/index.ts · pickWorkspace
+- refers-to: src/engine/index.ts :: `pickWorkspace`, `createEngine`
+- kind: warning-context
+- logged: v0.2.0 · 2026-10-07
+
+The initial workspace prefers the server's `boot.workspace_id` (which came from the `formmd_ws` cookie), then the stored id, then the first shared workspace, then the first. The fallback order must match `currentWorkspace` on the server so the client never repaints the header with a different workspace.
+
+### src/engine/index.ts · openOverlay
+- refers-to: src/engine/index.ts :: `openOverlay`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Sets `overlayTab` to empty and then to the requested tab before setting `overlay`. The empty step makes asking for the same tab twice still fire, so a command such as "Language and time" switches tabs even when the account dialog is already open on another one.
+
+### src/engine/client.ts · typed client
+- refers-to: src/engine/client.ts :: `createClient`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+One namespace per server area (auth, me, workspaces, admin), every path in one place, every response typed from `types.ts`. 204 responses resolve to undefined. Errors are `ApiError` with the server's code, message and data.
+
+### src/engine/i18n.ts · catalogs
+- refers-to: src/engine/i18n.ts :: `t`, `plural`, `setLang`, `resolveLang`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Source strings are English and double as keys; catalogs in `src/i18n/<lang>.json` load lazily through `import.meta.glob`, so English costs nothing. `plural` keys are `"one|other"` with the translation in the same form. Supported languages are English and German; the German catalog arrives in Phase 10, until then German falls back to English.
+
+### src/engine/format.ts · canonical
+- refers-to: src/engine/format.ts :: `canonical`, `locale`
+- kind: warning-context
+- logged: v0.2.0 · 2026-10-07
+
+Turns a language tag into one `Intl` accepts. Browsers can report forms such as `en-US@posix` (the headless test browser does), and every `Intl` constructor throws on them, which broke the sessions, tokens and language tabs in the first browser run. The `@...` suffix is dropped and the tag canonicalised, falling back to the plain language. (Moved here from a source comment.)
+
+---
+
+## Phase 2: sign-in and session {#p2-auth}
+
+### src/ui/auth.ts · next and open redirects
+- refers-to: src/ui/auth.ts :: `nextPath`
+- kind: warning-context
+- logged: v0.2.0 · 2026-10-07
+
+`?next=` is honoured only for same-origin paths: it must start with `/` and not with `//` or `/\`, which browsers treat as another host. Anything else goes to `/`.
+
+### src/ui/auth.ts · rememberWorkspace
+- refers-to: src/ui/auth.ts :: `rememberWorkspace`, `WORKSPACE_COOKIE`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+The current workspace is a cookie (`formmd_ws`, one year, SameSite=Lax), not only local storage, because the server reads it to render the right workspace name into the first frame. Accepting an invitation sets it to the invited workspace.
+
+### src/ui/session.ts · painting
+- refers-to: src/ui/session.ts :: `mountSession`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+The header tile and name and the footer avatar and name are server-rendered; this module only updates them through `setText`/`setAttr`, which skip unchanged values, so the first paint is never touched. Menus are built from the command registry at open time, so their entries follow permissions (`enabled`) and show live shortcut hints. The owner sees how many workspaces they are not in, linking to emergency access.
+
+### src/extensions/account/index.ts · commands
+- refers-to: src/extensions/account/index.ts :: `setup`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Account, workspace and admin actions are commands, so menus, shortcuts and the Phase 6 command palette share them. Ctrl or Cmd plus comma opens account settings and works while typing. Sign-out navigates through `Platform.navigate` to keep the engine free of DOM access.
+
+---
+
+## Phase 2: dialogs, menus and forms {#p2-kit}
+
+### src/ui/dialog.ts · tabbedDialog and overlayDialog
+- refers-to: src/ui/dialog.ts :: `tabbedDialog`, `overlayDialog`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+The dialog DOM is built on first open, and each tab renders on its first visit; later visits call the refresh function the tab returned. `overlayDialog` binds a dialog to `state.overlay` and `overlayTab`: the state opens and closes it, and closing it by Escape, the close button or an outside click resets the state. Tabs can be hidden per open through `visible`.
+
+### src/ui/dialog.ts · confirmTyped
+- refers-to: src/ui/dialog.ts :: `confirmTyped`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Irreversible deletions (a workspace, a stranded workspace, an account) ask for the exact name or email to be typed; the button stays disabled until it matches.
+
+### src/ui/menu.ts · reopen guard
+- refers-to: src/ui/menu.ts :: `menuButton`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Clicking the anchor of an open menu closes it on pointerdown (outside-dismiss) and would reopen it on click. The anchor records when its menu closed and ignores a click within 350 ms of that. The guard applies only when a close was recorded.
+
+### src/ui/menu.ts · removed reopen guard
+- refers-to: src/ui/menu.ts :: `menuButton`
+- kind: removed-code
+- logged: v0.2.0 · 2026-10-07
+
+```ts
+const closedAt = Number(anchor.dataset.menuClosedAt ?? 0);
+if (anchor.getAttribute("aria-expanded") === "true" || performance.now() - closedAt < 350) return;
+```
+
+With no close recorded, `closedAt` was 0, and `performance.now()` counts from page load, so every click in the first 350 ms after a load was ignored. Found by the browser verification clicking the account menu right after a reload.
+
+### src/ui/form.ts · status and busy
+- refers-to: src/ui/form.ts :: `status`, `busy`
+- kind: rationale
+- logged: v0.2.0 · 2026-10-07
+
+The status line reserves one line of height (`.form-status`), so showing an error never shifts the layout. `busy` disables the button at once but shows the busy look only after 300 ms and keeps it at least 250 ms, so fast requests do not flicker. Errors that are not `ApiError` are written to the console before the generic sentence is shown, so a client bug cannot hide behind "Something went wrong".
+
+### src/ui/avatar.ts · tileColor
+- refers-to: src/ui/avatar.ts :: `tileColor`, `COLORS`
+- kind: warning-context
+- logged: v0.2.0 · 2026-10-07
+
+Must stay identical to `TileColor` in `internal/server/server.go` (hash `h*31 + code point`, unsigned 32-bit, modulo the palette in this order), or a workspace tile changes colour after the first paint.
+
+---
+
+## Phase 2: settings dialogs {#p2-settings}
+
+### src/ui/account.ts · QR code
+- refers-to: src/ui/account.ts :: `twoFactorSection`
+- kind: rationale
+- logged: v0.2.0 · 2026-10-07
+
+The server's SVG is shown through an `<img>` with a data URL rather than inserted as markup, so nothing in it can run; the document CSP already allows `data:` images. The key is also shown in groups of four for typing by hand.
+
+### src/ui/account.ts · language change
+- refers-to: src/ui/account.ts :: `languageTab`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Every control saves on change. A language change shows a "Reload now" note instead of re-rendering the open app, because the server renders the page in the chosen language and a reload is the one clean way to switch every string.
+
+### src/ui/workspace-settings.ts · boundTab
+- refers-to: src/ui/workspace-settings.ts :: `boundTab`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+Rebuilds a tab whenever the dialog opens on a different workspace than the one it was built for, and otherwise runs the tab's own refresh. (Moved here from a source comment.)
+
+### src/ui/admin.ts · SettingsStore and SettingsForm
+- refers-to: src/ui/admin.ts :: `SettingsStore`, `SettingsForm`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+`SettingsStore` holds one snapshot of the instance settings, shared by every tab of the dialog so a save on one tab is seen by the others (the sign-in tab's redirect addresses follow the public address saved on the general tab). `SettingsForm` binds controls to setting keys and sends only the keys whose value changed. Secret fields send the stored sentinel back unless typed into or removed (see `settings.go` in the backend log). A refused value marks its field invalid and names it. (Moved here from source comments.)
+
+---
+
+## Phase 2: styles {#p2-styles}
+
+### src/styles/base.css · hidden attribute
+- refers-to: src/styles/base.css :: `[hidden]`
+- kind: rationale
+- logged: v0.2.0 · 2026-10-07
+
+The hidden attribute always wins over a component's own display value. Without `!important`, any class that sets `display` (`.btn`, `.section`, `.callout`) beat the attribute at equal specificity, which left a "Sign out" button on the current device, an empty emergency section and a reload note visible. This is the one deliberate `!important` outside the reduced-motion block. (Moved here from a source comment.)
+
+### src/styles/base.css, forms.css, panels.css, settings.css · removed hidden overrides
+- refers-to: src/styles/forms.css :: `.field`; src/styles/panels.css :: `.dialog__panel`; src/styles/settings.css :: `.check-list`
+- kind: removed-code
+- logged: v0.2.0 · 2026-10-07
+
+```css
+.field[hidden] { display: none; }
+.dialog__panel[hidden] { display: none; }
+.check-list[hidden] { display: none; }
+```
+
+Per-component patches for the problem above, made redundant by the global rule.
+
+### src/styles/forms.css · tint fallback
+- refers-to: src/styles/forms.css :: `.avatar`, `.tile`, `[data-color]`
+- kind: warning-context
+- logged: v0.2.0 · 2026-10-07
+
+The default tint is a `var()` fallback (`var(--tint, var(--text-muted))`), not a declaration on `.avatar, .tile`. A declaration there has the same specificity as `[data-color="..."]` and comes later, so it overrode every chosen colour and all avatars rendered grey.
+
+### src/styles/forms.css · removed rules
+- refers-to: src/styles/forms.css :: `.avatar, .tile`, `.qr`
+- kind: removed-code
+- logged: v0.2.0 · 2026-10-07
+
+```css
+  --tint: var(--text-muted);
+```
+
+```css
+.qr svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+```
+
+The first was the grey override described above. The second styled an inline SVG QR code; the code is now an image (see `account.ts · QR code`).
+
+### src/styles/forms.css · field alignment
+- refers-to: src/styles/forms.css :: `.field`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+`align-content: start` keeps a field's control at its natural height when a neighbour in the same `.form-row` is taller because of a hint line; without it a select next to a hinted input stretched to a taller box.
+
+### src/styles/overlays.css · clicks while closing
+- refers-to: src/styles/overlays.css :: `.scrim`, `.dialog`
+- kind: warning-context
+- logged: v0.2.0 · 2026-10-07
+
+Scrims and dialogs take pointer events only while `.is-visible`. During the 220 ms fade-out they used to swallow clicks, so clicking the account menu right after closing a dialog did nothing. Found by the browser verification.
