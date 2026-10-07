@@ -7,6 +7,7 @@ import { h, setAttr, setText } from "./dom";
 import { actions, busy, button, choices, copyText, field, iconButton, input, section, select, status, toggle } from "./form";
 import { iconNode } from "./icons";
 import { reconcile } from "./list";
+import { uploadPicture } from "./pickers";
 import { toast } from "./toast";
 
 const COLOR_LABEL: Record<string, () => string> = {
@@ -73,16 +74,38 @@ function profileTab(engine: Engine): Tab {
     render(panel) {
       const u = me(engine).user;
 
-      const preview = avatar(u.name, u.color, true);
+      const preview = avatar(u.name, u.color, true, u.avatar);
       const name = input({ name: "name", value: u.name, autocomplete: "name", maxlength: 80 });
-      const colors = colorPicker("profile-color", u.color, () => updateAvatar(preview, name.value || u.name, colors.value()));
-      name.addEventListener("input", () => updateAvatar(preview, name.value || me(engine).user.name, colors.value()));
+      const colors = colorPicker("profile-color", u.color, () => updateAvatar(preview, name.value || u.name, colors.value(), me(engine).user.avatar));
+      name.addEventListener("input", () => updateAvatar(preview, name.value || me(engine).user.name, colors.value(), me(engine).user.avatar));
+      const picUpload = button(t("Upload picture"), "ghost", "upload");
+      const picRemove = button(t("Remove picture"), "ghost", "trash");
+      const paintPicture = () => {
+        const cur = me(engine).user;
+        picRemove.hidden = !cur.avatar;
+        updateAvatar(preview, name.value || cur.name, colors.value(), cur.avatar);
+      };
+      const savePicture = async (ref: string) => {
+        try {
+          engine.setMe(await engine.api.me.update({ avatar: ref }));
+          paintPicture();
+        } catch (err) {
+          idStatus.error(err);
+        }
+      };
+      picUpload.addEventListener("click", () =>
+        void uploadPicture(engine, { purpose: "avatar" }).then((ref) => {
+          if (ref) void savePicture(ref);
+        }),
+      );
+      picRemove.addEventListener("click", () => void savePicture(""));
+      picRemove.hidden = !u.avatar;
       const idStatus = status();
       const idSave = button(t("Save"), "primary", undefined, "submit");
       const idForm = h(
         "form",
         { class: "form-grid", attrs: { novalidate: "" } },
-        h("div", { class: "profile-head" }, preview, h("div", { class: "form-grid" }, field(t("Name"), name), field(t("Colour"), colors.el))),
+        h("div", { class: "profile-head" }, h("div", { class: "profile-pic" }, preview, picUpload, picRemove), h("div", { class: "form-grid" }, field(t("Name"), name), field(t("Colour"), colors.el))),
         idStatus.el,
         actions(idSave),
       );

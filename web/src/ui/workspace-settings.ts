@@ -1,7 +1,8 @@
 import type { AgentAccess, EmergencyGrant, Engine, Invite, Member, Workspace, WorkspaceRole } from "../engine";
 import { formatDate, formatDateTime, formatRelative } from "../engine/format";
 import { plural, t } from "../engine/i18n";
-import { avatar, updateAvatar } from "./avatar";
+import { avatar, tile, updateAvatar, updateTile } from "./avatar";
+import { openIconPicker, uploadPicture } from "./pickers";
 import { confirmDialog, confirmTyped, overlayDialog, simpleDialog, type Tab } from "./dialog";
 import { h, setText } from "./dom";
 import { actions, busy, button, copyText, field, iconButton, input, optionCards, section, select, status, textarea, toggle } from "./form";
@@ -65,6 +66,48 @@ function generalTab(engine: Engine): Tab {
     const save = button(t("Rename"), "primary", undefined, "submit");
     const form = h("form", { class: "form-grid", attrs: { novalidate: "" } }, field(t("Name"), name, t("Shown in the switcher and on cards.")), st.el);
     if (admin) form.append(actions(save));
+
+    const current = () => engine.workspaceById(w.id) ?? w;
+    const preview = tile(w.name, w.icon, w.image);
+    const pickIcon = button(t("Choose icon"), "ghost", "shape");
+    const pickImage = button(t("Upload image"), "ghost", "upload");
+    const clearPic = button(t("Remove"), "ghost", "trash");
+    const picStatus = status();
+    const paintPic = () => {
+      const cur = current();
+      updateTile(preview, cur.name, cur.icon, cur.image);
+      clearPic.hidden = !admin || (!cur.icon && !cur.image);
+    };
+    const savePic = async (body: { icon?: string; image?: string }) => {
+      picStatus.clear();
+      try {
+        await engine.api.workspaces.update(w.id, body);
+        await engine.refreshMe();
+        paintPic();
+      } catch (err) {
+        picStatus.error(err);
+      }
+    };
+    pickIcon.addEventListener("click", () =>
+      openIconPicker(engine, pickIcon, {
+        current: current().icon,
+        upload: { purpose: "workspace", workspace_id: w.id },
+        allowRemove: !!current().icon,
+        onPick: (ref) => void savePic(ref.startsWith("f:") ? { image: ref, icon: "" } : { icon: ref, image: "" }),
+        onRemove: () => void savePic({ icon: "" }),
+      }),
+    );
+    pickImage.addEventListener("click", () =>
+      void uploadPicture(engine, { purpose: "workspace", workspace_id: w.id }, "image/png,image/jpeg,image/gif,image/webp,image/svg+xml").then((ref) => {
+        if (ref) void savePic({ image: ref, icon: "" });
+      }),
+    );
+    clearPic.addEventListener("click", () => void savePic({ icon: "", image: "" }));
+    pickIcon.hidden = !admin;
+    pickImage.hidden = !admin;
+    paintPic();
+    const pic = h("div", { class: "ws-pic" }, preview, h("div", { class: "form-grid" }, h("div", { class: "ws-pic__actions" }, pickIcon, pickImage, clearPic), picStatus.el));
+    form.prepend(pic);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       st.clear();
@@ -88,6 +131,32 @@ function generalTab(engine: Engine): Tab {
     const top = section(t("Workspace"));
     top.append(form, facts);
     panel.append(top);
+
+    if (admin) {
+      const mode = optionCards<"split" | "tree">(
+        "sidebar-mode",
+        [
+          ["split", t("Two sections"), t("Documents and collections are listed apart, each in its own section.")],
+          ["tree", t("One tree"), t("Everything sits in one tree, collections among documents.")],
+        ],
+        w.sidebar_mode,
+      );
+      const modeStatus = status();
+      mode.el.addEventListener("change", async () => {
+        modeStatus.clear();
+        const before = current().sidebar_mode;
+        try {
+          await engine.api.workspaces.update(w.id, { sidebar_mode: mode.value() });
+          await engine.refreshMe();
+        } catch (err) {
+          mode.set(before);
+          modeStatus.error(err);
+        }
+      });
+      const s = section(t("Sidebar"), t("How this workspace's pages appear in the sidebar, for everyone in it."));
+      s.append(mode.el, modeStatus.el);
+      panel.append(s);
+    }
 
     if (engine.state.get("me")?.user.role === "owner" && !w.personal) {
       const auto = toggle(t("Open to every new account"), w.auto_join, t("Every account created from now on joins this workspace as a member."));

@@ -209,6 +209,7 @@ function generalTab(store: SettingsStore): Tab {
     const s2 = section(t("Housekeeping"));
     s2.append(
       f.number("trash.days", t("Empty the trash after (days)"), t("0 keeps trashed pages until someone empties the trash by hand.")),
+      f.number("files.max_upload_mb", t("Largest upload (MB)"), t("Applies to attachments, covers, icons and pictures.")),
       f.pick(
         "audit.retention_days",
         t("Keep the activity log for"),
