@@ -60,7 +60,10 @@ export function toast(options: ToastOptions): ToastHandle {
   const existing = live.get(id);
   if (existing) {
     setText(existing.msg, options.message);
-    if (existing.el.dataset.tone !== tone) existing.el.dataset.tone = tone;
+    if (existing.el.dataset.tone !== tone) {
+      existing.el.dataset.tone = tone;
+      existing.el.querySelector(".toast__icon")?.replaceChildren(iconNode(tone));
+    }
     existing.remaining = duration;
     arm(existing);
     return { dismiss: () => leave(existing) };
