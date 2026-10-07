@@ -11,6 +11,7 @@ import (
 
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/icon"
 	"github.com/nodemode-ai/form.md/internal/ids"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/store"
@@ -144,10 +145,11 @@ func cleanName(raw string) (string, error) {
 }
 
 func cleanIcon(raw string) (string, error) {
-	if utf8.RuneCountInString(raw) > 200 {
-		return "", httpx.Fail(http.StatusBadRequest, "bad_icon", "icon value too long")
+	v := strings.TrimSpace(raw)
+	if !icon.Valid(v) {
+		return "", httpx.Fail(http.StatusBadRequest, "bad_icon", "an icon is a name from the icon set or an uploaded image")
 	}
-	return strings.TrimSpace(raw), nil
+	return v, nil
 }
 
 func (s *Service) insert(ctx context.Context, q store.Querier, name, icon, ownerID string, personal bool) (string, error) {
