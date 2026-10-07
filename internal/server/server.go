@@ -187,15 +187,49 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		if u, ok := me["user"].(*auth.User); ok {
 			userLang = u.Prefs.Lang
 			slots["user-name"], slots["user-initials"], slots["user-color"] = u.Name, Initials(u.Name), u.Color
+			if u.Avatar != "" {
+				slots["user-kind"] = "picture"
+			}
 			if u.Prefs.SystemFont {
 				attrs["font"] = "system"
 			}
 		}
 		if list, ok := me["workspaces"].([]*workspace.Workspace); ok {
+			boot["seq"] = s.Hub.Seq()
 			cur := currentWorkspace(r, list)
+			if id, ok := strings.CutPrefix(path, "/p/"); ok {
+				if d, err := s.Pages.Get(ctx, p, strings.TrimSuffix(id, "/")); err == nil {
+					boot["page"] = d
+					for _, w := range list {
+						if w.ID == d.WorkspaceID {
+							cur = w
+						}
+					}
+				}
+			}
 			if cur != nil {
 				boot["workspace_id"] = cur.ID
 				slots["ws-name"], slots["ws-initial"], slots["ws-color"] = cur.Name, firstInitial(cur.Name), TileColor(cur.Name)
+				switch {
+				case cur.Image != "" || strings.HasPrefix(cur.Icon, "f:"):
+					slots["ws-kind"] = "picture"
+				case strings.HasPrefix(cur.Icon, "i:"):
+					slots["ws-kind"] = "glyph"
+				}
+				if tree, err := s.Pages.Tree(ctx, p, cur.ID); err == nil {
+					boot["pages"] = tree
+					if path == "/" {
+						if id := s.landing(ctx, p, cur.ID, tree); id != "" {
+							return static.Document{Redirect: "/p/" + id}, nil
+						}
+					}
+				}
+				if tags, err := s.Pages.Tags(ctx, p, cur.ID); err == nil {
+					boot["tags"] = tags
+				}
+			}
+			if favs, err := s.Pages.Favorites(ctx, p); err == nil {
+				boot["favorites"] = favs
 			}
 		}
 	}
@@ -210,8 +244,33 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		return static.Document{Redirect: "/"}, nil
 	default:
 		attrs["auth"] = "app"
+		attrs["route"] = "home"
+		switch {
+		case boot["page"] != nil:
+			attrs["route"] = "page"
+		case path == "/library" || path == "/library/":
+			attrs["route"] = "library"
+		case path == "/trash" || path == "/trash/":
+			attrs["route"] = "trash"
+		}
 	}
 	return static.Document{Attrs: attrs, Slots: slots, Lang: preferredLang(r, userLang), Boot: boot}, nil
+}
+
+func (s *Server) landing(ctx context.Context, p *policy.Principal, workspaceID string, tree []*page.Meta) string {
+	if recent, err := s.Pages.Recent(ctx, p, 50); err == nil {
+		for _, r := range recent {
+			if r.WorkspaceID == workspaceID {
+				return r.ID
+			}
+		}
+	}
+	for _, m := range tree {
+		if m.ParentID == "" {
+			return m.ID
+		}
+	}
+	return ""
 }
 
 const WorkspaceCookie = "formmd_ws"
