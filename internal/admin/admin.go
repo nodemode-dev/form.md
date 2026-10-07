@@ -148,6 +148,7 @@ func (s *Service) setAccess(w http.ResponseWriter, r *http.Request, p *policy.Pr
 	if err != nil {
 		return err
 	}
+	s.ws.Changed(wsID, "members", userID)
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
@@ -476,6 +477,7 @@ func (s *Service) createBreakGlass(w http.ResponseWriter, r *http.Request, p *po
 	if err != nil {
 		return err
 	}
+	s.ws.Changed("", "break_glass", p.UserID)
 	if s.mail.Enabled() {
 		rows, err := s.st.R.QueryContext(ctx, `SELECT u.email FROM workspace_members m JOIN users u ON u.id = m.user_id
 			WHERE m.workspace_id = ? AND m.role = 'admin' AND u.disabled = 0`, in.WorkspaceID)
@@ -539,6 +541,7 @@ func (s *Service) revokeBreakGlass(w http.ResponseWriter, r *http.Request, p *po
 	if n, _ := res.RowsAffected(); n == 0 {
 		return httpx.ErrNotFound
 	}
+	s.ws.Changed("", "break_glass", p.UserID)
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
@@ -596,6 +599,7 @@ func (s *Service) adopt(w http.ResponseWriter, r *http.Request, p *policy.Princi
 	if err != nil {
 		return err
 	}
+	s.ws.Changed(id, "members", p.UserID)
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
@@ -603,6 +607,7 @@ func (s *Service) adopt(w http.ResponseWriter, r *http.Request, p *policy.Princi
 func (s *Service) deleteStranded(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 	id := r.PathValue("id")
 	ctx := r.Context()
+	members := s.ws.MemberIDs(ctx, id)
 	err := s.st.Tx(ctx, func(tx *sql.Tx) error {
 		var personal, admins int
 		if err := tx.QueryRowContext(ctx, `SELECT w.personal, (SELECT COUNT(*) FROM workspace_members m JOIN users u ON u.id = m.user_id
@@ -620,6 +625,7 @@ func (s *Service) deleteStranded(w http.ResponseWriter, r *http.Request, p *poli
 	if err != nil {
 		return err
 	}
+	s.ws.Changed("", "deleted", members...)
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }

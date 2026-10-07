@@ -60,13 +60,16 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		if err != nil {
 			return err
 		}
+		s.Changed(ws.ID, "settings")
 		httpx.JSON(w, http.StatusOK, map[string]any{"workspace": ws})
 		return nil
 	}))
 	r.HandleFunc("DELETE /api/workspaces/{id}", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		members := s.MemberIDs(r.Context(), r.PathValue("id"))
 		if err := s.Delete(r.Context(), p, r.PathValue("id")); err != nil {
 			return err
 		}
+		s.Changed("", "deleted", members...)
 		w.WriteHeader(http.StatusNoContent)
 		return nil
 	}))
@@ -102,6 +105,7 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		if err := s.SetRole(r.Context(), p, r.PathValue("id"), r.PathValue("user"), in.Role); err != nil {
 			return err
 		}
+		s.Changed(r.PathValue("id"), "members", r.PathValue("user"))
 		w.WriteHeader(http.StatusNoContent)
 		return nil
 	}))
@@ -109,6 +113,7 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		if err := s.RemoveMember(r.Context(), p, r.PathValue("id"), r.PathValue("user")); err != nil {
 			return err
 		}
+		s.Changed(r.PathValue("id"), "members", r.PathValue("user"))
 		w.WriteHeader(http.StatusNoContent)
 		return nil
 	}))
@@ -130,6 +135,7 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		if err := s.SetRules(r.Context(), p, r.PathValue("id"), in.Rules); err != nil {
 			return err
 		}
+		s.Changed(r.PathValue("id"), "rules")
 		w.WriteHeader(http.StatusNoContent)
 		return nil
 	}))

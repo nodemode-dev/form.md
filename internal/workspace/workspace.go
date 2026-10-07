@@ -26,7 +26,50 @@ type Service struct {
 	log   *slog.Logger
 	hooks []func(ctx context.Context, tx *sql.Tx, workspaceID string) error
 
-	mayCreate func(p *policy.Principal) bool
+	mayCreate  func(p *policy.Principal) bool
+	imageCheck func(ctx context.Context, ref, workspaceID string) bool
+	notifier   Notifier
+}
+
+func (s *Service) SetImageCheck(fn func(ctx context.Context, ref, workspaceID string) bool) {
+	s.imageCheck = fn
+}
+
+type Notifier interface {
+	Workspace(workspaceID, what string)
+	User(userID, what string)
+}
+
+func (s *Service) SetNotifier(n Notifier) {
+	s.notifier = n
+}
+
+func (s *Service) Changed(workspaceID, what string, users ...string) {
+	if s.notifier == nil {
+		return
+	}
+	if workspaceID != "" {
+		s.notifier.Workspace(workspaceID, what)
+	}
+	for _, u := range users {
+		s.notifier.User(u, "workspaces")
+	}
+}
+
+func (s *Service) MemberIDs(ctx context.Context, workspaceID string) []string {
+	rows, err := s.st.R.QueryContext(ctx, "SELECT user_id FROM workspace_members WHERE workspace_id = ?", workspaceID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var id string
+		if rows.Scan(&id) == nil {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 func New(st *store.Store, gate *policy.Gate, al *audit.Log, log *slog.Logger) *Service {
@@ -253,10 +296,17 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 		if err != nil {
 			return nil, err
 		}
+		if strings.HasPrefix(icon, "f:") && (s.imageCheck == nil || !s.imageCheck(ctx, icon, id)) {
+			return nil, httpx.Fail(http.StatusBadRequest, "bad_image", "upload the picture to this workspace first")
+		}
 		sets, args = append(sets, "icon = ?"), append(args, icon)
 	}
 	if in.Image != nil {
-		sets, args = append(sets, "image = ?"), append(args, strings.TrimSpace(*in.Image))
+		v := strings.TrimSpace(*in.Image)
+		if v != "" && (s.imageCheck == nil || !s.imageCheck(ctx, v, id)) {
+			return nil, httpx.Fail(http.StatusBadRequest, "bad_image", "upload the picture to this workspace first")
+		}
+		sets, args = append(sets, "image = ?"), append(args, v)
 	}
 	if in.SidebarMode != nil {
 		if *in.SidebarMode != "split" && *in.SidebarMode != "tree" {
@@ -409,7 +459,7 @@ func (s *Service) AddMember(ctx context.Context, p *policy.Principal, id, email,
 	if err != nil {
 		return err
 	}
-	return s.st.Tx(ctx, func(tx *sql.Tx) error {
+	err = s.st.Tx(ctx, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx, "INSERT OR IGNORE INTO workspace_members (workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)", id, userID, role, store.NowMS())
 		if err != nil {
 			return err
@@ -419,6 +469,10 @@ func (s *Service) AddMember(ctx context.Context, p *policy.Principal, id, email,
 		}
 		return s.audit.Record(ctx, tx, p, audit.Entry{Action: "member.add", WorkspaceID: id, Detail: userID + " as " + role})
 	})
+	if err == nil {
+		s.Changed(id, "members", userID)
+	}
+	return err
 }
 
 func (s *Service) SetRole(ctx context.Context, p *policy.Principal, id, userID, role string) error {
