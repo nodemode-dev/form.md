@@ -135,8 +135,9 @@
 }
 
 .sheet {
+  position: relative;
   display: grid;
-  grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+  grid-template-rows: var(--topbar-h) auto minmax(0, 1fr);
   min-inline-size: 0;
   margin: var(--space-2) var(--space-2) var(--space-2) 0;
   overflow: hidden;
@@ -197,14 +198,61 @@
 
 .crumbs__item {
   display: inline-grid;
-  grid-auto-flow: column;
+  grid-template-columns: auto auto minmax(0, auto);
   align-items: center;
-  column-gap: var(--space-2);
+  column-gap: var(--space-1);
+  flex: 0 1 auto;
   min-inline-size: 0;
+  block-size: var(--control);
+  padding: 0 var(--space-1) 0 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.crumbs__item:hover:not([aria-current="page"]) {
   color: var(--text);
 }
 
-.crumbs__item .icon {
+.crumbs__item[aria-current="page"] {
+  color: var(--text);
+  cursor: default;
+}
+
+.crumbs__item[data-first="true"] .crumbs__sep {
+  display: none;
+}
+
+.crumbs__item[data-kind="gap"] {
+  cursor: default;
+}
+
+.crumbs__sep {
+  display: grid;
+  color: var(--text-faint);
+}
+
+.crumbs__sep .icon {
+  inline-size: 12px;
+  block-size: 12px;
+}
+
+.crumbs__label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.crumbs__item .tile {
+  inline-size: 18px;
+  block-size: 18px;
+  font-size: var(--text-2xs);
+}
+
+.crumbs__glyph {
+  display: grid;
   color: var(--text-faint);
 }
 

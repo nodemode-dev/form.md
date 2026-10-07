@@ -18,23 +18,23 @@
         <div class="sidebar__inner">
           <header class="sidebar__head">
             <button class="ws-switch" type="button" data-ref="ws-switch" aria-haspopup="menu" aria-expanded="false" data-tip="Switch workspace" data-tip-side="bottom">
-              <span class="tile" data-color="<!--slot:ws-color-->" data-ref="ws-tile"><!--slot:ws-initial--></span>
+              <span class="tile" data-color="<!--slot:ws-color-->" data-kind="<!--slot:ws-kind-->" data-ref="ws-tile"><!--slot:ws-initial--></span>
               <span class="ws-switch__name" data-ref="ws-name"><!--slot:ws-name--></span>
               <i data-icon="chevron-down" class="ws-switch__chev"></i>
             </button>
-            <button class="icon-btn" type="button" data-command="shell.toggleSidebar" data-tip="Hide sidebar" aria-label="Hide sidebar">
-              <i data-icon="panel-left"></i>
-            </button>
+            <div class="sidebar__head-actions">
+              <button class="icon-btn" type="button" data-command="library.open" data-tip="Library" aria-label="Library">
+                <i data-icon="library"></i>
+              </button>
+              <button class="icon-btn" type="button" data-command="shell.toggleSidebar" data-tip="Hide sidebar" aria-label="Hide sidebar">
+                <i data-icon="panel-left"></i>
+              </button>
+            </div>
           </header>
-          <nav class="sidebar__nav" aria-label="Pages">
-            <section class="nav-section">
-              <h2 class="nav-section__title">Pages</h2>
-              <p class="nav-empty">Your pages will appear here.</p>
-            </section>
-          </nav>
+          <nav class="sidebar__nav" data-ref="nav" aria-label="Pages"></nav>
           <footer class="sidebar__foot">
             <button class="user-chip" type="button" data-ref="user-chip" aria-haspopup="menu" aria-expanded="false">
-              <span class="avatar" data-color="<!--slot:user-color-->" data-ref="user-avatar"><!--slot:user-initials--></span>
+              <span class="avatar" data-color="<!--slot:user-color-->" data-kind="<!--slot:user-kind-->" data-ref="user-avatar"><!--slot:user-initials--></span>
               <span class="user-chip__name" data-ref="user-name"><!--slot:user-name--></span>
               <i data-icon="more" class="user-chip__more"></i>
             </button>
@@ -43,7 +43,7 @@
               <button type="button" class="segmented__btn" data-theme-choice="auto" aria-pressed="false" data-tip="Match system theme" aria-label="Match system theme"><i data-icon="monitor"></i></button>
               <button type="button" class="segmented__btn" data-theme-choice="dark" aria-pressed="true" data-tip="Dark theme" aria-label="Dark theme"><i data-icon="moon"></i></button>
             </div>
-            <span class="sidebar__version" data-ref="version"></span>
+            <span class="sidebar__version" data-ref="version"><span class="live-dot" data-ref="live-dot" aria-hidden="true"></span><span data-ref="version-text"></span></span>
           </footer>
         </div>
       </aside>
@@ -53,20 +53,29 @@
           <button class="icon-btn topbar__menu" type="button" data-command="shell.toggleSidebar" data-tip="Show sidebar" aria-label="Show sidebar">
             <i data-icon="panel-left"></i>
           </button>
-          <nav class="crumbs" aria-label="Breadcrumb">
-            <span class="crumbs__item" aria-current="page"><i data-icon="page"></i><span>Home</span></span>
-          </nav>
+          <nav class="crumbs" data-ref="crumbs" aria-label="Breadcrumb"></nav>
           <div class="topbar__actions">
+            <span class="topbar__page-actions" data-ref="page-actions">
+              <button class="icon-btn" type="button" data-ref="act-visibility" aria-label="Visibility"><i data-icon="users"></i></button>
+              <button class="icon-btn" type="button" data-ref="act-favorite" aria-pressed="false" aria-label="Add to favorites"><i data-icon="star"></i></button>
+              <button class="icon-btn" type="button" data-ref="act-more" aria-haspopup="menu" aria-expanded="false" aria-label="More actions" data-tip="More actions"><i data-icon="more"></i></button>
+            </span>
             <button class="icon-btn" type="button" data-command="shell.showShortcuts" data-tip="Keyboard shortcuts" aria-label="Keyboard shortcuts">
               <i data-icon="keyboard"></i>
             </button>
           </div>
         </header>
+        <div class="tabbar" data-ref="tabbar" role="tablist" aria-label="Open pages"></div>
+        <div class="banner" data-ref="banner" role="status"></div>
         <div class="scroller" data-ref="scroller">
-          <article class="doc">
-            <p class="doc__eyebrow">Welcome</p>
+          <section class="view view--page" data-view="page" data-ref="view-page" aria-label="Page"></section>
+          <section class="view view--library" data-view="library" data-ref="view-library" aria-label="Library"></section>
+          <section class="view view--trash" data-view="trash" data-ref="view-trash" aria-label="Trash"></section>
+          <article class="view doc" data-view="home" data-ref="view-home">
+            <p class="doc__eyebrow" data-ref="home-eyebrow">Welcome</p>
             <h1 class="doc__title">form.md</h1>
-            <p class="doc__lead">One workspace where people and agents write documents, run databases and edit together in realtime. This build is the empty shell: pages, the editor and databases arrive in the next phases.</p>
+            <p class="doc__lead">One workspace where people and agents write documents, run databases and edit together in realtime. This workspace has no pages yet.</p>
+            <div class="doc__actions"><button class="btn btn--primary" type="button" data-command="page.new" data-ref="home-new"><i data-icon="plus"></i><span>New page</span></button></div>
             <section class="status-card" aria-labelledby="status-title" data-ref="status" data-state="idle">
               <header class="status-card__head">
                 <span class="status-dot" aria-hidden="true"></span>

@@ -18,7 +18,16 @@ export function mountStatus(engine: Engine): void {
   const version = ref("status-version");
   const storage = ref("status-storage");
   const latency = ref("status-latency");
-  const sidebarVersion = ref("version");
+  const sidebarVersion = ref("version-text");
+  const liveDot = ref("live-dot");
+  engine.state.watch(
+    "live",
+    (s) => {
+      setAttr(liveDot, "data-state", s);
+      setAttr(liveDot.parentElement as HTMLElement, "title", s === "live" ? "Live updates on" : s === "offline" ? "Live updates paused, reconnecting" : "Connecting live updates");
+    },
+    { immediate: true },
+  );
 
   setText(server, location.host);
 

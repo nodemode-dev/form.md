@@ -2,13 +2,22 @@ import { type AuthState, type Boot, createEngine, type Engine } from "./engine";
 import { createClient } from "./engine/client";
 import { resolveLang, setLang } from "./engine/i18n";
 import account from "./extensions/account";
+import pagesExtension from "./extensions/pages";
 import { activateAll, register } from "./extensions/registry";
 import shell from "./extensions/shell";
 import { mountAccount } from "./ui/account";
 import { mountAdmin } from "./ui/admin";
 import { mountUI, platformAdapter, storageAdapter } from "./ui/app";
 import { mountAuth } from "./ui/auth";
+import { errorMessage } from "./ui/errors";
+import { mountLibraryView } from "./ui/library-view";
+import { mountPageView } from "./ui/page-view";
+import { mountHome, mountRoutes } from "./ui/routes";
 import { mountSession } from "./ui/session";
+import { toast } from "./ui/toast";
+import { mountTopbar } from "./ui/topbar";
+import { mountTrashView } from "./ui/trash-view";
+import { mountTree } from "./ui/tree";
 import { mountWorkspaceSettings } from "./ui/workspace-settings";
 
 const AUTH_STATES: readonly AuthState[] = ["pending", "setup", "signed-out", "signup", "invite", "app"];
@@ -83,11 +92,20 @@ async function start(): Promise<void> {
 
   register(shell);
   register(account);
+  register(pagesExtension);
   activateAll(engine);
   mountUI(engine);
   mountAuth(engine);
   if (auth === "app") {
+    engine.onError((e) => toast({ id: "error", tone: "danger", message: errorMessage(e) }));
+    mountRoutes(engine);
     mountSession(engine);
+    mountTree(engine);
+    mountTopbar(engine);
+    mountPageView(engine);
+    mountLibraryView(engine);
+    mountTrashView(engine);
+    mountHome(engine);
     mountAccount(engine);
     mountWorkspaceSettings(engine);
     mountAdmin(engine);

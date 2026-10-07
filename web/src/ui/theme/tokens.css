@@ -88,7 +88,15 @@
   --hit-touch: 44px;
   --sidebar-w: 264px;
   --topbar-h: 44px;
+  --tabbar-h: 34px;
+  --indent: 14px;
+  --icon-lg: 64px;
+  --cover-h: 220px;
+  --cover-strip: 52px;
+  --text-nav: 13.5px;
+  --text-page-title: 38px;
   --doc-w: 720px;
+  --wide-w: 980px;
   --dialog-w: 560px;
   --toast-w: 380px;
 
