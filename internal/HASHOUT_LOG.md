@@ -686,3 +686,10 @@ boot = bytes.ReplaceAll(boot, []byte("<"), []byte(`<`))
 ```
 
 Replaced `<` with itself, so it did nothing; the escaping it meant to do is already done by `json.Marshal` (see the Document and RenderIndex entry). Removed in the Phase 2 review, after the wiring commit.
+
+### cmd/form-md/main.go · usage lists setting defaults
+- refers-to: cmd/form-md/main.go :: `usage`
+- kind: explainer
+- logged: v0.2.0 · 2026-10-07
+
+After the start-up variables, `help` lists every instance setting that has an environment default (from `settings.Defs`), so the README table and the binary agree. These variables only supply defaults; a value saved in Instance settings wins.

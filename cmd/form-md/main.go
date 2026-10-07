@@ -14,6 +14,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/config"
 	"github.com/nodemode-ai/form.md/internal/server"
+	"github.com/nodemode-ai/form.md/internal/settings"
 	"github.com/nodemode-ai/form.md/internal/store"
 )
 
@@ -96,5 +97,11 @@ func usage(w io.Writer) {
 			def = "unset"
 		}
 		fmt.Fprintf(w, "  %s%-10s %s (default: %s)\n", config.EnvPrefix, v.Name, v.Purpose, def)
+	}
+	fmt.Fprintln(w, "\nInstance setting defaults (a value saved in Instance settings wins):")
+	for _, d := range settings.Defs {
+		if d.Env != "" {
+			fmt.Fprintf(w, "  %-19s setting %s (default: %s)\n", d.Env, d.Key, d.Default)
+		}
 	}
 }
