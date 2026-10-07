@@ -1,0 +1,199 @@
+import type { Engine } from "../engine";
+import { t } from "../engine/i18n";
+import type { InviteInfo } from "../engine/types";
+import { setAttr, setText } from "./dom";
+import { errorCode } from "./errors";
+import { busy, status } from "./form";
+
+const SSO_ERRORS: Record<string, () => string> = {
+  denied: () => t("Sign-in was cancelled."),
+  expired: () => t("The sign-in took too long. Try again."),
+  unavailable: () => t("The sign-in provider could not be reached."),
+  exchange: () => t("The sign-in provider refused the request."),
+  invalid: () => t("The sign-in response could not be verified."),
+  unverified: () => t("An account with this email exists but the email is not verified. Sign in with your password."),
+  signup_closed: () => t("There is no account for this email and sign-up is by invitation."),
+  disabled: () => t("This account is deactivated."),
+  no_email: () => t("The provider did not share an email address."),
+  internal: () => t("Something went wrong. Try again."),
+};
+
+export const WORKSPACE_COOKIE = "formmd_ws";
+
+export function rememberWorkspace(id: string): void {
+  document.cookie = `${WORKSPACE_COOKIE}=${encodeURIComponent(id)}; path=/; max-age=31536000; samesite=lax`;
+}
+
+function panel(name: string): HTMLFormElement {
+  const el = document.querySelector<HTMLFormElement>(`.auth__panel[data-panel="${name}"]`);
+  if (!el) throw new Error(`missing auth panel ${name}`);
+  return el;
+}
+
+function value(form: HTMLFormElement, name: string): string {
+  return (form.elements.namedItem(name) as HTMLInputElement | null)?.value ?? "";
+}
+
+function submitButton(form: HTMLFormElement): HTMLButtonElement {
+  return form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+}
+
+function nextPath(): string {
+  const p = location.pathname;
+  const asked = new URLSearchParams(location.search).get("next") ?? "";
+  if (asked.startsWith("/") && !asked.startsWith("//") && !asked.startsWith("/\\")) return asked;
+  return p === "/login" || p === "/signup" || p.startsWith("/invite/") ? "/" : p + location.search;
+}
+
+function go(path: string): void {
+  location.assign(path);
+}
+
+function bindSetup(engine: Engine): void {
+  const form = panel("setup");
+  const st = status(form.querySelector<HTMLElement>(".form-status")!);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    st.clear();
+    try {
+      await busy(submitButton(form), () => engine.api.auth.setup(value(form, "name"), value(form, "email"), value(form, "password")));
+      go("/");
+    } catch (err) {
+      st.error(err);
+    }
+  });
+}
+
+function bindLogin(engine: Engine): void {
+  const form = panel("login");
+  const st = status(form.querySelector<HTMLElement>(".form-status")!);
+  const totpField = form.querySelector<HTMLElement>('[data-ref="totp-field"]')!;
+  const recoveryField = form.querySelector<HTMLElement>('[data-ref="recovery-field"]')!;
+  const toggle = form.querySelector<HTMLButtonElement>('[data-ref="toggle-recovery"]')!;
+  const params = new URLSearchParams(location.search);
+  const ssoError = params.get("sso_error");
+  if (ssoError) st.say((SSO_ERRORS[ssoError] ?? SSO_ERRORS.internal!)(), "error");
+  const next = nextPath();
+  for (const a of form.querySelectorAll<HTMLAnchorElement>(".auth__sso-btn")) a.href = `${a.getAttribute("href")}?next=${encodeURIComponent(next)}`;
+  const oidc = engine.boot.sso?.find((p) => p.id === "oidc");
+  if (oidc) setText(form.querySelector('[data-ref="oidc-btn"]')!, t("Continue with {name}", { name: oidc.name }));
+
+  let useRecovery = false;
+  toggle.addEventListener("click", () => {
+    useRecovery = !useRecovery;
+    totpField.hidden = useRecovery;
+    recoveryField.hidden = !useRecovery;
+    setText(toggle, useRecovery ? t("Use the authenticator code instead") : t("Use a recovery code instead"));
+    (form.elements.namedItem(useRecovery ? "recovery" : "code") as HTMLInputElement).focus();
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    st.clear();
+    const totpStep = form.dataset.step === "totp";
+    const code = totpStep && !useRecovery ? value(form, "code") : "";
+    const recovery = totpStep && useRecovery ? value(form, "recovery") : "";
+    try {
+      await busy(submitButton(form), () => engine.api.auth.login(value(form, "email"), value(form, "password"), code, recovery));
+      go(next);
+    } catch (err) {
+      if (errorCode(err) === "totp_required") {
+        form.dataset.step = "totp";
+        (form.elements.namedItem("code") as HTMLInputElement).focus();
+        return;
+      }
+      st.error(err);
+    }
+  });
+}
+
+function bindSignup(engine: Engine): void {
+  const form = panel("signup");
+  const st = status(form.querySelector<HTMLElement>(".form-status")!);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    st.clear();
+    try {
+      await busy(submitButton(form), () => engine.api.auth.signup(value(form, "name"), value(form, "email"), value(form, "password")));
+      go("/");
+    } catch (err) {
+      st.error(err);
+    }
+  });
+}
+
+const ROLE_LABEL: Record<string, () => string> = {
+  admin: () => t("admin"),
+  member: () => t("member"),
+  viewer: () => t("viewer"),
+};
+
+function bindInvite(engine: Engine): void {
+  const form = panel("invite");
+  const st = status(form.querySelector<HTMLElement>(".form-status")!);
+  const token = location.pathname.split("/")[2] ?? "";
+  const title = form.querySelector<HTMLElement>('[data-ref="invite-title"]')!;
+  const lead = form.querySelector<HTMLElement>('[data-ref="invite-lead"]')!;
+  const emailField = form.querySelector<HTMLElement>('[data-ref="invite-email-field"]')!;
+  const codeField = form.querySelector<HTMLElement>('[data-ref="invite-code-field"]')!;
+  let info: InviteInfo | null = null;
+
+  engine.api.auth
+    .invite(token)
+    .then((i) => {
+      info = i;
+      setText(title, t("Join {workspace}", { workspace: i.workspace.name }));
+      setText(lead, t("{inviter} invited you as {role}.", { inviter: i.inviter || t("Someone"), role: ROLE_LABEL[i.role]?.() ?? i.role }));
+      emailField.hidden = i.email !== "";
+      if (i.signed_in_as) {
+        setText(form.querySelector('[data-ref="invite-signed-in"]')!, t("You are signed in as {email}.", { email: i.signed_in_as }));
+        form.dataset.mode = "signed-in";
+      } else {
+        form.dataset.mode = i.account_exists ? "existing" : "new";
+      }
+    })
+    .catch((err) => {
+      form.dataset.mode = "invalid";
+      setText(title, t("Invitation unavailable"));
+      setText(lead, "");
+      st.error(err);
+    });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!info) return;
+    st.clear();
+    const mode = form.dataset.mode;
+    const body =
+      mode === "existing"
+        ? { email: info.email, password: value(form, "existing-password"), code: value(form, "existing-code") }
+        : mode === "new"
+          ? { name: value(form, "name"), email: info.email || value(form, "email"), password: value(form, "password") }
+          : {};
+    try {
+      const res = await busy(submitButton(form), () => engine.api.auth.acceptInvite(token, body));
+      rememberWorkspace(res.workspace_id);
+      go("/");
+    } catch (err) {
+      if (errorCode(err) === "totp_required") {
+        codeField.hidden = false;
+        (form.elements.namedItem("existing-code") as HTMLInputElement).focus();
+        return;
+      }
+      st.error(err);
+    }
+  });
+}
+
+export function mountAuth(engine: Engine): void {
+  bindSetup(engine);
+  bindLogin(engine);
+  bindSignup(engine);
+  if (engine.state.get("auth") === "invite") bindInvite(engine);
+  engine.state.watch("auth", (v) => setAttr(document.documentElement, "data-auth", v), { immediate: true });
+  const first = document.querySelector<HTMLInputElement>(`:root[data-auth="${engine.state.get("auth")}"] .auth__panel input:not([hidden] *)`);
+  if (first && engine.state.get("auth") !== "app") {
+    const visible = [...document.querySelectorAll<HTMLInputElement>(".auth__panel input")].find((i) => i.offsetParent !== null);
+    (visible ?? first).focus({ preventScroll: true });
+  }
+}

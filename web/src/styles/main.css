@@ -2,6 +2,10 @@
 @import "../ui/theme/z-layers.css";
 @import "./base.css";
 @import "./controls.css";
+@import "./forms.css";
 @import "./shell.css";
 @import "./doc.css";
 @import "./overlays.css";
+@import "./panels.css";
+@import "./settings.css";
+@import "./auth.css";

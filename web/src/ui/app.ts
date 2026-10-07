@@ -14,6 +14,7 @@ export function platformAdapter(): Platform {
     mac: /Mac|iPhone|iPad|iPod/.test(navigator.userAgent),
     isNarrow: () => narrow.matches,
     prefersLight: () => light.matches,
+    navigate: (path) => location.assign(path),
   };
 }
 

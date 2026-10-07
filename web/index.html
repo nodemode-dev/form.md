@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark" data-theme-pref="dark" data-sidebar="expanded" data-drawer="closed">
+<html lang="en" data-auth="pending" data-theme="dark" data-theme-pref="dark" data-sidebar="expanded" data-drawer="closed">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -16,10 +16,11 @@
       <aside class="sidebar" id="sidebar" aria-label="Sidebar">
         <div class="sidebar__inner">
           <header class="sidebar__head">
-            <a class="brand" href="/" aria-label="form.md home">
-              <i data-icon="logo" class="brand__mark"></i>
-              <span class="brand__name">form.md</span>
-            </a>
+            <button class="ws-switch" type="button" data-ref="ws-switch" aria-haspopup="menu" aria-expanded="false" data-tip="Switch workspace" data-tip-side="bottom">
+              <span class="tile" data-color="<!--slot:ws-color-->" data-ref="ws-tile"><!--slot:ws-initial--></span>
+              <span class="ws-switch__name" data-ref="ws-name"><!--slot:ws-name--></span>
+              <i data-icon="chevron-down" class="ws-switch__chev"></i>
+            </button>
             <button class="icon-btn" type="button" data-command="shell.toggleSidebar" data-tip="Hide sidebar" aria-label="Hide sidebar">
               <i data-icon="panel-left"></i>
             </button>
@@ -31,6 +32,11 @@
             </section>
           </nav>
           <footer class="sidebar__foot">
+            <button class="user-chip" type="button" data-ref="user-chip" aria-haspopup="menu" aria-expanded="false">
+              <span class="avatar" data-color="<!--slot:user-color-->" data-ref="user-avatar"><!--slot:user-initials--></span>
+              <span class="user-chip__name" data-ref="user-name"><!--slot:user-name--></span>
+              <i data-icon="more" class="user-chip__more"></i>
+            </button>
             <div class="segmented" role="group" aria-label="Theme">
               <button type="button" class="segmented__btn" data-theme-choice="light" aria-pressed="false" data-tip="Light theme" aria-label="Light theme"><i data-icon="sun"></i></button>
               <button type="button" class="segmented__btn" data-theme-choice="auto" aria-pressed="false" data-tip="Match system theme" aria-label="Match system theme"><i data-icon="monitor"></i></button>
@@ -80,7 +86,76 @@
         </div>
       </main>
     </div>
+    <main id="auth" class="auth">
+      <div class="auth__card">
+        <div class="auth__brand"><i data-icon="logo" class="auth__mark"></i><span><!--slot:instance-name--></span></div>
+
+        <form class="auth__panel" data-panel="setup" novalidate>
+          <h1 class="auth__title">Set up form.md</h1>
+          <p class="auth__lead">Create the owner account. Everyone else joins by invitation afterwards.</p>
+          <label class="field"><span class="field__label">Name</span><input class="input" name="name" autocomplete="name" required /></label>
+          <label class="field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="email" required /></label>
+          <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required /><span class="field__hint">At least 8 characters.</span></label>
+          <p class="form-status" role="alert"></p>
+          <button class="btn btn--primary btn--block" type="submit">Create owner account</button>
+        </form>
+
+        <form class="auth__panel" data-panel="login" data-step="password" novalidate>
+          <h1 class="auth__title">Sign in</h1>
+          <div class="auth__step" data-for="password">
+            <label class="field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="username" required /></label>
+            <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>
+          </div>
+          <div class="auth__step" data-for="totp">
+            <p class="auth__lead">Enter the six-digit code from your authenticator app.</p>
+            <label class="field" data-ref="totp-field"><span class="field__label">Code</span><input class="input input--code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" /></label>
+            <label class="field" data-ref="recovery-field" hidden><span class="field__label">Recovery code</span><input class="input input--code" name="recovery" autocomplete="off" /></label>
+            <button class="link-btn" type="button" data-ref="toggle-recovery">Use a recovery code instead</button>
+          </div>
+          <p class="form-status" role="alert"></p>
+          <button class="btn btn--primary btn--block" type="submit">Continue</button>
+          <div class="auth__sso">
+            <p class="auth__divider"><span>or</span></p>
+            <a class="btn btn--block auth__sso-btn" data-sso-id="google" href="/api/auth/sso/google/start">Continue with Google</a>
+            <a class="btn btn--block auth__sso-btn" data-sso-id="microsoft" href="/api/auth/sso/microsoft/start">Continue with Microsoft</a>
+            <a class="btn btn--block auth__sso-btn" data-sso-id="oidc" href="/api/auth/sso/oidc/start" data-ref="oidc-btn">Continue with single sign-on</a>
+          </div>
+          <p class="auth__alt auth__alt--signup">No account yet? <a href="/signup">Create one</a></p>
+        </form>
+
+        <form class="auth__panel" data-panel="signup" novalidate>
+          <h1 class="auth__title">Create your account</h1>
+          <label class="field"><span class="field__label">Name</span><input class="input" name="name" autocomplete="name" required /></label>
+          <label class="field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="email" required /></label>
+          <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required /><span class="field__hint">At least 8 characters.</span></label>
+          <p class="form-status" role="alert"></p>
+          <button class="btn btn--primary btn--block" type="submit">Create account</button>
+          <p class="auth__alt">Already have an account? <a href="/login">Sign in</a></p>
+        </form>
+
+        <form class="auth__panel" data-panel="invite" data-mode="loading" novalidate>
+          <h1 class="auth__title" data-ref="invite-title">Invitation</h1>
+          <p class="auth__lead" data-ref="invite-lead">Checking the invitation.</p>
+          <div class="auth__step" data-for="signed-in">
+            <p class="auth__note" data-ref="invite-signed-in"></p>
+          </div>
+          <div class="auth__step" data-for="new">
+            <label class="field"><span class="field__label">Name</span><input class="input" name="name" autocomplete="name" /></label>
+            <label class="field" data-ref="invite-email-field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="email" /></label>
+            <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" /><span class="field__hint">At least 8 characters.</span></label>
+          </div>
+          <div class="auth__step" data-for="existing">
+            <p class="auth__note">You already have an account. Confirm it to join.</p>
+            <label class="field"><span class="field__label">Password</span><input class="input" name="existing-password" type="password" autocomplete="current-password" /></label>
+            <label class="field" data-ref="invite-code-field" hidden><span class="field__label">Code</span><input class="input input--code" name="existing-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" /></label>
+          </div>
+          <p class="form-status" role="alert"></p>
+          <button class="btn btn--primary btn--block" type="submit" data-ref="invite-submit">Join workspace</button>
+        </form>
+      </div>
+    </main>
     <div id="overlay-root"></div>
     <div id="toast-root" aria-live="polite" aria-relevant="additions"></div>
+    <script type="application/json" id="boot">null</script>
   </body>
 </html>

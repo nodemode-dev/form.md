@@ -37,22 +37,54 @@
   padding-inline-start: var(--space-2);
 }
 
-.brand {
-  display: inline-grid;
-  grid-auto-flow: column;
+.ws-switch,
+.user-chip {
+  display: grid;
   align-items: center;
-  justify-content: start;
   column-gap: var(--space-2);
   min-inline-size: 0;
-  font-weight: var(--weight-semibold);
-  letter-spacing: -0.01em;
+  padding: var(--space-1) var(--space-2);
+  margin-inline-start: calc(var(--space-2) * -1);
+  text-align: start;
+  background: transparent;
+  border: 0;
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
 }
 
-.brand__mark {
-  inline-size: 18px;
-  block-size: 18px;
-  color: var(--accent);
+.ws-switch:hover,
+.ws-switch[aria-expanded="true"],
+.user-chip:hover,
+.user-chip[aria-expanded="true"] {
+  background: var(--hover);
+}
+
+.ws-switch {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-self: start;
+  max-inline-size: 100%;
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.ws-switch__name,
+.user-chip__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ws-switch__chev,
+.user-chip__more {
+  color: var(--text-faint);
+}
+
+.user-chip {
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  margin-block-end: var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .sidebar__nav {
@@ -89,6 +121,8 @@
   align-items: center;
   column-gap: var(--space-3);
   padding-inline-start: var(--space-2);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--border);
 }
 
 .sidebar__version {
