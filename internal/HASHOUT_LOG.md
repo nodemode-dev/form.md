@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.2.0
-Last updated: 2026-10-07 · Phase 2 accounts, workspaces, policy and admin
+Current build version: v0.2.1
+Last updated: 2026-10-07 · icon rule, fonts, system font preference
 
 ---
 
@@ -42,6 +42,8 @@ form.md/
 │   │   └── module.go                route table for /api/auth, /api/setup, /api/me, invites
 │   ├── config/
 │   │   └── config.go                FORMMD_* env vars, defaults, validation
+│   ├── icon/
+│   │   └── icon.go                  the one rule for icon values: icon-set name or uploaded file, never free text
 │   ├── httpx/
 │   │   ├── router.go                ServeMux wrapper, middleware chain, /api/ 404 catch-all
 │   │   ├── middleware.go            request id, panic recovery, access log, security headers
@@ -113,6 +115,7 @@ form.md/
 - [internal/admin/admin.go](#internal-admin-admin-go)
 - [internal/server/server.go](#internal-server-server-go)
 - [Phase 2 formatting and comment moves](#phase-2-housekeeping)
+- [v0.2.1: icons, fonts and the system font](#v021)
 
 ---
 
@@ -693,3 +696,49 @@ Replaced `<` with itself, so it did nothing; the escaping it meant to do is alre
 - logged: v0.2.0 · 2026-10-07
 
 After the start-up variables, `help` lists every instance setting that has an environment default (from `settings.Defs`), so the README table and the binary agree. These variables only supply defaults; a value saved in Instance settings wins.
+
+---
+
+## v0.2.1: icons, fonts and the system font {#v021}
+
+### internal/icon/icon.go · Valid
+- refers-to: internal/icon/icon.go :: `Valid`, `pattern`
+- kind: rationale
+- logged: v0.2.1 · 2026-10-07
+
+Your rule from open question 7: zero emojis. An icon value is empty (the default glyph), `i:<name>` or `i:<name>:<colour>` from the form.md icon set (lowercase words joined by hyphens, colour from the ten palette names), or `f:<id>` for an uploaded image (a 26-character id from `internal/ids`). Nothing else is stored, so no emoji or other free text can become an icon through the API, an agent or an import. Workspaces use it now (`cleanIcon`); pages use it in Phase 3. The Phase 9 importers map an emoji icon from another tool to the default icon rather than storing it.
+
+### internal/workspace/workspace.go · removed icon length check
+- refers-to: internal/workspace/workspace.go :: `cleanIcon`
+- kind: removed-code
+- logged: v0.2.1 · 2026-10-07
+
+```go
+if utf8.RuneCountInString(raw) > 200 {
+	return "", httpx.Fail(http.StatusBadRequest, "bad_icon", "icon value too long")
+}
+return strings.TrimSpace(raw), nil
+```
+
+Accepted any text up to 200 characters, emoji included. Replaced by `icon.Valid`.
+
+### internal/server/server.go · data-font
+- refers-to: internal/server/server.go :: `renderDocument` (signed-in branch)
+- kind: explainer
+- logged: v0.2.1 · 2026-10-07
+
+When the signed-in person chose the system font, the document carries `data-font="system"`, which the tokens file turns into the system font stacks before first paint. Absent attribute means Inter and JetBrains Mono.
+
+### internal/static/static.go · fontPreload
+- refers-to: internal/static/static.go :: `fontPreload`, `RenderIndex`
+- kind: warning-context
+- logged: v0.2.1 · 2026-10-07
+
+For a document rendered with `data-font="system"`, every `<link rel="preload" ... as="font" ...>` is removed, so people on the system font never download Inter. The pattern needs `rel="preload"` first and `as="font"` later in the same tag, which is how `web/index.html` writes it and how Vite keeps it after hashing the file name. Reorder those attributes and the preload stays for everyone (wasted bytes, not a visible fault).
+
+### tools/notices/main.go · fonts and OFL
+- refers-to: tools/notices/main.go :: `fontFiles`, `fonts`, `classify`
+- kind: explainer
+- logged: v0.2.1 · 2026-10-07
+
+The font files are not a Go module or an npm dependency (they were copied from `@fontsource-variable/inter` and `@fontsource-variable/jetbrains-mono` 5.3.0 into `web/src/fonts/` with their licence texts), so `fontFiles` lists them by hand: update the version there when the files are refreshed. The OFL check comes first in `classify` because the OFL's permission paragraph also starts with "Permission is hereby granted, free of charge", which the MIT check matched.

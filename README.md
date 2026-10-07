@@ -21,7 +21,7 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 
 - **One static binary** built w/ `CGO_ENABLED=0`: client, migrations & license notices embedded; five release targets (linux & darwin on amd64/arm64, windows amd64)
 - **Reads never queue behind writes** · one SQLite writer connection plus a query-only reader pool, numbered migrations in one transaction each, WAL checkpointed on clean shutdown
-- **Zero first-paint flash** · the server renders the sign-in state, the account & the current workspace into the page, & an inline boot script applies theme & sidebar before CSS paints; verified frame by frame under 4x CPU & 500 kbps throttling, dark & light, signed out & signed in
+- **Zero first-paint flash** · the server renders the sign-in state, the account & the current workspace into the page, & an inline boot script applies theme & sidebar before CSS paints; Inter & JetBrains Mono are preloaded w/ metric-matched fallbacks, so text never reflows when a font arrives; verified frame by frame under 4x CPU & 500 kbps throttling, dark & light, signed out & signed in
 - **Zero layout shift** · every async value has reserved space; measured CLS 0 across load & every shell interaction
 - **One stacking scale, one popover primitive, one layer stack** · no raw `z-index` outside the tokens file; Escape, outside-press, inert focus trapping & focus return handled in one place
 - **Accounts done properly** · argon2id w/ equal-time unknown accounts, TOTP w/ replay protection & recovery codes, Google, Microsoft & any OpenID Connect provider w/ verified ID-token signatures, single-use invitations, API tokens narrowed by scope & workspace
@@ -142,4 +142,4 @@ Phases 1 & 2 (skeleton binary, client shell, accounts, workspaces & the single p
 
 ### Licensing
 
-Apache-2.0, see [LICENSE](LICENSE). Third-party components & their licenses are listed in [NOTICES.md](NOTICES.md), which the binary also serves at `/notices`.
+Apache-2.0, see [LICENSE](LICENSE). Third-party components & their licenses are listed in [NOTICES.md](NOTICES.md), which the binary also serves at `/notices`. The Inter & JetBrains Mono font files in `web/src/fonts/` are under the SIL Open Font License 1.1, w/ the license texts beside them.

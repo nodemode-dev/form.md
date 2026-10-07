@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.2.0
-Last updated: 2026-10-07 · Phase 2 sign-in, session chrome and settings
+Current build version: v0.2.1
+Last updated: 2026-10-07 · fonts, appearance, panes patched in place
 
 ---
 
@@ -24,6 +24,7 @@ web/
 ├── dist/                            build output, embedded into the Go binary (only .gitkeep is tracked)
 └── src/
     ├── main.ts                      read boot and auth, set language, create engine, mount, start
+    ├── fonts/                       Inter and JetBrains Mono variable woff2 (latin, latin-ext) plus OFL texts
     ├── engine/                      headless: no DOM access
     │   ├── index.ts                 Engine, EngineState (auth, me, workspace), createEngine, Platform contract
     │   ├── state.ts                 per-key observable state
@@ -71,6 +72,7 @@ web/
     │       └── z-layers.css         the one stacking scale
     └── styles/
         ├── main.css                 import order
+        ├── fonts.css                @font-face for the shipped fonts and their metric-matched fallbacks
         ├── base.css                 reset, body ground, kbd, focus ring, hidden, reduced motion
         ├── controls.css             icon button, text button, segmented control
         ├── forms.css                tints, avatars, tiles, buttons, fields, switches, rows, badges, callouts
@@ -112,6 +114,7 @@ web/
 - [Phase 2: dialogs, menus and forms](#p2-kit)
 - [Phase 2: settings dialogs](#p2-settings)
 - [Phase 2: styles](#p2-styles)
+- [v0.2.1: fonts, appearance and in-place panes](#v021)
 
 ---
 
@@ -672,3 +675,90 @@ The first was the grey override described above. The second styled an inline SVG
 - logged: v0.2.0 · 2026-10-07
 
 Scrims and dialogs take pointer events only while `.is-visible`. During the 220 ms fade-out they used to swallow clicks, so clicking the account menu right after closing a dialog did nothing. Found by the browser verification.
+
+---
+
+## v0.2.1: fonts, appearance and in-place panes {#v021}
+
+### src/styles/fonts.css · no flash, no reflow
+- refers-to: src/styles/fonts.css :: every `@font-face`; index.html :: font preload; src/ui/theme/tokens.css :: `--font-sans`, `--font-mono`
+- kind: rationale
+- logged: v0.2.1 · 2026-10-07
+
+Three parts work together. The Inter latin text face is preloaded from the document head, so on a normal connection it is ready before first paint. Every face uses `font-display: optional`: if a face is not ready within the browser's short block period it is not used for that page at all, so text is never re-laid out when it arrives later (it is cached for the next load). The fallbacks "Inter Fallback" and "JetBrains Mono Fallback" are local Arial or Liberation Sans and Courier New or Liberation Mono with size, ascent, descent and line-gap overrides computed from the fonts' metrics (capsize's method, run once in scratch), so even a fallback page has the same line boxes. Verified: title and user-name widths constant across every frame of a throttled cold load and a warm load, CLS 0.
+
+### src/styles/fonts.css · subsets and weights
+- refers-to: src/styles/fonts.css :: `unicode-range`, `font-weight`
+- kind: explainer
+- logged: v0.2.1 · 2026-10-07
+
+Latin covers English and German (including umlauts and sharp s); latin-ext is fetched only when a character in its range is on the page. Inter ships upright and italic (italic for the editor in Phase 4), JetBrains Mono upright only; a mono italic is synthesised. Variable weights: Inter 100 to 900, JetBrains Mono 100 to 800. Glyphs outside the subsets (for example the arrows and Mac modifier symbols in shortcut hints) come from the system stack in the token.
+
+### src/ui/theme/tokens.css · data-font
+- refers-to: src/ui/theme/tokens.css :: `--font-system-sans`, `--font-system-mono`, `:root[data-font="system"]`
+- kind: explainer
+- logged: v0.2.1 · 2026-10-07
+
+The system stacks are tokens of their own; the shipped fonts sit in front of them in `--font-sans` and `--font-mono`. `data-font="system"` on the html tag points both at the system stacks. The server writes the attribute for people who chose it; `session.ts` keeps it in step when the choice changes.
+
+### src/ui/account.ts · Appearance
+- refers-to: src/ui/account.ts :: `profileTab` (Appearance section)
+- kind: explainer
+- logged: v0.2.1 · 2026-10-07
+
+The theme choice mirrors `state.themePref` both ways, so it and the sidebar's segmented control always agree; it stays per device. The system font switch is an account preference saved at once and undone if the save fails.
+
+### src/ui/account.ts · token workspace picker
+- refers-to: src/ui/account.ts :: `tokensTab` (`fillPicks`)
+- kind: explainer
+- logged: v0.2.1 · 2026-10-07
+
+The checkboxes are a keyed list now: a refresh adds or removes only the workspaces that changed and keeps the ticks and focus of the rest.
+
+### src/ui/account.ts · removed picker rebuild
+- refers-to: src/ui/account.ts :: `fillPicks`
+- kind: removed-code
+- logged: v0.2.1 · 2026-10-07
+
+```ts
+const chosen = new Set([...picks.querySelectorAll<HTMLInputElement>("input:checked")].map((i) => i.value));
+picks.replaceChildren(
+  ...me(engine)
+    .workspaces.filter((w) => !w.break_glass)
+    .map((w) => {
+      const box = h("input", { attrs: { type: "checkbox", value: w.id } });
+      box.checked = chosen.has(w.id);
+      return h("label", { class: "check" }, box, h("span", { text: w.name }));
+    }),
+);
+```
+
+Rebuilt the visible list on every refresh of the tab.
+
+### src/ui/admin.ts · users detail
+- refers-to: src/ui/admin.ts :: `usersTab` (`paintDetail`, `buildDetail`, `accessSection`)
+- kind: rationale
+- logged: v0.2.1 · 2026-10-07
+
+The detail pane is built once per selected person (keyed by id, whether it is you, whether it is the owner, whether you are the owner, and whether you may manage them) and patched on every later refresh through the collected patch functions. Handlers read the latest copy of the person, not the one the pane was built with. Selecting someone else swaps the pane in one operation, built off the page first. The previous version rebuilt the whole pane after every role change, deactivation or two-factor reset, which lost focus and redrew everything; it was replaced before v0.2.1 and is in git history at v0.2.0 (`paintDetail` in `web/src/ui/admin.ts`).
+
+### src/ui/admin.ts · paintBadges and the overview row
+- refers-to: src/ui/admin.ts :: `paintBadges`, `workspacesTab` (`overviewRow`, `updateOverview`)
+- kind: explainer
+- logged: v0.2.1 · 2026-10-07
+
+Badge rows are replaced only when their signature (role, two-factor, deactivated) changes. Overview rows create their two badges and the emergency button once and only toggle `hidden`; the button looks up the latest copy of its workspace in `latest`.
+
+### src/ui/workspace-settings.ts · proposal callout
+- refers-to: src/ui/workspace-settings.ts :: `agentsTab` (`proposed`, `proposalBy`, `proposalText`)
+- kind: explainer
+- logged: v0.2.1 · 2026-10-07
+
+Built once; a reload of the rules only sets its texts and visibility. "Load into editor" uses the latest proposal text.
+
+### deliberate content swaps
+- refers-to: src/ui/account.ts :: `twoFactorSection`; src/ui/account.ts :: token reveal; src/ui/workspace-settings.ts :: invitation link; src/ui/workspace-settings.ts :: `boundTab`
+- kind: warning-context
+- logged: v0.2.1 · 2026-10-07
+
+These are the remaining places that replace a container's children, all on purpose: the two-factor steps (off, enrol, recovery codes, on) after a click, the one-time token and invitation link after a click, and a settings tab built for a different workspace while its dialog is opening (before it paints). Each builds the new content off the page and swaps it in one operation. Do not add a refresh path that calls them for unchanged content.
