@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -e
+cd "$(dirname "$0")"
+
+pids=()
+./tools/boot_backend &
+pids+=($!)
+./web/boot_frontend &
+pids+=($!)
+
+echo "form.md dev: open http://127.0.0.1:5750 (API on http://127.0.0.1:8750)"
+trap 'kill "${pids[@]}" 2>/dev/null' EXIT
+wait

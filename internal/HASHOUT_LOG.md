@@ -14,6 +14,9 @@ form.md/
 ├── embed.go                         package formmd: embeds web/dist and NOTICES.md
 ├── go.mod, go.sum                   module github.com/nodemode-ai/form.md, Go 1.26+
 ├── NOTICES.md                       generated third-party notices, embedded, served at /notices
+├── Makefile                         build, web, notices, server, release, check, clean
+├── form-md, form-md.bat             dev boot: Go server on :8750 plus Vite on :5750
+├── form-md_oc_install (+ .bat)      installs both sides
 ├── cmd/
 │   └── form-md/
 │       └── main.go                  subcommands (serve, version, help), wiring, exit codes
@@ -41,6 +44,8 @@ form.md/
 │       └── migrations/
 │           └── 0001_instance.sql    instance key/value table
 └── tools/
+    ├── oc_install (+ .bat)          Go side install: go mod download
+    ├── boot_backend (+ .bat)        Go side dev boot: go run on 127.0.0.1:8750
     └── notices/
         └── main.go                  generates NOTICES.md from go list and web/node_modules
 ```
@@ -50,6 +55,8 @@ form.md/
 ## Table of contents
 
 - [embed.go](#embed-go)
+- [Makefile](#makefile)
+- [form-md and tools scripts](#scripts)
 - [cmd/form-md/main.go](#cmd-form-md-main-go)
 - [internal/app/app.go](#internal-app-app-go)
 - [internal/app/version.go](#internal-app-version-go)
@@ -74,6 +81,35 @@ form.md/
 - logged: v0.1.0 · 2026-10-07
 
 `go:embed` cannot reach a parent directory, so the embed sits at the module root and `cmd/form-md` imports it. `all:web/dist` needs at least one file to exist, so `web/dist/.gitkeep` is committed and the Vite build re-creates it after emptying the folder (see the frontend log). Without a client build the binary still compiles and serves the API with a 503 explainer on page routes. `Dist` panics only if the embed path is wrong, which is a build-time mistake, not a runtime condition.
+
+---
+
+## Makefile {#makefile}
+
+### Makefile · targets
+- refers-to: Makefile :: `build`, `release`, `check`
+- kind: explainer
+- logged: v0.1.0 · 2026-10-07
+
+`make build` installs client dependencies if missing, builds the client, regenerates `NOTICES.md` and links `bin/form-md` with `CGO_ENABLED=0 -trimpath` and the version stamped through `-ldflags`. `make release` cross-compiles linux and darwin on amd64 and arm64 plus windows amd64 into `release/` as `form-md_vX.Y.Z_<os>_<arch>` with a `SHA256SUMS` file. `make check` fails on unformatted Go, vet findings or client type errors. `VERSION` is one of the version sites the bump commit edits. The binary goes to `bin/` so it can never overwrite the root `form-md` boot script.
+
+---
+
+## form-md and tools scripts {#scripts}
+
+### form-md · dev boot
+- refers-to: form-md :: whole script; tools/boot_backend; web/boot_frontend
+- kind: explainer
+- logged: v0.1.0 · 2026-10-07
+
+Starts the Go server with `go run` on 127.0.0.1:8750 (data in `./data` unless `FORMMD_DATA` is set) and Vite on 127.0.0.1:5750, and stops both on exit. Open the Vite port while developing; it proxies the API to Go. The dev-rules script suite is adapted for a Go root module: the Go side's `oc_install` and `boot_backend` live in `tools/` because the repo root is the Go module, and the root scripts take the command name rather than the repo name because a script literally named `form.md` reads as Markdown.
+
+### form-md · process cleanup
+- refers-to: form-md :: `trap`
+- kind: warning-context
+- logged: v0.1.0 · 2026-10-07
+
+When stopping a dev session from another shell, signal the exact PIDs. A pattern match on "form-md" also matches any shell whose command line mentions the repo, including the one doing the killing.
 
 ---
 
