@@ -34,7 +34,7 @@ const MESSAGES: Record<string, () => string> = {
   totp_active: () => t("Two-factor sign-in is already on."),
   mail_failed: () => t("The test message could not be sent."),
   create_closed: () => t("Only admins create workspaces on this instance."),
-  self: () => t("Use your own account settings for this."),
+  self: () => t("You cannot do that to your own account here."),
   owner_protected: () => t("The owner account can only be changed by its owner."),
   not_stranded: () => t("This workspace has an admin again."),
   credential_narrowed: () => t("This credential is limited to chosen workspaces."),
