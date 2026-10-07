@@ -416,6 +416,30 @@ function agentsTab(engine: Engine): Tab {
     box.addEventListener("input", () => {
       dirty = true;
     });
+
+    let proposed = "";
+    const proposalBy = h("strong");
+    const proposalText = h("pre", { class: "proposal__text" });
+    const useProposal = button(t("Load into editor"), "default");
+    const dismissProposal = button(t("Dismiss proposal"), "ghost");
+    useProposal.addEventListener("click", () => {
+      box.value = proposed;
+      dirty = true;
+      paintCount();
+      box.focus();
+    });
+    dismissProposal.addEventListener("click", async () => {
+      try {
+        await engine.api.workspaces.dismissProposal(w.id);
+        toast({ message: t("Proposal dismissed.") });
+        load();
+        void engine.refreshMe();
+      } catch (err) {
+        rulesStatus.error(err);
+      }
+    });
+    proposal.append(h("div", { class: "callout" }, iconNode("bot"), h("div", { class: "form-grid" }, proposalBy, proposalText, actions(dismissProposal, useProposal))));
+
     const load = () => {
       engine.api.workspaces
         .rules(w.id)
@@ -426,33 +450,10 @@ function agentsTab(engine: Engine): Tab {
           }
           paintCount();
           setText(updated, r.updated_at ? t("Last changed {when}.", { when: formatRelative(r.updated_at) }) : admin ? "" : t("No rules yet. A workspace admin can add them."));
-          if (r.proposal && admin) {
-            const use = button(t("Load into editor"), "default");
-            const dismiss = button(t("Dismiss proposal"), "ghost");
-            use.addEventListener("click", () => {
-              box.value = r.proposal ?? "";
-              dirty = true;
-              paintCount();
-              box.focus();
-            });
-            dismiss.addEventListener("click", async () => {
-              try {
-                await engine.api.workspaces.dismissProposal(w.id);
-                toast({ message: t("Proposal dismissed.") });
-                load();
-                void engine.refreshMe();
-              } catch (err) {
-                rulesStatus.error(err);
-              }
-            });
-            proposal.replaceChildren(
-              h("div", { class: "callout" }, iconNode("bot"), h("div", { class: "form-grid" }, h("strong", { text: t("Proposed by {name}, {when}", { name: r.proposal_by_name || t("an agent"), when: formatRelative(r.proposal_at ?? 0) }) }), h("pre", { class: "proposal__text", text: r.proposal }), actions(dismiss, use))),
-            );
-            proposal.hidden = false;
-          } else {
-            proposal.hidden = true;
-            proposal.replaceChildren();
-          }
+          proposed = r.proposal && admin ? r.proposal : "";
+          setText(proposalBy, t("Proposed by {name}, {when}", { name: r.proposal_by_name || t("an agent"), when: formatRelative(r.proposal_at ?? 0) }));
+          setText(proposalText, proposed);
+          proposal.hidden = proposed === "";
         })
         .catch((err) => rulesStatus.error(err));
     };

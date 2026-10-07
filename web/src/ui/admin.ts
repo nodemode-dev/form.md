@@ -346,6 +346,13 @@ function badgeList(u: AdminUser): HTMLElement[] {
   return out;
 }
 
+function paintBadges(el: HTMLElement, u: AdminUser): void {
+  const sig = [u.role, u.totp_enabled, u.disabled].join("|");
+  if (el.dataset.sig === sig) return;
+  el.dataset.sig = sig;
+  el.replaceChildren(...badgeList(u));
+}
+
 function usersTab(engine: Engine): Tab {
   return {
     id: "users",
@@ -380,7 +387,7 @@ function usersTab(engine: Engine): Tab {
         const [title, meta] = b.querySelectorAll(".row__main > span") as unknown as [HTMLElement, HTMLElement];
         setText(title, u.id === me().user.id ? t("{name} (you)", { name: u.name }) : u.name);
         setText(meta, u.email);
-        b.querySelector(".pick-row__badges")!.replaceChildren(...badgeList(u));
+        paintBadges(b.querySelector<HTMLElement>(".pick-row__badges")!, u);
         setAttr(b, "aria-selected", u.id === selected ? "true" : "false");
       };
       const paintList = () => {
@@ -411,74 +418,96 @@ function usersTab(engine: Engine): Tab {
         detail.querySelector<HTMLElement>("h3, button")?.scrollIntoView({ block: "nearest" });
       };
 
+      let detailKey = "-";
+      let patchDetail: ((u: AdminUser) => void) | null = null;
+
       const paintDetail = () => {
         const u = users.find((x) => x.id === selected);
-        if (!u) {
-          detail.replaceChildren(h("div", { class: "empty-state" }, iconNode("user"), h("p", { text: t("Pick a person to manage their account and workspace access.") })));
-          return;
+        const key = u ? [u.id, u.id === me().user.id, u.role === "owner", isOwner(), isOwner() || u.role === "member"].join("|") : "";
+        if (key !== detailKey) {
+          detailKey = key;
+          if (u) {
+            const built = buildDetail(u);
+            patchDetail = built.patch;
+            detail.replaceChildren(...built.nodes);
+          } else {
+            patchDetail = null;
+            detail.replaceChildren(h("div", { class: "empty-state" }, iconNode("user"), h("p", { text: t("Pick a person to manage their account and workspace access.") })));
+          }
         }
-        const self = u.id === me().user.id;
-        const st = status();
-        const head = h(
-          "div",
-          { class: "detail-head" },
-          avatar(u.name, u.color, true),
-          h(
-            "div",
-            { class: "detail-head__text" },
-            h("h3", { class: "section__title", text: u.name }),
-            h("span", { class: "row__meta", text: u.email }),
-            h("span", { class: "row__meta", text: [t("joined {date}", { date: formatDate(u.created_at) }), u.last_seen_at ? t("active {when}", { when: formatRelative(u.last_seen_at) }) : t("never signed in")].join(" · ") }),
-            h("span", { class: "pick-row__badges" }, ...badgeList(u)),
-          ),
-        );
-        const parts: HTMLElement[] = [head];
+        if (u) patchDetail?.(u);
+      };
 
-        if (self) {
+      const buildDetail = (first: AdminUser): { nodes: HTMLElement[]; patch: (u: AdminUser) => void } => {
+        let cur = first;
+        const st = status();
+        const face = avatar(first.name, first.color, true);
+        const name = h("h3", { class: "section__title" });
+        const email = h("span", { class: "row__meta" });
+        const seen = h("span", { class: "row__meta" });
+        const badges = h("span", { class: "pick-row__badges" });
+        const nodes: HTMLElement[] = [h("div", { class: "detail-head" }, face, h("div", { class: "detail-head__text" }, name, email, seen, badges))];
+        const patches: ((u: AdminUser) => void)[] = [
+          (u) => {
+            updateAvatar(face, u.name, u.color);
+            setText(name, u.name);
+            setText(email, u.email);
+            setText(seen, [t("joined {date}", { date: formatDate(u.created_at) }), u.last_seen_at ? t("active {when}", { when: formatRelative(u.last_seen_at) }) : t("never signed in")].join(" · "));
+            paintBadges(badges, u);
+          },
+        ];
+        const patch = (u: AdminUser) => {
+          cur = u;
+          for (const p of patches) p(u);
+        };
+
+        if (first.id === me().user.id) {
           const open = button(t("Open account settings"), "default", "user");
           open.addEventListener("click", () => engine.openOverlay("account"));
-          parts.push(h("div", { class: "callout" }, iconNode("info"), h("div", { class: "form-grid" }, h("p", { text: t("This is you. Change your own account in your account settings.") }), actions(open))));
-          detail.replaceChildren(...parts);
-          return;
+          nodes.push(h("div", { class: "callout" }, iconNode("info"), h("div", { class: "form-grid" }, h("p", { text: t("This is you. Change your own account in your account settings.") }), actions(open))));
+          return { nodes, patch };
         }
-        if (u.role === "owner") {
-          parts.push(h("div", { class: "callout" }, iconNode("info"), h("p", { text: t("The owner runs this instance. Their account is changed only by themselves.") })));
-          detail.replaceChildren(...parts, accessSection(u, st), st.el);
-          return;
+        if (first.role === "owner") {
+          const acc = accessSection(() => cur, st);
+          patches.push(acc.patch);
+          nodes.push(h("div", { class: "callout" }, iconNode("info"), h("p", { text: t("The owner runs this instance. Their account is changed only by themselves.") })), acc.el, st.el);
+          return { nodes, patch };
         }
 
-        const canManage = isOwner() || u.role === "member";
         if (isOwner()) {
           const role = choices(
-            `role-${u.id}`,
+            `role-${first.id}`,
             [
               ["member", t("Member")],
               ["admin", t("Instance admin (manages everything)")],
             ] as const,
-            u.role === "admin" ? "admin" : "member",
+            first.role === "admin" ? "admin" : "member",
           );
           role.el.addEventListener("change", async () => {
             st.clear();
             try {
-              await engine.api.admin.updateUser(u.id, { role: role.value() });
+              await engine.api.admin.updateUser(cur.id, { role: role.value() });
               await load();
             } catch (err) {
-              role.set(u.role === "admin" ? "admin" : "member");
+              role.set(cur.role === "admin" ? "admin" : "member");
               st.error(err);
             }
           });
+          patches.push((u) => role.set(u.role === "admin" ? "admin" : "member"));
           const s = section(t("Instance role"));
           s.append(role.el);
-          parts.push(s);
+          nodes.push(s);
         }
 
-        if (canManage) {
+        if (isOwner() || first.role === "member") {
           const s = section(t("Account"));
-          const toggleActive = button(u.disabled ? t("Reactivate") : t("Deactivate"), u.disabled ? "default" : "danger");
+          const toggleActive = button(t("Deactivate"), "danger");
+          const toggleLabel = toggleActive.querySelector("span")!;
           toggleActive.addEventListener("click", async () => {
-            if (!u.disabled) {
+            const was = cur;
+            if (!was.disabled) {
               const ok = await confirmDialog({
-                title: t("Deactivate {name}?", { name: u.name }),
+                title: t("Deactivate {name}?", { name: was.name }),
                 body: t("They are signed out everywhere and their tokens stop working. Nothing they made is lost, and you can reactivate them later."),
                 confirm: t("Deactivate"),
                 variant: "danger",
@@ -486,84 +515,105 @@ function usersTab(engine: Engine): Tab {
               if (!ok) return;
             }
             try {
-              await busy(toggleActive, () => engine.api.admin.updateUser(u.id, { disabled: !u.disabled }));
-              toast({ message: u.disabled ? t("{name} is active again.", { name: u.name }) : t("{name} has been deactivated.", { name: u.name }), tone: "success" });
+              await busy(toggleActive, () => engine.api.admin.updateUser(was.id, { disabled: !was.disabled }));
+              toast({ message: was.disabled ? t("{name} is active again.", { name: was.name }) : t("{name} has been deactivated.", { name: was.name }), tone: "success" });
               await load();
             } catch (err) {
               st.error(err);
             }
           });
           const row = h("div", { class: "form-actions form-actions--start" }, toggleActive);
+          patches.push((u) => {
+            setText(toggleLabel, u.disabled ? t("Reactivate") : t("Deactivate"));
+            setAttr(toggleActive, "class", u.disabled ? "btn" : "btn btn--danger");
+          });
           if (isOwner()) {
-            if (u.totp_enabled) {
-              const reset = button(t("Reset two-factor"), "default", "shield");
-              reset.addEventListener("click", async () => {
-                const ok = await confirmDialog({
-                  title: t("Reset two-factor for {name}?", { name: u.name }),
-                  body: t("Their authenticator and recovery codes stop working. They can sign in with the password alone and set it up again."),
-                  confirm: t("Reset"),
-                  variant: "danger",
-                });
-                if (!ok) return;
-                try {
-                  await engine.api.admin.resetTOTP(u.id);
-                  await load();
-                } catch (err) {
-                  st.error(err);
-                }
+            const reset = button(t("Reset two-factor"), "default", "shield");
+            reset.addEventListener("click", async () => {
+              const ok = await confirmDialog({
+                title: t("Reset two-factor for {name}?", { name: cur.name }),
+                body: t("Their authenticator and recovery codes stop working. They can sign in with the password alone and set it up again."),
+                confirm: t("Reset"),
+                variant: "danger",
               });
-              row.append(reset);
-            }
+              if (!ok) return;
+              try {
+                await engine.api.admin.resetTOTP(cur.id);
+                await load();
+              } catch (err) {
+                st.error(err);
+              }
+            });
             const pw = button(t("Set a new password"), "default", "key");
-            pw.addEventListener("click", () => setPasswordDialog(u));
-            row.append(pw);
+            pw.addEventListener("click", () => setPasswordDialog(cur));
+            row.append(reset, pw);
+            patches.push((u) => {
+              reset.hidden = !u.totp_enabled;
+            });
           }
           s.append(row);
-          parts.push(s);
+          nodes.push(s);
         }
 
-        parts.push(accessSection(u, st));
+        const acc = accessSection(() => cur, st);
+        patches.push(acc.patch);
+        nodes.push(acc.el);
 
         if (isOwner()) {
           const s = section(t("Hand over or delete"));
           const hand = button(t("Hand over the instance"), "default", "building");
-          hand.disabled = u.disabled;
-          hand.addEventListener("click", () => transferDialog(u));
+          hand.addEventListener("click", () => transferDialog(cur));
           const del = button(t("Delete user"), "danger", "trash");
-          del.addEventListener("click", () => void deleteFlow(u));
+          del.addEventListener("click", () => void deleteFlow(cur));
           s.append(h("div", { class: "form-actions form-actions--start" }, hand, del));
-          parts.push(s);
+          patches.push((u) => {
+            hand.disabled = u.disabled;
+          });
+          nodes.push(s);
         }
-        parts.push(st.el);
-        detail.replaceChildren(...parts);
+        nodes.push(st.el);
+        return { nodes, patch };
       };
 
-      const accessSection = (u: AdminUser, st: ReturnType<typeof status>): HTMLElement => {
-        const s = section(t("Workspace access"), t("Shared workspaces only. Personal spaces stay private to their owner."));
-        if (access.length === 0) {
-          s.append(h("p", { class: "muted", text: t("No shared workspaces yet.") }));
-          return s;
-        }
+      const accessSection = (who: () => AdminUser, st: ReturnType<typeof status>): { el: HTMLElement; patch: () => void } => {
+        const el = section(t("Workspace access"), t("Shared workspaces only. Personal spaces stay private to their owner."));
         const rows = h("div", { class: "rows" });
-        for (const w of access) {
-          const current = w.members.find((m) => m.user_id === u.id)?.role ?? "";
-          const pick = select<WorkspaceRole | "">([["", t("No access")], ...roleOptions()], current);
-          pick.setAttribute("aria-label", t("Access to {name}", { name: w.name }));
+        const empty = h("p", { class: "muted", text: t("No shared workspaces yet.") });
+        el.append(rows, empty);
+        const rowFor = () => {
+          const title = h("span", { class: "row__title" });
+          const meta = h("span", { class: "row__meta" });
+          const pick = select<WorkspaceRole | "">([["", t("No access")], ...roleOptions()]);
+          const r = h("div", { class: "row" }, iconNode("building"), h("div", { class: "row__main" }, title, meta), h("div", { class: "row__actions" }, pick));
           pick.addEventListener("change", async () => {
             st.clear();
+            const before = r.dataset.role ?? "";
             try {
-              await engine.api.admin.setAccess(u.id, w.id, pick.value as WorkspaceRole | "");
-              const a = await engine.api.admin.access();
-              access = a.workspaces;
+              await engine.api.admin.setAccess(who().id, r.dataset.key ?? "", pick.value as WorkspaceRole | "");
+              access = (await engine.api.admin.access()).workspaces;
+              patch();
             } catch (err) {
-              pick.value = current;
+              pick.value = before;
               st.error(err);
             }
           });
-          rows.append(h("div", { class: "row" }, iconNode("building"), h("div", { class: "row__main" }, h("span", { class: "row__title", text: w.name }), h("span", { class: "row__meta", text: plural(w.members.length, "{count} member", "{count} members") })), h("div", { class: "row__actions" }, pick)));
-        }
-        s.append(rows);
-        return s;
+          return r;
+        };
+        const updateRow = (r: HTMLElement, w: AccessWorkspace) => {
+          const [title, meta] = r.querySelectorAll(".row__main > span") as unknown as [HTMLElement, HTMLElement];
+          setText(title, w.name);
+          setText(meta, plural(w.members.length, "{count} member", "{count} members"));
+          const role = w.members.find((m) => m.user_id === who().id)?.role ?? "";
+          r.dataset.role = role;
+          const pick = r.querySelector("select")!;
+          if (pick.value !== role) pick.value = role;
+          setAttr(pick, "aria-label", t("Access to {name}", { name: w.name }));
+        };
+        const patch = () => {
+          reconcile(rows, access, (w) => w.id, rowFor, updateRow);
+          empty.hidden = access.length > 0;
+        };
+        return { el, patch };
       };
 
       const setPasswordDialog = (u: AdminUser) => {
@@ -712,11 +762,19 @@ function workspacesTab(engine: Engine): Tab {
       const st = status();
 
       const overview = h("div", { class: "rows" });
+      const latest = new Map<string, AccessWorkspace>();
       const overviewRow = () => {
         const title = h("span", { class: "row__title" });
         const meta = h("span", { class: "row__meta" });
-        const side = h("div", { class: "row__actions" });
-        return h("div", { class: "row" }, iconNode("building"), h("div", { class: "row__main" }, title, meta), side);
+        const open = h("span", { class: "badge", text: t("Open to new accounts") });
+        const reading = h("span", { class: "badge badge--danger", text: t("Reading") });
+        const look = button(t("Emergency access"), "ghost", "alert");
+        const r = h("div", { class: "row" }, iconNode("building"), h("div", { class: "row__main" }, title, meta), h("div", { class: "row__actions" }, open, reading, look));
+        look.addEventListener("click", () => {
+          const w = latest.get(r.dataset.key ?? "");
+          if (w) breakGlassDialog(w);
+        });
+        return r;
       };
       const updateOverview = (r: HTMLElement, w: AccessWorkspace) => {
         const [title, meta] = r.querySelectorAll(".row__main > span") as unknown as [HTMLElement, HTMLElement];
@@ -724,20 +782,13 @@ function workspacesTab(engine: Engine): Tab {
         const admins = w.members.filter((m) => m.role === "admin").length;
         const agent = w.agent_access === "closed" ? t("no agents") : w.agent_access === "strict" ? t("signed-in agents only") : t("agents allowed");
         setText(meta, [plural(w.members.length, "{count} member", "{count} members"), plural(admins, "{count} admin", "{count} admins"), agent].join(" · "));
-        const side = r.querySelector<HTMLElement>(".row__actions")!;
-        const parts: HTMLElement[] = [];
-        if (w.auto_join) parts.push(h("span", { class: "badge", text: t("Open to new accounts") }));
+        latest.set(w.id, w);
+        const [open, reading, look] = r.querySelector(".row__actions")!.children as unknown as [HTMLElement, HTMLElement, HTMLElement];
         const member = me().workspaces.some((x) => x.id === w.id && !x.break_glass);
-        const reading = me().workspaces.some((x) => x.id === w.id && x.break_glass);
-        if (isOwner() && !member) {
-          if (reading) parts.push(h("span", { class: "badge badge--danger", text: t("Reading") }));
-          else {
-            const look = button(t("Emergency access"), "ghost", "alert");
-            look.addEventListener("click", () => breakGlassDialog(w));
-            parts.push(look);
-          }
-        }
-        side.replaceChildren(...parts);
+        const isReading = me().workspaces.some((x) => x.id === w.id && x.break_glass);
+        open.hidden = !w.auto_join;
+        reading.hidden = !(isOwner() && !member && isReading);
+        look.hidden = !(isOwner() && !member && !isReading);
       };
 
       const grants = h("div", { class: "rows" });
