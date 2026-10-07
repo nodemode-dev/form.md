@@ -194,6 +194,8 @@ func (h *Hub) current() int64 {
 	return h.seq
 }
 
+func (h *Hub) Seq() int64 { return h.current() }
+
 func write(w http.ResponseWriter, rc *http.ResponseController, seq int64, data map[string]any) error {
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -225,6 +227,19 @@ type module struct {
 func (h *Hub) Module(a *auth.Service) app.Module { return module{h, a} }
 
 func (module) ID() string { return "events" }
+
+func (m module) Stop() { m.h.CloseAll() }
+
+func (h *Hub) CloseAll() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for s := range h.subs {
+		if !s.closed {
+			s.closed = true
+			close(s.ch)
+		}
+	}
+}
 
 func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	r.HandleFunc("GET /api/events", m.auth.Require(m.h.Handler))

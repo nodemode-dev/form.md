@@ -30,6 +30,10 @@ type Module interface {
 	Mount(r *httpx.Router, d *Deps) error
 }
 
+type Stopper interface {
+	Stop()
+}
+
 const shutdownGrace = 15 * time.Second
 
 func Run(ctx context.Context, d *Deps, modules []Module) error {
@@ -52,6 +56,11 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 		ErrorLog:          slog.NewLogLogger(d.Log.Handler(), slog.LevelWarn),
+	}
+	for _, m := range modules {
+		if s, ok := m.(Stopper); ok {
+			srv.RegisterOnShutdown(s.Stop)
+		}
 	}
 
 	ln, err := net.Listen("tcp", d.Config.Addr)
