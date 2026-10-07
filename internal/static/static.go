@@ -146,7 +146,6 @@ func RenderIndex(index []byte, doc Document) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	boot = bytes.ReplaceAll(boot, []byte("<"), []byte(`<`))
 	keys := make([]string, 0, len(doc.Attrs))
 	for k := range doc.Attrs {
 		keys = append(keys, k)
