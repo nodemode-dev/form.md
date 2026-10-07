@@ -63,6 +63,7 @@ var Defs = []Def{
 	{Key: "mail.oauth.refresh_token", Kind: Secret},
 	{Key: "mail.oauth.account", Kind: Text},
 	{Key: "trash.days", Kind: Int, Default: "30", Env: "FORMMD_TRASH_DAYS", Min: 0, Max: 3650},
+	{Key: "files.max_upload_mb", Kind: Int, Default: "50", Min: 1, Max: 2048},
 	{Key: "audit.retention_days", Kind: Int, Default: "0", Min: 0, Max: 36500},
 	{Key: "update.check", Kind: Bool, Default: "true", Env: "FORMMD_UPDATE_CHECK"},
 	{Key: "docs.print_page_size", Kind: Enum, Default: "a4", Options: []string{"a4", "letter"}},

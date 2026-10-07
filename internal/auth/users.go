@@ -408,9 +408,10 @@ func (s *Service) writeMe(w http.ResponseWriter, r *http.Request, userID string)
 }
 
 type meUpdate struct {
-	Name  *string `json:"name"`
-	Color *string `json:"color"`
-	Prefs *Prefs  `json:"prefs"`
+	Name   *string `json:"name"`
+	Color  *string `json:"color"`
+	Avatar *string `json:"avatar"`
+	Prefs  *Prefs  `json:"prefs"`
 }
 
 var validHourCycle = map[string]bool{"": true, "h12": true, "h23": true}
@@ -438,6 +439,13 @@ func (s *Service) handleUpdateMe(w http.ResponseWriter, r *http.Request, p *poli
 			return httpx.Fail(http.StatusBadRequest, "bad_color", "unknown colour")
 		}
 		sets, args = append(sets, "color = ?"), append(args, *in.Color)
+	}
+	if in.Avatar != nil {
+		v := strings.TrimSpace(*in.Avatar)
+		if v != "" && (s.avatarCheck == nil || !s.avatarCheck(r.Context(), v, p.UserID)) {
+			return httpx.Fail(http.StatusBadRequest, "bad_avatar", "upload the picture first")
+		}
+		sets, args = append(sets, "avatar = ?"), append(args, v)
 	}
 	if pr := in.Prefs; pr != nil {
 		if !validHourCycle[pr.HourCycle] || !validWeekStart[pr.WeekStart] || len(pr.Lang) > 16 || len(pr.Region) > 16 || len(pr.TimeZone) > 64 {

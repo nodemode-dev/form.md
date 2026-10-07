@@ -41,10 +41,16 @@ type Service struct {
 	accounts  AccountHooks
 	mailer    Mailer
 	meExtras  func(ctx context.Context, p *policy.Principal) (map[string]any, error)
+
+	avatarCheck func(ctx context.Context, ref, userID string) bool
 }
 
 func (s *Service) SetMeExtras(fn func(ctx context.Context, p *policy.Principal) (map[string]any, error)) {
 	s.meExtras = fn
+}
+
+func (s *Service) SetAvatarCheck(fn func(ctx context.Context, ref, userID string) bool) {
+	s.avatarCheck = fn
 }
 
 type AccountHooks interface {
