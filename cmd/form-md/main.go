@@ -8,11 +8,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	_ "time/tzdata"
 
 	formmd "github.com/nodemode-ai/form.md"
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/config"
-	"github.com/nodemode-ai/form.md/internal/static"
+	"github.com/nodemode-ai/form.md/internal/server"
 	"github.com/nodemode-ai/form.md/internal/store"
 )
 
@@ -70,20 +71,12 @@ func serve() int {
 		return 1
 	}
 
-	deps := &app.Deps{
-		Config:     cfg,
-		Store:      st,
-		Log:        log,
-		Dist:       formmd.Dist(),
-		Notices:    formmd.Notices(),
-		InstanceID: instanceID,
+	srv, err := server.Build(ctx, cfg, log, st, formmd.Dist(), formmd.Notices(), instanceID)
+	if err != nil {
+		log.Error("startup", "err", err)
+		return 1
 	}
-	modules := []app.Module{
-		app.Health(),
-		app.Notices(),
-		static.Module(),
-	}
-	if err := app.Run(ctx, deps, modules); err != nil {
+	if err := srv.Run(ctx); err != nil {
 		log.Error("server", "err", err)
 		return 1
 	}

@@ -6,11 +6,14 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"html"
 	"io/fs"
 	"mime"
 	"net/http"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -26,23 +29,35 @@ type asset struct {
 	immutable bool
 }
 
-type Handler struct {
-	files map[string]*asset
-	index *asset
-	csp   string
+type Document struct {
+	Attrs    map[string]string
+	Slots    map[string]string
+	Lang     string
+	Boot     any
+	Redirect string
 }
 
-type module struct{}
+type Renderer func(r *http.Request) (Document, error)
 
-func Module() app.Module { return module{} }
+type Handler struct {
+	files  map[string]*asset
+	index  *asset
+	csp    string
+	render Renderer
+}
+
+type module struct{ render Renderer }
+
+func Module(render Renderer) app.Module { return module{render} }
 
 func (module) ID() string { return "static" }
 
-func (module) Mount(r *httpx.Router, d *app.Deps) error {
+func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 	h, err := New(d.Dist)
 	if err != nil {
 		return err
 	}
+	h.render = m.render
 	if h.index == nil {
 		d.Log.Warn("web client not built; serving API only", "hint", "run make build, or use the Vite dev server on http://127.0.0.1:5750")
 	}
@@ -51,6 +66,8 @@ func (module) Mount(r *httpx.Router, d *app.Deps) error {
 }
 
 var inlineScript = regexp.MustCompile(`(?s)<script>(.*?)</script>`)
+
+var slotPattern = regexp.MustCompile(`<!--slot:([a-z-]+)-->`)
 
 var compressible = map[string]bool{
 	".html": true, ".js": true, ".mjs": true, ".css": true, ".svg": true,
@@ -111,7 +128,65 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("form-md: the web client is not built.\nRun `make build`, or use the Vite dev server at http://127.0.0.1:5750 while developing.\n"))
 		return
 	}
-	h.serve(w, r, h.index, true)
+	if h.render == nil {
+		h.serve(w, r, h.index, true)
+		return
+	}
+	h.serveDocument(w, r)
+}
+
+var (
+	authMarker = []byte(`data-auth="pending"`)
+	langMarker = []byte(`<html lang="en"`)
+	bootMarker = []byte(`<script type="application/json" id="boot">null</script>`)
+)
+
+func RenderIndex(index []byte, doc Document) ([]byte, error) {
+	boot, err := json.Marshal(doc.Boot)
+	if err != nil {
+		return nil, err
+	}
+	boot = bytes.ReplaceAll(boot, []byte("<"), []byte(`<`))
+	keys := make([]string, 0, len(doc.Attrs))
+	for k := range doc.Attrs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var attrs []string
+	for _, k := range keys {
+		attrs = append(attrs, `data-`+k+`="`+html.EscapeString(doc.Attrs[k])+`"`)
+	}
+	out := bytes.Replace(index, authMarker, []byte(strings.Join(attrs, " ")), 1)
+	out = slotPattern.ReplaceAllFunc(out, func(m []byte) []byte {
+		key := string(slotPattern.FindSubmatch(m)[1])
+		return []byte(html.EscapeString(doc.Slots[key]))
+	})
+	if doc.Lang != "" && doc.Lang != "en" {
+		out = bytes.Replace(out, langMarker, []byte(`<html lang="`+doc.Lang+`"`), 1)
+	}
+	return bytes.Replace(out, bootMarker, append(append([]byte(`<script type="application/json" id="boot">`), boot...), []byte(`</script>`)...), 1), nil
+}
+
+func (h *Handler) serveDocument(w http.ResponseWriter, r *http.Request) {
+	doc, err := h.render(r)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if doc.Redirect != "" {
+		http.Redirect(w, r, doc.Redirect, http.StatusFound)
+		return
+	}
+	body, err := RenderIndex(h.index.body, doc)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	a := &asset{body: body, ctype: h.index.ctype, etag: etag(body)}
+	if acceptsGzip(r.Header.Get("Accept-Encoding")) {
+		a.gz = gzipBytes(body)
+	}
+	h.serve(w, r, a, true)
 }
 
 func (h *Handler) serve(w http.ResponseWriter, r *http.Request, a *asset, document bool) {
@@ -119,9 +194,12 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, a *asset, docume
 	hdr.Set("Content-Type", a.ctype)
 	hdr.Set("ETag", a.etag)
 	hdr.Set("Vary", "Accept-Encoding")
-	if a.immutable {
+	switch {
+	case a.immutable:
 		hdr.Set("Cache-Control", "public, max-age=31536000, immutable")
-	} else {
+	case document:
+		hdr.Set("Cache-Control", "no-store")
+	default:
 		hdr.Set("Cache-Control", "no-cache")
 	}
 	if document {
