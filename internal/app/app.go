@@ -22,6 +22,7 @@ type Deps struct {
 	Dist       fs.FS
 	Notices    string
 	InstanceID string
+	Middleware []httpx.Middleware
 }
 
 type Module interface {
@@ -33,6 +34,7 @@ const shutdownGrace = 15 * time.Second
 
 func Run(ctx context.Context, d *Deps, modules []Module) error {
 	r := httpx.NewRouter(d.Log)
+	r.Use(d.Middleware...)
 	seen := map[string]bool{}
 	for _, m := range modules {
 		if seen[m.ID()] {
