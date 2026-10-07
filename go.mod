@@ -2,7 +2,11 @@ module github.com/nodemode-ai/form.md
 
 go 1.26.0
 
-require modernc.org/sqlite v1.60.1
+require (
+	golang.org/x/crypto v0.57.0
+	modernc.org/sqlite v1.60.1
+	rsc.io/qr v0.2.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
