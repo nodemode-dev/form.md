@@ -13,17 +13,20 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
 </p>
 
-form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 1 of 10**: the binary, storage & client shell exist; pages, the editor, databases & the agent surface follow per the roadmap.
+form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 2 of 11**: the binary, storage, client shell, accounts, workspaces, the policy gate & every account, workspace & instance settings screen exist; pages, the editor, databases & the agent surface follow per the roadmap.
 
-**Stack:** Go 1.26 · pure-Go SQLite (modernc) · vanilla TypeScript & Vite · no UI framework · **Scale:** 11 MB static binary, 8 KB JS & 4 KB CSS gzipped for the shell
+**Stack:** Go 1.26 · pure-Go SQLite (modernc) · vanilla TypeScript & Vite · no UI framework · **Scale:** 13 MB static binary, 33 KB JS & 7 KB CSS gzipped for the whole client so far
 
 ## Highlights
 
 - **One static binary** built w/ `CGO_ENABLED=0`: client, migrations & license notices embedded; five release targets (linux & darwin on amd64/arm64, windows amd64)
 - **Reads never queue behind writes** · one SQLite writer connection plus a query-only reader pool, numbered migrations in one transaction each, WAL checkpointed on clean shutdown
-- **Zero first-paint flash** · the theme & sidebar state are applied by an inline boot script before CSS paints; verified frame by frame under 4x CPU & 500 kbps throttling, dark & light
+- **Zero first-paint flash** · the server renders the sign-in state, the account & the current workspace into the page, & an inline boot script applies theme & sidebar before CSS paints; verified frame by frame under 4x CPU & 500 kbps throttling, dark & light, signed out & signed in
 - **Zero layout shift** · every async value has reserved space; measured CLS 0 across load & every shell interaction
 - **One stacking scale, one popover primitive, one layer stack** · no raw `z-index` outside the tokens file; Escape, outside-press, inert focus trapping & focus return handled in one place
+- **Accounts done properly** · argon2id w/ equal-time unknown accounts, TOTP w/ replay protection & recovery codes, Google, Microsoft & any OpenID Connect provider w/ verified ID-token signatures, single-use invitations, API tokens narrowed by scope & workspace
+- **One policy gate** · sessions & tokens resolve to one principal; a credential can only narrow its person; per-workspace agent policy (open, strict, closed); anything unreadable answers not found
+- **Owner tools** · time-boxed, audited emergency read access, deletion w/ an impact plan, stranded-workspace recovery, ownership hand-over
 - **Keyboard first** · one scoped shortcut registry (layout-independent letters), a live shortcut sheet on `?`, chord hints in every tooltip
 - **Hardened by default** · hash-pinned CSP for the inline boot script, `nosniff`, frame denial, request ids, panic recovery, loopback-only default bind
 
@@ -48,7 +51,7 @@ make build
 ./bin/form-md
 ```
 
-Then open http://127.0.0.1:8750.
+Then open http://127.0.0.1:8750. The first visit shows the set-up screen that creates the owner account; everyone else joins by invitation unless sign-up is opened in Instance settings.
 
 ### Windows
 
@@ -67,7 +70,7 @@ form-md.bat
 
 ## Configuration
 
-form-md reads environment variables only; there is no config file & nothing secret is needed yet. `form-md help` prints the same table.
+Start-up settings come from environment variables; there is no config file. `form-md help` prints the same table. Everything else (instance name & public address, sign-up policy, single sign-on, mail, housekeeping) is set by an admin in **Instance settings** inside the app & stored in the database; secrets there are sealed w/ `secret.key` in the data directory, so back up the whole data directory, not just the database file.
 
 | Variable | Purpose |
 |---|---|
@@ -75,6 +78,8 @@ form-md reads environment variables only; there is no config file & nothing secr
 | `FORMMD_DATA` | Data directory for the database & uploads, default `./data` |
 | `FORMMD_TLS_CERT` | TLS certificate path; set together w/ `FORMMD_TLS_KEY` |
 | `FORMMD_TLS_KEY` | TLS private key path; set together w/ `FORMMD_TLS_CERT` |
+| `FORMMD_TRASH_DAYS` | Default for emptying the trash (Phase 3); a value saved in Instance settings wins |
+| `FORMMD_UPDATE_CHECK` | Default for the daily version check; a value saved in Instance settings wins |
 
 ## Architecture
 
@@ -84,17 +89,26 @@ form.md/
 ├── embed.go            embeds web/dist & NOTICES.md into the binary
 ├── internal/
 │   ├── app/            module registry, server lifecycle, /healthz, /notices
+│   ├── server/         wiring & the server-rendered page document
+│   ├── auth/           passwords, sessions, TOTP, API tokens, SSO, invitations
+│   ├── policy/         the principal & the single workspace gate
+│   ├── workspace/      workspaces, members, agent policy & rules
+│   ├── admin/          users, ownership, emergency access, instance settings
+│   ├── settings/       typed instance settings w/ sealed secrets
+│   ├── secrets/        AES-GCM sealing & token minting
+│   ├── audit/          the activity record
+│   ├── mail/           SMTP sending
 │   ├── config/         FORMMD_* environment variables
-│   ├── httpx/          router, middleware chain, JSON errors
-│   ├── static/         embedded client: caching, gzip, ETag, CSP, SPA fallback
+│   ├── httpx/          router, middleware chain, JSON errors, rate limits
+│   ├── static/         embedded client: rendered document, caching, gzip, ETag, CSP
 │   ├── store/          SQLite writer & reader pool, migrations
 │   └── ids/            128-bit random ids
 ├── web/                vanilla TypeScript client
-│   ├── index.html      static shell skeleton & pre-paint theme boot
+│   ├── index.html      page template the server fills: shell, sign-in screens, pre-paint theme boot
 │   └── src/
-│       ├── engine/     headless state, commands, keymap, health
+│       ├── engine/     headless state, commands, keymap, typed API client, i18n, formatting
 │       ├── extensions/ feature modules registered w/ the engine
-│       ├── ui/         DOM layer: layers, floating, tooltip, toasts, theme tokens
+│       ├── ui/         DOM layer: layers, menus, dialogs, forms, sign-in, settings, theme tokens
 │       └── styles/     component styles on the token system
 ├── tools/              Go side install & boot scripts, NOTICES generator
 ├── assets/             repo-level art for this README, not part of the build
@@ -106,7 +120,9 @@ form.md/
 
 ## Status of subsystems
 
-- **Accounts & sign-in:** not built yet (Phase 2). Do not expose an instance to a network until then.
+- **Accounts & sign-in:** built. Put HTTPS in front before exposing an instance (built-in certificates arrive in Phase 10).
+- **Mail:** SMTP only; Gmail & Microsoft Graph sending arrive in Phase 10.
+- **German:** the language setting exists; the German translation arrives in Phase 10.
 - **Pages, editor, realtime, databases, search, agents (MCP):** not built yet (Phases 3 to 8).
 - **Windows scripts:** written but not yet run on a Windows host.
 
@@ -118,7 +134,7 @@ form.md/
 
 ## Status
 
-Phase 1 (skeleton binary & client shell) is complete at this version. Phase 2, accounts, roles & the single policy gate, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
+Phases 1 & 2 (skeleton binary, client shell, accounts, workspaces & the single policy gate) are complete at this version. Phase 3, pages, the page tree, trash, favorites & live updates, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
 
 ## Contributors
 
