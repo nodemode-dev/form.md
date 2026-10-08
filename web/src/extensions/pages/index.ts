@@ -43,6 +43,24 @@ function setup(engine: Engine): void {
       },
     }),
     commands.register({
+      id: "page.newDatabase",
+      label: () => t("New database"),
+      group: PAGES,
+      enabled: () => engine.canWrite(),
+      run: async () => {
+        const ws = state.get("workspaceId");
+        if (!ws) return;
+        try {
+          const r = await engine.api.pages.createCollection({ workspace_id: ws });
+          pages.upsert(r.page);
+          engine.openPage(r.page.id);
+          focusTitle();
+        } catch (e) {
+          engine.reportError(e);
+        }
+      },
+    }),
+    commands.register({
       id: "page.newInside",
       label: () => t("New page inside this one"),
       group: PAGES,

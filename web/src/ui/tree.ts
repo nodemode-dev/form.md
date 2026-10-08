@@ -525,11 +525,25 @@ export function mountTree(engine: Engine): void {
     }
   };
 
+  const addDatabase = async (parentId: string) => {
+    try {
+      const r = await engine.api.pages.createCollection({ workspace_id: ws, ...(parentId ? { parent_id: parentId } : {}) });
+      pages.upsert(r.page);
+      if (parentId && !expanded.has(parentId)) toggle(parentId, true);
+      engine.openPage(r.page.id);
+      focusTitleSoon();
+    } catch (e) {
+      engine.reportError(e);
+    }
+  };
+
   const menuFor = (anchor: HTMLElement, id: string) => {
     const entries: MenuEntry[] = pageMenu(engine, id, {
       addInside: () => void addInside(id),
       trash: () => void trashWithUndo(id),
     });
+    const at = entries.findIndex((e) => e.kind !== "separator" && e.kind !== "heading" && e.label === t("Add a page inside"));
+    if (at >= 0) entries.splice(at + 1, 0, { label: t("Add a database inside"), icon: "database", run: () => void addDatabase(id) });
     openMenu(anchor, entries, { side: "bottom", align: "start", label: t("Page actions") });
   };
 

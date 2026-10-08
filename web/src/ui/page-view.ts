@@ -10,8 +10,12 @@ import { fallbackGlyph, fileUrl, pageIcon, paintIcon } from "./pageicon";
 import { openCoverPicker, openIconPicker } from "./pickers";
 import { tagColorFor, focusTitleSoon } from "./tree";
 import { mountEditor } from "../extensions/blocks";
+import { mountDatabase, mountRowProps } from "../extensions/database";
+import type { DatabaseHandle } from "../extensions/database/surface";
+import type { RowDetail } from "../engine/types";
 
 const HOLD_MS = 450;
+const HOLD_DB_MS = 1600;
 
 const autosize = typeof CSS !== "undefined" && CSS.supports("field-sizing", "content") ? null : (el: HTMLTextAreaElement) => {
   el.style.height = "auto";
@@ -88,11 +92,66 @@ export function mountPageView(engine: Engine): void {
   const editorWrap = h("div", { class: "editor" }, docBody);
   const backTitle = h("h2", { class: "page-body__title", text: t("Linked from") });
   const backList = h("ul", { class: "subpages backlinks", attrs: { role: "list" } });
-  const body = h("div", { class: "page-body" }, editorWrap, subTitle, subList, addSub, backTitle, backList);
-  const inner = h("div", { class: "page" }, head, body);
+  const dbHost = h("div", { class: "page-db" });
+  const propsHost = h("div", { class: "page-props" });
+  const body = h("div", { class: "page-body" }, dbHost, editorWrap, subTitle, subList, addSub, backTitle, backList);
+  const inner = h("div", { class: "page" }, head, propsHost, body);
   view.append(cover, inner);
   const editor = mountEditor(engine, docBody, editorWrap);
+  const rowProps = mountRowProps(engine, propsHost);
   backTitle.hidden = true;
+  dbHost.hidden = true;
+
+  const rowCache = new Map<string, Promise<RowDetail | null>>();
+  if (engine.boot.row?.row) rowCache.set(engine.boot.row.row.id, Promise.resolve(engine.boot.row));
+  const rowDetail = (id: string) => {
+    let job = rowCache.get(id);
+    if (!job) {
+      job = engine.api.collections.row(id).catch(() => null);
+      rowCache.set(id, job);
+      setTimeout(() => rowCache.delete(id), 30000);
+    }
+    return job;
+  };
+  const rowResolved = new Map<string, RowDetail | null>();
+
+  let db: { id: string; handle: DatabaseHandle; box: HTMLElement } | null = null;
+  let dbNext: { id: string; handle: DatabaseHandle; box: HTMLElement } | null = null;
+  const prepareDb = (id: string): Promise<void> => {
+    if (db?.id === id) return Promise.resolve();
+    if (dbNext?.id === id) return dbNext.handle.ready;
+    dbNext?.handle.destroy();
+    const box = h("div", { class: "page-db__box" });
+    dbNext = { id, handle: mountDatabase(engine, box, id, { inline: false }), box };
+    return dbNext.handle.ready;
+  };
+  const showDb = (id: string | null) => {
+    if (!id) {
+      db?.handle.destroy();
+      db = null;
+      dbHost.hidden = true;
+      return;
+    }
+    if (db?.id === id) return;
+    if (dbNext?.id !== id) void prepareDb(id);
+    const next = dbNext;
+    dbNext = null;
+    if (!next) return;
+    db?.handle.destroy();
+    dbHost.replaceChildren(next.box);
+    db = next;
+    dbHost.hidden = false;
+  };
+  const preparePage = (p: Page): Promise<unknown> => {
+    if (p.kind === "collection") return prepareDb(p.id);
+    if (p.row) return Promise.all([editor.prepare(p.id), rowDetail(p.id).then((d) => rowResolved.set(p.id, d))]);
+    return editor.prepare(p.id);
+  };
+  const pageReady = (p: Page): boolean => {
+    if (p.kind === "collection") return db?.id === p.id;
+    if (p.row && !rowResolved.has(p.id)) return false;
+    return editor.isReady(p.id);
+  };
 
   let shownId = "";
   let descOpen = false;
@@ -224,26 +283,28 @@ export function mountPageView(engine: Engine): void {
     }
     for (const el of existing.values()) el.remove();
     subTitle.hidden = kids.length === 0;
-    addSub.hidden = !w;
+    addSub.hidden = !w || p.kind === "collection";
   };
 
   const paint = () => {
     const p = current();
     if (!p) return;
-    if (p.id !== shownId && releasedId !== p.id && onPage && !editor.isReady(p.id)) {
+    if (p.id !== shownId && releasedId !== p.id && onPage && !pageReady(p)) {
       if (pendingId === p.id) return;
       pendingId = p.id;
+      document.documentElement.dataset.navigating = "";
       const release = () => {
         if (pendingId !== p.id) return;
         pendingId = "";
         releasedId = p.id;
         paint();
       };
-      void editor.prepare(p.id).then(release);
-      setTimeout(release, HOLD_MS);
+      void preparePage(p).then(release, release);
+      setTimeout(release, p.kind === "collection" ? HOLD_DB_MS : HOLD_MS);
       return;
     }
     pendingId = "";
+    delete document.documentElement.dataset.navigating;
     onPage = true;
     const fresh = p.id !== shownId;
     if (fresh) {
@@ -252,7 +313,24 @@ export function mountPageView(engine: Engine): void {
       descOpen = false;
       closeSuggest();
       tagInput.value = "";
-      editor.show(p.id);
+      const isDb = p.kind === "collection";
+      setAttr(view, "data-kind", isDb ? "collection" : p.row ? "row" : null);
+      editorWrap.hidden = isDb;
+      if (isDb) {
+        if (!dbNext || dbNext.id !== p.id) void prepareDb(p.id);
+        showDb(p.id);
+      } else {
+        showDb(null);
+        editor.show(p.id);
+      }
+      if (p.row) {
+        const d = rowResolved.get(p.id);
+        if (d !== undefined) void rowProps.show(p.id, d);
+        else void rowDetail(p.id).then((x) => {
+          rowResolved.set(p.id, x);
+          if (shownId === p.id) void rowProps.show(p.id, x);
+        });
+      } else rowProps.hide();
       void loadBacklinks(p.id);
     }
     const w = writable(p);
@@ -510,6 +588,7 @@ export function mountPageView(engine: Engine): void {
     if (r.name !== "page") {
       onPage = false;
       pendingId = "";
+      delete document.documentElement.dataset.navigating;
     }
     paint();
   });

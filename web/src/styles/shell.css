@@ -160,10 +160,54 @@
   padding: 0 var(--space-2);
   border-block-end: 1px solid transparent;
   transition: border-color var(--dur-fast) var(--ease);
+  position: relative;
 }
 
 .topbar[data-scrolled="true"] {
   border-block-end-color: var(--border);
+}
+
+.topbar::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: -1px;
+  block-size: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent) no-repeat;
+  background-size: 40% 100%;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: var(--z-chrome);
+}
+
+:root[data-navigating] .topbar::after {
+  visibility: visible;
+  animation:
+    nav-pending-in 1ms linear 180ms forwards,
+    nav-pending 1.2s var(--ease) 180ms infinite;
+}
+
+@keyframes nav-pending-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes nav-pending {
+  from {
+    background-position: -60% 0;
+  }
+  to {
+    background-position: 160% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-navigating] .topbar::after {
+    background-size: 100% 100%;
+    animation: nav-pending-in 1ms linear 180ms forwards;
+  }
 }
 
 .topbar__menu {
