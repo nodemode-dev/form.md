@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
 </p>
 
-form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 5 of 11**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, & now databases w/ seven views, formulas, relations & rollups, public forms & CSV. Search, sharing & the agent surface follow per the roadmap.
+form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 6 of 11**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, & now full-text search w/ a command palette plus equations, drag-made columns, link cards, media from links, embeds, Mermaid diagrams & synced blocks. Sharing, history & the agent surface follow per the roadmap.
 
 **Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 17 MB static binary, 250 KB JS & 20 KB CSS gzipped up front, the code highlighter & Markdown parser loaded on demand
 
@@ -90,6 +90,7 @@ Start-up settings come from environment variables; there is no config file. `for
 | `FORMMD_DATA` | Data directory for the database & uploads, default `./data` |
 | `FORMMD_TLS_CERT` | TLS certificate path; set together w/ `FORMMD_TLS_KEY` |
 | `FORMMD_TLS_KEY` | TLS private key path; set together w/ `FORMMD_TLS_CERT` |
+| `FORMMD_FETCH_PRIVATE` | Set to `1` to let link previews & media imports reach private network addresses (intranet sites); off by default |
 | `FORMMD_TRASH_DAYS` | Default for emptying the trash automatically, in days (0 disables); a value saved in Instance settings wins |
 | `FORMMD_UPDATE_CHECK` | Default for the daily version check; a value saved in Instance settings wins |
 
@@ -110,6 +111,9 @@ form.md/
 │   ├── files/          uploads & access-checked file serving
 │   ├── doc/            page bodies: CRDT rooms, the sync socket, Markdown in & out, first-frame HTML
 │   ├── collection/     databases: schema, values, the query engine, views, forms, CSV; formula/ is the formula language
+│   ├── search/         full-text search: passages, the FTS5 index worker, ranking, highlights
+│   ├── netguard/       the outbound HTTP client that only reaches public addresses
+│   ├── unfurl/         link previews for link cards
 │   ├── events/         the live event stream w/ replay & audience filtering
 │   ├── icon/           the icon rule shared w/ the client's icon set
 │   ├── admin/          users, ownership, emergency access, instance settings
@@ -124,6 +128,7 @@ form.md/
 │   └── ids/            128-bit random ids
 ├── web/                vanilla TypeScript client
 │   ├── index.html      page template the server fills: shell, sign-in screens, pre-paint theme boot
+│   ├── sandbox.html    the sandboxed page that draws Mermaid diagrams
 │   └── src/
 │       ├── engine/     headless state, page & database stores, query sessions, live stream, document sync, router & tabs, commands, keymap, API client, i18n
 │       ├── extensions/ feature modules registered w/ the engine, incl. the block editor & the database views
@@ -143,9 +148,10 @@ form.md/
 - **Mail:** SMTP only; Gmail & Microsoft Graph sending arrive in Phase 10.
 - **German:** the language setting exists; the German translation arrives in Phase 10.
 - **Pages & the shell:** built: tree, tabs, favorites, tags, notes mode, library, trash, covers, icons, uploads, live updates.
-- **Editor & realtime co-editing:** built. Mermaid diagrams are stored but not drawn yet, link cards do not fetch titles yet, and table cells cannot be merged.
+- **Editor & realtime co-editing:** built, incl. equations, a breadcrumb block, columns made by dragging, link cards filled by the server, media from links & pasted pages, embeds, Mermaid diagrams drawn in a sandbox & synced blocks across pages. Table cells cannot be merged, & a synced block has no slash menu inside it yet.
+- **Search:** built: titles, bodies w/ heading paths & database properties, filters & sorts, from a palette (Ctrl or Cmd+K). PDF text arrives w/ the PDF importer (Phase 10).
 - **Databases:** built: 21 property types, seven views, formulas, relations & rollups, groups & calculations, inline databases, row pages, public forms, CSV import & export. The button property is reserved for automations (Phase 9); chart, map & feed views arrive in Phase 9.
-- **Search, history & comments, sharing, agents (MCP):** not built yet (Phases 6 to 8).
+- **History & comments, sharing, agents (MCP):** not built yet (Phases 7 & 8).
 - **Windows scripts:** written but not yet run on a Windows host.
 
 ## Shortcuts
@@ -181,7 +187,7 @@ On macOS, `Ctrl` reads as `Cmd`.
 
 ## Status
 
-Phases 1 to 5 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, & databases w/ their views, forms & CSV) are complete at this version. Phase 6, search & the rest of the editor, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
+Phases 1 to 6 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, & search w/ the rest of the editor) are complete at this version. Phase 7, collaboration, sharing & identity, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
 
 ## Contributors
 
