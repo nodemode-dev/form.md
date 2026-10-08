@@ -269,9 +269,26 @@ const nodes: Record<string, NodeSpec> = {
     group: "block",
     code: true,
     defining: true,
-    attrs: { ...withId, language: { default: "" } },
+    attrs: { ...withId, language: { default: "" }, view: { default: null }, diagram: { default: "" }, dw: { default: null }, dh: { default: null }, dsum: { default: "" } },
     parseDOM: [
-      { tag: "div.code", contentElement: "code", preserveWhitespace: "full", getAttrs: (dom: HTMLElement) => ({ language: dom.dataset.language ?? "" }) },
+      {
+        tag: "div.code",
+        contentElement: "code",
+        preserveWhitespace: "full",
+        getAttrs: (dom: HTMLElement) => {
+          const img = dom.querySelector(".diagram__img");
+          const src = img?.getAttribute("src") ?? "";
+          const ok = src.startsWith("data:image/svg+xml;base64,");
+          return {
+            language: dom.dataset.language ?? "",
+            view: dom.dataset.view ?? null,
+            diagram: ok ? src : "",
+            dw: ok ? Number(img?.getAttribute("width")) || null : null,
+            dh: ok ? Number(img?.getAttribute("height")) || null : null,
+            dsum: ok ? (dom.dataset.sum ?? "") : "",
+          };
+        },
+      },
       {
         tag: "pre",
         preserveWhitespace: "full",
@@ -285,7 +302,15 @@ const nodes: Record<string, NodeSpec> = {
     toDOM: (n) => {
       const a: Attrs = { class: "code", ...blockAttr(n) };
       if (n.attrs.language) a["data-language"] = String(n.attrs.language);
-      return ["div", a, ["div", { class: "code__bar", contenteditable: "false" }], ["pre", { class: "code__pre", spellcheck: "false" }, ["code", 0]]];
+      if (n.attrs.view) a["data-view"] = String(n.attrs.view);
+      const diagram = String(n.attrs.diagram ?? "");
+      if (n.attrs.language !== "mermaid" || !diagram.startsWith("data:image/svg+xml;base64,"))
+        return ["div", a, ["div", { class: "code__bar", contenteditable: "false" }], ["pre", { class: "code__pre", spellcheck: "false" }, ["code", 0]]];
+      a["data-sum"] = String(n.attrs.dsum ?? "");
+      const img: Attrs = { class: "diagram__img", src: diagram, alt: "" };
+      if (n.attrs.dw) img.width = String(n.attrs.dw);
+      if (n.attrs.dh) img.height = String(n.attrs.dh);
+      return ["div", a, ["div", { class: "code__bar", contenteditable: "false" }], ["pre", { class: "code__pre", spellcheck: "false" }, ["code", 0]], ["div", { class: "diagram", contenteditable: "false" }, ["img", img]]];
     },
   },
   horizontal_rule: {

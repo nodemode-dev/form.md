@@ -167,6 +167,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	p := path.Clean("/" + r.URL.Path)
 	if a, ok := h.files[p]; ok && p != "/index.html" {
+		switch {
+		case p == "/sandbox.html":
+			w.Header().Set("Content-Security-Policy", sandboxCSP)
+			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		case strings.HasPrefix(p, "/assets/"):
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		h.serve(w, r, a, false)
 		return
 	}
@@ -289,6 +296,8 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, a *asset, docume
 		_, _ = w.Write(body)
 	}
 }
+
+const sandboxCSP = "sandbox allow-scripts; default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data:; font-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'"
 
 func buildCSP(index *asset) string {
 	scripts := []string{"'self'"}

@@ -166,14 +166,27 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.kids(el)
 		w.b.WriteString("</div></li>")
 	case "code_block":
-		w.open("div", "class", "code", "data-block", id, "data-language", attrString(el, "language"))
+		lang := attrString(el, "language")
+		view := ""
+		if lang == "mermaid" {
+			if v := attrString(el, "view"); v == "code" || v == "preview" {
+				view = v
+			}
+		}
+		w.open("div", "class", "code", "data-block", id, "data-language", lang, "data-view", view)
 		w.b.WriteString(`<div class="code__bar" contenteditable="false"></div><pre class="code__pre" spellcheck="false"><code>`)
 		code := (&mdWriter{}).plain(el)
 		w.b.WriteString(esc(code))
 		if code == "" || strings.HasSuffix(code, "\n") {
 			w.b.WriteString(`<br class="ProseMirror-trailingBreak">`)
 		}
-		w.b.WriteString("</code></pre></div>")
+		w.b.WriteString("</code></pre>")
+		if d := attrString(el, "diagram"); lang == "mermaid" && strings.HasPrefix(d, "data:image/svg+xml;base64,") && len(d) < 2<<20 {
+			w.b.WriteString(`<div class="diagram" contenteditable="false">`)
+			w.open("img", "class", "diagram__img", "src", d, "alt", "", "width", dim(el, "dw"), "height", dim(el, "dh"), "decoding", "async")
+			w.b.WriteString("</div>")
+		}
+		w.b.WriteString("</div>")
 	case "horizontal_rule":
 		w.open("hr", "data-block", id)
 	case "table":

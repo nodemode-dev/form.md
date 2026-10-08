@@ -311,6 +311,90 @@
   transition: opacity var(--dur-fast) var(--ease);
 }
 
+.code__modes {
+  display: inline-flex;
+  gap: 1px;
+  margin-inline-start: auto;
+  padding: 1px;
+  background: var(--surface-2);
+  border-radius: var(--radius-xs);
+}
+
+.code__mode {
+  padding: 0 var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: 20px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.code__mode[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.code__mode:disabled {
+  cursor: default;
+}
+
+.diagram {
+  display: grid;
+  justify-items: center;
+  row-gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  overflow-x: auto;
+  border-block-start: 1px solid var(--border);
+}
+
+.code[data-view="preview"] .code__pre {
+  display: none;
+}
+
+.code[data-view="preview"] .diagram {
+  border-block-start: 0;
+}
+
+.code[data-view="code"] .diagram {
+  display: none;
+}
+
+.diagram__img {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+.diagram__img:not([src]) {
+  display: none;
+}
+
+:root:not([data-theme="light"]) .diagram__img {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.diagram__error {
+  justify-self: stretch;
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--danger);
+  white-space: pre-wrap;
+}
+
+.diagram-renderer {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: -12000px;
+  inline-size: 1200px;
+  block-size: 900px;
+  border: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .code:hover .code__copy,
 .code__copy:focus-visible {
   opacity: 1;

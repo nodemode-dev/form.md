@@ -19,7 +19,7 @@ type component struct {
 	text    string
 }
 
-var licenseFiles = []string{"LICENSE", "LICENSE.md", "LICENSE.txt", "LICENSE-MIT.txt", "LICENCE", "COPYING", "license", "license.md"}
+var licenseFiles = []string{"LICENSE", "LICENSE.md", "LICENSE.txt", "LICENSE-MIT.txt", "LICENCE", "COPYING", "license", "license.md", "license.txt", "LICENSE-MIT", "LICENSE.MIT"}
 
 func main() {
 	root, err := os.Getwd()
@@ -112,15 +112,20 @@ func webPackages(root string) []component {
 			os.Exit(1)
 		}
 		var m struct {
-			Version string `json:"version"`
-			License string `json:"license"`
+			Version string          `json:"version"`
+			License string          `json:"license"`
+			Author  json.RawMessage `json:"author"`
 		}
 		check(json.Unmarshal(meta, &m))
 		label := n
 		if n == "vite" {
 			label = "vite (runtime helpers in the client bundle)"
 		}
-		comps = append(comps, component{name: label, version: m.Version, license: m.License, text: readLicense(dir)})
+		text := webLicense(dir, n, m.License, m.Author)
+		if m.License == "" {
+			m.License = classify(text)
+		}
+		comps = append(comps, component{name: label, version: m.Version, license: m.License, text: text})
 	}
 	return comps
 }
@@ -149,6 +154,47 @@ func readLicense(dir string) string {
 	fmt.Fprintf(os.Stderr, "notices: no license file in %s\n", dir)
 	os.Exit(1)
 	return ""
+}
+
+const mitBody = `Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+`
+
+func webLicense(dir, name, spdx string, author json.RawMessage) string {
+	for _, f := range licenseFiles {
+		if b, err := os.ReadFile(filepath.Join(dir, f)); err == nil {
+			return string(b)
+		}
+	}
+	if spdx != "MIT" {
+		return readLicense(dir)
+	}
+	holder := "the " + name + " authors"
+	var s string
+	var o struct {
+		Name string `json:"name"`
+	}
+	if json.Unmarshal(author, &s) == nil && s != "" {
+		holder = s
+	} else if json.Unmarshal(author, &o) == nil && o.Name != "" {
+		holder = o.Name
+	}
+	return "MIT License (the package ships no license file; its package.json declares MIT)\n\nCopyright (c) " + holder + "\n\n" + mitBody
 }
 
 func classify(text string) string {

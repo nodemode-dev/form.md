@@ -16,6 +16,7 @@ import { LANGUAGES, languageLabel } from "./languages";
 import { openLightbox } from "./lightbox";
 import { importMedia, importPhase, watchImport } from "./links";
 import { ColumnView } from "./columns";
+import { drawDiagram, sourceSum } from "./diagram";
 import { MathView } from "./math";
 
 type GetPos = () => number | undefined;
@@ -55,6 +56,95 @@ class CodeView implements NodeView {
     setAttr(this.dom, "data-language", language || null);
     setText(this.lang, languageLabel(language) || t("Plain text"));
     this.lang.disabled = !this.view.editable;
+    const mermaid = language === "mermaid";
+    setAttr(this.dom, "data-view", mermaid && this.node.attrs.view ? String(this.node.attrs.view) : null);
+    if (mermaid) this.paintDiagram();
+    else if (this.diagram) {
+      this.diagram.remove();
+      this.modes?.remove();
+      this.diagram = this.modes = null;
+      this.drawn = "";
+    }
+  }
+
+  private diagram: HTMLElement | null = null;
+  private modes: HTMLElement | null = null;
+  private img: HTMLImageElement | null = null;
+  private fault: HTMLElement | null = null;
+  private drawn = "";
+  private timer: ReturnType<typeof setTimeout> | undefined;
+
+  private paintDiagram(): void {
+    if (!this.diagram) {
+      this.img = h("img", { class: "diagram__img", attrs: { alt: "", decoding: "async" } });
+      this.fault = h("p", { class: "diagram__error", attrs: { role: "status" } });
+      this.fault.hidden = true;
+      this.diagram = h("div", { class: "diagram", attrs: { contenteditable: "false" } }, this.img, this.fault);
+      this.dom.append(this.diagram);
+      const mode = (id: string, label: string) => {
+        const b = h("button", { class: "code__mode", attrs: { type: "button", "data-mode": id }, text: label });
+        b.addEventListener("click", () => this.setMode(id));
+        return b;
+      };
+      this.modes = h("div", { class: "code__modes", attrs: { role: "group", "aria-label": t("Diagram view") } }, mode("code", t("Code")), mode("preview", t("Preview")), mode("split", t("Split")));
+      this.bar.insertBefore(this.modes, this.copy);
+    }
+    const current = String(this.node.attrs.view || "split");
+    for (const b of Array.from(this.modes?.children ?? []) as HTMLButtonElement[]) {
+      setAttr(b, "aria-pressed", b.dataset.mode === current ? "true" : "false");
+      b.disabled = !this.view.editable;
+    }
+    const code = this.node.textContent;
+    const stored = String(this.node.attrs.diagram ?? "");
+    if (stored.startsWith("data:image/svg+xml;base64,") && (this.node.attrs.dsum === sourceSum(code) || !this.drawn)) this.show(stored, Number(this.node.attrs.dw), Number(this.node.attrs.dh));
+    if (stored && this.node.attrs.dsum === sourceSum(code)) {
+      this.drawn = code;
+      return;
+    }
+    if (code === this.drawn) return;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.draw(), this.drawn ? 350 : 0);
+  }
+
+  private show(url: string, w: number, hgt: number): void {
+    if (!this.img) return;
+    if (this.img.getAttribute("src") !== url) this.img.setAttribute("src", url);
+    setAttr(this.img, "width", w ? String(w) : null);
+    setAttr(this.img, "height", hgt ? String(hgt) : null);
+  }
+
+  private draw(): void {
+    const code = this.node.textContent;
+    this.drawn = code;
+    if (!code.trim()) {
+      if (this.fault) this.fault.hidden = true;
+      return;
+    }
+    void drawDiagram(code)
+      .then((d) => {
+        if (this.node.textContent !== code || !this.diagram) return;
+        if (this.fault) this.fault.hidden = true;
+        this.show(d.url, d.w, d.h);
+        const pos = this.getPos();
+        if (!this.view.editable || pos === undefined || this.node.attrs.diagram === d.url) return;
+        const attrs = { ...this.node.attrs, diagram: d.url, dw: d.w, dh: d.h, dsum: sourceSum(code) };
+        this.view.dispatch(this.view.state.tr.setNodeMarkup(pos, undefined, attrs).setMeta("addToHistory", false));
+      })
+      .catch((e: unknown) => {
+        if (this.node.textContent !== code || !this.fault) return;
+        this.fault.hidden = false;
+        setText(this.fault, e instanceof Error ? e.message : String(e));
+      });
+  }
+
+  private setMode(mode: string): void {
+    const pos = this.getPos();
+    if (pos === undefined || !this.view.editable) return;
+    this.view.dispatch(this.view.state.tr.setNodeMarkup(pos, undefined, { ...this.node.attrs, view: mode === "split" ? null : mode }));
+  }
+
+  destroy(): void {
+    clearTimeout(this.timer);
   }
 
   private pickLanguage(): void {

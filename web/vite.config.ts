@@ -63,5 +63,11 @@ export default defineConfig({
     target: "es2022",
     assetsInlineLimit: 0,
     manifest: true,
+    rolldownOptions: {
+      input: {
+        main: resolve(import.meta.dirname, "index.html"),
+        sandbox: resolve(import.meta.dirname, "sandbox.html"),
+      },
+    },
   },
 });
