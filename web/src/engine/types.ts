@@ -434,6 +434,22 @@ export interface FileInfo {
   created_at: number;
   url: string;
   ref: string;
+  w?: number;
+  h?: number;
+}
+
+export interface LinkPreview {
+  url: string;
+  kind: "page" | "image" | "video" | "audio" | "file";
+  mime?: string;
+  title: string;
+  description: string;
+  site: string;
+  image: string;
+  icon: string;
+  w?: number;
+  h?: number;
+  frameable: boolean;
 }
 
 export type LiveEvent =

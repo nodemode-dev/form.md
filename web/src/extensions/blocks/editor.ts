@@ -15,6 +15,7 @@ import { pickFiles, uploadFiles } from "./media";
 import { nodeViews } from "./nodeviews";
 import { highlightPlugin, idsPlugin, keysPlugin, livePlugin, placeholderPlugin, structurePlugins, uploadsPlugin } from "./plugins";
 import { columnsPlugins } from "./columns";
+import { linksPlugin, offerLinkChoice } from "./links";
 import { mathKeys } from "./math";
 import { rulesPlugin } from "./rules";
 import { triggerPlugin } from "./triggers";
@@ -185,6 +186,7 @@ export class EditorHost implements EditorCtx {
       highlightPlugin(),
       uploadsPlugin(),
       livePlugin(this),
+      linksPlugin(this),
       ...columnsPlugins(() => this.wrap),
       ...structurePlugins(),
       new Plugin({
@@ -226,7 +228,7 @@ export class EditorHost implements EditorCtx {
           attributes: { class: "doc-body", "aria-label": t("Page content"), spellcheck: "true" },
           clipboardTextSerializer: (slice: Slice) => this.md.doc(slice.content),
           clipboardTextParser: ((text: string, $context: ResolvedPos, plain: boolean) => (!plain && looksLikeMarkdown(text) ? parseMarkdownSlice(text, $context) : null)) as never,
-          transformPastedHTML: (html) => html.replace(/<img\b[^>]*\bsrc="(?:https?:)?\/\/[^"]*"[^>]*>/gi, ""),
+          transformPastedHTML: (html) => html.replace(/<img\b[^>]*\b(?:width|height)="[0-2](?:px)?"[^>]*>/gi, ""),
           handlePaste: (view, e) => this.paste(view, e),
           handleDrop: (view, e, _slice, moved) => {
             const files = Array.from((e as DragEvent).dataTransfer?.files ?? []);
@@ -277,7 +279,9 @@ export class EditorHost implements EditorCtx {
       return true;
     }
     if (link) {
+      const alone = $from.parent.type.name === "paragraph" && $from.parent.content.size === 0 && $from.depth >= 1 ? $from.before() : -1;
       view.dispatch(view.state.tr.replaceSelectionWith(schema.text(text, [link.create({ href: text })]), false).scrollIntoView());
+      if (alone >= 0 && this.writable()) offerLinkChoice(this, view, alone, text, this.wrap);
       return true;
     }
     return false;

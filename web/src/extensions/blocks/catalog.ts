@@ -5,6 +5,7 @@ import { t } from "../../engine/i18n";
 import type { IconName } from "../../ui/icons";
 import { type BlockKind, insertBlock, turnInto } from "./commands";
 import { caretRect, type EditorCtx } from "./context";
+import { embedFor, mediaFromLink } from "./links";
 import { insertInlineMath, newMathBlock } from "./math";
 import { openPrompt } from "./popover";
 
@@ -133,15 +134,19 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: "embed",
-    label: () => t("Video link"),
+    label: () => t("Embed"),
     section: LINKS,
-    icon: "play",
-    keywords: "youtube vimeo embed video",
-    run: (view) =>
-      askUrl(view, t("Video link"), t("A YouTube or Vimeo link"), (url) => {
-        const provider = embedProvider(url);
-        insertBlock(view, provider ? (N.embed as NodeType).create({ id: newBlockId(), url, provider }) : (N.bookmark as NodeType).create({ id: newBlockId(), url }));
-      }),
+    icon: "globe",
+    keywords: "embed iframe youtube vimeo loom figma miro codepen codesandbox spotify soundcloud google docs drive maps airtable typeform excalidraw tiktok website",
+    run: (view, ctx) => askUrl(view, t("Embed"), t("Paste any link to show it inside the page"), (url) => void embedFor(ctx, url).then((node) => insertBlock(view, node))),
+  },
+  {
+    id: "media-link",
+    label: () => t("Media from a link"),
+    section: MEDIA,
+    icon: "image",
+    keywords: "image video audio pdf url link import web picture",
+    run: (view) => askUrl(view, t("Media from a link"), t("Paste a link to an image, video, audio or PDF file"), (url) => insertBlock(view, mediaFromLink(url))),
   },
   {
     id: "page",

@@ -19,6 +19,7 @@ import type {
   EmergencyGrant,
   Favorite,
   FileInfo,
+  LinkPreview,
   FilePurpose,
   Invite,
   InviteInfo,
@@ -202,6 +203,8 @@ export function createClient(f: FetchFn) {
         form.append("file", file);
         return upload<{ file: FileInfo }>(f, "/api/files", form);
       },
+      importUrl: (url: string, pageId: string) => request<{ file: FileInfo }>(f, "POST", "/api/files/import", { url, page_id: pageId }, 60000),
+      unfurl: (url: string, pageId: string) => request<LinkPreview>(f, "GET", `/api/unfurl?url=${enc(url)}&page_id=${enc(pageId)}`, undefined, 30000),
     },
     admin: {
       users: () => get<{ users: AdminUser[] }>("/api/admin/users"),

@@ -2,7 +2,7 @@ import type { Node as PMNode } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { TableView } from "prosemirror-tables";
 import type { EditorView, NodeView, NodeViewConstructor, ViewMutationRecord } from "prosemirror-view";
-import { embedSrc, humanSize, safeHref } from "../../engine/doc/schema";
+import { EMBED_ALLOW, EMBED_SANDBOX, embedSrc, humanSize, isRemote, safeHref } from "../../engine/doc/schema";
 import { formatDate } from "../../engine/format";
 import { t } from "../../engine/i18n";
 import { h, setAttr, setText } from "../../ui/dom";
@@ -14,6 +14,7 @@ import { openIconPicker } from "../../ui/pickers";
 import type { EditorCtx, Refreshable } from "./context";
 import { LANGUAGES, languageLabel } from "./languages";
 import { openLightbox } from "./lightbox";
+import { importMedia, importPhase, watchImport } from "./links";
 import { ColumnView } from "./columns";
 import { MathView } from "./math";
 
@@ -506,11 +507,14 @@ class MediaView implements NodeView {
   private frame: HTMLElement | null = null;
   private el: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
   private caption: HTMLElement;
+  private pending: HTMLElement | null = null;
+  private unwatch: (() => void) | null = null;
 
   constructor(
     private node: PMNode,
     private readonly view: EditorView,
     private readonly getPos: GetPos,
+    private readonly ctx: EditorCtx,
   ) {
     const kind = node.type.name;
     this.caption = h("figcaption", { class: "media__caption" });
@@ -533,9 +537,39 @@ class MediaView implements NodeView {
     this.paint();
   }
 
+  private remote(src: string): void {
+    const id = String(this.node.attrs.id ?? "");
+    if (!this.pending) {
+      const text = h("span", { class: "media__pending-text" });
+      const retry = h("button", { class: "btn btn--ghost btn--sm media__retry", attrs: { type: "button" }, text: t("Try again") });
+      retry.addEventListener("click", () => importMedia(this.ctx, this.view, String(this.node.attrs.id ?? ""), true));
+      this.pending = h("div", { class: "media__pending", attrs: { contenteditable: "false" } }, iconNode(this.node.type.name === "audio" ? "audio" : this.node.type.name === "video" ? "video" : "image"), text, retry);
+      this.dom.insertBefore(this.pending, this.dom.firstChild);
+    }
+    if (!this.unwatch && id) this.unwatch = watchImport(id, () => this.remote(String(this.node.attrs.src ?? "")));
+    let host = src.startsWith("data:") ? t("the clipboard") : src;
+    try {
+      if (!src.startsWith("data:")) host = new URL(src).host;
+    } catch {
+      host = src;
+    }
+    const phase = id ? importPhase(id) : null;
+    setText(this.pending.children[1] as HTMLElement, phase === "failed" ? t("Could not bring in the file from {host}", { host }) : t("Bringing in the file from {host}", { host }));
+    (this.pending.children[2] as HTMLElement).hidden = phase !== "failed" || !this.ctx.writable();
+  }
+
   private paint(): void {
     blockId(this.dom, this.node);
     const src = String(this.node.attrs.src ?? "");
+    const far = isRemote(src) || src.startsWith("data:");
+    this.dom.classList.toggle("is-remote", far);
+    if (far) {
+      this.remote(src);
+      setText(this.caption, String(this.node.attrs.caption ?? ""));
+      return;
+    }
+    this.pending?.remove();
+    this.pending = null;
     const url = src.startsWith("f:") ? `/files/${src.slice(2)}` : src;
     if (this.el.getAttribute("src") !== url) this.el.setAttribute("src", url);
     if (this.el instanceof HTMLImageElement) setAttr(this.el, "alt", String(this.node.attrs.alt ?? ""));
@@ -554,7 +588,12 @@ class MediaView implements NodeView {
   }
 
   stopEvent(e: Event): boolean {
+    if (this.pending?.contains(e.target as Node) && (e.target as Element).closest?.("button")) return true;
     return this.node.type.name !== "image" && (e.target as Node) === this.el && e.type !== "dragstart";
+  }
+
+  destroy(): void {
+    this.unwatch?.();
   }
 
   ignoreMutation(): boolean {
@@ -583,12 +622,16 @@ class BookmarkView implements NodeView {
       host = url;
     }
     const title = String(this.node.attrs.title || host);
+    const icon = String(this.node.attrs.icon ?? "");
+    const line = h("span", { class: "bookmark__url" });
+    if (icon.startsWith("f:")) line.append(h("img", { class: "bookmark__icon", attrs: { src: `/files/${icon.slice(2)}`, alt: "", width: "16", height: "16" } }));
+    line.append(url);
     const text = h(
       "span",
       { class: "bookmark__text" },
       h("span", { class: "bookmark__title", text: title }),
       h("span", { class: "bookmark__desc", text: String(this.node.attrs.description ?? "") }),
-      h("span", { class: "bookmark__url", text: url }),
+      line,
     );
     const img = String(this.node.attrs.image ?? "");
     const kids: Node[] = [text];
@@ -598,7 +641,7 @@ class BookmarkView implements NodeView {
 
   update(node: PMNode): boolean {
     if (node.type !== this.node.type) return false;
-    const changed = node.attrs.url !== this.node.attrs.url || node.attrs.title !== this.node.attrs.title || node.attrs.description !== this.node.attrs.description || node.attrs.image !== this.node.attrs.image;
+    const changed = ["url", "title", "description", "image", "icon"].some((k) => node.attrs[k] !== this.node.attrs[k]);
     this.node = node;
     if (changed) this.paint();
     else blockId(this.dom, node);
@@ -617,35 +660,76 @@ class BookmarkView implements NodeView {
 class EmbedView implements NodeView {
   dom: HTMLElement;
   private frame: HTMLIFrameElement | null = null;
+  private grip: HTMLElement;
+  private fallback: HTMLAnchorElement | null = null;
 
-  constructor(private node: PMNode) {
-    this.dom = h("figure", { class: "embed" });
+  constructor(
+    private node: PMNode,
+    private readonly view: EditorView,
+    private readonly getPos: GetPos,
+  ) {
+    this.grip = h("div", { class: "embed__resize", attrs: { contenteditable: "false", "aria-hidden": "true" } });
+    this.dom = h("figure", { class: "embed" }, this.grip);
+    this.grip.addEventListener("pointerdown", (e) => this.resize(e));
     this.paint();
+  }
+
+  private resize(e: PointerEvent): void {
+    const frame = this.frame;
+    if (!frame || !this.view.editable || e.button !== 0) return;
+    e.preventDefault();
+    this.grip.setPointerCapture(e.pointerId);
+    const top = frame.getBoundingClientRect().top;
+    let height = Math.round(frame.getBoundingClientRect().height);
+    this.dom.classList.add("is-resizing");
+    const move = (ev: PointerEvent) => {
+      height = Math.min(1600, Math.max(120, Math.round((ev.clientY - top) / 10) * 10));
+      frame.height = String(height);
+    };
+    const up = () => {
+      this.grip.removeEventListener("pointermove", move);
+      this.grip.removeEventListener("pointerup", up);
+      this.grip.removeEventListener("pointercancel", up);
+      this.dom.classList.remove("is-resizing");
+      const pos = this.getPos();
+      if (pos === undefined || Number(this.node.attrs.height) === height) return;
+      this.view.dispatch(this.view.state.tr.setNodeMarkup(pos, undefined, { ...this.node.attrs, height }));
+    };
+    this.grip.addEventListener("pointermove", move);
+    this.grip.addEventListener("pointerup", up);
+    this.grip.addEventListener("pointercancel", up);
   }
 
   private paint(): void {
     blockId(this.dom, this.node);
     const url = String(this.node.attrs.url ?? "");
     setAttr(this.dom, "data-provider", this.node.attrs.provider ? String(this.node.attrs.provider) : null);
-    const src = embedSrc(url);
+    const { src, height } = embedSrc(url, String(this.node.attrs.provider ?? ""));
     if (!src) {
       this.frame?.remove();
       this.frame = null;
+      if (!this.fallback) {
+        this.fallback = h("a", { class: "embed__fallback", attrs: { target: "_blank", rel: "noopener noreferrer nofollow" } });
+        this.dom.prepend(this.fallback);
+      }
+      setAttr(this.fallback, "href", safeHref(url));
+      setText(this.fallback, url);
       return;
     }
+    this.fallback?.remove();
+    this.fallback = null;
     if (!this.frame) {
-      this.frame = h("iframe", {
-        attrs: {
-          loading: "lazy",
-          allow: "encrypted-media; picture-in-picture; fullscreen",
-          referrerpolicy: "strict-origin-when-cross-origin",
-          sandbox: "allow-scripts allow-same-origin allow-presentation allow-popups",
-        },
-      });
-      this.dom.append(this.frame);
+      this.frame = h("iframe", { attrs: { loading: "lazy", allow: EMBED_ALLOW, referrerpolicy: "strict-origin-when-cross-origin", sandbox: EMBED_SANDBOX } });
+      this.dom.prepend(this.frame);
     }
     setAttr(this.frame, "title", url);
+    const hh = Number(this.node.attrs.height) || height;
+    setAttr(this.frame, "height", hh ? String(hh) : null);
     if (this.frame.getAttribute("src") !== src) this.frame.src = src;
+  }
+
+  stopEvent(e: Event): boolean {
+    return this.grip.contains(e.target as Node);
   }
 
   update(node: PMNode): boolean {
@@ -695,11 +779,11 @@ export function nodeViews(ctx: EditorCtx): Record<string, NodeViewConstructor> {
     math_block: (node, view, getPos) => new MathView(node, view, getPos, ctx, true),
     math_inline: (node, view, getPos) => new MathView(node, view, getPos, ctx, false),
     file: (node) => new FileView(node),
-    image: (node, view, getPos) => new MediaView(node, view, getPos),
-    video: (node, view, getPos) => new MediaView(node, view, getPos),
-    audio: (node, view, getPos) => new MediaView(node, view, getPos),
+    image: (node, view, getPos) => new MediaView(node, view, getPos, ctx),
+    video: (node, view, getPos) => new MediaView(node, view, getPos, ctx),
+    audio: (node, view, getPos) => new MediaView(node, view, getPos, ctx),
     bookmark: (node) => new BookmarkView(node),
-    embed: (node) => new EmbedView(node),
+    embed: (node, view, getPos) => new EmbedView(node, view, getPos),
     table: (node) => new BlockTableView(node, 80),
   };
 }

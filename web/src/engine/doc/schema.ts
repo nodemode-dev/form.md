@@ -45,21 +45,63 @@ export function humanSize(n: number): string {
   return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-const YOUTUBE = /^https:\/\/(?:www\.)?(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{6,20})/;
-const VIMEO = /^https:\/\/(?:www\.)?vimeo\.com\/(\d{4,12})/;
+interface Provider {
+  id: string;
+  re: RegExp;
+  src: (m: RegExpExecArray, url: string) => string;
+  height: number;
+}
 
-export function embedSrc(url: string): string {
-  const y = YOUTUBE.exec(url);
-  if (y) return `https://www.youtube-nocookie.com/embed/${y[1]}`;
-  const v = VIMEO.exec(url);
-  if (v) return `https://player.vimeo.com/video/${v[1]}?dnt=1`;
-  return "";
+const q = encodeURIComponent;
+
+const PROVIDERS: Provider[] = [
+  { id: "youtube", re: /^https:\/\/(?:www\.)?(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{6,20})/, src: (m) => `https://www.youtube-nocookie.com/embed/${m[1]}`, height: 0 },
+  { id: "vimeo", re: /^https:\/\/(?:www\.)?vimeo\.com\/(\d{4,12})/, src: (m) => `https://player.vimeo.com/video/${m[1]}?dnt=1`, height: 0 },
+  { id: "loom", re: /^https:\/\/(?:www\.)?loom\.com\/(?:share|embed)\/([a-f0-9]{16,40})/, src: (m) => `https://www.loom.com/embed/${m[1]}`, height: 0 },
+  { id: "dailymotion", re: /^https:\/\/(?:www\.)?dailymotion\.com\/video\/([A-Za-z0-9]{5,12})/, src: (m) => `https://www.dailymotion.com/embed/video/${m[1]}`, height: 0 },
+  { id: "tiktok", re: /^https:\/\/(?:www\.)?tiktok\.com\/@[\w.-]+\/video\/(\d{6,25})/, src: (m) => `https://www.tiktok.com/embed/v2/${m[1]}`, height: 740 },
+  { id: "figma", re: /^https:\/\/(?:www\.)?figma\.com\/(?:file|design|proto|board|slides)\/[A-Za-z0-9]{10,40}/, src: (_m, url) => `https://www.figma.com/embed?embed_host=formmd&url=${q(url)}`, height: 450 },
+  { id: "codepen", re: /^https:\/\/codepen\.io\/([\w-]{1,40})\/(?:pen|full|details)\/([A-Za-z0-9]{4,12})/, src: (m) => `https://codepen.io/${m[1]}/embed/${m[2]}?default-tab=result`, height: 400 },
+  { id: "codesandbox", re: /^https:\/\/codesandbox\.io\/(?:s|embed|p\/sandbox)\/([\w-]{3,80})/, src: (m) => `https://codesandbox.io/embed/${m[1]}`, height: 500 },
+  { id: "spotify", re: /^https:\/\/open\.spotify\.com\/(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]{10,30})/, src: (m) => `https://open.spotify.com/embed/${m[1]}/${m[2]}`, height: 352 },
+  { id: "soundcloud", re: /^https:\/\/(?:www\.)?soundcloud\.com\/[\w-]{1,60}\/[\w-]{1,120}/, src: (_m, url) => `https://w.soundcloud.com/player/?url=${q(url)}`, height: 166 },
+  { id: "gdocs", re: /^https:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([\w-]{20,80})/, src: (m) => `https://docs.google.com/${m[1]}/d/${m[2]}/preview`, height: 600 },
+  { id: "gforms", re: /^https:\/\/docs\.google\.com\/forms\/d\/e\/([\w-]{20,80})/, src: (m) => `https://docs.google.com/forms/d/e/${m[1]}/viewform?embedded=true`, height: 600 },
+  { id: "gdrive", re: /^https:\/\/drive\.google\.com\/file\/d\/([\w-]{20,80})/, src: (m) => `https://drive.google.com/file/d/${m[1]}/preview`, height: 480 },
+  { id: "gmaps", re: /^https:\/\/(?:www\.|maps\.)?google\.[a-z.]{2,6}\/maps(?:\/place\/([^/?#]+)|.*[?&]q=([^&#]+))/, src: (m) => `https://www.google.com/maps?output=embed&q=${m[1] || m[2] || ""}`, height: 400 },
+  { id: "miro", re: /^https:\/\/miro\.com\/app\/board\/([\w=-]{6,40})/, src: (m) => `https://miro.com/app/live-embed/${m[1]}/`, height: 450 },
+  { id: "airtable", re: /^https:\/\/airtable\.com\/(?:embed\/)?((?:app\w{10,20}\/)?shr\w{10,20})/, src: (m) => `https://airtable.com/embed/${m[1]}`, height: 533 },
+  { id: "typeform", re: /^https:\/\/[\w-]{1,60}\.typeform\.com\/to\/[A-Za-z0-9]{4,20}/, src: (m) => m[0], height: 500 },
+  { id: "excalidraw", re: /^https:\/\/excalidraw\.com\//, src: (_m, url) => url, height: 500 },
+];
+
+const WEB_HEIGHT = 480;
+
+export function embedSrc(url: string, kind = ""): { src: string; height: number } {
+  for (const p of PROVIDERS) {
+    const m = p.re.exec(url);
+    if (m) return { src: p.src(m, url), height: p.height };
+  }
+  if (kind === "web") {
+    try {
+      const u = new URL(url);
+      if (u.protocol === "https:" && u.host && !u.username && !u.password && !/["<> ]/.test(url) && u.origin !== globalThis.location?.origin) return { src: url, height: WEB_HEIGHT };
+    } catch {
+      return { src: "", height: 0 };
+    }
+  }
+  return { src: "", height: 0 };
 }
 
 export function embedProvider(url: string): string {
-  if (YOUTUBE.test(url)) return "youtube";
-  if (VIMEO.test(url)) return "vimeo";
-  return "";
+  return PROVIDERS.find((p) => p.re.test(url))?.id ?? "";
+}
+
+export const EMBED_SANDBOX = "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms";
+export const EMBED_ALLOW = "encrypted-media; picture-in-picture; fullscreen; clipboard-write";
+
+export function isRemote(src: string): boolean {
+  return /^https?:\/\//i.test(src);
 }
 
 export function safeHref(h: string): string {
@@ -72,6 +114,7 @@ export function safeHref(h: string): string {
 const media = (kind: "image" | "video" | "audio", n: PMNode): DOMOutputSpec => {
   const src = fileSrc(String(n.attrs.src ?? ""));
   const caption: DOMOutputSpec = ["figcaption", { class: "media__caption" }, String(n.attrs.caption ?? "")];
+  if (isRemote(src)) return ["figure", { class: `media media--${kind} is-remote`, "data-src": src, ...blockAttr(n) }, ["div", { class: "media__pending" }, ["span", { class: "media__pending-text" }, src]], caption];
   const dims = (): Attrs => {
     const o: Attrs = {};
     if (n.attrs.w) o.width = String(n.attrs.w);
@@ -89,7 +132,7 @@ const mediaParse = (kind: string) => ({
   getAttrs: (dom: HTMLElement) => {
     const el = dom.querySelector(kind === "image" ? "img" : kind);
     return {
-      src: refFromSrc(el?.getAttribute("src") ?? ""),
+      src: refFromSrc(el?.getAttribute("src") ?? dom.dataset.src ?? ""),
       alt: el?.getAttribute("alt") ?? "",
       caption: dom.querySelector("figcaption")?.textContent ?? "",
       w: Number(el?.getAttribute("width")) || null,
@@ -320,7 +363,7 @@ const nodes: Record<string, NodeSpec> = {
     group: "block",
     atom: true,
     draggable: true,
-    attrs: { ...withId, url: { default: "" }, title: { default: "" }, description: { default: "" }, image: { default: "" }, site: { default: "" } },
+    attrs: { ...withId, url: { default: "" }, title: { default: "" }, description: { default: "" }, image: { default: "" }, site: { default: "" }, icon: { default: "" }, fetched: { default: false } },
     parseDOM: [
       {
         tag: "div.bookmark",
@@ -334,9 +377,11 @@ const nodes: Record<string, NodeSpec> = {
     toDOM: (n) => {
       const url = safeHref(String(n.attrs.url ?? ""));
       const title = String(n.attrs.title || url);
-      const inner: DOMOutputSpec[] = [
-        ["span", { class: "bookmark__text" }, ["span", { class: "bookmark__title" }, title], ["span", { class: "bookmark__desc" }, String(n.attrs.description ?? "")], ["span", { class: "bookmark__url" }, url]],
-      ];
+      const icon = String(n.attrs.icon ?? "");
+      const line: DOMOutputSpec = icon.startsWith("f:")
+        ? ["span", { class: "bookmark__url" }, ["img", { class: "bookmark__icon", src: fileSrc(icon), alt: "", width: "16", height: "16" }], url]
+        : ["span", { class: "bookmark__url" }, url];
+      const inner: DOMOutputSpec[] = [["span", { class: "bookmark__text" }, ["span", { class: "bookmark__title" }, title], ["span", { class: "bookmark__desc" }, String(n.attrs.description ?? "")], line]];
       const img = String(n.attrs.image ?? "");
       if (img.startsWith("f:")) inner.push(["img", { class: "bookmark__image", src: fileSrc(img), alt: "", loading: "lazy" }]);
       return ["div", { class: "bookmark", ...blockAttr(n) }, ["a", { class: "bookmark__link", href: url, target: "_blank", rel: "noopener noreferrer nofollow" }, ...inner]];
@@ -346,29 +391,23 @@ const nodes: Record<string, NodeSpec> = {
     group: "block",
     atom: true,
     draggable: true,
-    attrs: { ...withId, url: { default: "" }, provider: { default: "" } },
-    parseDOM: [{ tag: "figure.embed", getAttrs: (dom: HTMLElement) => ({ url: dom.querySelector("iframe")?.getAttribute("title") ?? "", provider: dom.dataset.provider ?? "" }) }],
+    attrs: { ...withId, url: { default: "" }, provider: { default: "" }, height: { default: null } },
+    parseDOM: [
+      {
+        tag: "figure.embed",
+        getAttrs: (dom: HTMLElement) => ({ url: dom.querySelector("iframe")?.getAttribute("title") ?? "", provider: dom.dataset.provider ?? "", height: Number(dom.querySelector("iframe")?.getAttribute("height")) || null }),
+      },
+    ],
     toDOM: (n) => {
       const url = String(n.attrs.url ?? "");
       const a: Attrs = { class: "embed", ...blockAttr(n) };
       if (n.attrs.provider) a["data-provider"] = String(n.attrs.provider);
-      const src = embedSrc(url);
+      const { src, height } = embedSrc(url, String(n.attrs.provider ?? ""));
       if (!src) return ["figure", a];
-      return [
-        "figure",
-        a,
-        [
-          "iframe",
-          {
-            src,
-            title: url,
-            loading: "lazy",
-            allow: "encrypted-media; picture-in-picture; fullscreen",
-            referrerpolicy: "strict-origin-when-cross-origin",
-            sandbox: "allow-scripts allow-same-origin allow-presentation allow-popups",
-          },
-        ],
-      ];
+      const frame: Attrs = { src, title: url, loading: "lazy", allow: EMBED_ALLOW, referrerpolicy: "strict-origin-when-cross-origin", sandbox: EMBED_SANDBOX };
+      const hh = Number(n.attrs.height) || height;
+      if (hh) frame.height = String(hh);
+      return ["figure", a, ["iframe", frame]];
     },
   },
   toc: {
