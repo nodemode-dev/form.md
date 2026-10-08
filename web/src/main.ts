@@ -121,6 +121,12 @@ async function start(): Promise<void> {
     mountAccount(engine);
     mountWorkspaceSettings(engine);
     mountAdmin(engine);
+    const app = engine;
+    const loadSearch = () => import("./ui/search").then((m) => m.mountSearch(app));
+    let searchJob: Promise<void> | null = null;
+    const ensureSearch = () => (searchJob ??= loadSearch().catch((e: unknown) => ((searchJob = null), app.reportError(e))));
+    engine.state.watch("overlay", (v) => void (v === "search" && ensureSearch()));
+    setTimeout(() => ("requestIdleCallback" in window ? requestIdleCallback(() => void ensureSearch()) : void ensureSearch()), 2500);
     engine.start();
   }
 }

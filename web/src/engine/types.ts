@@ -373,6 +373,42 @@ export interface RecentPage extends Page {
   visited_at: number;
 }
 
+export interface SearchQuery {
+  q: string;
+  workspace_id: string;
+  in?: "title" | "all";
+  creator?: string[];
+  parent?: string;
+  date?: "edited" | "created";
+  from?: number;
+  to?: number;
+  sort?: "best" | "edited" | "created";
+  limit?: number;
+  offset?: number;
+}
+
+export interface SearchHit {
+  id: string;
+  title: string;
+  title_hl: string;
+  icon: string;
+  kind: "doc" | "collection";
+  row: boolean;
+  path: { id: string; title: string; icon: string }[];
+  match: "title" | "body" | "props";
+  heading: string;
+  snippet: string;
+  created_at: number;
+  created_by: string;
+  updated_at: number;
+}
+
+export interface SearchResult {
+  hits: SearchHit[];
+  more: boolean;
+  took_ms: number;
+}
+
 export interface TagInfo {
   tag: string;
   count: number;

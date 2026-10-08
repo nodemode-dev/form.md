@@ -23,6 +23,10 @@ export class Commands {
     return this.byId.get(id);
   }
 
+  list(): Command[] {
+    return [...this.byId.values()];
+  }
+
   run(id: string): boolean {
     const command = this.byId.get(id);
     if (!command || command.enabled?.() === false) return false;

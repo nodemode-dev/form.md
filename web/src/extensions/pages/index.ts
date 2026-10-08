@@ -111,6 +111,13 @@ function setup(engine: Engine): void {
       run: () => engine.navigate({ name: "library", view: "recent" }),
     }),
     commands.register({
+      id: "search.open",
+      label: () => t("Search"),
+      group: PAGES,
+      enabled: () => !!state.get("workspaceId"),
+      run: () => state.set("overlay", "search"),
+    }),
+    commands.register({
       id: "trash.open",
       label: () => t("Trash"),
       group: PAGES,
@@ -156,6 +163,7 @@ function setup(engine: Engine): void {
     keymap.register({ id: "page.new", command: "page.new", chords: ["alt+n"], scope: "global", whileTyping: true }),
     keymap.register({ id: "page.favorite", command: "page.favorite", chords: ["f"], scope: "view" }),
     keymap.register({ id: "library.open", command: "library.open", chords: ["l"], scope: "view" }),
+    keymap.register({ id: "search.open", command: "search.open", chords: ["mod+k", "mod+p"], scope: "global", whileTyping: true }),
     keymap.register({ id: "notes.toggle", command: "notes.toggle", chords: ["m"], scope: "view" }),
     keymap.register({ id: "tabs.next", command: "tabs.next", chords: ["mod+alt+arrowright", "alt+shift+arrowright"], scope: "global", whileTyping: true }),
     keymap.register({ id: "tabs.prev", command: "tabs.prev", chords: ["mod+alt+arrowleft", "alt+shift+arrowleft"], scope: "global", whileTyping: true }),

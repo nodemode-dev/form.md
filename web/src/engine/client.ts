@@ -29,6 +29,8 @@ import type {
   Prefs,
   RecentPage,
   Rules,
+  SearchQuery,
+  SearchResult,
   SessionInfo,
   SettingsMap,
   StrandedWorkspace,
@@ -128,6 +130,19 @@ export function createClient(f: FetchFn) {
       deleteForever: (id: string) => del(`/api/pages/${enc(id)}/forever`),
       visit: (id: string) => post<void>(`/api/pages/${enc(id)}/visit`),
       recent: (limit = 50) => get<{ pages: RecentPage[] }>(`/api/recent?limit=${limit}`),
+      search: (q: SearchQuery, cancel?: AbortSignal) => {
+        const p = new URLSearchParams({ q: q.q, workspace_id: q.workspace_id });
+        if (q.in === "title") p.set("in", "title");
+        if (q.creator?.length) p.set("creator", q.creator.join(","));
+        if (q.parent) p.set("parent", q.parent);
+        if (q.date) p.set("date", q.date);
+        if (q.from) p.set("from", String(q.from));
+        if (q.to) p.set("to", String(q.to));
+        if (q.sort && q.sort !== "best") p.set("sort", q.sort);
+        if (q.limit) p.set("limit", String(q.limit));
+        if (q.offset) p.set("offset", String(q.offset));
+        return request<SearchResult>(f, "GET", `/api/search?${p.toString()}`, undefined, 15000, cancel);
+      },
       backlinks: (id: string) => get<{ pages: Page[] }>(`/api/pages/${enc(id)}/backlinks`),
       createCollection: (body: { workspace_id: string; parent_id?: string; after_id?: string; title?: string; inline?: boolean; view?: ViewType }) =>
         post<{ page: Page }>("/api/pages", {

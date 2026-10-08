@@ -14,7 +14,7 @@ import { type KeyValueStore, PREF_KEYS, readSidebar, readThemePref, type Sidebar
 import { closeTab, cycleTab, moveTab, type NavState, openNewTab, openTab, parseRoute, type Route, routePath, sameRoute } from "./router";
 import { State } from "./state";
 
-export type Overlay = null | "shortcuts" | "account" | "admin" | "workspace" | "new-workspace";
+export type Overlay = null | "shortcuts" | "account" | "admin" | "workspace" | "new-workspace" | "search";
 export type AuthState = "pending" | "setup" | "signed-out" | "signup" | "invite" | "app" | "form";
 
 export interface Platform {
