@@ -31,6 +31,7 @@ const fileUrl = (ref: string) => (ref.startsWith("f:") ? `/files/${ref.slice(2)}
 interface Run {
   text: string;
   marks: readonly Mark[];
+  raw?: boolean;
 }
 
 export class MarkdownWriter {
@@ -106,6 +107,10 @@ export class MarkdownWriter {
         return [`<${String(n.attrs.url)}>`];
       case "toc":
         return ["<!-- toc -->"];
+      case "breadcrumb":
+        return ["<!-- breadcrumb -->"];
+      case "math_block":
+        return ["$$", ...String(n.attrs.tex).split("\n"), "$$"];
       case "database":
         return [`<!-- database:${String(n.attrs.collection)} -->`];
       case "columns": {
@@ -174,7 +179,7 @@ export class MarkdownWriter {
           runs.push({ text: label, marks: [schema.marks.link!.create({ href: `/p/${ref}` })] });
         } else if (kind === "user") runs.push({ text: `@${String(c.attrs.label)}`, marks: [] });
         else runs.push({ text: ref, marks: [] });
-      }
+      } else if (c.type.name === "math_inline") runs.push({ text: `$${String(c.attrs.tex)}$`, marks: [], raw: true });
     });
     let out = "";
     let open: string[] = [];
@@ -195,6 +200,12 @@ export class MarkdownWriter {
         closeTo(0);
         out += "\\\n";
         lineStart = true;
+        continue;
+      }
+      if (r.raw) {
+        closeTo(0);
+        out += r.text;
+        lineStart = false;
         continue;
       }
       const names = new Set(r.marks.map((m) => m.type.name));

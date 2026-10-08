@@ -14,6 +14,7 @@ import { looksLikeMarkdown, MarkdownWriter, parseMarkdownSlice, preloadMarkdown 
 import { pickFiles, uploadFiles } from "./media";
 import { nodeViews } from "./nodeviews";
 import { highlightPlugin, idsPlugin, keysPlugin, livePlugin, placeholderPlugin, structurePlugins, uploadsPlugin } from "./plugins";
+import { mathKeys } from "./math";
 import { rulesPlugin } from "./rules";
 import { triggerPlugin } from "./triggers";
 
@@ -176,6 +177,7 @@ export class EditorHost implements EditorCtx {
       yUndoPlugin(),
       triggerPlugin(this),
       rulesPlugin(),
+      mathKeys(),
       ...keysPlugin(this),
       idsPlugin(),
       placeholderPlugin(),

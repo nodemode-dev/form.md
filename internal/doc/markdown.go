@@ -238,6 +238,12 @@ func (w *mdWriter) block(el *crdt.YXmlElement) []string {
 		return []string{"<" + attrString(el, "url") + ">"}
 	case "toc":
 		return []string{"<!-- toc -->"}
+	case "breadcrumb":
+		return []string{"<!-- breadcrumb -->"}
+	case "math_block":
+		tex := attrString(el, "tex")
+		w.addText(tex)
+		return append(append([]string{"$$"}, strings.Split(tex, "\n")...), "$$")
 	case "database":
 		id := attrString(el, "collection")
 		if id == "" {
@@ -379,6 +385,7 @@ func (w *mdWriter) plain(el *crdt.YXmlElement) string {
 type run struct {
 	text  string
 	marks map[string]any
+	raw   bool
 }
 
 func (w *mdWriter) inline(el *crdt.YXmlElement, inTable bool) string {
@@ -407,6 +414,10 @@ func (w *mdWriter) inline(el *crdt.YXmlElement, inTable bool) string {
 				w.addText(" ")
 			case "mention":
 				runs = append(runs, w.mention(x)...)
+			case "math_inline":
+				tex := attrString(x, "tex")
+				w.addText(tex)
+				runs = append(runs, run{text: "$" + tex + "$", raw: true})
 			}
 		}
 	}
@@ -460,6 +471,12 @@ func renderRuns(runs []run, inTable bool) string {
 			closeTo(0)
 			b.WriteString("\\\n")
 			atLineStart = true
+			continue
+		}
+		if r.raw {
+			closeTo(0)
+			b.WriteString(r.text)
+			atLineStart = false
 			continue
 		}
 		var want []string

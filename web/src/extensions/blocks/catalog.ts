@@ -5,6 +5,7 @@ import { t } from "../../engine/i18n";
 import type { IconName } from "../../ui/icons";
 import { type BlockKind, insertBlock, turnInto } from "./commands";
 import { caretRect, type EditorCtx } from "./context";
+import { insertInlineMath, newMathBlock } from "./math";
 import { openPrompt } from "./popover";
 
 export interface CatalogEntry {
@@ -111,6 +112,9 @@ export const CATALOG: CatalogEntry[] = [
       insertBlock(view, (N.columns as NodeType).create({ id: newBlockId() }, [(N.column as NodeType).create(null, [para()]), (N.column as NodeType).create(null, [para()]), (N.column as NodeType).create(null, [para()])])),
   },
   { id: "toc", label: () => t("Table of contents"), section: LAYOUT, icon: "toc", keywords: "toc outline headings contents", run: (view) => insertBlock(view, (N.toc as NodeType).create({ id: newBlockId() })) },
+  { id: "math", label: () => t("Block equation"), section: LAYOUT, icon: "sigma", keywords: "math equation latex tex formula katex block", run: (view) => insertBlock(view, newMathBlock()) },
+  { id: "math-inline", label: () => t("Inline equation"), section: LAYOUT, icon: "sigma", hint: "Ctrl+Shift+E", keywords: "math equation latex tex formula inline", run: (view) => void insertInlineMath(view) },
+  { id: "breadcrumb", label: () => t("Breadcrumb"), section: LAYOUT, icon: "turn", keywords: "breadcrumb bread path parents trail", run: (view) => insertBlock(view, (N.breadcrumb as NodeType).create({ id: newBlockId() })) },
   { id: "image", label: () => t("Image"), section: MEDIA, icon: "image", keywords: "picture photo png jpg upload", run: (view, ctx) => ctx.pickFiles(view, "image/*") },
   { id: "video", label: () => t("Video"), section: MEDIA, icon: "video", keywords: "movie mp4 webm upload", run: (view, ctx) => ctx.pickFiles(view, "video/*") },
   { id: "audio", label: () => t("Audio"), section: MEDIA, icon: "audio", keywords: "sound music mp3 recording", run: (view, ctx) => ctx.pickFiles(view, "audio/*") },

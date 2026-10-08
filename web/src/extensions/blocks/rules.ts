@@ -3,6 +3,7 @@ import type { MarkType, NodeType } from "prosemirror-model";
 import { type Plugin, TextSelection } from "prosemirror-state";
 import { newBlockId, schema } from "../../engine/doc/schema";
 import { normaliseLanguage } from "./languages";
+import { mathRules } from "./math";
 
 const N = schema.nodes as Record<string, NodeType>;
 const M = schema.marks as Record<string, MarkType>;
@@ -63,6 +64,7 @@ export function rulesPlugin(): Plugin {
     markRule(/(?:^|[^_\w])_([^_\s](?:[^_]*[^_\s])?)_$/, M.em as MarkType, 1),
     markRule(/~~([^~\s](?:[^~]*[^~\s])?)~~$/, M.strike as MarkType, 2),
     markRule(/`([^`]+)`$/, M.code as MarkType, 1),
+    ...mathRules(),
   ];
   return inputRules({ rules });
 }

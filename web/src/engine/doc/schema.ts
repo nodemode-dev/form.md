@@ -378,6 +378,21 @@ const nodes: Record<string, NodeSpec> = {
     parseDOM: [{ tag: "nav.toc" }],
     toDOM: (n) => ["nav", { class: "toc", ...blockAttr(n), contenteditable: "false" }],
   },
+  math_block: {
+    group: "block",
+    atom: true,
+    selectable: true,
+    attrs: { ...withId, tex: { default: "" }, html: { default: "" } },
+    parseDOM: [{ tag: "div.math-block[data-tex]", getAttrs: (d) => ({ id: (d as HTMLElement).dataset.block ?? null, tex: (d as HTMLElement).dataset.tex ?? "", html: "" }) }],
+    toDOM: (n) => ["div", { class: "math-block", ...blockAttr(n), "data-tex": String(n.attrs.tex), contenteditable: "false" }],
+  },
+  breadcrumb: {
+    group: "block",
+    atom: true,
+    attrs: withId,
+    parseDOM: [{ tag: "nav.crumbline" }],
+    toDOM: (n) => ["nav", { class: "crumbline", ...blockAttr(n), contenteditable: "false" }],
+  },
   database: {
     group: "block",
     atom: true,
@@ -408,6 +423,15 @@ const nodes: Record<string, NodeSpec> = {
     selectable: false,
     parseDOM: [{ tag: "br" }],
     toDOM: () => ["br"],
+  },
+  math_inline: {
+    inline: true,
+    group: "inline",
+    atom: true,
+    selectable: true,
+    attrs: { tex: { default: "" }, html: { default: "" } },
+    parseDOM: [{ tag: "span.math-inline[data-tex]", getAttrs: (d) => ({ tex: (d as HTMLElement).dataset.tex ?? "", html: "" }) }],
+    toDOM: (n) => ["span", { class: "math-inline", "data-tex": String(n.attrs.tex), contenteditable: "false" }, String(n.attrs.tex)],
   },
   mention: {
     inline: true,

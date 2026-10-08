@@ -359,8 +359,12 @@ func (s *Service) Render(ctx context.Context, p *policy.Principal, id string) (s
 		return "", err
 	}
 	titles := s.pages.Titles(ctx, p, refs)
+	var crumbs []page.Crumb
+	if d, err := s.pages.Get(ctx, p, id); err == nil {
+		crumbs = append(append(crumbs, d.Path...), page.Crumb{ID: d.ID, Title: d.Title, Icon: d.Icon})
+	}
 	err = s.withRoom(ctx, id, func(r *room) {
-		out = RenderHTML(r.fragment(), func(id string) string { return titles[id] })
+		out = RenderPage(r.fragment(), func(id string) string { return titles[id] }, crumbs)
 	})
 	return out, err
 }

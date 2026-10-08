@@ -7,6 +7,7 @@ import type { Extension } from "../registry";
 import { type BlockKind, duplicateBlock, markCommand, moveBlock, toggleCheck, turnInto } from "./commands";
 import { EditorHost } from "./editor";
 import { MarkdownWriter } from "./markdown";
+import { insertInlineMath } from "./math";
 
 const EDITING = () => t("Editing");
 const BLOCKS = () => t("Blocks");
@@ -90,6 +91,8 @@ function setup(engine: Engine): void {
       },
     }),
     keymap.register({ id: "editor.link", command: "editor.link", chords: ["mod+k"], scope: "editor", whileTyping: true }),
+    commands.register({ id: "editor.inlineMath", label: () => t("Inline equation"), group: EDITING, enabled: editing, run: withView((v) => void insertInlineMath(v)) }),
+    keymap.register({ id: "editor.inlineMath", command: "editor.inlineMath", chords: ["mod+shift+e"], scope: "editor", whileTyping: true }),
     commands.register({ id: "editor.undo", label: () => t("Undo"), group: EDITING, enabled: editing, run: withView((v) => void undo(v.state)) }),
     keymap.register({ id: "editor.undo", command: "editor.undo", chords: ["mod+z"], scope: "editor", whileTyping: true }),
     commands.register({ id: "editor.redo", label: () => t("Redo"), group: EDITING, enabled: editing, run: withView((v) => void redo(v.state)) }),

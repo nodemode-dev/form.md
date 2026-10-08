@@ -38,10 +38,11 @@ var withID = map[string]bool{
 	"paragraph": true, "heading": true, "blockquote": true, "callout": true, "toggle": true,
 	"bullet_list": true, "ordered_list": true, "task_list": true, "list_item": true, "task_item": true,
 	"code_block": true, "horizontal_rule": true, "table": true, "image": true, "video": true, "audio": true,
-	"file": true, "bookmark": true, "embed": true, "toc": true, "columns": true, "database": true,
+	"file": true, "bookmark": true, "embed": true, "toc": true, "columns": true, "database": true, "breadcrumb": true,
+	"math_block": true,
 }
 
-var md = goldmark.New(goldmark.WithExtensions(extension.Table, extension.Strikethrough, extension.TaskList, extension.Linkify))
+var md = goldmark.New(goldmark.WithExtensions(extension.Table, extension.Strikethrough, extension.TaskList, extension.Linkify, mathExtension{}))
 
 func newNode(name string) *pmNode {
 	n := &pmNode{name: name, attrs: map[string]any{}}
@@ -180,6 +181,8 @@ func (c *converter) htmlBlock(raw string) *pmNode {
 	switch strings.ToLower(trimmed) {
 	case "<!-- toc -->":
 		return newNode("toc")
+	case "<!-- breadcrumb -->":
+		return newNode("breadcrumb")
 	case "<br>", "<br/>", "<br />":
 		return newNode("paragraph")
 	}
@@ -213,6 +216,8 @@ func (c *converter) block(n gast.Node) *pmNode {
 		return cb
 	case *gast.Blockquote:
 		return c.quote(x)
+	case *mathBlock:
+		return mathNode("math_block", strings.Join(x.tex, "\n"))
 	case *gast.List:
 		return c.list(x)
 	case *east.Table:
@@ -463,6 +468,8 @@ func (c *converter) inline(parent gast.Node) []pmRun {
 				m := copyMarks(marks)
 				m["code"] = map[string]any{}
 				add(plainText(x, c.src), m)
+			case *mathInline:
+				runs = append(runs, pmRun{atom: mathNode("math_inline", x.tex)})
 			case *gast.Emphasis:
 				m := copyMarks(marks)
 				if x.Level >= 2 {

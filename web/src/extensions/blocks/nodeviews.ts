@@ -7,12 +7,14 @@ import { formatDate } from "../../engine/format";
 import { t } from "../../engine/i18n";
 import { h, setAttr, setText } from "../../ui/dom";
 import { iconNode } from "../../ui/icons";
+import { reconcile } from "../../ui/list";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { fallbackGlyph, paintIcon } from "../../ui/pageicon";
 import { openIconPicker } from "../../ui/pickers";
 import type { EditorCtx, Refreshable } from "./context";
 import { LANGUAGES, languageLabel } from "./languages";
 import { openLightbox } from "./lightbox";
+import { MathView } from "./math";
 
 type GetPos = () => number | undefined;
 
@@ -290,6 +292,75 @@ class MentionView implements NodeView, Refreshable {
     this.node = node;
     this.refresh();
     return true;
+  }
+
+  ignoreMutation(): boolean {
+    return true;
+  }
+
+  destroy(): void {
+    this.ctx.live.delete(this);
+  }
+}
+
+class CrumbView implements NodeView, Refreshable {
+  dom: HTMLElement;
+  private sig = "";
+
+  constructor(
+    private node: PMNode,
+    private readonly ctx: EditorCtx,
+  ) {
+    this.dom = h("nav", { class: "crumbline", attrs: { contenteditable: "false", "aria-label": t("Breadcrumb") } });
+    blockId(this.dom, node);
+    this.dom.addEventListener("mousedown", (e) => {
+      if ((e.target as Element).closest(".crumbline__item")) e.preventDefault();
+    });
+    this.dom.addEventListener("click", (e) => {
+      const a = (e.target as Element).closest<HTMLAnchorElement>(".crumbline__item");
+      if (!a?.dataset.id) return;
+      e.preventDefault();
+      ctx.engine.openPage(a.dataset.id, { newTab: e.ctrlKey || e.metaKey });
+    });
+    ctx.live.add(this);
+    this.refresh();
+  }
+
+  refresh(): void {
+    const pages = this.ctx.engine.pages;
+    const chain: { id: string; title: string; icon: string; kind: string }[] = [];
+    let cur = pages.get(this.ctx.pageId());
+    for (let i = 0; cur && i < 64; i++) {
+      chain.unshift({ id: cur.id, title: cur.title, icon: cur.icon, kind: cur.kind });
+      cur = cur.parent_id ? pages.get(cur.parent_id) : undefined;
+    }
+    const sig = JSON.stringify(chain);
+    if (sig === this.sig) return;
+    this.sig = sig;
+    reconcile(
+      this.dom,
+      chain,
+      (c) => c.id,
+      () => h("a", { class: "crumbline__item" }, h("span", { class: "crumbline__icon" }), h("span", { class: "crumbline__label" })),
+      (a, c) => {
+        a.dataset.id = c.id;
+        setAttr(a, "href", `/p/${c.id}`);
+        setAttr(a, "aria-current", c.id === this.ctx.pageId() ? "page" : null);
+        paintIcon(a.firstElementChild as HTMLElement, c.icon, fallbackGlyph(c.kind));
+        setText(a.lastElementChild as HTMLElement, c.title || t("Untitled"));
+      },
+    );
+  }
+
+  update(node: PMNode): boolean {
+    if (node.type !== this.node.type) return false;
+    this.node = node;
+    blockId(this.dom, node);
+    return true;
+  }
+
+  stopEvent(e: Event): boolean {
+    return !!(e.target as Element).closest?.(".crumbline__item");
   }
 
   ignoreMutation(): boolean {
@@ -618,6 +689,9 @@ export function nodeViews(ctx: EditorCtx): Record<string, NodeViewConstructor> {
     callout: (node, view, getPos) => new CalloutView(node, view, getPos, ctx),
     mention: (node) => new MentionView(node, ctx),
     toc: (node, view) => new TocView(node, view, ctx),
+    breadcrumb: (node) => new CrumbView(node, ctx),
+    math_block: (node, view, getPos) => new MathView(node, view, getPos, ctx, true),
+    math_inline: (node, view, getPos) => new MathView(node, view, getPos, ctx, false),
     file: (node) => new FileView(node),
     image: (node, view, getPos) => new MediaView(node, view, getPos),
     video: (node, view, getPos) => new MediaView(node, view, getPos),

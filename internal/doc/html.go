@@ -6,13 +6,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/reearth/ygo/crdt"
 )
 
 type htmlWriter struct {
-	b     strings.Builder
-	title func(id string) string
-	heads []tocEntry
+	b      strings.Builder
+	title  func(id string) string
+	heads  []tocEntry
+	crumbs []page.Crumb
 }
 
 type tocEntry struct {
@@ -22,7 +24,11 @@ type tocEntry struct {
 }
 
 func RenderHTML(frag *crdt.YXmlFragment, title func(id string) string) string {
-	w := &htmlWriter{title: title}
+	return RenderPage(frag, title, nil)
+}
+
+func RenderPage(frag *crdt.YXmlFragment, title func(id string) string, crumbs []page.Crumb) string {
+	w := &htmlWriter{title: title, crumbs: crumbs}
 	w.collectHeadings(children(frag))
 	for _, c := range children(frag) {
 		if el, ok := c.(*crdt.YXmlElement); ok {
@@ -259,6 +265,19 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 			w.b.WriteString(esc(h.text) + "</a>")
 		}
 		w.b.WriteString("</nav>")
+	case "math_block":
+		w.math(el, true, id)
+	case "breadcrumb":
+		w.open("nav", "class", "crumbline", "data-block", id, "contenteditable", "false")
+		for _, c := range w.crumbs {
+			label := c.Title
+			if label == "" {
+				label = "Untitled"
+			}
+			w.open("a", "class", "crumbline__item", "href", "/p/"+c.ID)
+			w.b.WriteString(`<span class="crumbline__icon"></span><span class="crumbline__label">` + esc(label) + "</span></a>")
+		}
+		w.b.WriteString("</nav>")
 	case "columns":
 		n := len(children(el))
 		w.open("div", "class", "columns", "data-block", id, "data-count", strconv.Itoa(n))
@@ -372,6 +391,9 @@ func (w *htmlWriter) inline(el *crdt.YXmlElement) {
 				lastBreak = true
 			case "mention":
 				w.mention(x)
+				lastBreak = false
+			case "math_inline":
+				w.math(x, false, "")
 				lastBreak = false
 			}
 			empty = false
