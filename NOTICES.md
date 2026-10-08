@@ -8,6 +8,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | Inter (font files from @fontsource-variable/inter) | 5.3.0 | OFL-1.1 |
 | JetBrains Mono (font files from @fontsource-variable/jetbrains-mono) | 5.3.0 | OFL-1.1 |
 | argparse | 3.0.2 | PSF-2.0 |
+| commander | 15.0.0 | MIT |
 | entities | 8.1.0 | BSD-2-Clause |
 | github.com/coder/websocket | v1.8.15 | ISC |
 | github.com/dustin/go-humanize | v1.0.1 | MIT |
@@ -19,6 +20,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | golang.org/x/sys | v0.48.0 | BSD-3-Clause |
 | highlight.js | 11.12.0 | BSD-3-Clause |
 | isomorphic.js | 0.2.5 | MIT |
+| katex | 0.18.9 | MIT |
 | lib0 | 0.2.119 | MIT |
 | linkify-it | 6.1.0 | MIT |
 | markdown-it | 15.0.2 | MIT |
@@ -329,6 +331,33 @@ agrees to be bound by the terms and conditions of this License
 Agreement.
 ```
 
+## commander 15.0.0
+
+```text
+(The MIT License)
+
+Copyright (c) 2011 TJ Holowaychuk <tj@vision-media.ca>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
 ## entities 8.1.0
 
 ```text
@@ -609,6 +638,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The MIT License (MIT)
 
 Copyright (c) 2020 Kevin Jahns <kevin.jahns@protonmail.com>.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## katex 0.18.9
+
+```text
+The MIT License (MIT)
+
+Copyright (c) 2013-2020 Khan Academy and other contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
