@@ -189,8 +189,8 @@ export function mountPageView(engine: Engine): void {
   };
   const writable = (p: Page) => {
     const d = state.get("detail");
-    if (d && d.id === p.id) return d.can_write && engine.canWrite(p.workspace_id);
-    return engine.canWrite(p.workspace_id);
+    if (d && d.id === p.id) return d.can_write;
+    return engine.can(p.id, "content");
   };
 
   const setValue = (el: HTMLTextAreaElement, value: string, force: boolean) => {

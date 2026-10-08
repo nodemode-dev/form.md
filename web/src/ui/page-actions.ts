@@ -4,6 +4,7 @@ import { errorMessage } from "./errors";
 import { copyText } from "./form";
 import type { MenuEntry } from "./menu";
 import { tile } from "./avatar";
+import { openShareDialog } from "./share-dialog";
 import { toast } from "./toast";
 
 export interface PageMenuHandlers {
@@ -44,22 +45,25 @@ export async function moveToWorkspace(engine: Engine, id: string, workspaceId: s
 export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers): MenuEntry[] {
   const p = engine.pages.get(id) ?? engine.state.get("detail");
   if (!p || p.id !== id) return [];
-  const writable = engine.canWrite(p.workspace_id);
+  const member = engine.canWrite(p.workspace_id);
+  const writable = engine.can(id, "edit");
   const fav = engine.pages.isFavorite(id);
   const personal = engine.workspaceById(p.workspace_id)?.personal ?? false;
   const entries: MenuEntry[] = [
     { label: t("Open in new tab"), icon: "new-tab", run: () => engine.openPage(id, { newTab: true }) },
     { label: fav ? t("Remove from favorites") : t("Add to favorites"), icon: fav ? "star-fill" : "star", hint: engine.keymap.chordFor("page.favorite")?.join(" ") ?? "", run: () => void engine.pages.toggleFavorite(id).catch(engine.reportError) },
   ];
-  if (writable) {
-    entries.push({ label: t("Add a page inside"), icon: "plus", run: handlers.addInside });
-    entries.push({ label: t("Duplicate"), icon: "copy", run: () => void duplicatePage(engine, id) });
+  if (!personal) entries.push({ label: t("Share"), icon: "users", run: () => openShareDialog(engine, id) });
+  if (engine.can(id, "content")) entries.push({ label: t("Add a page inside"), icon: "plus", run: handlers.addInside });
+  const parent = p.parent_id && !p.detached ? p.parent_id : "";
+  if (parent ? engine.can(parent, "content") : member) entries.push({ label: t("Duplicate"), icon: "copy", run: () => void duplicatePage(engine, id) });
+  if (writable && member) {
     if (!personal) {
       const priv = p.visibility === "private";
       entries.push({ label: priv ? t("Share with the workspace") : t("Make private"), icon: priv ? "users" : "lock", run: () => void setVisibility(engine, id, !priv) });
     }
     if (p.parent_id) {
-      entries.push({ label: t("Move to top level"), icon: "move-up", run: () => void engine.pages.move(id, { parent_id: "" }).catch(engine.reportError) });
+      entries.push({ label: t("Move to top level"), icon: "move-up", run: () => void engine.pages.move(id, { parent_id: "", teamspace_id: engine.pages.teamOf(id) }).catch(engine.reportError) });
     }
     const others = (engine.state.get("me")?.workspaces ?? []).filter((w) => w.id !== p.workspace_id && engine.canWrite(w.id));
     if (others.length) {

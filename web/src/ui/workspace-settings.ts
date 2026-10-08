@@ -1,4 +1,4 @@
-import type { AgentAccess, EmergencyGrant, Engine, Invite, Member, Workspace, WorkspaceRole } from "../engine";
+import type { AgentAccess, EmergencyGrant, Engine, Group, Invite, Member, TeamMember, Workspace, WorkspaceRole } from "../engine";
 import { formatDate, formatDateTime, formatRelative } from "../engine/format";
 import { plural, t } from "../engine/i18n";
 import { avatar, tile, updateAvatar, updateTile } from "./avatar";
@@ -380,6 +380,145 @@ function membersTab(engine: Engine): Tab {
   );
 }
 
+function groupsTab(engine: Engine): Tab {
+  return boundTab(
+    engine,
+    "groups",
+    t("Groups"),
+    "users",
+    (panel, w) => {
+      const admin = isAdmin(w);
+      const st = status();
+      const list = h("div", { class: "rows" });
+      let members: Member[] = [];
+      const groupRow = (g: Group) => {
+        const title = h("span", { class: "row__title" });
+        const meta = h("span", { class: "row__meta" });
+        const side = h("div", { class: "row__actions" });
+        const r = h("div", { class: "row" }, iconNode("users"), h("div", { class: "row__main" }, title, meta), side);
+        const open = button(admin ? t("Manage") : t("Members"), "ghost");
+        open.addEventListener("click", () => manageGroup(g));
+        side.append(open);
+        if (admin) {
+          const del = iconButton("trash", t("Delete group"));
+          del.addEventListener("click", async () => {
+            const ok = await confirmDialog({ title: t("Delete {name}?", { name: g.name }), body: t("Pages shared with this group stop being shared with its members."), confirm: t("Delete"), variant: "danger" });
+            if (!ok) return;
+            try {
+              await engine.api.groups.remove(g.id);
+              refresh();
+            } catch (err) {
+              st.error(err);
+            }
+          });
+          side.append(del);
+        }
+        return r;
+      };
+      const updateGroup = (r: HTMLElement, g: Group) => {
+        const [title, meta] = r.querySelectorAll(".row__main > span") as unknown as [HTMLElement, HTMLElement];
+        setText(title, g.name);
+        setText(meta, [plural(g.members, "{count} member", "{count} members"), g.external_id ? t("from your directory") : ""].filter(Boolean).join(" · "));
+      };
+      const refresh = () => {
+        engine.api.workspaces
+          .groups(w.id)
+          .then(({ groups }) => reconcile(list, groups, (g) => g.id, groupRow, updateGroup))
+          .catch((err) => st.error(err));
+      };
+      const manageGroup = (g: Group) => {
+        simpleDialog(
+          g.name,
+          (body) => {
+            const rows = h("div", { class: "rows" });
+            const gst = status();
+            const memberRow = (m: TeamMember) => {
+              const r = h("div", { class: "row" }, avatar(m.name, ""), h("div", { class: "row__main" }, h("span", { class: "row__title", text: m.name }), h("span", { class: "row__meta", text: m.email })), h("div", { class: "row__actions" }));
+              if (admin) {
+                const remove = iconButton("trash", t("Remove"));
+                remove.addEventListener("click", async () => {
+                  try {
+                    await engine.api.groups.removeMember(g.id, m.user_id);
+                    load();
+                  } catch (err) {
+                    gst.error(err);
+                  }
+                });
+                r.lastElementChild?.append(remove);
+              }
+              return r;
+            };
+            const pick = select<string>([["", t("Choose a workspace member")]], "");
+            pick.setAttribute("aria-label", t("Add a member"));
+            const add = button(t("Add"), "default", "plus");
+            const adder = h("div", { class: "form-row form-row--inline" }, pick, add);
+            adder.hidden = !admin;
+            const load = () => {
+              engine.api.groups
+                .members(g.id)
+                .then(({ members: inGroup }) => {
+                  reconcile(rows, inGroup, (m) => m.user_id, memberRow, () => undefined);
+                  const have = new Set(inGroup.map((m) => m.user_id));
+                  pick.replaceChildren(h("option", { attrs: { value: "" }, text: t("Choose a workspace member") }));
+                  for (const m of members) if (!have.has(m.user_id) && !m.disabled) pick.append(h("option", { attrs: { value: m.user_id }, text: `${m.name} (${m.email})` }));
+                  refresh();
+                })
+                .catch((err) => gst.error(err));
+            };
+            add.addEventListener("click", async () => {
+              if (!pick.value) return;
+              try {
+                await busy(add, () => engine.api.groups.addMember(g.id, pick.value));
+                load();
+              } catch (err) {
+                gst.error(err);
+              }
+            });
+            body.append(rows, adder, gst.el);
+            load();
+            return admin ? pick : undefined;
+          },
+          undefined,
+          "md",
+        );
+      };
+      const groups = section(t("Groups"), t("Share pages with a group at once. Changing a group changes who can open those pages."));
+      groups.append(list, st.el);
+      panel.append(groups);
+      if (admin) {
+        const name = input({ placeholder: t("Design team"), maxlength: 100 });
+        name.setAttribute("aria-label", t("Group name"));
+        const create = button(t("Create group"), "primary", "plus", "submit");
+        const cst = status();
+        const form = h("form", { class: "form-grid", attrs: { novalidate: "" } }, h("div", { class: "form-row form-row--inline" }, name, create), cst.el);
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          cst.clear();
+          try {
+            await busy(create, () => engine.api.workspaces.createGroup(w.id, name.value.trim()));
+            name.value = "";
+            refresh();
+          } catch (err) {
+            cst.error(err);
+          }
+        });
+        const fresh = section(t("New group"));
+        fresh.append(form);
+        panel.append(fresh);
+        engine.api.workspaces
+          .members(w.id)
+          .then((r) => {
+            members = r.members;
+          })
+          .catch((err) => st.error(err));
+      }
+      refresh();
+      return refresh;
+    },
+    () => engine.workspace()?.personal === false && engine.workspace()?.role !== "guest",
+  );
+}
+
 function emergencySection(engine: Engine, w: Workspace): HTMLElement {
   const el = section(t("Emergency access log"), t("Who looked in as the instance owner, and why. Every grant is read only and ends after two hours."));
   const list = h("div", { class: "rows" });
@@ -535,7 +674,7 @@ function agentsTab(engine: Engine): Tab {
 }
 
 export function mountWorkspaceSettings(engine: Engine): void {
-  const dlg = overlayDialog(engine, "workspace", t("Workspace settings"), [generalTab(engine), membersTab(engine), agentsTab(engine)]);
+  const dlg = overlayDialog(engine, "workspace", t("Workspace settings"), [generalTab(engine), membersTab(engine), groupsTab(engine), agentsTab(engine)]);
   engine.state.watch("overlay", (v) => {
     if (v === "workspace") dlg.title(t("{name} settings", { name: engine.workspace()?.name ?? "" }));
   });

@@ -5,7 +5,7 @@ import { Commands } from "./commands";
 import { DocStore } from "./doc/docs";
 import { DocSync } from "./doc/sync";
 import { setFormatPrefs } from "./format";
-import type { Boot, LiveEvent, Me, Page, PageDetail, Workspace } from "./types";
+import type { AccessLevel, Boot, LiveEvent, Me, Page, PageDetail, Workspace } from "./types";
 import { type Health, HealthMonitor, initialHealth } from "./health";
 import { Keymap } from "./keymap";
 import { Live, type LiveStatus } from "./live";
@@ -78,6 +78,7 @@ export interface Engine {
   workspace(): Workspace | null;
   workspaceById(id: string): Workspace | null;
   canWrite(workspaceId?: string): boolean;
+  can(pageId: string, need: AccessLevel): boolean;
   setMe(me: Me | null): void;
   refreshMe(): Promise<void>;
   openOverlay(overlay: Exclude<Overlay, null>, tab?: string): void;
@@ -93,6 +94,7 @@ export interface Engine {
   reconnect(): void;
 }
 
+const LEVELS: readonly AccessLevel[] = ["view", "comment", "create", "content", "edit", "full"];
 const WORKSPACE_KEY = "formmd.workspace";
 const TABS_KEY = "formmd.tabs";
 
@@ -278,7 +280,10 @@ export function createEngine(deps: EngineDeps): Engine {
     pages.apply(e);
     collections.apply(e);
     if (e.type === "workspace" && (e.what === "members" || e.what === "settings" || e.what === "rules" || e.what === "deleted")) void refreshMe().catch(reportError);
-    if (e.type === "user" && (e.what === "workspaces" || e.what === "break_glass")) void refreshMe().catch(reportError);
+    if (e.type === "user" && (e.what === "workspaces" || e.what === "break_glass" || e.what === "shares")) void refreshMe().catch(reportError);
+    if (e.type === "workspace" && e.what === "shares") void refreshMe().catch(reportError);
+    const d = state.get("detail");
+    if (d && (e.type === "user" || e.type === "workspace") && (e.what === "shares" || e.what === "teamspaces" || e.what === "pages")) void loadDetail(d.id);
   };
   const resync = async () => {
     buffering = true;
@@ -346,7 +351,17 @@ export function createEngine(deps: EngineDeps): Engine {
     canWrite(workspaceId = state.get("workspaceId")) {
       const w = workspaceById(workspaceId);
       const me = state.get("me");
-      return !!w && !w.break_glass && w.role !== "viewer" && me?.credential.scope !== "read";
+      return !!w && !w.break_glass && w.role !== "viewer" && w.role !== "guest" && me?.credential.scope !== "read";
+    },
+    can(pageId, need) {
+      const d = state.get("detail");
+      const p = pages.get(pageId);
+      const level = d?.id === pageId ? d.level : p?.access;
+      const ws = p?.workspace_id ?? (d?.id === pageId ? d.workspace_id : "");
+      const w = workspaceById(ws);
+      if (need !== "view" && (state.get("me")?.credential.scope === "read" || w?.break_glass)) return false;
+      if (!level) return need === "view" || this.canWrite(ws);
+      return LEVELS.indexOf(level) >= LEVELS.indexOf(need);
     },
     setMe,
     refreshMe,
@@ -394,6 +409,7 @@ export function createEngine(deps: EngineDeps): Engine {
       const ws = state.get("workspaceId");
       const boot = deps.boot;
       if (boot.pages && ws && boot.workspace_id === ws) {
+        if (boot.teamspaces) pages.seedTeams(ws, boot.teamspaces);
         pages.seed(ws, boot.pages);
         if (boot.favorites) pages.seedFavorites(boot.favorites);
         if (boot.tags) pages.seedTags(ws, boot.tags);

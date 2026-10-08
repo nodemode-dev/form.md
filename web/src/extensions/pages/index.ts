@@ -64,7 +64,7 @@ function setup(engine: Engine): void {
       id: "page.newInside",
       label: () => t("New page inside this one"),
       group: PAGES,
-      enabled: () => !!currentId(engine) && engine.canWrite(pages.get(currentId(engine))?.workspace_id),
+      enabled: () => !!currentId(engine) && engine.can(currentId(engine), "content"),
       run: async () => {
         const parent = pages.get(currentId(engine));
         if (!parent) return;
@@ -90,7 +90,7 @@ function setup(engine: Engine): void {
       group: PAGES,
       enabled: () => {
         const p = pages.get(currentId(engine));
-        return !!p && engine.canWrite(p.workspace_id);
+        return !!p && engine.can(p.id, "edit");
       },
       run: async () => {
         const id = currentId(engine);

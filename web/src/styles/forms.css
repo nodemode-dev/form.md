@@ -299,6 +299,11 @@
   gap: var(--space-3);
 }
 
+.form-row--inline {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .form-actions {
   display: flex;
   flex-wrap: wrap;

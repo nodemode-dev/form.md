@@ -53,14 +53,14 @@ function setup(engine: Engine): void {
       id: "workspace.settings",
       label: () => t("Workspace settings"),
       group: WORKSPACE,
-      enabled: () => signedIn() && engine.workspace() !== null,
+      enabled: () => signedIn() && engine.workspace() !== null && engine.workspace()?.role !== "guest",
       run: () => engine.openOverlay("workspace"),
     }),
     commands.register({
       id: "workspace.members",
       label: () => t("Members and invitations"),
       group: WORKSPACE,
-      enabled: () => signedIn() && engine.workspace()?.personal === false,
+      enabled: () => signedIn() && engine.workspace()?.personal === false && engine.workspace()?.role !== "guest",
       run: () => engine.openOverlay("workspace", "members"),
     }),
     commands.register({

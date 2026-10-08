@@ -15,6 +15,7 @@ export interface DbCtx {
   col(): Collection;
   session: QuerySession;
   canWrite(): boolean;
+  canDesign(): boolean;
   workspaceId(): string;
 }
 

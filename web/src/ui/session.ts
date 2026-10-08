@@ -9,6 +9,7 @@ import { type MenuEntry, menuButton } from "./menu";
 function roleHint(w: Workspace): string {
   if (w.break_glass) return t("Emergency");
   if (w.personal) return t("Private");
+  if (w.role === "guest") return t("Guest");
   return w.role === "viewer" ? t("Read-only") : "";
 }
 

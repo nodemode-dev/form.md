@@ -1,6 +1,6 @@
 import type { Client, MoveTarget, PageChanges } from "./client";
 import { compareKeys, keyBetween } from "./order";
-import type { Favorite, LiveEvent, Page, TagInfo } from "./types";
+import type { Favorite, LiveEvent, Page, TagInfo, Teamspace } from "./types";
 
 export type StoreChange =
   | { kind: "upsert"; page: Page; prev: Page | undefined }
@@ -8,6 +8,7 @@ export type StoreChange =
   | { kind: "loaded"; workspaceId: string }
   | { kind: "favorites" }
   | { kind: "tags"; workspaceId: string }
+  | { kind: "teams"; workspaceId: string }
   | { kind: "trash"; workspaceId: string };
 
 interface Edit {
@@ -24,6 +25,7 @@ export interface TagCount {
 const DEBOUNCE_MS = 350;
 
 const slot = (workspaceId: string, parentId: string) => `${workspaceId}:${parentId}`;
+const home = (p: Page) => slot(p.workspace_id, p.detached ? "" : p.parent_id);
 
 export class PageStore {
   private pages = new Map<string, Page>();
@@ -33,6 +35,7 @@ export class PageStore {
   private loading = new Map<string, Promise<void>>();
   private favs: { id: string; key: string }[] = [];
   private colors = new Map<string, Map<string, string>>();
+  private teams = new Map<string, Teamspace[]>();
   private edits = new Map<string, Edit>();
   private listeners = new Set<(c: StoreChange) => void>();
 
@@ -118,7 +121,7 @@ export class PageStore {
 
   private index(p: Page): void {
     if (p.row) return;
-    const k = slot(p.workspace_id, p.parent_id);
+    const k = home(p);
     let set = this.byParent.get(k);
     if (!set) {
       set = new Set();
@@ -129,7 +132,7 @@ export class PageStore {
   }
 
   private unindex(p: Page): void {
-    const k = slot(p.workspace_id, p.parent_id);
+    const k = home(p);
     this.byParent.get(k)?.delete(p.id);
     this.sorted.delete(k);
   }
@@ -142,8 +145,10 @@ export class PageStore {
 
   private put(next: Page): void {
     const prev = this.pages.get(next.id);
+    if (prev?.detached && next.detached === undefined && prev.parent_id === next.parent_id && prev.workspace_id === next.workspace_id) next = { ...next, detached: true };
+    if (prev?.access && next.access === undefined) next = { ...next, access: prev.access };
     if (prev) {
-      if (prev.parent_id !== next.parent_id || prev.workspace_id !== next.workspace_id || prev.sort_key !== next.sort_key) {
+      if (home(prev) !== home(next) || prev.sort_key !== next.sort_key) {
         this.unindex(prev);
         this.index(next);
       }
@@ -189,9 +194,11 @@ export class PageStore {
     if (!force && this.loadedWs.has(workspaceId)) return Promise.resolve();
     const running = this.loading.get(workspaceId);
     if (running) return running;
-    const job = this.api.workspaces
-      .pages(workspaceId)
-      .then((r) => this.seed(workspaceId, r.pages))
+    const job = Promise.all([this.api.workspaces.pages(workspaceId), this.api.workspaces.teamspaces(workspaceId)])
+      .then(([r, t]) => {
+        this.seedTeams(workspaceId, t.teamspaces);
+        this.seed(workspaceId, r.pages);
+      })
       .finally(() => this.loading.delete(workspaceId));
     this.loading.set(workspaceId, job);
     return job;
@@ -221,9 +228,12 @@ export class PageStore {
       case "workspace":
         if (e.what === "trash") this.emit({ kind: "trash", workspaceId: e.workspace_id });
         else if (e.what === "tags") void this.loadTags(e.workspace_id).catch(this.onError);
+        else if (e.what === "teamspaces" && this.teams.has(e.workspace_id)) void this.loadTeams(e.workspace_id).catch(this.onError);
+        else if ((e.what === "pages" || e.what === "shares") && this.loadedWs.has(e.workspace_id)) void this.load(e.workspace_id, true).catch(this.onError);
         return;
       case "user":
         if (e.what === "favorites") void this.loadFavorites().catch(this.onError);
+        else if (e.what === "teamspaces" || e.what === "shares") void this.reloadAll();
         return;
       default:
         return;
@@ -310,6 +320,41 @@ export class PageStore {
     this.seedTags(workspaceId, r.tags);
   }
 
+  teamspaces(workspaceId: string): Teamspace[] {
+    return this.teams.get(workspaceId) ?? [];
+  }
+
+  teamspace(workspaceId: string, id: string): Teamspace | undefined {
+    return this.teams.get(workspaceId)?.find((t) => t.id === id);
+  }
+
+  seedTeams(workspaceId: string, list: Teamspace[]): void {
+    const prev = this.teams.get(workspaceId);
+    const sorted = [...list].sort((a, b) => compareKeys(a.sort_key, b.sort_key) || compareKeys(a.id, b.id));
+    if (prev && JSON.stringify(prev) === JSON.stringify(sorted)) return;
+    this.teams.set(workspaceId, sorted);
+    this.emit({ kind: "teams", workspaceId });
+  }
+
+  async loadTeams(workspaceId: string): Promise<void> {
+    const r = await this.api.workspaces.teamspaces(workspaceId);
+    this.seedTeams(workspaceId, r.teamspaces);
+  }
+
+  teamOf(id: string): string {
+    const p = this.pages.get(id);
+    if (!p) return "";
+    return (p.parent_id && !p.detached ? this.ancestors(id)[0]?.teamspace_id : p.teamspace_id) ?? "";
+  }
+
+  roots(workspaceId: string, teamspaceId: string): Page[] {
+    return this.children(workspaceId, "").filter((p) => !p.detached && (p.teamspace_id ?? "") === teamspaceId);
+  }
+
+  shared(workspaceId: string): Page[] {
+    return this.children(workspaceId, "").filter((p) => p.detached);
+  }
+
   async setTagColor(workspaceId: string, tag: string, color: string): Promise<void> {
     let m = this.colors.get(workspaceId);
     if (!m) {
@@ -358,10 +403,11 @@ export class PageStore {
     return out.sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
   }
 
-  async create(workspaceId: string, parentId = "", afterId = ""): Promise<Page> {
-    const body: { workspace_id: string; parent_id?: string; after_id?: string } = { workspace_id: workspaceId };
+  async create(workspaceId: string, parentId = "", afterId = "", teamspaceId = ""): Promise<Page> {
+    const body: { workspace_id: string; parent_id?: string; after_id?: string; teamspace_id?: string } = { workspace_id: workspaceId };
     if (parentId) body.parent_id = parentId;
     if (afterId) body.after_id = afterId;
+    if (teamspaceId && !parentId) body.teamspace_id = teamspaceId;
     const r = await this.api.pages.create(body);
     this.upsert(r.page);
     return r.page;
@@ -448,9 +494,11 @@ export class PageStore {
     if (ws === p.workspace_id) {
       if (this.wouldCycle(id, parent)) return;
       const key = this.keyFor(ws, parent, id, target.before_id ?? "", target.after_id ?? "");
-      this.put({ ...p, parent_id: parent, sort_key: key });
+      const team = parent ? "" : (target.teamspace_id ?? p.teamspace_id ?? "");
+      this.put({ ...p, parent_id: parent, sort_key: key, teamspace_id: team, detached: false });
     }
     const body: MoveTarget = { workspace_id: ws, parent_id: parent };
+    if (target.teamspace_id !== undefined) body.teamspace_id = target.teamspace_id;
     if (target.before_id) body.before_id = target.before_id;
     if (target.after_id) body.after_id = target.after_id;
     try {

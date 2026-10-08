@@ -659,6 +659,12 @@
   color: var(--warning);
 }
 
+.topbar__share {
+  min-block-size: 28px;
+  padding-inline: var(--space-3);
+  font-size: var(--text-sm);
+}
+
 .tabbar {
   display: none;
 }

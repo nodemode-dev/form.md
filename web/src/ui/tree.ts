@@ -1,4 +1,4 @@
-import type { Engine, Page, StoreChange } from "../engine";
+import type { Engine, Page, StoreChange, Teamspace } from "../engine";
 import { formatRelative } from "../engine/format";
 import { plural, t } from "../engine/i18n";
 import { byId, h, ref, setAttr, setText } from "./dom";
@@ -7,6 +7,7 @@ import { type IconName, iconNode } from "./icons";
 import { type MenuEntry, openMenu } from "./menu";
 import { fallbackGlyph, pageIcon, paintIcon } from "./pageicon";
 import { pageMenu } from "./page-actions";
+import { openTeamspaceDialog } from "./teamspace-dialog";
 import { toast } from "./toast";
 
 type Zone = "before" | "after" | "inside";
@@ -94,9 +95,13 @@ export function mountTree(engine: Engine): void {
   const tags = makeSection("tags", t("Tags"), "tag");
   const tree = makeSection("pages", t("Pages"), "page", t("New page"));
   const notes = makeSection("notes", t("Notes"), "cards", t("New page"));
+  const teams = makeSection("teams", t("Teamspaces"), "users", t("New teamspace"));
+  const shared = makeSection("shared", t("Shared with me"), "users");
   const favList = h("ul", { class: "sb-list", attrs: { role: "list" } });
   const cloud = h("div", { class: "tag-cloud" });
   const root = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Pages") } });
+  const teamRoot = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Teamspaces") } });
+  const sharedRoot = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Shared with me") } });
   const empty = h("p", { class: "sb-empty", text: t("Empty for now") });
   const filterLabel = h("span", { class: "sb-filter__tag" });
   const filterClear = h("button", { class: "link-btn", attrs: { type: "button" }, text: t("Clear filter") });
@@ -117,12 +122,16 @@ export function mountTree(engine: Engine): void {
   favs.body.append(favList);
   tags.body.append(cloud);
   tree.body.append(root, empty);
+  teams.body.append(teamRoot);
+  shared.body.append(sharedRoot);
   notes.body.append(noteChips, noteList, noteEmpty);
   const indicator = h("div", { class: "drop-indicator", attrs: { "aria-hidden": "true" } });
   indicator.hidden = true;
-  nav.append(favs.el, tags.el, filter, notes.el, tree.el, trashRow, indicator);
+  nav.append(favs.el, tags.el, filter, notes.el, teams.el, tree.el, shared.el, trashRow, indicator);
 
   const nodes = new Map<string, HTMLLIElement>();
+  const teamNodes = new Map<string, HTMLLIElement>();
+  const teamKey = (id: string) => `team:${id}`;
   let ws = state.get("workspaceId");
   let expanded = readSet(EXPANDED_KEY(ws));
   let activeId = "";
@@ -173,8 +182,7 @@ export function mountTree(engine: Engine): void {
     return li;
   };
 
-  const renderList = (container: HTMLElement, parentId: string, depth: number) => {
-    const list = pages.children(ws, parentId);
+  const renderList = (container: HTMLElement, parentId: string, depth: number, list = pages.children(ws, parentId)) => {
     const existing = new Map<string, HTMLLIElement>();
     for (const child of Array.from(container.children) as HTMLLIElement[]) {
       const k = child.dataset.key;
@@ -217,8 +225,98 @@ export function mountTree(engine: Engine): void {
 
   const depthOf = (li: HTMLElement) => Number(row(li).getAttribute("aria-level") ?? "1") - 1;
 
+  const filtering = () => !!state.get("me")?.user.prefs.notes_mode || !!state.get("tagFilter");
+  const teamWritable = (team: Teamspace) => writable() && (team.access === "open" || team.role !== "");
+
+  const createTeamNode = (team: Teamspace): HTMLLIElement => {
+    const r = h(
+      "div",
+      { class: "tree-row team-row", attrs: { role: "treeitem", tabindex: "-1", "data-team": team.id } },
+      h("span", { class: "tree-chev", attrs: { "data-action": "toggle", "aria-hidden": "true" } }, iconNode("chevron-right")),
+      pageIcon(team.icon, "users"),
+      h("span", { class: "tree-title" }),
+      h(
+        "span",
+        { class: "tree-actions" },
+        h("button", { class: "tree-act", attrs: { type: "button", tabindex: "-1", "data-action": "team-add", "aria-label": t("Add a page"), "data-tip": t("Add a page") } }, iconNode("plus")),
+        h("button", { class: "tree-act", attrs: { type: "button", tabindex: "-1", "data-action": "team-more", "aria-label": t("Teamspace options"), "data-tip": t("Teamspace options") } }, iconNode("more")),
+      ),
+    );
+    const li = h("li", { class: "tree-node", attrs: { role: "none" } }, r);
+    li.dataset.key = teamKey(team.id);
+    teamNodes.set(team.id, li);
+    return li;
+  };
+
+  const syncTeam = (li: HTMLLIElement, team: Teamspace) => {
+    const r = row(li);
+    const open = expanded.has(teamKey(team.id));
+    r.style.setProperty("--depth", "0");
+    setAttr(r, "aria-level", "1");
+    setAttr(r, "data-has-children", "true");
+    setAttr(r, "aria-expanded", open ? "true" : "false");
+    setAttr(r, "data-access", team.access);
+    setAttr(r, "data-joined", team.role ? "true" : "false");
+    paintIcon(r.querySelector<HTMLElement>(".page-icon") as HTMLElement, team.icon, "users");
+    setText(r.querySelector(".tree-title") as HTMLElement, team.name);
+    const add = r.querySelector<HTMLElement>('[data-action="team-add"]');
+    if (add) add.hidden = !teamWritable(team);
+    let group = li.children[1] as HTMLElement | undefined;
+    if (!open) {
+      group?.remove();
+      return;
+    }
+    if (!group) {
+      group = h("ul", { class: "tree-group", attrs: { role: "group" } });
+      li.append(group);
+    }
+    renderList(group, "", 1, pages.roots(ws, team.id));
+  };
+
+  const renderTeams = () => {
+    const list = pages.teamspaces(ws);
+    teams.el.hidden = filtering() || (list.length === 0 && !writable());
+    setText(teams.count, list.length ? String(list.length) : "");
+    if (teams.add) teams.add.hidden = !writable();
+    const existing = new Map<string, HTMLLIElement>();
+    for (const child of Array.from(teamRoot.children) as HTMLLIElement[]) if (child.dataset.key) existing.set(child.dataset.key, child);
+    let cursor: Element | null = teamRoot.firstElementChild;
+    for (const team of list) {
+      let li = existing.get(teamKey(team.id));
+      if (li) existing.delete(teamKey(team.id));
+      else li = teamNodes.get(team.id) ?? createTeamNode(team);
+      syncTeam(li, team);
+      if (li !== cursor) teamRoot.insertBefore(li, cursor);
+      else cursor = cursor.nextElementSibling;
+    }
+    for (const [k, el] of existing) {
+      el.remove();
+      teamNodes.delete(k.slice(5));
+    }
+  };
+
+  const renderShared = () => {
+    const list = pages.shared(ws);
+    shared.el.hidden = filtering() || list.length === 0;
+    setText(shared.count, list.length ? String(list.length) : "");
+    renderList(sharedRoot, "", 0, list);
+  };
+
+  const toggleTeam = (id: string, open?: boolean) => {
+    const k = teamKey(id);
+    const want = open ?? !expanded.has(k);
+    if (want === expanded.has(k)) return false;
+    if (want) expanded.add(k);
+    else expanded.delete(k);
+    writeSet(EXPANDED_KEY(ws), expanded);
+    renderTeams();
+    return true;
+  };
+
   const renderRoot = () => {
-    renderList(root, "", 0);
+    renderList(root, "", 0, pages.roots(ws, ""));
+    renderTeams();
+    renderShared();
     const n = pages.all(ws).length;
     setText(tree.count, n ? String(n) : "");
     empty.hidden = !pages.isLoaded(ws) || root.childElementCount > 0;
@@ -328,7 +426,9 @@ export function mountTree(engine: Engine): void {
     const notesMode = !!state.get("me")?.user.prefs.notes_mode;
     const on = !!tag && !notesMode;
     filter.hidden = !on;
-    tree.el.hidden = on || notesMode;
+    tree.el.hidden = on || notesMode || engine.workspaceById(ws)?.role === "guest";
+    teams.el.hidden = on || notesMode || (pages.teamspaces(ws).length === 0 && !writable());
+    shared.el.hidden = on || notesMode || pages.shared(ws).length === 0;
     notes.el.hidden = !notesMode;
     if (!on) return;
     setText(filterLabel, `#${tag}`);
@@ -514,10 +614,11 @@ export function mountTree(engine: Engine): void {
     }
   };
 
-  const addInside = async (parentId: string) => {
+  const addInside = async (parentId: string, teamspaceId = "") => {
     try {
-      const p = await pages.create(ws, parentId);
+      const p = await pages.create(ws, parentId, "", teamspaceId);
       if (parentId && !expanded.has(parentId)) toggle(parentId, true);
+      if (teamspaceId) toggleTeam(teamspaceId, true);
       engine.openPage(p.id);
       focusTitleSoon();
     } catch (e) {
@@ -547,6 +648,22 @@ export function mountTree(engine: Engine): void {
     openMenu(anchor, entries, { side: "bottom", align: "start", label: t("Page actions") });
   };
 
+  const teamMenu = (anchor: HTMLElement, teamId: string) => {
+    const team = pages.teamspace(ws, teamId);
+    if (!team) return;
+    const me = state.get("me")?.user.id ?? "";
+    const entries: MenuEntry[] = [];
+    if (teamWritable(team)) entries.push({ label: t("Add a page"), icon: "plus", run: () => void addInside("", teamId) });
+    entries.push({ label: team.can_manage ? t("Teamspace settings") : t("Members"), icon: team.can_manage ? "settings" : "users", run: () => openTeamspaceDialog(engine, ws, team) });
+    if (!team.role && team.access === "open" && writable()) {
+      entries.push({ label: t("Join teamspace"), icon: "plus", run: () => void engine.api.teamspaces.setMember(teamId, me, "member").catch(engine.reportError) });
+    }
+    if (team.role) {
+      entries.push({ kind: "separator" }, { label: t("Leave teamspace"), icon: "logout", danger: true, run: () => void engine.api.teamspaces.removeMember(teamId, me).catch(engine.reportError) });
+    }
+    openMenu(anchor, entries, { side: "bottom", align: "start", label: t("Teamspace options") });
+  };
+
   nav.addEventListener("click", (e) => {
     if (suppressClick) {
       suppressClick = false;
@@ -568,6 +685,16 @@ export function mountTree(engine: Engine): void {
       return;
     }
     const action = target.closest<HTMLElement>("[data-action]");
+    const teamRow = target.closest<HTMLElement>("[data-team]");
+    if (teamRow) {
+      const teamId = teamRow.dataset.team ?? "";
+      const a = action?.dataset.action;
+      setRoving(teamRow);
+      if (a === "team-add") void addInside("", teamId);
+      else if (a === "team-more" && action) teamMenu(action, teamId);
+      else toggleTeam(teamId);
+      return;
+    }
     const host = target.closest<HTMLElement>("[data-id]");
     const id = host?.dataset.id ?? "";
     if (action && id) {
@@ -594,6 +721,11 @@ export function mountTree(engine: Engine): void {
 
   nav.addEventListener("contextmenu", (e) => {
     const host = (e.target as HTMLElement).closest<HTMLElement>(".tree-row, .flat-row, .note-card");
+    if (host?.dataset.team) {
+      e.preventDefault();
+      teamMenu(host, host.dataset.team);
+      return;
+    }
     if (!host?.dataset.id) return;
     e.preventDefault();
     menuFor(host, host.dataset.id);
@@ -610,6 +742,7 @@ export function mountTree(engine: Engine): void {
   });
   tree.add?.addEventListener("click", () => void addInside(""));
   notes.add?.addEventListener("click", () => void addInside(""));
+  teams.add?.addEventListener("click", () => openTeamspaceDialog(engine, ws, null));
   filterClear.addEventListener("click", () => state.set("tagFilter", ""));
 
   nav.addEventListener("keydown", (e) => {
@@ -625,6 +758,18 @@ export function mountTree(engine: Engine): void {
       el.focus();
     };
     const inTree = host.classList.contains("tree-row");
+    const teamId = host.dataset.team;
+    if (teamId && !["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+      if (e.key === "Enter") toggleTeam(teamId);
+      else if (e.key === "ArrowRight") {
+        if (!toggleTeam(teamId, true)) go(teamNodes.get(teamId)?.querySelector<HTMLElement>(".tree-group .tree-row") ?? undefined);
+      } else if (e.key === "ArrowLeft") toggleTeam(teamId, false);
+      else if (e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey)) teamMenu(host, teamId);
+      else return;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     switch (e.key) {
       case "ArrowDown":
         go(list[i + 1]);
@@ -649,8 +794,9 @@ export function mountTree(engine: Engine): void {
       case "ArrowLeft": {
         if (!inTree) return;
         if (!toggle(id, false)) {
-          const parent = pages.get(id)?.parent_id;
-          const li = parent ? nodes.get(parent) : undefined;
+          const self = pages.get(id);
+          const parent = self?.detached ? "" : self?.parent_id;
+          const li = parent ? nodes.get(parent) : self?.teamspace_id ? teamNodes.get(self.teamspace_id) : undefined;
           if (li) go(row(li));
           else return;
         }
@@ -723,6 +869,10 @@ export function mountTree(engine: Engine): void {
     const treeRow = under.closest<HTMLElement>(".tree-row");
     const favRow = under.closest<HTMLElement>('.flat-row[data-kind="fav"]');
     if (treeRow && drag.from === "tree") {
+      if (treeRow.dataset.team) {
+        const team = pages.teamspace(ws, treeRow.dataset.team);
+        return team && teamWritable(team) ? { el: treeRow, zone: "inside" as Zone, kind: "tree" as const } : null;
+      }
       const id = treeRow.dataset.id ?? "";
       if (id === drag.id || pages.wouldCycle(drag.id, id)) return null;
       const box = treeRow.getBoundingClientRect();
@@ -797,15 +947,25 @@ export function mountTree(engine: Engine): void {
       void pages.moveFavorite(d.id, after).catch(engine.reportError);
       return;
     }
+    const teamTarget = el.dataset.team;
+    if (teamTarget) {
+      if (!expanded.has(teamKey(teamTarget))) {
+        expanded.add(teamKey(teamTarget));
+        writeSet(EXPANDED_KEY(ws), expanded);
+      }
+      void pages.move(d.id, { parent_id: "", teamspace_id: teamTarget }).catch((e: unknown) => toast({ tone: "danger", message: errorMessage(e) }));
+      return;
+    }
     const target = pages.get(targetId);
     if (!target) return;
-    let move: { parent_id: string; before_id?: string; after_id?: string };
+    let move: { parent_id: string; teamspace_id?: string; before_id?: string; after_id?: string };
     if (zone === "inside") move = { parent_id: target.id };
     else if (zone === "after" && expanded.has(target.id) && pages.hasChildren(target)) {
       const first = pages.children(ws, target.id)[0];
       move = first ? { parent_id: target.id, before_id: first.id } : { parent_id: target.id };
     } else if (zone === "before") move = { parent_id: target.parent_id, before_id: target.id };
     else move = { parent_id: target.parent_id, after_id: target.id };
+    if (!move.parent_id) move.teamspace_id = target.teamspace_id ?? "";
     if (zone === "inside" && !expanded.has(target.id)) {
       expanded.add(target.id);
       writeSet(EXPANDED_KEY(ws), expanded);
@@ -875,14 +1035,19 @@ export function mountTree(engine: Engine): void {
       case "tags":
         if (c.workspaceId === ws) renderTags();
         return;
+      case "teams":
+        if (c.workspaceId === ws && pages.isLoaded(ws)) renderTeams();
+        return;
       case "trash":
         return;
       case "upsert": {
         const p = c.page;
         const prev = c.prev;
-        if (prev?.workspace_id === ws && (p.workspace_id !== ws || prev.parent_id !== p.parent_id)) renderParent(prev.parent_id);
+        const homeOf = (x: Page) => (x.detached ? "" : x.parent_id);
+        const regrouped = !!prev && ((prev.teamspace_id ?? "") !== (p.teamspace_id ?? "") || !!prev.detached !== !!p.detached);
+        if (prev?.workspace_id === ws && (p.workspace_id !== ws || homeOf(prev) !== homeOf(p) || regrouped)) renderParent(homeOf(prev));
         if (p.workspace_id === ws) {
-          if (!prev || prev.parent_id !== p.parent_id || prev.sort_key !== p.sort_key || prev.workspace_id !== p.workspace_id) renderParent(p.parent_id);
+          if (!prev || homeOf(prev) !== homeOf(p) || regrouped || prev.sort_key !== p.sort_key || prev.workspace_id !== p.workspace_id) renderParent(homeOf(p));
           else {
             const li = nodes.get(p.id);
             if (li?.isConnected) patchRow(li, p, depthOf(li));
@@ -901,7 +1066,7 @@ export function mountTree(engine: Engine): void {
       }
       case "remove": {
         const parents = new Set<string>();
-        for (const p of c.pages) if (p.workspace_id === ws) parents.add(p.parent_id);
+        for (const p of c.pages) if (p.workspace_id === ws) parents.add(p.detached ? "" : p.parent_id);
         for (const pid of parents) if (!c.pages.some((x) => x.id === pid)) renderParent(pid);
         for (const p of c.pages) nodes.delete(p.id);
         if (parents.size) {

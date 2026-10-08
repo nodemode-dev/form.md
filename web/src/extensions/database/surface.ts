@@ -22,6 +22,7 @@ export interface ViewHost {
   col(): Collection;
   view(): CollectionView;
   canWrite(): boolean;
+  canDesign(): boolean;
   workspaceId(): string;
   makeSession(options?: SessionOptions): QuerySession;
   ctx(session: QuerySession): DbCtx;
@@ -121,7 +122,8 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   let lastSchema = col ? JSON.stringify(col.schema) : "";
   let search = "";
 
-  const canWrite = () => !!col?.can_write && engine.canWrite(col.workspace_id);
+  const canWrite = () => !!col?.can_write;
+  const canDesign = () => !!col?.can_design;
   const makeHost = (viewId: string): ViewHost => ({
     engine,
     colId,
@@ -130,9 +132,10 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     col: () => store.get(colId) ?? (col as Collection),
     view: () => store.get(colId)?.views.find((v) => v.id === viewId) ?? (col?.views[0] as CollectionView),
     canWrite,
+    canDesign,
     workspaceId: () => col?.workspace_id ?? engine.state.get("workspaceId"),
     makeSession: (options = {}) => store.session(colId, viewId, options),
-    ctx: (session) => ({ engine, colId, col: () => store.get(colId) ?? (col as Collection), session, canWrite, workspaceId: () => col?.workspace_id ?? "" }),
+    ctx: (session) => ({ engine, colId, col: () => store.get(colId) ?? (col as Collection), session, canWrite, canDesign, workspaceId: () => col?.workspace_id ?? "" }),
     openRow: (id, e) => {
       const mod = e && (engine.platform.mac ? e.metaKey : e.ctrlKey);
       engine.openPage(id, { newTab: !!mod });
@@ -164,7 +167,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     }
     for (const el of existing.values()) el.remove();
     if (addView.parentElement !== tabs || tabs.lastElementChild !== addView) tabs.append(addView);
-    addView.hidden = !canWrite();
+    addView.hidden = !canDesign();
   };
 
   const paintTools = () => {
@@ -266,7 +269,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     const b = (e.target as Element).closest<HTMLElement>("[data-view]");
     if (!b?.dataset.view) return;
     if (b.dataset.view === activeId) {
-      if (canWrite()) viewMenu(b, b.dataset.view);
+      if (canDesign()) viewMenu(b, b.dataset.view);
       return;
     }
     void mountView(b.dataset.view);

@@ -142,8 +142,13 @@ function bindInvite(engine: Engine): void {
     .invite(token)
     .then((i) => {
       info = i;
-      setText(title, t("Join {workspace}", { workspace: i.workspace.name }));
-      setText(lead, t("{inviter} invited you as {role}.", { inviter: i.inviter || t("Someone"), role: ROLE_LABEL[i.role]?.() ?? i.role }));
+      if (i.page) {
+        setText(title, t("Open {title}", { title: i.page.title || t("Untitled") }));
+        setText(lead, t("{inviter} shared a page in {workspace} with you. You join as a guest who sees only what is shared.", { inviter: i.inviter || t("Someone"), workspace: i.workspace.name }));
+      } else {
+        setText(title, t("Join {workspace}", { workspace: i.workspace.name }));
+        setText(lead, t("{inviter} invited you as {role}.", { inviter: i.inviter || t("Someone"), role: ROLE_LABEL[i.role]?.() ?? i.role }));
+      }
       emailField.hidden = i.email !== "";
       if (i.signed_in_as) {
         setText(form.querySelector('[data-ref="invite-signed-in"]')!, t("You are signed in as {email}.", { email: i.signed_in_as }));
@@ -173,7 +178,7 @@ function bindInvite(engine: Engine): void {
     try {
       const res = await busy(submitButton(form), () => engine.api.auth.acceptInvite(token, body));
       rememberWorkspace(res.workspace_id);
-      go("/");
+      go(res.page_id ? `/p/${res.page_id}` : "/");
     } catch (err) {
       if (errorCode(err) === "totp_required") {
         codeField.hidden = false;

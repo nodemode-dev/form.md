@@ -99,6 +99,14 @@
   inline-size: min(420px, calc(100vw - var(--space-8)));
 }
 
+.dialog--md {
+  inline-size: min(560px, calc(100vw - var(--space-8)));
+}
+
+.dialog--md .dialog__body {
+  row-gap: var(--space-4);
+}
+
 .dialog--lg {
   inline-size: min(860px, calc(100vw - var(--space-8)));
   block-size: min(640px, 82vh);

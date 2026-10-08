@@ -93,7 +93,7 @@ export class EditorHost implements EditorCtx {
     if (!s || s.phase !== "ready" || !s.write) return false;
     const d = this.engine.state.get("detail");
     if (d && d.id === s.id && !d.can_write) return false;
-    return this.engine.canWrite(this.workspaceId());
+    return this.engine.can(s.id, "content");
   }
 
   pickFiles(view: EditorView, accept: string, at?: number): void {

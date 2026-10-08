@@ -17,7 +17,7 @@ export function saveConfig(ctx: DbCtx, viewId: string, change: (cfg: ViewConfig)
   const v = viewOf(ctx, viewId);
   if (!v) return;
   const next = change(structuredClone(v.config ?? {}));
-  if (!ctx.canWrite()) {
+  if (!ctx.canDesign()) {
     ctx.engine.collections.localView(ctx.colId, viewId, { config: next });
     return;
   }
@@ -519,7 +519,7 @@ export function openPropsPanel(anchor: HTMLElement, ctx: DbCtx, viewId: string, 
           edit.addEventListener("click", () => openPropertyEditor(edit, p, ctx));
           list.append(h("div", { class: "props-list__row" }, edit, up, eye));
         });
-        if (ctx.canWrite()) {
+        if (ctx.canDesign()) {
           const add = h("button", { class: "link-btn", attrs: { type: "button" } }, iconNode("plus"), h("span", { text: t("New property") }));
           add.addEventListener("click", () => openAddProperty(add, ctx, "", () => setTimeout(paint, 50)));
           list.append(add);

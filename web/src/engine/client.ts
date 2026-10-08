@@ -19,6 +19,7 @@ import type {
   EmergencyGrant,
   Favorite,
   FileInfo,
+  Group,
   LinkPreview,
   FilePurpose,
   Invite,
@@ -34,8 +35,15 @@ import type {
   SearchResult,
   SessionInfo,
   SettingsMap,
+  Share,
+  SharedPage,
+  ShareLink,
+  Sharing,
   StrandedWorkspace,
   TagInfo,
+  TeamAccess,
+  TeamMember,
+  Teamspace,
   Token,
   TrashItem,
   Visibility,
@@ -55,8 +63,24 @@ export interface PageChanges {
 export interface MoveTarget {
   workspace_id?: string;
   parent_id?: string;
+  teamspace_id?: string;
   before_id?: string;
   after_id?: string;
+}
+
+export interface TeamChanges {
+  name?: string;
+  icon?: string;
+  description?: string;
+  access?: TeamAccess;
+}
+
+export interface ShareRequest {
+  kind?: "user" | "group";
+  subject_id?: string;
+  email?: string;
+  level: string;
+  expires_at?: number;
 }
 
 export function createClient(f: FetchFn) {
@@ -77,7 +101,7 @@ export function createClient(f: FetchFn) {
       logout: () => post<void>("/api/auth/logout"),
       invite: (token: string) => get<InviteInfo>(`/api/invites/${enc(token)}`),
       acceptInvite: (token: string, body: { name?: string; email?: string; password?: string; code?: string; recovery?: string }) =>
-        post<{ workspace_id: string }>(`/api/invites/${enc(token)}/accept`, body),
+        post<{ workspace_id: string; page_id?: string }>(`/api/invites/${enc(token)}/accept`, body),
     },
     me: {
       get: () => get<Me>("/api/me"),
@@ -119,10 +143,38 @@ export function createClient(f: FetchFn) {
       tags: (id: string) => get<{ tags: TagInfo[] }>(`/api/workspaces/${enc(id)}/tags`),
       setTagColor: (id: string, tag: string, color: string) => put<void>(`/api/workspaces/${enc(id)}/tags/${enc(tag)}`, { color }),
       files: (id: string) => get<{ files: FileInfo[] }>(`/api/workspaces/${enc(id)}/files`),
+      teamspaces: (id: string) => get<{ teamspaces: Teamspace[] }>(`/api/workspaces/${enc(id)}/teamspaces`),
+      createTeamspace: (id: string, body: TeamChanges) => post<{ teamspace: Teamspace }>(`/api/workspaces/${enc(id)}/teamspaces`, body),
+      groups: (id: string) => get<{ groups: Group[] }>(`/api/workspaces/${enc(id)}/groups`),
+      createGroup: (id: string, name: string) => post<{ group: Group }>(`/api/workspaces/${enc(id)}/groups`, { name }),
+    },
+    teamspaces: {
+      update: (id: string, body: TeamChanges) => patch<{ teamspace: Teamspace }>(`/api/teamspaces/${enc(id)}`, body),
+      remove: (id: string) => del(`/api/teamspaces/${enc(id)}`),
+      members: (id: string) => get<{ members: TeamMember[] }>(`/api/teamspaces/${enc(id)}/members`),
+      setMember: (id: string, user: string, role: "owner" | "member") => put<void>(`/api/teamspaces/${enc(id)}/members/${enc(user)}`, { role }),
+      removeMember: (id: string, user: string) => del(`/api/teamspaces/${enc(id)}/members/${enc(user)}`),
+    },
+    groups: {
+      rename: (id: string, name: string) => patch<{ group: Group }>(`/api/groups/${enc(id)}`, { name }),
+      remove: (id: string) => del(`/api/groups/${enc(id)}`),
+      members: (id: string) => get<{ members: TeamMember[] }>(`/api/groups/${enc(id)}/members`),
+      addMember: (id: string, user: string) => put<void>(`/api/groups/${enc(id)}/members/${enc(user)}`, {}),
+      removeMember: (id: string, user: string) => del(`/api/groups/${enc(id)}/members/${enc(user)}`),
+    },
+    sharing: {
+      get: (pageId: string) => get<Sharing>(`/api/pages/${enc(pageId)}/shares`),
+      share: (pageId: string, body: ShareRequest) => put<{ share?: Share; invite_url?: string; emailed: boolean }>(`/api/pages/${enc(pageId)}/shares`, body),
+      update: (id: string, level: string, expiresAt = 0) => patch<void>(`/api/shares/${enc(id)}`, { level, expires_at: expiresAt }),
+      remove: (id: string) => del(`/api/shares/${enc(id)}`),
+      createLink: (pageId: string, body: { level: "view" | "comment"; expires_at?: number; password?: string }) => post<{ link: ShareLink }>(`/api/pages/${enc(pageId)}/links`, body),
+      revokeLink: (id: string) => del(`/api/links/${enc(id)}`),
+      cancelInvite: (id: string) => del(`/api/guest-invites/${enc(id)}`),
+      shared: () => get<{ pages: SharedPage[] }>("/api/shared"),
     },
     pages: {
       get: (id: string) => get<{ page: PageDetail }>(`/api/pages/${enc(id)}`),
-      create: (body: { workspace_id: string; parent_id?: string; after_id?: string; title?: string; icon?: string }) => post<{ page: Page }>("/api/pages", body),
+      create: (body: { workspace_id: string; parent_id?: string; teamspace_id?: string; after_id?: string; title?: string; icon?: string }) => post<{ page: Page }>("/api/pages", body),
       update: (id: string, body: PageChanges) => patch<{ page: Page }>(`/api/pages/${enc(id)}`, body),
       move: (id: string, body: MoveTarget) => post<{ page: Page }>(`/api/pages/${enc(id)}/move`, body),
       duplicate: (id: string, title = "") => post<{ page: Page }>(`/api/pages/${enc(id)}/duplicate`, title ? { title } : {}),

@@ -5,6 +5,7 @@ import { h, ref, setAttr, setText } from "./dom";
 import { iconNode } from "./icons";
 import { menuButton } from "./menu";
 import { pageMenu, setVisibility } from "./page-actions";
+import { openShareDialog } from "./share-dialog";
 import { fallbackGlyph, pageIcon, paintIcon } from "./pageicon";
 import { focusTitleSoon } from "./tree";
 
@@ -21,6 +22,7 @@ export function mountTopbar(engine: Engine): void {
   const { state, pages } = engine;
   const crumbs = ref("crumbs");
   const actions = ref("page-actions");
+  const shareBtn = ref<HTMLButtonElement>("act-share");
   const visBtn = ref<HTMLButtonElement>("act-visibility");
   const favBtn = ref<HTMLButtonElement>("act-favorite");
   const moreBtn = ref<HTMLButtonElement>("act-more");
@@ -97,9 +99,11 @@ export function mountTopbar(engine: Engine): void {
     const p = currentPage();
     setAttr(actions, "data-hidden", p ? null : "true");
     if (!p) return;
-    const writable = engine.canWrite(p.workspace_id);
+    const writable = engine.canWrite(p.workspace_id) && engine.can(p.id, "edit");
     const personal = engine.workspaceById(p.workspace_id)?.personal ?? true;
     visBtn.hidden = personal || !writable;
+    shareBtn.hidden = personal;
+    setText(shareBtn, t("Share"));
     const priv = p.visibility === "private";
     const visLabel = priv ? t("Private, only you can see it. Click to share with the workspace.") : t("Visible to the workspace. Click to make it private.");
     if (visBtn.dataset.state !== (priv ? "private" : "shared")) {
@@ -122,6 +126,10 @@ export function mountTopbar(engine: Engine): void {
   visBtn.addEventListener("click", () => {
     const p = currentPage();
     if (p) void setVisibility(engine, p.id, p.visibility !== "private");
+  });
+  shareBtn.addEventListener("click", () => {
+    const p = currentPage();
+    if (p) openShareDialog(engine, p.id);
   });
   favBtn.addEventListener("click", (e) => {
     e.stopPropagation();

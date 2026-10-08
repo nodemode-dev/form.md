@@ -36,7 +36,7 @@ export function mountRowProps(engine: Engine, host: HTMLElement): RowPropsHandle
   const ctx = (): DbCtx | null => {
     const col = engine.collections.get(colId);
     if (!session || !col) return null;
-    return { engine, colId, col: () => engine.collections.get(colId) as Collection, session, canWrite: () => !!engine.collections.get(colId)?.can_write && engine.canWrite(col.workspace_id), workspaceId: () => col.workspace_id };
+    return { engine, colId, col: () => engine.collections.get(colId) as Collection, session, canWrite: () => !!engine.collections.get(colId)?.can_write, canDesign: () => !!engine.collections.get(colId)?.can_design, workspaceId: () => col.workspace_id };
   };
 
   const paint = () => {
@@ -69,7 +69,7 @@ export function mountRowProps(engine: Engine, host: HTMLElement): RowPropsHandle
     );
     toggle.hidden = empty.length === 0;
     setText(toggle, showAll ? t("Hide empty properties") : plural(empty.length, "{count} more property", "{count} more properties"));
-    add.hidden = !c.canWrite();
+    add.hidden = !c.canDesign();
     el.hidden = false;
   };
 
@@ -87,7 +87,7 @@ export function mountRowProps(engine: Engine, host: HTMLElement): RowPropsHandle
     }
     if ((e.target as Element).closest("a")) return;
     if ((e.target as Element).closest(".rowprops__name")) {
-      if (c.canWrite()) propertyMenu(node.querySelector(".rowprops__name") as HTMLElement, p, c, []);
+      if (c.canDesign()) propertyMenu(node.querySelector(".rowprops__name") as HTMLElement, p, c, []);
       return;
     }
     editCell(node.querySelector(".rowprops__value") as HTMLElement, p, row, c);

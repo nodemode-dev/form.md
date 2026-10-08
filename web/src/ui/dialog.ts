@@ -262,8 +262,8 @@ export function confirmTyped(o: TypedConfirmOptions): Promise<boolean> {
   });
 }
 
-export function simpleDialog(title: string, build: (body: HTMLElement, close: () => void) => HTMLElement | void, onClose?: () => void): DialogHandle {
-  const parts = shell("sm", title);
+export function simpleDialog(title: string, build: (body: HTMLElement, close: () => void) => HTMLElement | void, onClose?: () => void, size: "sm" | "md" = "sm"): DialogHandle {
+  const parts = shell(size, title);
   let handle: DialogHandle | null = null;
   const initial = build(parts.body, () => handle?.close());
   handle = controller(

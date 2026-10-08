@@ -106,7 +106,7 @@ export function tableView(host: ViewHost): ViewRenderer {
       },
       (cell, x) => {
         if (x.id === "#gutter" || x.id === "#add") {
-          if (x.id === "#add") cell.hidden = !host.canWrite();
+          if (x.id === "#add") cell.hidden = !host.canDesign();
           return;
         }
         const i = cols.findIndex((c) => c.p.id === x.id);
@@ -529,7 +529,7 @@ export function tableView(host: ViewHost): ViewRenderer {
         ? { label: t("Unfreeze columns"), icon: "close", run: () => setLayout({ frozen: 0 }) }
         : { label: t("Freeze up to this column"), icon: "columns", run: () => setLayout({ frozen: idx + 1 }) },
     );
-    if (host.canWrite()) {
+    if (host.canDesign()) {
       extra.push(
         { label: t("Insert left"), icon: "plus", run: () => openAddProperty(cell, ctx, cols[idx - 1]?.p.id ?? "", (id) => moveProp(id, idx)) },
         { label: t("Insert right"), icon: "plus", run: () => openAddProperty(cell, ctx, p.id, (id) => moveProp(id, idx + 1)) },
@@ -612,7 +612,7 @@ export function tableView(host: ViewHost): ViewRenderer {
       handle.addEventListener("pointerup", up);
       return;
     }
-    if (c.p.type === "title" || !host.canWrite()) return;
+    if (c.p.type === "title" || !host.canDesign()) return;
     let indicator: HTMLElement | null = null;
     let target = -1;
     const moveC = (ev: PointerEvent) => {
