@@ -1,4 +1,4 @@
-import type { NodeType } from "prosemirror-model";
+import { Fragment, type NodeType } from "prosemirror-model";
 import type { EditorView } from "prosemirror-view";
 import { embedProvider, newBlockId, schema } from "../../engine/doc/schema";
 import { t } from "../../engine/i18n";
@@ -7,6 +7,7 @@ import { type BlockKind, insertBlock, turnInto } from "./commands";
 import { caretRect, type EditorCtx } from "./context";
 import { embedFor, mediaFromLink } from "./links";
 import { insertInlineMath, newMathBlock } from "./math";
+import { createSynced } from "./synced";
 import { openPrompt } from "./popover";
 
 export interface CatalogEntry {
@@ -111,6 +112,17 @@ export const CATALOG: CatalogEntry[] = [
     keywords: "columns layout split three",
     run: (view) =>
       insertBlock(view, (N.columns as NodeType).create({ id: newBlockId() }, [(N.column as NodeType).create(null, [para()]), (N.column as NodeType).create(null, [para()]), (N.column as NodeType).create(null, [para()])])),
+  },
+  {
+    id: "synced",
+    label: () => t("Synced block"),
+    section: LAYOUT,
+    icon: "refresh",
+    keywords: "synced sync mirror shared reuse transclude same content",
+    run: (view, ctx) => {
+      const node = createSynced(ctx, Fragment.empty);
+      if (node) insertBlock(view, node);
+    },
   },
   { id: "toc", label: () => t("Table of contents"), section: LAYOUT, icon: "toc", keywords: "toc outline headings contents", run: (view) => insertBlock(view, (N.toc as NodeType).create({ id: newBlockId() })) },
   { id: "math", label: () => t("Block equation"), section: LAYOUT, icon: "sigma", keywords: "math equation latex tex formula katex block", run: (view) => insertBlock(view, newMathBlock()) },

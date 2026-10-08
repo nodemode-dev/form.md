@@ -12,10 +12,26 @@ import (
 )
 
 type htmlWriter struct {
-	b      strings.Builder
-	title  func(id string) string
-	heads  []tocEntry
-	crumbs []page.Crumb
+	b       strings.Builder
+	title   func(id string) string
+	heads   []tocEntry
+	crumbs  []page.Crumb
+	nested  bool
+	self    string
+	local   func(name string) *crdt.YXmlFragment
+	foreign map[syncedRef]string
+}
+
+func (r *room) render(title func(id string) string, crumbs []page.Crumb, foreign map[syncedRef]string) string {
+	w := &htmlWriter{title: title, crumbs: crumbs, self: r.id, local: r.doc.GetXmlFragment, foreign: foreign}
+	frag := r.fragment()
+	w.collectHeadings(children(frag))
+	for _, c := range children(frag) {
+		if el, ok := c.(*crdt.YXmlElement); ok {
+			w.node(el)
+		}
+	}
+	return w.b.String()
 }
 
 type tocEntry struct {
@@ -311,6 +327,8 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.b.WriteString("</nav>")
 	case "math_block":
 		w.math(el, true, id)
+	case "synced":
+		w.synced(el, id)
 	case "breadcrumb":
 		w.open("nav", "class", "crumbline", "data-block", id, "contenteditable", "false")
 		for _, c := range w.crumbs {

@@ -119,7 +119,7 @@ func (s *Service) materialise(ctx context.Context, r *room) {
 	}
 	r.dirty = false
 	r.dirtySince = time.Time{}
-	sum := Summarise(r.fragment(), nil)
+	sum := r.summary(nil)
 	user := r.lastEditor
 	r.mu.Unlock()
 	now := store.NowMS()
@@ -352,8 +352,10 @@ func (s *Service) withRoom(ctx context.Context, id string, fn func(r *room)) err
 func (s *Service) Render(ctx context.Context, p *policy.Principal, id string) (string, error) {
 	var out string
 	var refs []string
+	synced := map[syncedRef]bool{}
 	err := s.withRoom(ctx, id, func(r *room) {
-		refs = Summarise(r.fragment(), nil).Pages
+		refs = r.summary(nil).Pages
+		syncedRefs(children(r.fragment()), synced)
 	})
 	if err != nil {
 		return "", err
@@ -363,8 +365,9 @@ func (s *Service) Render(ctx context.Context, p *policy.Principal, id string) (s
 	if d, err := s.pages.Get(ctx, p, id); err == nil {
 		crumbs = append(append(crumbs, d.Path...), page.Crumb{ID: d.ID, Title: d.Title, Icon: d.Icon})
 	}
+	foreign := s.renderSynced(ctx, p, id, synced)
 	err = s.withRoom(ctx, id, func(r *room) {
-		out = RenderPage(r.fragment(), func(id string) string { return titles[id] }, crumbs)
+		out = r.render(func(id string) string { return titles[id] }, crumbs, foreign)
 	})
 	return out, err
 }
@@ -374,13 +377,13 @@ func (s *Service) Markdown(ctx context.Context, p *policy.Principal, id string) 
 		return "", err
 	}
 	var refs []string
-	if err := s.withRoom(ctx, id, func(r *room) { refs = Summarise(r.fragment(), nil).Pages }); err != nil {
+	if err := s.withRoom(ctx, id, func(r *room) { refs = r.summary(nil).Pages }); err != nil {
 		return "", err
 	}
 	titles := s.pages.Titles(ctx, p, refs)
 	var md string
 	err := s.withRoom(ctx, id, func(r *room) {
-		md = Summarise(r.fragment(), func(id string) string { return titles[id] }).Markdown
+		md = r.summary(func(id string) string { return titles[id] }).Markdown
 	})
 	return md, err
 }

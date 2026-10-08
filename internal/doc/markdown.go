@@ -28,10 +28,19 @@ type mdWriter struct {
 	files map[string]bool
 	users map[string]bool
 	title func(id string) string
+	self  string
+	doc   *crdt.Doc
 }
 
 func Summarise(frag *crdt.YXmlFragment, title func(id string) string) Summary {
-	w := &mdWriter{pages: map[string]bool{}, files: map[string]bool{}, users: map[string]bool{}, title: title}
+	return summarise(&mdWriter{pages: map[string]bool{}, files: map[string]bool{}, users: map[string]bool{}, title: title}, frag)
+}
+
+func (r *room) summary(title func(id string) string) Summary {
+	return summarise(&mdWriter{pages: map[string]bool{}, files: map[string]bool{}, users: map[string]bool{}, title: title, self: r.id, doc: r.doc}, r.fragment())
+}
+
+func summarise(w *mdWriter, frag *crdt.YXmlFragment) Summary {
 	lines := w.blocks(children(frag), true)
 	md := strings.TrimRight(strings.Join(lines, "\n"), "\n")
 	if md != "" {
@@ -240,6 +249,20 @@ func (w *mdWriter) block(el *crdt.YXmlElement) []string {
 		return []string{"<!-- toc -->"}
 	case "breadcrumb":
 		return []string{"<!-- breadcrumb -->"}
+	case "synced":
+		pg, key := attrString(el, "page"), attrString(el, "key")
+		if !SyncKey(key) {
+			return nil
+		}
+		if pg != w.self {
+			w.pages[pg] = true
+		}
+		if pg != w.self || w.doc == nil || w.doc.GetXmlFragment(SyncRoot(key)).Len() == 0 {
+			return []string{"<!-- synced:" + pg + "/" + key + " -->"}
+		}
+		inner := (&mdWriter{pages: w.pages, files: w.files, users: w.users, title: w.title}).blocks(children(w.doc.GetXmlFragment(SyncRoot(key))), true)
+		w.text.WriteString(" " + strings.Join(inner, " ") + " ")
+		return append(append([]string{"<!-- synced:" + pg + "/" + key + " begin -->", ""}, inner...), "", "<!-- synced end -->")
 	case "math_block":
 		tex := attrString(el, "tex")
 		w.addText(tex)

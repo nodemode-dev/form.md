@@ -18,7 +18,7 @@ var textblocks = map[string]bool{"paragraph": true, "heading": true, "code_block
 
 var atoms = map[string]bool{
 	"horizontal_rule": true, "image": true, "video": true, "audio": true, "file": true,
-	"bookmark": true, "embed": true, "toc": true, "database": true, "breadcrumb": true, "math_block": true,
+	"bookmark": true, "embed": true, "toc": true, "database": true, "breadcrumb": true, "math_block": true, "synced": true,
 }
 
 var blockIDs = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)

@@ -1,4 +1,4 @@
-import type { NodeType } from "prosemirror-model";
+import { Fragment, type NodeType } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { newBlockId, schema, TONES } from "../../engine/doc/schema";
@@ -12,6 +12,7 @@ import { addColumn, removeLastColumn, resetWidths } from "./columns";
 import { type BlockRef, blockAt, blockFromPos, deleteBlock, duplicateBlock, moveBlock, tableAddColumn, tableAddRow, tableRemoveColumn, tableRemoveRow, turnInto } from "./commands";
 import { blockRect, type EditorCtx } from "./context";
 import { openPrompt } from "./popover";
+import { createSynced } from "./synced";
 import { triggerKey } from "./triggers";
 
 const N = schema.nodes as Record<string, NodeType>;
@@ -180,11 +181,26 @@ export class BlockHandle {
       { label: t("Move up"), icon: "arrow-up", hint: "Alt+Up", run: () => moveBlock(view, -1) },
       { label: t("Move down"), icon: "arrow-down", hint: "Alt+Down", run: () => moveBlock(view, 1) },
       { label: t("Duplicate"), icon: "copy", run: () => duplicateBlock(view, ref) },
+      ...(ref.node.type.name === "synced" || ITEMS.has(ref.node.type.name) || !view.editable
+        ? []
+        : [{ label: t("Turn into a synced block"), icon: "refresh" as const, run: () => this.makeSynced(view, ref) }]),
       { label: t("Copy link to block"), icon: "link", run: () => this.copyLink(ref) },
       { kind: "separator" },
       { label: t("Delete"), icon: "trash", danger: true, run: () => deleteBlock(view, ref) },
     );
     openMenu(this.grip, entries, { side: "bottom", align: "start", label: t("Block") });
+  }
+
+  private makeSynced(view: EditorView, ref: BlockRef): void {
+    const cur = view.state.doc.nodeAt(ref.pos);
+    if (!cur || cur !== ref.node) return;
+    const node = createSynced(this.ctx, Fragment.from(cur));
+    if (!node) return;
+    try {
+      view.dispatch(view.state.tr.replaceWith(ref.pos, ref.pos + cur.nodeSize, node));
+    } catch {
+      toast({ id: "synced-fail", tone: "danger", message: t("This block cannot become a synced block here.") });
+    }
   }
 
   private caption(view: EditorView, ref: BlockRef): void {

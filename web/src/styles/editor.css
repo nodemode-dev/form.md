@@ -27,6 +27,7 @@
 .doc-body > * + *,
 .doc-body .column > * + *,
 .doc-body .column__body > * + *,
+.doc-body .synced__body > * + *,
 .doc-body blockquote > * + *,
 .doc-body .callout__body > * + *,
 .doc-body .toggle__content > * + *,
@@ -763,6 +764,62 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+.synced {
+  position: relative;
+  margin-block: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+.synced:hover,
+.synced:focus-within,
+.ProseMirror-selectednode.synced {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.synced__bar {
+  position: absolute;
+  inset-block-end: calc(100% - 4px);
+  inset-inline-start: var(--space-2);
+  z-index: var(--z-raised);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 1px var(--space-1) 1px var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.synced:hover > .synced__bar,
+.synced:focus-within > .synced__bar,
+.ProseMirror-selectednode.synced > .synced__bar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.synced__bar > svg {
+  inline-size: 12px;
+  block-size: 12px;
+  color: var(--accent);
+}
+
+.synced__body {
+  outline: none;
+}
+
+.synced__notice {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
 }
 
 .paste-anchor {

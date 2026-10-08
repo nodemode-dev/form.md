@@ -18,6 +18,7 @@ import { importMedia, importPhase, watchImport } from "./links";
 import { ColumnView } from "./columns";
 import { drawDiagram, sourceSum } from "./diagram";
 import { MathView } from "./math";
+import { SyncedView } from "./synced";
 
 type GetPos = () => number | undefined;
 
@@ -866,6 +867,7 @@ export function nodeViews(ctx: EditorCtx): Record<string, NodeViewConstructor> {
     toc: (node, view) => new TocView(node, view, ctx),
     breadcrumb: (node) => new CrumbView(node, ctx),
     column: (node, view, getPos) => new ColumnView(node, view, getPos),
+    synced: (node, view, getPos) => new SyncedView(node, view, getPos, ctx),
     math_block: (node, view, getPos) => new MathView(node, view, getPos, ctx, true),
     math_inline: (node, view, getPos) => new MathView(node, view, getPos, ctx, false),
     file: (node) => new FileView(node),

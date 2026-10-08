@@ -39,7 +39,7 @@ var withID = map[string]bool{
 	"bullet_list": true, "ordered_list": true, "task_list": true, "list_item": true, "task_item": true,
 	"code_block": true, "horizontal_rule": true, "table": true, "image": true, "video": true, "audio": true,
 	"file": true, "bookmark": true, "embed": true, "toc": true, "columns": true, "database": true, "breadcrumb": true,
-	"math_block": true,
+	"math_block": true, "synced": true,
 }
 
 var md = goldmark.New(goldmark.WithExtensions(extension.Table, extension.Strikethrough, extension.TaskList, extension.Linkify, mathExtension{}))
@@ -97,6 +97,7 @@ func (c *converter) blocks(parent gast.Node) []*pmNode {
 		}
 		out = append(out, n)
 	}
+	skipping := false
 	for n := parent.FirstChild(); n != nil; n = n.NextSibling() {
 		if hb, ok := n.(*gast.HTMLBlock); ok {
 			raw := strings.TrimSpace(c.rawLines(hb))
@@ -104,6 +105,13 @@ func (c *converter) blocks(parent gast.Node) []*pmNode {
 				raw += string(hb.ClosureLine.Value(c.src))
 			}
 			lower := strings.ToLower(raw)
+			if skipping {
+				skipping = lower != "<!-- synced end -->"
+				continue
+			}
+			if strings.HasPrefix(lower, "<!-- synced:") && strings.HasSuffix(lower, " begin -->") {
+				skipping = true
+			}
 			if strings.HasPrefix(lower, "<details") {
 				t := newNode("toggle")
 				title := newNode("toggle_title")
@@ -132,6 +140,9 @@ func (c *converter) blocks(parent gast.Node) []*pmNode {
 				continue
 			}
 			emit(c.htmlBlock(raw))
+			continue
+		}
+		if skipping {
 			continue
 		}
 		emit(c.block(n))
@@ -170,6 +181,17 @@ func isPageID(s string) bool {
 
 func (c *converter) htmlBlock(raw string) *pmNode {
 	trimmed := strings.TrimSpace(raw)
+	if ref, ok := strings.CutPrefix(trimmed, "<!-- synced:"); ok {
+		if ref, ok = strings.CutSuffix(ref, " -->"); ok {
+			ref = strings.TrimSuffix(ref, " begin")
+			if pg, key, ok := strings.Cut(ref, "/"); ok && isPageID(pg) && SyncKey(key) {
+				n := newNode("synced")
+				n.attrs["page"] = pg
+				n.attrs["key"] = key
+				return n
+			}
+		}
+	}
 	if id, ok := strings.CutPrefix(trimmed, "<!-- database:"); ok {
 		if id, ok = strings.CutSuffix(id, " -->"); ok && isPageID(id) {
 			n := newNode("database")

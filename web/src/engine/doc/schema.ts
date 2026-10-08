@@ -457,6 +457,14 @@ const nodes: Record<string, NodeSpec> = {
     parseDOM: [{ tag: "nav.crumbline" }],
     toDOM: (n) => ["nav", { class: "crumbline", ...blockAttr(n), contenteditable: "false" }],
   },
+  synced: {
+    group: "block",
+    atom: true,
+    draggable: true,
+    attrs: { ...withId, page: { default: "" }, key: { default: "" } },
+    parseDOM: [{ tag: "div.synced[data-key]", getAttrs: (dom: HTMLElement) => ({ page: dom.dataset.page ?? "", key: dom.dataset.key ?? "" }) }],
+    toDOM: (n) => ["div", { class: "synced", ...blockAttr(n), "data-page": String(n.attrs.page), "data-key": String(n.attrs.key), contenteditable: "false" }, ["div", { class: "synced__body" }]],
+  },
   database: {
     group: "block",
     atom: true,

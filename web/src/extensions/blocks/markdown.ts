@@ -109,6 +109,8 @@ export class MarkdownWriter {
         return ["<!-- toc -->"];
       case "breadcrumb":
         return ["<!-- breadcrumb -->"];
+      case "synced":
+        return [`<!-- synced:${String(n.attrs.page)}/${String(n.attrs.key)} -->`];
       case "math_block":
         return ["$$", ...String(n.attrs.tex).split("\n"), "$$"];
       case "database":

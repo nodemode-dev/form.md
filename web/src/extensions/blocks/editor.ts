@@ -2,6 +2,7 @@ import type { Node as PMNode, ResolvedPos, Slice } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { initProseMirrorDoc, yCursorPlugin, ySyncPlugin, yUndoPlugin } from "y-prosemirror";
+import * as Y from "yjs";
 import type { Engine } from "../../engine";
 import type { DocSession } from "../../engine/doc/docs";
 import { embedProvider, newBlockId, schema } from "../../engine/doc/schema";
@@ -45,6 +46,7 @@ export class EditorHost implements EditorCtx {
   private md = new MarkdownWriter((id) => this.engine.pages.get(id)?.title ?? "");
   private notice: HTMLElement | null = null;
   private listeners = new Set<(id: string) => void>();
+  private snaps = new Map<string, string>();
 
   constructor(
     readonly engine: Engine,
@@ -102,6 +104,14 @@ export class EditorHost implements EditorCtx {
     uploadFiles(this, view, files, at);
   }
 
+  doc(): Y.Doc | null {
+    return this.session?.phase === "ready" ? this.session.doc : null;
+  }
+
+  syncedSnapshot(block: string): string {
+    return this.snaps.get(block) ?? "";
+  }
+
   onShown(fn: (id: string) => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
@@ -121,7 +131,24 @@ export class EditorHost implements EditorCtx {
   }
 
   prepare(id: string): Promise<void> {
-    return this.engine.docs.prefetch(id).ready;
+    const s = this.engine.docs.prefetch(id);
+    return s.ready.then(() => {
+      if (s.phase !== "ready") return;
+      const sources = new Set<string>();
+      const walk = (el: Y.XmlFragment | Y.XmlElement) => {
+        for (const c of el.toArray()) {
+          if (!(c instanceof Y.XmlElement)) continue;
+          if (c.nodeName === "synced") {
+            const page = String(c.getAttribute("page") ?? "");
+            if (page && page !== id && sources.size < 6) sources.add(page);
+          } else walk(c);
+        }
+      };
+      walk(s.fragment);
+      if (!sources.size) return;
+      const ready = Promise.all([...sources].map((p) => this.engine.docs.prefetch(p).ready));
+      return Promise.race([ready.then(() => undefined), new Promise<void>((r) => setTimeout(r, 1500))]);
+    });
   }
 
   show(id: string): void {
@@ -218,6 +245,10 @@ export class EditorHost implements EditorCtx {
       }
     } else doc = schema.topNodeType.createAndFill() as PMNode;
     const state = EditorState.create({ schema, doc, plugins: this.plugins(s, mapping) });
+    this.snaps.clear();
+    if (!this.ed && this.mount.dataset.page === s.id) {
+      for (const el of Array.from(this.mount.querySelectorAll<HTMLElement>(".synced[data-block]"))) this.snaps.set(el.dataset.block ?? "", el.querySelector(".synced__body")?.innerHTML ?? "");
+    }
     if (!this.ed) {
       this.ed = new EditorView(
         { mount: this.mount },

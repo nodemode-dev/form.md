@@ -1,4 +1,5 @@
 import type { EditorView } from "prosemirror-view";
+import type * as Y from "yjs";
 import type { Engine } from "../../engine";
 import type { Rect } from "../../ui/floating";
 
@@ -16,6 +17,8 @@ export interface EditorCtx {
   live: Set<Refreshable>;
   pickFiles(view: EditorView, accept: string, at?: number): void;
   uploadFiles(view: EditorView, files: File[], at?: number): void;
+  doc(): Y.Doc | null;
+  syncedSnapshot(block: string): string;
 }
 
 export function caretRect(view: EditorView, pos = view.state.selection.head): Rect | null {
