@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.4.0
-Last updated: 2026-10-08 · document sync engine, block editor, first-frame body, page switch hold
+Current build version: v0.6.0
+Last updated: 2026-10-08 · Phase 6: lazy database chunk, search palette, equations, columns, link cards and embeds, the diagram sandbox, synced blocks
 
 ---
 
@@ -12,8 +12,9 @@ Last updated: 2026-10-08 · document sync engine, block editor, first-frame body
 ```
 web/
 ├── HASHOUT_LOG.md                   this file
-├── index.html                       shell skeleton, pre-paint theme boot, icon placeholders
-├── package.json                     scripts: dev, build, preview, typecheck
+├── index.html                       shell skeleton, pre-paint theme boot, icon placeholders, preload slot
+├── sandbox.html                     second entry: the Mermaid renderer, served sandboxed
+├── package.json                     scripts: dev, build, preview, typecheck; mermaid's katex overridden
 ├── tsconfig.json                    browser code (src/)
 ├── tsconfig.node.json               vite.config.ts only
 ├── vite.config.ts                   port 5750, host false, proxy to :8750, icon inlining, dist placeholder
@@ -52,7 +53,8 @@ web/
     │   ├── account/
     │   │   └── index.ts             account, workspace and admin commands, Ctrl or Cmd plus comma
     │   ├── pages/
-    │   │   └── index.ts             page, library, notes and tab commands and their shortcuts
+    │   │   └── index.ts             page, library, notes and tab commands and their shortcuts, search.open
+    │   ├── database/                databases: views, row pages, forms, CSV (loaded with the first database)
     │   └── blocks/
     │       ├── index.ts             editor commands and shortcuts (editor scope), hover prefetch, mountEditor
     │       ├── editor.ts            EditorHost: binds sessions to one view, loading, paste, drop, clicks
@@ -70,7 +72,15 @@ web/
     │       ├── context.ts           EditorCtx, caret and block rectangles
     │       ├── languages.ts         code languages and aliases
     │       ├── hl.ts                highlight.js core with 29 languages (its own chunk)
-    │       └── lightbox.ts          full-size image viewer
+    │       ├── lightbox.ts          full-size image viewer
+    │       ├── math.ts, mathml.ts   equation node view and panel, MathML sanitiser
+    │       ├── math-render.ts       KaTeX to MathML with mhchem (its own chunk)
+    │       ├── columns.ts           column view with resize, side drop, column commands, normalising
+    │       ├── links.ts             link previews, media imports, paste choice, embed choice
+    │       ├── diagram.ts           bridge to the sandboxed Mermaid renderer
+    │       └── synced.ts            synced block view with a nested editor, unsync
+    ├── sandbox/
+    │   └── main.ts                  renderer page: mermaid in strict mode, answers over postMessage
     ├── ui/                          DOM layer: renders engine state, dispatches commands
     │   ├── app.ts                   mountUI, platform and storage adapters, command click delegation
     │   ├── auth.ts                  set-up, sign-in, sign-up and invitation screens, workspace cookie
@@ -83,6 +93,7 @@ web/
     │   ├── pickers.ts               icon picker, cover picker, picture upload
     │   ├── library-view.ts          library route
     │   ├── trash-view.ts            trash route
+    │   ├── search.ts                search palette: recents, actions, filters, results (its own chunk)
     │   ├── glyphs.ts                the hand-drawn page icon set, tints, icon references
     │   ├── pageicon.ts              paint a glyph, a picture or the default in place
     │   ├── account.ts               account settings: profile, security, tokens, language and time
@@ -1083,3 +1094,68 @@ A new view renders off screen and replaces the old one when its first result is 
 - logged: v0.5.0 · 2026-10-08
 
 The calendar reconciles days and items by key; it never rebuilds the month grid. The timeline measures its width before placing bars and scrolling to today, and repaints once through a ResizeObserver when it was first painted detached with zero width.
+
+## Phase 6: search and editor completion {#p6}
+
+### src/extensions/database/load.ts · the database chunk and module preload
+- refers-to: src/extensions/database/load.ts :: `loadDatabase`, `databaseViews`; src/extensions/database/views-entry.ts; ../internal/static/static.go :: `readPreloads`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+The views, row pages, forms and CSV import load as one chunk the first time a database is shown, which brought the up-front script back under its budget. When the server renders a page that needs the chunk, it reads the Vite manifest and adds `modulepreload` links for it in the head, so a database page loaded directly does not wait for a second round trip.
+
+### src/ui/search.ts · the palette
+- refers-to: src/ui/search.ts :: `mountSearch`, `fillMarked`; src/main.ts :: `ensureSearch`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+Ctrl or Cmd plus K (or P) opens it; the chunk is fetched on first use and preloaded when the browser is idle. Typing is debounced and every request carries an abort signal, results are reconciled by key, and `\x02`/`\x03` markers from the server become `mark` elements through DOM nodes, never through HTML. A leading `>` switches to actions. Escape goes through the layer stack, whose close handler hides the palette.
+
+### src/extensions/blocks/math.ts · equations
+- refers-to: src/extensions/blocks/math.ts :: `MathView`, `mathRules`, `mathKeys`; src/extensions/blocks/math-render.ts :: `renderTex`; src/extensions/blocks/mathml.ts :: `mathElement`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+Block and inline equations store TeX and the rendered MathML; KaTeX (with mhchem) loads on first edit and produces MathML only, which every browser draws natively, so readers and the first frame need no script. MathML is rebuilt through an element and attribute allow-list on the client as on the server. `$$x$$` typed in text becomes inline math and `$$` on an empty line a block; a single `$` is left alone so prices stay prices.
+
+### src/extensions/blocks/columns.ts · never touch the row's attributes
+- refers-to: src/extensions/blocks/columns.ts :: `ColumnView.drag`, `is-resizing`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+The `columns` node has no node view, so ProseMirror re-reads any attribute change on its element: adding a class to the row while dragging a resize grip made the editor re-parse the row, rebuild every column and drop the pointer capture. State during a drag lives on the column's own element (its node view ignores its own attribute mutations); widths are painted as `data-w` on each column and written to the document once, on pointer up.
+
+### src/extensions/blocks/columns.ts · side drops and empty columns
+- refers-to: src/extensions/blocks/columns.ts :: `sideTarget`, `sideDrop`, `removeDragged`, `columnsPlugins`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+A drag over the outer fifth of a block (at most 64 px) shows a vertical marker and drops beside it; a drag anywhere else is ProseMirror's own drop. When that ordinary drop lifts the only block out of a column, ProseMirror leaves an empty paragraph to satisfy the schema; the drop handler remembers the column and the next drop transaction removes it (or unwraps a two-column row). Any row left with one column is unwrapped by the normalising plugin.
+
+### src/extensions/blocks/handle.ts · the handle inside columns
+- refers-to: src/extensions/blocks/handle.ts :: `track`, `lastX`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+The handle probes the column under the pointer rather than the editor's left edge, so blocks in later columns get their own handle. Pointer moves over the handle itself are ignored (the target stays put) and moves over a column resize grip hide it.
+
+### src/extensions/blocks/links.ts · previews and imports
+- refers-to: src/extensions/blocks/links.ts :: `linksPlugin`, `importMedia`, `unfurlBookmark`, `offerLinkChoice`, `embedFor`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+Local transactions that add media or link cards mark the plugin dirty; the scan runs after the dispatch. Media whose source is another site or a data URL are imported once per block and replaced by the file block with its size, and an import that fails offers a retry in the block. Link cards are marked `fetched` before the request so collaborators do not fetch the same card. The paste menu anchors to a 1 px element in the editor wrapper, outside ProseMirror's DOM, because the menu sets attributes on its anchor.
+
+### src/extensions/blocks/diagram.ts · the renderer bridge
+- refers-to: src/extensions/blocks/diagram.ts :: `drawDiagram`, `sourceSum`; src/sandbox/main.ts; src/extensions/blocks/nodeviews.ts :: `CodeView.paintDiagram`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+One hidden iframe (`sandbox="allow-scripts"`, opaque origin) renders every diagram; replies are accepted only from its window. The SVG comes back sized from its viewBox and is shown only as an `img` from a data URL, so nothing it contains can run. The drawing, its size and a checksum of the source are stored on the code block by a writer, so readers and the first frame need no renderer; a stale checksum triggers a redraw. Dark themes invert the neutral drawing with a CSS filter. Mermaid splits labels into word spans, so tests must not look for a phrase inside the SVG.
+
+### src/extensions/blocks/synced.ts · nested editors
+- refers-to: src/extensions/blocks/synced.ts :: `SyncedView`, `createSynced`, `contentOf`; src/extensions/blocks/editor.ts :: `prepare`, `syncedSnapshot`, `doc`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+A synced block is an atom whose view opens the original page's session and mounts a nested editor bound with `ySyncPlugin` to that document's `s:<key>` root, with its own undo manager. The nested editor's context is the host's with `pageId`, `view` and `writable` overridden, so uploads land on the original page. The global keymap only handles editor shortcuts when the main view has focus, so the nested editor binds undo, redo and the marks itself. The view rebinds after a session reset (a new Y.Doc). The first frame's synced HTML is captured before ProseMirror replaces it and shown until the source session is ready; page switches inside the app prefetch the source documents (up to six, 1.5 s at most) so they are usually ready. Unsync all sets `released` in the original document's `synced` map; copies convert themselves when a writer has them open.

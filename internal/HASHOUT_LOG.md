@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.4.0
-Last updated: 2026-10-08 · documents: CRDT rooms, sync socket, materialiser, Markdown, first-paint HTML
+Current build version: v0.6.0
+Last updated: 2026-10-08 · Phase 6: search, equations, guarded fetching, link previews, embeds, the diagram sandbox, synced blocks
 
 ---
 
@@ -40,8 +40,9 @@ form.md/
 │   │   ├── oidc.go                  Google, Microsoft and generic OIDC sign-in, SSOProviders
 │   │   ├── invites.go               invitations: create, list, cancel, look up, accept
 │   │   └── module.go                route table for /api/auth, /api/setup, /api/me, invites
+│   ├── collection/                  databases: schema, rows, query stages, formula language, views, forms, CSV
 │   ├── config/
-│   │   └── config.go                FORMMD_* env vars, defaults, validation
+│   │   └── config.go                FORMMD_* env vars (incl. FETCH_PRIVATE), defaults, validation
 │   ├── doc/
 │   │   ├── schema.go                root fragment name, mark order, block ids, attribute readers
 │   │   ├── room.go                  a page's CRDT: load, apply, persist, compact, awareness relay
@@ -49,11 +50,15 @@ form.md/
 │   │   ├── service.go               rooms and sockets, materialiser, copier, Markdown read and write, backlinks, routes
 │   │   ├── markdown.go              CRDT to Markdown, plain text, snippet, thumbnail and references
 │   │   ├── parse.go                 Markdown to blocks (goldmark) and blocks to CRDT operations
-│   │   └── html.go                  CRDT to the editor's HTML for the first frame
+│   │   ├── html.go                  CRDT to the editor's HTML for the first frame
+│   │   ├── math.go                  $ and $$ in Markdown, MathML allow-list
+│   │   ├── embed.go                 embed providers and the generic https embed
+│   │   └── synced.go                synced roots, cross-page first-frame rendering
 │   ├── events/
 │   │   └── events.go                Hub: sequenced events, replay ring, audience filter, GET /api/events (SSE)
 │   ├── files/
-│   │   └── files.go                 uploads, sniffing, access-checked serving at /files/{id}, sweep
+│   │   ├── files.go                 uploads, sniffing, access-checked serving at /files/{id}, sweep
+│   │   └── fetch.go                 POST /api/files/import: a linked file brought in with its size
 │   ├── icon/
 │   │   └── icon.go                  the one rule for icon values: a name from the shared set or an uploaded file
 │   ├── httpx/
@@ -66,6 +71,8 @@ form.md/
 │   │   └── ids.go                   128-bit random ids, lowercase base32
 │   ├── mail/
 │   │   └── mail.go                  Mailer: SMTP (TLS, STARTTLS, none), OAuth sender registry
+│   ├── netguard/
+│   │   └── netguard.go              the outbound HTTP client that only reaches public addresses
 │   ├── order/
 │   │   └── order.go                 fractional base62 sort keys: Between, After, Before, Valid
 │   ├── page/
@@ -78,6 +85,10 @@ form.md/
 │   ├── policy/
 │   │   ├── principal.go             Principal: one shape for every credential, context helpers
 │   │   └── gate.go                  Gate.Workspace access check, agent policy, emergency grants, memberships
+│   ├── search/
+│   │   ├── search.go                FTS5 index worker, tiered ranking, filters, GET /api/search
+│   │   ├── passages.go              Markdown split into passages with heading paths
+│   │   └── highlight.go             folding, stemming and snippet marks done in Go
 │   ├── secrets/
 │   │   └── secrets.go               AES-GCM sealing with data/secret.key, token minting and hashing
 │   ├── server/
@@ -95,7 +106,11 @@ form.md/
 │   │       ├── 0001_instance.sql    instance key/value table
 │   │       ├── 0002_accounts.sql    accounts, sessions, workspaces, tokens, invites, emergency, audit
 │   │       ├── 0003_pages.sql       pages, favorites, page visits, tag colours, files
-│   │       └── 0004_docs.sql        document state, update log, references
+│   │       ├── 0004_docs.sql        document state, update log, references
+│   │       ├── 0005_collections.sql databases, rows, views, form links
+│   │       └── 0006_search.sql      passages, the FTS5 table and its rank, index metadata
+│   ├── unfurl/
+│   │   └── unfurl.go                GET /api/unfurl: page title, description, site, image and icon
 │   └── workspace/
 │       ├── workspace.go             workspaces, members, access, rules, proposals, emergency log
 │       └── module.go                route table for /api/workspaces
@@ -1041,3 +1056,89 @@ Preview parses the upload (delimiter sniffed, BOM removed), guesses a type per c
 - logged: v0.5.0 · 2026-10-08
 
 A Pratt parser with infix operators, the ternary, the words `and`, `or` and `not`, method calls (`prop("Due").dateAdd(1, "days")`), lists and lambdas over `current` and `index`. Smart quotes and the symbols for not equal, at least and at most are accepted so pasted formulas work. `if`, `ifs`, `and`, `or`, `let`, `lets` and the list functions that take a lambda are special forms evaluated lazily. `Props()` lists the properties a formula reads; the formula check endpoint returns it with the result.
+
+## Phase 6: search and editor completion {#p6}
+
+### internal/search · passages and the worker
+- refers-to: internal/search/passages.go :: `split`; internal/search/search.go :: `Touch`, `RowsChanged`, `run`, `prepare`, `drain`, `write`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+A body is split into passages of at most 1500 characters, each carrying the heading path above it, plus one title passage and one passage of database property text per row. Pages are queued by `Touch` (the materialiser and page writes) and `RowsChanged` (database edits) and indexed by one worker in batches of 100 after a 400 ms debounce. `prepare` drops passages of deleted pages and rebuilds everything when `indexVersion` changes, so a changed splitter only needs the constant bumped.
+
+### internal/search/search.go · tiers and the rowid floor
+- refers-to: internal/search/search.go :: `Search`, `ranked`, `tier`, `floor`, `candidates`, `rankCap`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+bm25 over every match of a common word is what made broad queries slow. Search therefore asks the title tier first and the body tier second, and the body tier ranks only the newest 2000 matching passages (a rowid floor found with one count query), keeping 200 candidates. Workspace and visibility filtering happens in Go on the candidates, with a second pass scoped to the workspace when too few survive. Keep the ws column out of MATCH: filtering on it in FTS cost more than it saved.
+
+### internal/search/highlight.go · highlights from Go
+- refers-to: internal/search/highlight.go :: `fold`, `stem`, `queryTerms`, `mark`, `snippet`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+FTS5's `highlight()` over `rowid IN (...)` scanned every match. The passage text is read by rowid and marked in Go with the same folding (accents, sharp s) and a light stemmer, using `\x02` and `\x03` as markers that the client turns into `mark` elements. Never send them as HTML.
+
+### internal/doc/math.go · single-line $$ blocks and the MathML allow-list
+- refers-to: internal/doc/math.go :: `mathBlockParser.Continue`, `mathBlock.done`, `sanitizeMathML`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+goldmark ignores a `Close` returned from `Open`, so a block that opens and closes on one line sets `done` and closes on the next `Continue`; without that it swallowed the following paragraphs. A line starting with `$$` that has text after the closing `$$` is a paragraph with inline math, not a block. Rendered MathML from the client is stored only after `sanitizeMathML` keeps the allowed elements and attributes.
+
+### internal/netguard · one guard for every outbound fetch
+- refers-to: internal/netguard/netguard.go :: `Blocked`, `CheckURL`, `NewClient`, `Reason`; internal/config/config.go :: `FETCH_PRIVATE`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+Every server-side fetch (media imports, link previews; webhooks and URL ingest later) must use this client. Names are resolved first and only public addresses are dialled, by address, so DNS rebinding cannot swap in a private one; the dialer's Control re-checks the connected address. Loopback, private, link-local, carrier-grade NAT, documentation, benchmarking, multicast and reserved ranges are blocked, and NAT64, 6to4 and Teredo forms with them. Redirects are re-checked and capped at five. The transport ignores HTTP_PROXY on purpose: a proxy would make the address check meaningless. `FORMMD_FETCH_PRIVATE=1` turns the guard off for intranets.
+
+### internal/files/fetch.go · imports
+- refers-to: internal/files/fetch.go :: `Import`, `remoteName`, `dims`, `webpDims`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+An import is an upload whose body is the response: the same `store` path sniffs the type, enforces the size limit and writes the audit record. Web pages are refused with `not_media`. Image size comes from the standard decoders, and WebP from its VP8, VP8L or VP8X header. `store` now sets the private `ext` on the returned file so `dims` can open it.
+
+### internal/unfurl · previews
+- refers-to: internal/unfurl/unfurl.go :: `Preview`, `head`, `frameable`, `handle`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+At most 1 MB of the head is tokenised; Open Graph, Twitter and plain meta tags are read up to `</head>` or `<body>`. The preview image and the best icon (apple-touch-icon over sized icons over /favicon.ico) are imported as page attachments so cards never point at another site. Framing is judged from X-Frame-Options and a frame-ancestors directive. Previews are cached for an hour, 256 entries, and at most eight fetches run at once. The endpoint needs write access to the page because it creates files.
+
+### internal/doc/embed.go · the provider table is mirrored in the client
+- refers-to: internal/doc/embed.go :: `providers`, `EmbedProvider`, `EmbedSrc`; web/src/engine/doc/schema.ts :: `PROVIDERS`, `embedSrc`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+Eighteen providers map a link to a player address and a default height; the generic `web` kind frames any https address. The server paints the iframe in the first frame and the editor paints it again, so the two tables must match entry for entry, regular expressions included (Go's RE2 and JavaScript agree on the subset used).
+
+### internal/static/static.go · the sandbox page
+- refers-to: internal/static/static.go :: `sandboxCSP`, `ServeHTTP`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+`/sandbox.html` (the Mermaid renderer) is served with a CSP whose first directive is `sandbox allow-scripts`, so even opened directly it runs in an opaque origin with no cookies or storage, and with X-Frame-Options SAMEORIGIN instead of the global DENY. Its module scripts are then cross-origin requests, which is why everything under `/assets/` carries `Access-Control-Allow-Origin: *`. The document CSP allows frames from any https origin because every frame is sandboxed.
+
+### internal/doc/synced.go · synced roots and rendering without nested locks
+- refers-to: internal/doc/synced.go :: `SyncRoot`, `syncedRefs`, `renderSynced`, `htmlWriter.synced`; internal/doc/service.go :: `Render`
+- kind: warning-context
+- logged: v0.6.0 · 2026-10-08
+
+A synced block's content is the root `s:<key>` of the original page's document; pages hold only an atom with `page` and `key`. `Render` collects the references under the page's room lock, releases it, renders every other page's root under that page's lock one at a time, and only then renders the page. Rendering another room while holding the first lock would deadlock two pages that show each other's blocks. A reader who cannot open the original gets a fixed notice that the client prints word for word. Content inside a synced root is never expanded again (no nesting).
+
+### internal/doc/markdown.go and parse.go · synced markers
+- refers-to: internal/doc/markdown.go :: `room.summary`, case `synced`; internal/doc/parse.go :: `htmlBlock`, `skipping`
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+The original writes `<!-- synced:<page>/<key> begin -->`, the content, then `<!-- synced end -->`, so search and exports see the text; a copy writes the marker alone. Reading Markdown back makes the atom and skips everything up to the end marker, because that content lives in the synced root and is not part of the page body. Materialising uses `room.summary`, which can read the room's other roots.
+
+### tools/notices · license files and stable order
+- refers-to: tools/notices/main.go :: `licenseFiles`, `webLicense`, the component sort
+- kind: explainer
+- logged: v0.6.0 · 2026-10-08
+
+Mermaid brought packages that ship `license.txt` or no license file at all. A package that declares MIT in package.json without a file gets the standard MIT text with the author as the holder, marked as such; any other license without a file still stops the build. Packages present in two versions are ordered by version so the file does not change between builds.
