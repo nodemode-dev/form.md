@@ -67,10 +67,13 @@ func inTemplates(all []*Meta) map[string]bool {
 	return out
 }
 
-func (s *Service) workspacePages(ctx context.Context, workspaceID string, trashed bool) ([]*Meta, error) {
+func (s *Service) workspacePages(ctx context.Context, workspaceID string, trashed, withRows bool) ([]*Meta, error) {
 	cond := "p.trashed_at = 0"
 	if trashed {
 		cond = "1 = 1"
+	}
+	if !withRows {
+		cond += " AND p.is_row = 0"
 	}
 	rows, err := s.st.R.QueryContext(ctx, "SELECT "+metaColumns+" FROM pages p WHERE p.workspace_id = ? AND "+cond+" ORDER BY p.parent_id, p.sort_key", workspaceID)
 	if err != nil {
@@ -92,7 +95,7 @@ func (s *Service) Tree(ctx context.Context, p *policy.Principal, workspaceID str
 	if _, err := s.gate.Workspace(ctx, p, workspaceID); err != nil {
 		return nil, err
 	}
-	all, err := s.workspacePages(ctx, workspaceID, false)
+	all, err := s.workspacePages(ctx, workspaceID, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +120,7 @@ func (s *Service) Trash(ctx context.Context, p *policy.Principal, workspaceID, q
 	if _, err := s.gate.Workspace(ctx, p, workspaceID); err != nil {
 		return nil, err
 	}
-	all, err := s.workspacePages(ctx, workspaceID, true)
+	all, err := s.workspacePages(ctx, workspaceID, true, true)
 	if err != nil {
 		return nil, err
 	}

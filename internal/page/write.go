@@ -88,17 +88,26 @@ func (s *Service) slot(ctx context.Context, q store.Querier, workspaceID, parent
 }
 
 type CreateInput struct {
-	WorkspaceID string `json:"workspace_id"`
-	ParentID    string `json:"parent_id"`
-	AfterID     string `json:"after_id"`
-	Title       string `json:"title"`
-	Icon        string `json:"icon"`
+	WorkspaceID string          `json:"workspace_id"`
+	ParentID    string          `json:"parent_id"`
+	AfterID     string          `json:"after_id"`
+	Title       string          `json:"title"`
+	Icon        string          `json:"icon"`
+	Kind        string          `json:"kind"`
+	Extra       json.RawMessage `json:"extra,omitempty"`
 }
 
 func (s *Service) Create(ctx context.Context, p *policy.Principal, in CreateInput) (*Meta, error) {
 	title, err := cleanTitle(in.Title)
 	if err != nil {
 		return nil, err
+	}
+	kind := in.Kind
+	if kind == "" {
+		kind = "doc"
+	}
+	if kind != "doc" && kind != "collection" {
+		return nil, httpx.Fail(http.StatusBadRequest, "bad_kind", "a page is a doc or a collection")
 	}
 	if !icon.Valid(in.Icon) || strings.HasPrefix(in.Icon, "f:") {
 		return nil, httpx.Fail(http.StatusBadRequest, "bad_icon", "an icon is a name from the icon set or an uploaded image")
@@ -133,8 +142,13 @@ func (s *Service) Create(ctx context.Context, p *policy.Principal, in CreateInpu
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO pages (id, workspace_id, parent_id, kind, sort_key, title, icon, owner_id, created_at, created_by, updated_at, updated_by)
-			VALUES (?, ?, ?, 'doc', ?, ?, ?, ?, ?, ?, ?, ?)`, id, workspaceID, nullable(in.ParentID), key, title, in.Icon, p.UserID, now, p.UserID, now, p.UserID); err != nil {
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, workspaceID, nullable(in.ParentID), kind, key, title, in.Icon, p.UserID, now, p.UserID, now, p.UserID); err != nil {
 			return err
+		}
+		for _, fn := range s.creators {
+			if err := fn(ctx, tx, id, workspaceID, kind, in.Extra); err != nil {
+				return err
+			}
 		}
 		return s.audit.Record(ctx, tx, p, audit.Entry{Action: "page.create", WorkspaceID: workspaceID, PageID: id, Detail: title})
 	})
@@ -410,7 +424,7 @@ func (s *Service) moveAcross(ctx context.Context, p *policy.Principal, m *Meta, 
 	if err != nil {
 		return nil, err
 	}
-	all, err := s.workspacePages(ctx, m.WorkspaceID, true)
+	all, err := s.workspacePages(ctx, m.WorkspaceID, true, true)
 	if err != nil {
 		return nil, err
 	}
@@ -440,6 +454,11 @@ func (s *Service) moveAcross(ctx context.Context, p *policy.Principal, m *Meta, 
 				return err
 			}
 		}
+		for _, fn := range s.movers {
+			if err := fn(ctx, tx, ids, in.WorkspaceID); err != nil {
+				return err
+			}
+		}
 		if err := s.audit.Record(ctx, tx, p, audit.Entry{Action: "page.move_out", WorkspaceID: m.WorkspaceID, PageID: m.ID, Detail: in.WorkspaceID}); err != nil {
 			return err
 		}
@@ -453,9 +472,15 @@ func (s *Service) moveAcross(ctx context.Context, p *policy.Principal, m *Meta, 
 	if err != nil {
 		return nil, err
 	}
+	var rowIDs []string
 	for _, x := range moved {
+		if x.Row {
+			rowIDs = append(rowIDs, x.ID)
+			continue
+		}
 		s.emit(ctx, x)
 	}
+	s.notify(ctx, rowIDs)
 	if len(moved) == 0 {
 		return nil, store.ErrNotFound
 	}
@@ -491,7 +516,7 @@ func (s *Service) Duplicate(ctx context.Context, p *policy.Principal, id string,
 	if err != nil {
 		return nil, err
 	}
-	all, err := s.workspacePages(ctx, m.WorkspaceID, false)
+	all, err := s.workspacePages(ctx, m.WorkspaceID, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -520,16 +545,21 @@ func (s *Service) Duplicate(ctx context.Context, p *policy.Principal, id string,
 			}
 			tags, _ := json.Marshal(x.Tags)
 			if _, err := tx.ExecContext(ctx, `INSERT INTO pages (id, workspace_id, parent_id, kind, sort_key, title, icon, cover, description, tags,
-				visibility, owner_id, is_template, snippet, thumb, created_at, created_by, updated_at, updated_by)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
+				visibility, owner_id, is_template, snippet, thumb, created_at, created_by, updated_at, updated_by, is_row)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)`,
 				nid, x.WorkspaceID, nullable(parent), x.Kind, key, name, x.Icon, x.Cover, x.Description, string(tags),
-				x.Visibility, p.UserID, x.Snippet, x.Thumb, now, p.UserID, now, p.UserID); err != nil {
+				x.Visibility, p.UserID, x.Snippet, x.Thumb, now, p.UserID, now, p.UserID, store.Bool(x.Row)); err != nil {
 				return err
 			}
 			for _, fn := range s.copiers {
 				if err := fn(ctx, tx, x.ID, nid); err != nil {
 					return err
 				}
+			}
+		}
+		for _, fn := range s.remaps {
+			if err := fn(ctx, tx, mapping); err != nil {
+				return err
 			}
 		}
 		return s.audit.Record(ctx, tx, p, audit.Entry{Action: "page.duplicate", WorkspaceID: m.WorkspaceID, PageID: rootID, Detail: id})
@@ -542,7 +572,9 @@ func (s *Service) Duplicate(ctx context.Context, p *policy.Principal, id string,
 		return nil, err
 	}
 	for _, x := range copies {
-		s.emit(ctx, x)
+		if !x.Row {
+			s.emit(ctx, x)
+		}
 	}
 	return copies[0], nil
 }
@@ -586,6 +618,7 @@ func (s *Service) TrashPage(ctx context.Context, p *policy.Principal, id string)
 	}
 	s.hub.Removed(m.WorkspaceID, ids, "")
 	s.hub.Workspace(m.WorkspaceID, "trash")
+	s.notify(ctx, ids)
 	return ids, nil
 }
 
@@ -618,6 +651,9 @@ func (s *Service) Restore(ctx context.Context, p *policy.Principal, id string) (
 				parentID = ""
 			}
 		}
+		if parentID != m.ParentID && m.Row {
+			return httpx.Fail(http.StatusConflict, "database_trashed", "restore its database first")
+		}
 		if parentID != m.ParentID {
 			key, err := s.slot(ctx, tx, m.WorkspaceID, "", "", "", id)
 			if err != nil {
@@ -645,9 +681,15 @@ func (s *Service) Restore(ctx context.Context, p *policy.Principal, id string) (
 	if err != nil {
 		return nil, err
 	}
-	for _, x := range restored {
+	var rowIDs []string
+	for i, x := range restored {
+		if x.Row && i > 0 {
+			rowIDs = append(rowIDs, x.ID)
+			continue
+		}
 		s.emit(ctx, x)
 	}
+	s.notify(ctx, rowIDs)
 	s.hub.Workspace(m.WorkspaceID, "trash")
 	if len(restored) == 0 {
 		return nil, store.ErrNotFound
@@ -676,6 +718,7 @@ func (s *Service) DeleteForever(ctx context.Context, p *policy.Principal, id str
 		return err
 	}
 	s.hub.Workspace(m.WorkspaceID, "trash")
+	s.notify(ctx, []string{id})
 	return nil
 }
 

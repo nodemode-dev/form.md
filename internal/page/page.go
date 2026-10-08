@@ -52,24 +52,26 @@ type Meta struct {
 	TrashedAt     int64    `json:"trashed_at,omitempty"`
 	TrashedBy     string   `json:"trashed_by,omitempty"`
 	TrashedByKind string   `json:"trashed_by_kind,omitempty"`
+	Row           bool     `json:"row,omitempty"`
 	trashBatch    string
 }
 
 const metaColumns = `p.id, p.workspace_id, COALESCE(p.parent_id, ''), p.kind, p.sort_key, p.title, p.icon, p.cover, p.description, p.tags,
 	p.visibility, COALESCE(p.owner_id, ''), p.is_template, p.snippet, p.thumb, p.created_at, p.created_by, p.updated_at, p.updated_by,
-	p.trashed_at, p.trashed_by, p.trashed_by_kind, p.trash_batch`
+	p.trashed_at, p.trashed_by, p.trashed_by_kind, p.trash_batch, p.is_row`
 
 func scanMeta(row interface{ Scan(...any) error }) (*Meta, error) {
 	var m Meta
 	var tags string
-	var tpl int
+	var tpl, isRow int
 	err := row.Scan(&m.ID, &m.WorkspaceID, &m.ParentID, &m.Kind, &m.SortKey, &m.Title, &m.Icon, &m.Cover, &m.Description, &tags,
 		&m.Visibility, &m.OwnerID, &tpl, &m.Snippet, &m.Thumb, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy,
-		&m.TrashedAt, &m.TrashedBy, &m.TrashedByKind, &m.trashBatch)
+		&m.TrashedAt, &m.TrashedBy, &m.TrashedByKind, &m.trashBatch, &isRow)
 	if err != nil {
 		return nil, err
 	}
 	m.IsTemplate = tpl == 1
+	m.Row = isRow == 1
 	m.Tags = []string{}
 	if tags != "" {
 		if err := json.Unmarshal([]byte(tags), &m.Tags); err != nil {
@@ -87,6 +89,65 @@ type Service struct {
 	settings *settings.Service
 	log      *slog.Logger
 	copiers  []func(ctx context.Context, tx *sql.Tx, from, to string) error
+	remaps   []func(ctx context.Context, tx *sql.Tx, mapping map[string]string) error
+	movers   []func(ctx context.Context, tx *sql.Tx, ids []string, workspaceID string) error
+	watchers []func(ctx context.Context, ids []string)
+	creators []func(ctx context.Context, tx *sql.Tx, id, workspaceID, kind string, extra json.RawMessage) error
+}
+
+func (s *Service) OnCreate(fn func(ctx context.Context, tx *sql.Tx, id, workspaceID, kind string, extra json.RawMessage) error) {
+	s.creators = append(s.creators, fn)
+}
+
+func (s *Service) OnDuplicated(fn func(ctx context.Context, tx *sql.Tx, mapping map[string]string) error) {
+	s.remaps = append(s.remaps, fn)
+}
+
+func (s *Service) OnMoveWorkspace(fn func(ctx context.Context, tx *sql.Tx, ids []string, workspaceID string) error) {
+	s.movers = append(s.movers, fn)
+}
+
+func (s *Service) OnChange(fn func(ctx context.Context, ids []string)) {
+	s.watchers = append(s.watchers, fn)
+}
+
+func (s *Service) notify(ctx context.Context, ids []string) {
+	if len(ids) == 0 {
+		return
+	}
+	for _, fn := range s.watchers {
+		fn(ctx, ids)
+	}
+}
+
+func (s *Service) PrivateOwner(ctx context.Context, id string) (string, error) {
+	return s.privateOwner(ctx, s.st.R, id)
+}
+
+func (s *Service) Load(ctx context.Context, id string) (*Meta, error) {
+	return s.load(ctx, s.st.R, id)
+}
+
+func (s *Service) Writable(ctx context.Context, p *policy.Principal, id string) (*Meta, error) {
+	m, err := s.load(ctx, s.st.R, id)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := s.check(ctx, s.st.R, p, m, true); err != nil {
+		return nil, err
+	}
+	if m.TrashedAt > 0 {
+		return nil, errTrashed
+	}
+	return m, nil
+}
+
+func (s *Service) ReadableMeta(ctx context.Context, p *policy.Principal, id string) (*Meta, bool, error) {
+	m, a, err := s.readable(ctx, p, id)
+	if err != nil {
+		return nil, false, err
+	}
+	return m, a.ws.CanWrite() && m.TrashedAt == 0, nil
 }
 
 func New(st *store.Store, gate *policy.Gate, al *audit.Log, hub *events.Hub, set *settings.Service, log *slog.Logger) *Service {
@@ -231,6 +292,7 @@ func hidden(err error) bool {
 }
 
 func (s *Service) emit(ctx context.Context, m *Meta) {
+	defer s.notify(ctx, []string{m.ID})
 	owner, err := s.privateOwner(ctx, s.st.R, m.ID)
 	if err != nil {
 		s.log.Warn("page: emit", "err", err)

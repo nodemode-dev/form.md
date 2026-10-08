@@ -69,6 +69,11 @@ func (h *Hub) Workspace(workspaceID, what string) {
 	h.publish(Event{Type: "workspace", Workspace: workspaceID, Data: map[string]any{"workspace_id": workspaceID, "what": what}})
 }
 
+func (h *Hub) Collection(workspaceID, privateOwner string, data map[string]any) {
+	data["workspace_id"] = workspaceID
+	h.publish(Event{Type: "collection", Workspace: workspaceID, PrivateOwner: privateOwner, Data: data})
+}
+
 func (h *Hub) User(userID, what string) {
 	h.publish(Event{Type: "user", User: userID, Data: map[string]any{"what": what}})
 }
