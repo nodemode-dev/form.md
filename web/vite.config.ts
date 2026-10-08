@@ -62,5 +62,6 @@ export default defineConfig({
     sourcemap: false,
     target: "es2022",
     assetsInlineLimit: 0,
+    manifest: true,
   },
 });

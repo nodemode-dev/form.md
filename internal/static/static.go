@@ -36,15 +36,58 @@ type Document struct {
 	Lang     string
 	Boot     any
 	Redirect string
+	Preload  []string
 }
 
 type Renderer func(r *http.Request) (Document, error)
 
 type Handler struct {
-	files  map[string]*asset
-	index  *asset
-	csp    string
-	render Renderer
+	files    map[string]*asset
+	index    *asset
+	csp      string
+	render   Renderer
+	preloads map[string][]string
+}
+
+type manifestChunk struct {
+	File           string   `json:"file"`
+	Imports        []string `json:"imports"`
+	IsEntry        bool     `json:"isEntry"`
+	IsDynamicEntry bool     `json:"isDynamicEntry"`
+}
+
+func readPreloads(dist fs.FS) map[string][]string {
+	out := map[string][]string{}
+	raw, err := fs.ReadFile(dist, ".vite/manifest.json")
+	if err != nil {
+		return out
+	}
+	var m map[string]manifestChunk
+	if json.Unmarshal(raw, &m) != nil {
+		return out
+	}
+	for key, c := range m {
+		rest, ok := strings.CutPrefix(key, "src/extensions/")
+		name, _, nested := strings.Cut(rest, "/")
+		if !ok || !nested || !c.IsDynamicEntry {
+			continue
+		}
+		seen := map[string]bool{}
+		var walk func(k string)
+		walk = func(k string) {
+			x, ok := m[k]
+			if !ok || x.IsEntry || seen[k] {
+				return
+			}
+			seen[k] = true
+			out[name] = append(out[name], "/"+x.File)
+			for _, i := range x.Imports {
+				walk(i)
+			}
+		}
+		walk(key)
+	}
+	return out
 }
 
 type module struct{ render Renderer }
@@ -82,6 +125,9 @@ var compressible = map[string]bool{
 func New(dist fs.FS) (*Handler, error) {
 	h := &Handler{files: map[string]*asset{}}
 	err := fs.WalkDir(dist, ".", func(p string, d fs.DirEntry, err error) error {
+		if err == nil && d.IsDir() && p != "." && strings.HasPrefix(path.Base(p), ".") {
+			return fs.SkipDir
+		}
 		if err != nil || d.IsDir() || strings.HasPrefix(path.Base(p), ".") {
 			return err
 		}
@@ -109,6 +155,7 @@ func New(dist fs.FS) (*Handler, error) {
 	}
 	h.index = h.files["/index.html"]
 	h.csp = buildCSP(h.index)
+	h.preloads = readPreloads(dist)
 	return h, nil
 }
 
@@ -186,6 +233,18 @@ func (h *Handler) serveDocument(w http.ResponseWriter, r *http.Request) {
 	if doc.Redirect != "" {
 		http.Redirect(w, r, doc.Redirect, http.StatusFound)
 		return
+	}
+	var links strings.Builder
+	for _, name := range doc.Preload {
+		for _, href := range h.preloads[name] {
+			links.WriteString(`<link rel="modulepreload" crossorigin href="` + html.EscapeString(href) + `" />`)
+		}
+	}
+	if links.Len() > 0 {
+		if doc.HTML == nil {
+			doc.HTML = map[string]string{}
+		}
+		doc.HTML["preload"] = links.String()
 	}
 	body, err := RenderIndex(h.index.body, doc)
 	if err != nil {

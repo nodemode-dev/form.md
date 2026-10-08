@@ -12,17 +12,14 @@ import { insertBlock } from "../blocks/commands";
 import type { EditorCtx } from "../blocks/context";
 import { registerNodeView } from "../blocks/nodeviews";
 import type { Extension } from "../registry";
+import { databaseViews, loadDatabase } from "./load";
 import { VIEW_INFO } from "./props";
-import { type DatabaseHandle, mountDatabase } from "./surface";
-
-export { mountDatabase } from "./surface";
-export { mountRowProps } from "./rowprops";
-export { openCSVImport } from "./csv";
-export { renderForm } from "./formrender";
+import type { DatabaseHandle } from "./surface";
 
 class DatabaseBlockView implements NodeView {
   dom: HTMLElement;
   private handle: DatabaseHandle | null = null;
+  private gone = false;
 
   constructor(
     private node: PMNode,
@@ -41,8 +38,14 @@ class DatabaseBlockView implements NodeView {
       return;
     }
     const view = String(this.node.attrs.view ?? "");
-    this.handle = mountDatabase(this.ctx.engine, this.dom, col, { inline: true, ...(view ? { viewId: view } : {}) });
-    void this.handle.ready.then(() => this.dom.setAttribute("data-ready", "true"));
+    const attach = (m: NonNullable<ReturnType<typeof databaseViews>>) => {
+      if (this.gone) return;
+      this.handle = m.mountDatabase(this.ctx.engine, this.dom, col, { inline: true, ...(view ? { viewId: view } : {}) });
+      void this.handle.ready.then(() => this.dom.setAttribute("data-ready", "true"));
+    };
+    const ready = databaseViews();
+    if (ready) attach(ready);
+    else void loadDatabase().then(attach, this.ctx.engine.reportError);
   }
 
   update(node: PMNode): boolean {
@@ -70,6 +73,7 @@ class DatabaseBlockView implements NodeView {
   }
 
   destroy(): void {
+    this.gone = true;
     this.handle?.destroy();
     this.handle = null;
   }

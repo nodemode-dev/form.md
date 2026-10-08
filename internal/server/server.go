@@ -281,7 +281,11 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 			attrs["route"] = "trash"
 		}
 	}
-	return static.Document{Attrs: attrs, Slots: slots, HTML: htmlSlots, Lang: preferredLang(r, userLang), Boot: boot}, nil
+	var preload []string
+	if attrs["auth"] == "form" || boot["collection"] != nil || boot["row"] != nil || strings.Contains(htmlSlots["doc-body"], `class="dbblock"`) {
+		preload = append(preload, "database")
+	}
+	return static.Document{Attrs: attrs, Slots: slots, HTML: htmlSlots, Lang: preferredLang(r, userLang), Boot: boot, Preload: preload}, nil
 }
 
 func (s *Server) bootCollection(ctx context.Context, p *policy.Principal, d *page.Detail, boot map[string]any) {

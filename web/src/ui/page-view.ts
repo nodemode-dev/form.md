@@ -10,7 +10,8 @@ import { fallbackGlyph, fileUrl, pageIcon, paintIcon } from "./pageicon";
 import { openCoverPicker, openIconPicker } from "./pickers";
 import { tagColorFor, focusTitleSoon } from "./tree";
 import { mountEditor } from "../extensions/blocks";
-import { mountDatabase, mountRowProps } from "../extensions/database";
+import { type DatabaseViews, databaseViews, loadDatabase } from "../extensions/database/load";
+import type { RowPropsHandle } from "../extensions/database/rowprops";
 import type { DatabaseHandle } from "../extensions/database/surface";
 import type { RowDetail } from "../engine/types";
 
@@ -98,7 +99,12 @@ export function mountPageView(engine: Engine): void {
   const inner = h("div", { class: "page" }, head, propsHost, body);
   view.append(cover, inner);
   const editor = mountEditor(engine, docBody, editorWrap);
-  const rowProps = mountRowProps(engine, propsHost);
+  let rowProps: RowPropsHandle | null = null;
+  const rowPanel = (): RowPropsHandle | null => {
+    const m = rowProps ? null : databaseViews();
+    if (m) rowProps = m.mountRowProps(engine, propsHost);
+    return rowProps;
+  };
   backTitle.hidden = true;
   dbHost.hidden = true;
 
@@ -115,19 +121,33 @@ export function mountPageView(engine: Engine): void {
   };
   const rowResolved = new Map<string, RowDetail | null>();
 
-  let db: { id: string; handle: DatabaseHandle; box: HTMLElement } | null = null;
-  let dbNext: { id: string; handle: DatabaseHandle; box: HTMLElement } | null = null;
+  type DbSlot = { id: string; box: HTMLElement; handle: DatabaseHandle | null; ready: Promise<void>; gone: boolean };
+  let db: DbSlot | null = null;
+  let dbNext: DbSlot | null = null;
+  const dropSlot = (s: DbSlot | null) => {
+    if (!s) return;
+    s.gone = true;
+    s.handle?.destroy();
+    s.handle = null;
+  };
   const prepareDb = (id: string): Promise<void> => {
     if (db?.id === id) return Promise.resolve();
-    if (dbNext?.id === id) return dbNext.handle.ready;
-    dbNext?.handle.destroy();
-    const box = h("div", { class: "page-db__box" });
-    dbNext = { id, handle: mountDatabase(engine, box, id, { inline: false }), box };
-    return dbNext.handle.ready;
+    if (dbNext?.id === id) return dbNext.ready;
+    dropSlot(dbNext);
+    const slot: DbSlot = { id, box: h("div", { class: "page-db__box" }), handle: null, ready: Promise.resolve(), gone: false };
+    const attach = (m: DatabaseViews): Promise<void> => {
+      if (slot.gone) return Promise.resolve();
+      slot.handle = m.mountDatabase(engine, slot.box, id, { inline: false });
+      return slot.handle.ready;
+    };
+    const loaded = databaseViews();
+    slot.ready = loaded ? attach(loaded) : loadDatabase().then(attach);
+    dbNext = slot;
+    return slot.ready;
   };
   const showDb = (id: string | null) => {
     if (!id) {
-      db?.handle.destroy();
+      dropSlot(db);
       db = null;
       dbHost.hidden = true;
       return;
@@ -137,19 +157,19 @@ export function mountPageView(engine: Engine): void {
     const next = dbNext;
     dbNext = null;
     if (!next) return;
-    db?.handle.destroy();
+    dropSlot(db);
     dbHost.replaceChildren(next.box);
     db = next;
     dbHost.hidden = false;
   };
   const preparePage = (p: Page): Promise<unknown> => {
     if (p.kind === "collection") return prepareDb(p.id);
-    if (p.row) return Promise.all([editor.prepare(p.id), rowDetail(p.id).then((d) => rowResolved.set(p.id, d))]);
+    if (p.row) return Promise.all([editor.prepare(p.id), rowDetail(p.id).then((d) => rowResolved.set(p.id, d)), loadDatabase()]);
     return editor.prepare(p.id);
   };
   const pageReady = (p: Page): boolean => {
     if (p.kind === "collection") return db?.id === p.id;
-    if (p.row && !rowResolved.has(p.id)) return false;
+    if (p.row && (!rowResolved.has(p.id) || !databaseViews())) return false;
     return editor.isReady(p.id);
   };
 
@@ -325,12 +345,13 @@ export function mountPageView(engine: Engine): void {
       }
       if (p.row) {
         const d = rowResolved.get(p.id);
-        if (d !== undefined) void rowProps.show(p.id, d);
-        else void rowDetail(p.id).then((x) => {
+        const panel = rowPanel();
+        if (d !== undefined && panel) void panel.show(p.id, d);
+        else void Promise.all([rowDetail(p.id), loadDatabase()]).then(([x]) => {
           rowResolved.set(p.id, x);
-          if (shownId === p.id) void rowProps.show(p.id, x);
-        });
-      } else rowProps.hide();
+          if (shownId === p.id) void rowPanel()?.show(p.id, x);
+        }, engine.reportError);
+      } else rowProps?.hide();
       void loadBacklinks(p.id);
     }
     const w = writable(p);

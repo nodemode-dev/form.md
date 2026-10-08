@@ -4,7 +4,7 @@ import { resolveLang, setLang } from "./engine/i18n";
 import account from "./extensions/account";
 import blocks from "./extensions/blocks";
 import database from "./extensions/database";
-import { mountPublicForm } from "./extensions/database/publicform";
+import { loadDatabase } from "./extensions/database/load";
 import pagesExtension from "./extensions/pages";
 import { activateAll, register } from "./extensions/registry";
 import shell from "./extensions/shell";
@@ -100,10 +100,11 @@ async function start(): Promise<void> {
   register(blocks);
   register(database);
   activateAll(engine);
+  if (auth === "form" || boot.collection || boot.row || document.querySelector("[data-ref='doc-body'] .dbblock")) await loadDatabase().catch(() => undefined);
   mountUI(engine);
   if (auth === "form") {
     document.documentElement.dataset.auth = "form";
-    mountPublicForm(engine);
+    void loadDatabase().then((m) => m.mountPublicForm(engine as Engine), (e: unknown) => toast({ id: "error", tone: "danger", message: errorMessage(e) }));
     return;
   }
   mountAuth(engine);
