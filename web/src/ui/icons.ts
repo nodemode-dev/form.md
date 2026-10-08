@@ -64,6 +64,41 @@ const PATHS = {
   filter: '<path d="M4 5.5h16l-6.25 7.5v5.5l-3.5 1.5V13Z"/>',
   "list-tree": '<path d="M4.5 5.5h6M8.5 12h6M8.5 18.5h6M6 5.5v13h2.5M6 12h2.5"/><path d="M16.5 5.5h3M18.5 12h1M18.5 18.5h1"/>',
   cards: '<rect x="3.5" y="4.5" width="17" height="6" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6" rx="1.5"/>',
+  text: '<path d="M5.5 6.5V5h13v1.5M12 5v14M9.5 19h5"/>',
+  h1: '<path d="M4.5 6v12M11.5 6v12M4.5 12h7"/><path d="M15.5 9.5 18 8v10"/>',
+  h2: '<path d="M4.5 6v12M11.5 6v12M4.5 12h7"/><path d="M15 9.75a2.25 2.25 0 1 1 4.1 1.3L15 18h4.5"/>',
+  h3: '<path d="M4.5 6v12M11.5 6v12M4.5 12h7"/><path d="M15 8.5h4l-2.25 3a2.5 2.5 0 1 1-2.1 3.9"/>',
+  "list-bullet":
+    '<path d="M9.5 6.5h10M9.5 12h10M9.5 17.5h10"/>' +
+    '<circle cx="5" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1" fill="currentColor" stroke="none"/>',
+  "list-number": '<path d="M10 6.5h9.5M10 12h9.5M10 17.5h9.5"/><path d="M4.5 5 6 4.25V9M4.25 14.25a1.5 1.5 0 1 1 2.4 1.2L4.25 19.5h2.75"/>',
+  checkbox: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="m8.5 12.25 2.5 2.5 4.5-5"/>',
+  quote: '<path d="M6 7.5h4v4.25c0 2.5-1.5 4-4 4.75M14 7.5h4v4.25c0 2.5-1.5 4-4 4.75"/>',
+  code: '<path d="m8.5 7.5-4.5 4.5 4.5 4.5M15.5 7.5l4.5 4.5-4.5 4.5M13.5 5.5l-3 13"/>',
+  divider: '<path d="M4 12h16"/><path d="M8 7.5h8M8 16.5h8" opacity=".45"/>',
+  table: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10M15 9.5v10"/>',
+  video: '<rect x="3.5" y="6" width="12" height="12" rx="2"/><path d="m15.5 10.5 5-3v9l-5-3"/>',
+  audio: '<path d="M9.5 17.5V6l10-2v11.5"/><circle cx="7" cy="17.5" r="2.5"/><circle cx="17" cy="15.5" r="2.5"/>',
+  attachment: '<path d="m19 11.5-7.4 7.4a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.3 4.3l-7.5 7.5a1.5 1.5 0 0 1-2.1-2.1l6.9-6.9"/>',
+  callout: '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M8 9.5h.01M11 9.5h5.5M8 14h8.5"/>',
+  toc: '<path d="M4.5 6.5h15M8 11h11.5M8 15.5h11.5M11.5 20h8"/>',
+  columns: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M12 4.5v15"/>',
+  diagram: '<rect x="3.5" y="4" width="7" height="5" rx="1.25"/><rect x="13.5" y="15" width="7" height="5" rx="1.25"/><path d="M7 9v4.5a2 2 0 0 0 2 2h4.5"/>',
+  grip:
+    '<circle cx="9" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="6.5" r="1.1" fill="currentColor" stroke="none"/>' +
+    '<circle cx="9" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.1" fill="currentColor" stroke="none"/>' +
+    '<circle cx="9" cy="17.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="17.5" r="1.1" fill="currentColor" stroke="none"/>',
+  bold: '<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>',
+  italic: '<path d="M10 5h7M7 19h7M14 5l-4 14"/>',
+  underline: '<path d="M7 4.5v6.5a5 5 0 0 0 10 0V4.5M5.5 20h13"/>',
+  strike: '<path d="M4.5 12h15M16 7.5c-.6-1.5-2.1-2.5-4-2.5-2.2 0-4 1.2-4 3 0 1.5 1.2 2.4 3 3M8 16.5c.6 1.6 2.2 2.5 4 2.5 2.4 0 4.25-1.3 4.25-3.25 0-.7-.2-1.3-.6-1.75"/>',
+  "text-color": '<path d="m6.5 16 5.5-12 5.5 12M8.5 11.5h7M4.5 20h15"/>',
+  "arrow-up": '<path d="M12 19V5M6.5 10.5 12 5l5.5 5.5"/>',
+  "arrow-down": '<path d="M12 5v14M6.5 13.5 12 19l5.5-5.5"/>',
+  turn: '<path d="M7 4.5 4 7.5l3 3M4 7.5h12.5a3 3 0 0 1 3 3M17 19.5l3-3-3-3M20 16.5H7.5a3 3 0 0 1-3-3"/>',
+  at: '<circle cx="12" cy="12" r="3.5"/><path d="M15.5 12v1.5a2.5 2.5 0 0 0 5 0V12a8.5 8.5 0 1 0-3.4 6.8"/>',
+  calendar: '<rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
+  play: '<path d="M8 5.5v13l10-6.5Z"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

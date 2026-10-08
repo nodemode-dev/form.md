@@ -4,9 +4,12 @@ import { closeTop, hasLayers, hasModal } from "./layers";
 
 const MODAL_SCOPES: ReadonlySet<Scope> = new Set(["modal"]);
 const BASE_SCOPES: ReadonlySet<Scope> = new Set(["global", "view"]);
+const EDITOR_SCOPES: ReadonlySet<Scope> = new Set(["global", "view", "editor"]);
 
 export function activeScopes(): ReadonlySet<Scope> {
-  return hasModal() ? MODAL_SCOPES : BASE_SCOPES;
+  if (hasModal()) return MODAL_SCOPES;
+  const el = document.activeElement;
+  return el instanceof HTMLElement && el.closest(".ProseMirror") ? EDITOR_SCOPES : BASE_SCOPES;
 }
 
 export function mountKeyboard(engine: Engine): void {

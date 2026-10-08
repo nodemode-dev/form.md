@@ -40,7 +40,13 @@ export default defineConfig({
       "/events": BACKEND,
       "/mcp": BACKEND,
       "/files": BACKEND,
-      "/sync": { target: BACKEND, ws: true },
+      "/sync": {
+        target: BACKEND,
+        ws: true,
+        configure: (proxy) => {
+          proxy.on("proxyReqWs", (req) => req.setHeader("origin", BACKEND));
+        },
+      },
     },
   },
 

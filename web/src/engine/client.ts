@@ -116,6 +116,7 @@ export function createClient(f: FetchFn) {
       deleteForever: (id: string) => del(`/api/pages/${enc(id)}/forever`),
       visit: (id: string) => post<void>(`/api/pages/${enc(id)}/visit`),
       recent: (limit = 50) => get<{ pages: RecentPage[] }>(`/api/recent?limit=${limit}`),
+      backlinks: (id: string) => get<{ pages: Page[] }>(`/api/pages/${enc(id)}/backlinks`),
     },
     favorites: {
       list: () => get<{ favorites: Favorite[] }>("/api/favorites"),

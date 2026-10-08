@@ -2,6 +2,7 @@ import { type AuthState, type Boot, createEngine, type Engine } from "./engine";
 import { createClient } from "./engine/client";
 import { resolveLang, setLang } from "./engine/i18n";
 import account from "./extensions/account";
+import blocks from "./extensions/blocks";
 import pagesExtension from "./extensions/pages";
 import { activateAll, register } from "./extensions/registry";
 import shell from "./extensions/shell";
@@ -93,6 +94,7 @@ async function start(): Promise<void> {
   register(shell);
   register(account);
   register(pagesExtension);
+  register(blocks);
   activateAll(engine);
   mountUI(engine);
   mountAuth(engine);

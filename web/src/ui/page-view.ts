@@ -9,6 +9,9 @@ import { type MenuEntry, openMenu } from "./menu";
 import { fallbackGlyph, fileUrl, pageIcon, paintIcon } from "./pageicon";
 import { openCoverPicker, openIconPicker } from "./pickers";
 import { tagColorFor, focusTitleSoon } from "./tree";
+import { mountEditor } from "../extensions/blocks";
+
+const HOLD_MS = 450;
 
 const autosize = typeof CSS !== "undefined" && CSS.supports("field-sizing", "content") ? null : (el: HTMLTextAreaElement) => {
   el.style.height = "auto";
@@ -81,12 +84,21 @@ export function mountPageView(engine: Engine): void {
   const subTitle = h("h2", { class: "page-body__title", text: t("Pages inside") });
   const subList = h("ul", { class: "subpages", attrs: { role: "list" } });
   const addSub = h("button", { class: "adder adder--row", attrs: { type: "button", "data-action": "subpage" } }, iconNode("plus"), h("span", { text: t("Add a page inside") }));
-  const body = h("div", { class: "page-body" }, subTitle, subList, addSub);
+  const docBody = ref("doc-body");
+  const editorWrap = h("div", { class: "editor" }, docBody);
+  const backTitle = h("h2", { class: "page-body__title", text: t("Linked from") });
+  const backList = h("ul", { class: "subpages backlinks", attrs: { role: "list" } });
+  const body = h("div", { class: "page-body" }, editorWrap, subTitle, subList, addSub, backTitle, backList);
   const inner = h("div", { class: "page" }, head, body);
   view.append(cover, inner);
+  const editor = mountEditor(engine, docBody, editorWrap);
+  backTitle.hidden = true;
 
   let shownId = "";
   let descOpen = false;
+  let pendingId = "";
+  let releasedId = "";
+  let onPage = false;
 
   const current = (): Page | null => {
     const r = state.get("route");
@@ -158,6 +170,39 @@ export function mountPageView(engine: Engine): void {
     tagsRow.hidden = !w && p.tags.length === 0;
   };
 
+  let backSeq = 0;
+  const loadBacklinks = async (id: string) => {
+    const mine = ++backSeq;
+    try {
+      const r = await engine.api.pages.backlinks(id);
+      if (mine !== backSeq || shownId !== id) return;
+      paintLinks(backList, r.pages);
+      backTitle.hidden = r.pages.length === 0;
+    } catch {
+      if (mine === backSeq) backTitle.hidden = true;
+    }
+  };
+
+  const paintLinks = (list: HTMLUListElement, items: Page[]) => {
+    const existing = new Map<string, HTMLLIElement>();
+    for (const c of Array.from(list.children) as HTMLLIElement[]) if (c.dataset.key) existing.set(c.dataset.key, c);
+    let cursor: Element | null = list.firstElementChild;
+    for (const k of items) {
+      let li = existing.get(k.id);
+      if (li) existing.delete(k.id);
+      else {
+        li = h("li", {}, h("a", { class: "subpage", attrs: { href: `/p/${k.id}`, "data-id": k.id } }, pageIcon(k.icon, fallbackGlyph(k.kind)), h("span", { class: "subpage__title" })));
+        li.dataset.key = k.id;
+      }
+      const a = li.firstElementChild as HTMLElement;
+      paintIcon(a.firstElementChild as HTMLElement, k.icon, fallbackGlyph(k.kind));
+      setText(a.lastElementChild as HTMLElement, k.title || t("Untitled"));
+      if (li !== cursor) list.insertBefore(li, cursor);
+      else cursor = cursor.nextElementSibling;
+    }
+    for (const el of existing.values()) el.remove();
+  };
+
   const paintSubpages = (p: Page, w: boolean) => {
     const kids = pages.isLoaded(p.workspace_id) ? pages.children(p.workspace_id, p.id) : [];
     const existing = new Map<string, HTMLLIElement>();
@@ -185,12 +230,30 @@ export function mountPageView(engine: Engine): void {
   const paint = () => {
     const p = current();
     if (!p) return;
+    if (p.id !== shownId && releasedId !== p.id && onPage && !editor.isReady(p.id)) {
+      if (pendingId === p.id) return;
+      pendingId = p.id;
+      const release = () => {
+        if (pendingId !== p.id) return;
+        pendingId = "";
+        releasedId = p.id;
+        paint();
+      };
+      void editor.prepare(p.id).then(release);
+      setTimeout(release, HOLD_MS);
+      return;
+    }
+    pendingId = "";
+    onPage = true;
     const fresh = p.id !== shownId;
     if (fresh) {
       shownId = p.id;
+      releasedId = "";
       descOpen = false;
       closeSuggest();
       tagInput.value = "";
+      editor.show(p.id);
+      void loadBacklinks(p.id);
     }
     const w = writable(p);
     setAttr(view, "data-readonly", w ? null : "true");
@@ -443,7 +506,13 @@ export function mountPageView(engine: Engine): void {
     }
   });
 
-  state.watch("route", paint);
+  state.watch("route", (r) => {
+    if (r.name !== "page") {
+      onPage = false;
+      pendingId = "";
+    }
+    paint();
+  });
   state.watch("detail", paint);
   state.watch("me", paint);
   pages.subscribe((c) => {

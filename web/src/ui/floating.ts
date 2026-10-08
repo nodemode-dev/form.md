@@ -96,3 +96,30 @@ export function anchorTo(floating: HTMLElement, anchor: Element, options: PlaceO
     window.removeEventListener("resize", schedule);
   };
 }
+
+export function anchorToRect(floating: HTMLElement, rect: () => Rect | null, options: PlaceOptions = {}): { update: () => void; release: () => void } {
+  let frame = 0;
+  const update = () => {
+    frame = 0;
+    const r = rect();
+    if (!r) return;
+    const p = computePlacement(r, { width: floating.offsetWidth, height: floating.offsetHeight }, { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight }, options);
+    floating.style.left = `${p.x}px`;
+    floating.style.top = `${p.y}px`;
+    if (floating.dataset.side !== p.side) floating.dataset.side = p.side;
+  };
+  const schedule = () => {
+    if (!frame) frame = requestAnimationFrame(update);
+  };
+  update();
+  window.addEventListener("scroll", schedule, { capture: true, passive: true });
+  window.addEventListener("resize", schedule, { passive: true });
+  return {
+    update,
+    release: () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+    },
+  };
+}

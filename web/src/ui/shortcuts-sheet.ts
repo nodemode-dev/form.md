@@ -3,7 +3,7 @@ import { byId, h } from "./dom";
 import { iconNode } from "./icons";
 import { openLayer } from "./layers";
 
-const LISTED_SCOPES: ReadonlySet<Scope> = new Set(["global", "view"]);
+const LISTED_SCOPES: ReadonlySet<Scope> = new Set(["global", "view", "editor"]);
 
 interface Parts {
   scrim: HTMLElement;
