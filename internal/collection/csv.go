@@ -524,6 +524,9 @@ func (s *Service) ImportCSV(ctx context.Context, p *policy.Principal, in ImportI
 	s.bump()
 	s.emit(ctx, collectionID, map[string]any{"what": "schema"})
 	s.emit(ctx, collectionID, map[string]any{"what": "rows", "ids": []string{"*"}})
+	for _, fn := range s.rowWatchers {
+		fn(ctx, collectionID, []string{"*"})
+	}
 	return collectionID, count, nil
 }
 

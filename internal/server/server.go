@@ -22,6 +22,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/mail"
 	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/nodemode-ai/form.md/internal/policy"
+	"github.com/nodemode-ai/form.md/internal/search"
 	"github.com/nodemode-ai/form.md/internal/secrets"
 	"github.com/nodemode-ai/form.md/internal/settings"
 	"github.com/nodemode-ai/form.md/internal/static"
@@ -71,6 +72,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	pages.OnDuplicate(docs.Copy)
 	pages.OnDuplicated(docs.Remap)
 	cols := collection.New(st, pages, al, hub, log)
+	finder := search.New(st, gate, authSvc, pages, log)
+	finder.SetRows(cols.RowText, cols.RowIDs)
+	cols.OnRows(finder.RowsChanged)
 
 	ws.SetNotifier(hub)
 	ws.SetImageCheck(func(ctx context.Context, ref, workspaceID string) bool {
@@ -110,6 +114,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		fsvc.Module(authSvc),
 		docs.Module(),
 		cols.Module(authSvc, authSvc.TrustProxy),
+		finder.Module(),
 		static.Module(s.renderDocument),
 	}
 	return s, nil

@@ -33,6 +33,8 @@ type Service struct {
 	formLimit *httpx.Limiter
 	stash     *stash
 	results   *resultCache
+
+	rowWatchers []func(ctx context.Context, collectionID string, ids []string)
 }
 
 func New(st *store.Store, pages *page.Service, al *audit.Log, hub *events.Hub, log *slog.Logger) *Service {
@@ -410,6 +412,9 @@ func (s *Service) emit(ctx context.Context, collectionID string, data map[string
 
 func (s *Service) emitRows(ctx context.Context, collectionID string, rowIDs []string) {
 	s.bump()
+	for _, fn := range s.rowWatchers {
+		fn(ctx, collectionID, rowIDs)
+	}
 	if len(rowIDs) > 200 {
 		rowIDs = []string{"*"}
 	}
