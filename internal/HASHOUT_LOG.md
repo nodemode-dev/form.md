@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.3.0
-Last updated: 2026-10-07 · pages, files, live events, boot document
+Current build version: v0.4.0
+Last updated: 2026-10-08 · documents: CRDT rooms, sync socket, materialiser, Markdown, first-paint HTML
 
 ---
 
@@ -42,6 +42,14 @@ form.md/
 │   │   └── module.go                route table for /api/auth, /api/setup, /api/me, invites
 │   ├── config/
 │   │   └── config.go                FORMMD_* env vars, defaults, validation
+│   ├── doc/
+│   │   ├── schema.go                root fragment name, mark order, block ids, attribute readers
+│   │   ├── room.go                  a page's CRDT: load, apply, persist, compact, awareness relay
+│   │   ├── conn.go                  the /sync socket: frames, open and leave, write check, queues, identity
+│   │   ├── service.go               rooms and sockets, materialiser, copier, Markdown read and write, backlinks, routes
+│   │   ├── markdown.go              CRDT to Markdown, plain text, snippet, thumbnail and references
+│   │   ├── parse.go                 Markdown to blocks (goldmark) and blocks to CRDT operations
+│   │   └── html.go                  CRDT to the editor's HTML for the first frame
 │   ├── events/
 │   │   └── events.go                Hub: sequenced events, replay ring, audience filter, GET /api/events (SSE)
 │   ├── files/
@@ -65,6 +73,7 @@ form.md/
 │   │   ├── tree.go                  Tree, Trash listing, Get with path, tags and tag colours
 │   │   ├── write.go                 create, update, move (in and across workspaces), duplicate, trash, restore, purge
 │   │   ├── extras.go                favorites with order, visits, recent pages
+│   │   ├── content.go               SetContent from the materialiser, Readable, Titles
 │   │   └── module.go                route table for pages, trash, tags, favorites, recent
 │   ├── policy/
 │   │   ├── principal.go             Principal: one shape for every credential, context helpers
@@ -85,7 +94,8 @@ form.md/
 │   │   └── migrations/
 │   │       ├── 0001_instance.sql    instance key/value table
 │   │       ├── 0002_accounts.sql    accounts, sessions, workspaces, tokens, invites, emergency, audit
-│   │       └── 0003_pages.sql       pages, favorites, page visits, tag colours, files
+│   │       ├── 0003_pages.sql       pages, favorites, page visits, tag colours, files
+│   │       └── 0004_docs.sql        document state, update log, references
 │   └── workspace/
 │       ├── workspace.go             workspaces, members, access, rules, proposals, emergency log
 │       └── module.go                route table for /api/workspaces
@@ -130,6 +140,7 @@ form.md/
 - [Phase 2 formatting and comment moves](#phase-2-housekeeping)
 - [v0.2.1: icons, fonts and the system font](#v021)
 - [Phase 3: pages, files and live events](#p3)
+- [Phase 4: documents](#p4)
 
 ---
 
@@ -851,3 +862,98 @@ A module that implements `Stop()` is registered with `RegisterOnShutdown`. Only 
 - logged: v0.3.0 · 2026-10-07
 
 Handlers call `Changed` after a successful write: settings, rules and members notify the workspace; added, removed and regraded people, members of a deleted workspace, and the owner after an emergency grant or its end get a `user` notice so their workspace list refreshes. Member ids of a workspace about to be deleted are read before the delete.
+
+---
+
+## Phase 4: documents {#p4}
+
+### internal/doc · why the server owns the CRDT
+- refers-to: internal/doc/room.go; internal/doc/service.go :: `Write`
+- kind: rationale
+- logged: v0.4.0 · 2026-10-08
+
+Every update a browser sends is applied to the room's own ygo document before it is stored or relayed, so the server can read, render, export and edit any page without a browser open. Server-side writes (`Write`, later agents and imports) are ordinary CRDT transactions with an origin, broadcast like a person's typing: nothing is reset, nobody reloads, and concurrent typing survives. This is the decisive difference from the reference, whose server stores bytes it cannot read.
+
+### internal/doc/room.go · persistence and compaction
+- refers-to: internal/doc/room.go :: `onUpdate`, `flush`, `loadRoom`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+`onUpdate` runs inside the room lock (ygo calls it at the end of each transaction), relays the update to every other subscriber, queues it, and arms a 300 ms flush timer. `flush` takes the queue under the lock, numbers it, and when 400 updates or 1 MiB have piled up since the last snapshot it encodes the full state in the same critical section, so the snapshot covers exactly the rows it replaces; the database writes happen outside the room lock under `persistMu`. A failed flush puts its batch back in front of the queue. A foreign-key failure means the page was deleted and the batch is dropped. A room whose fragment is empty gets one paragraph from the server at load, so two editors opening a new page never each create a first paragraph. Empty V1 updates are two bytes and are ignored.
+
+### internal/doc/conn.go · the socket protocol
+- refers-to: internal/doc/conn.go :: `frame`, `handle`, `open`, `syncMessage`; web/src/engine/doc/sync.ts
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+Every frame is a varuint kind, then for kinds 0 (y-protocols sync), 1 (awareness) and 3 (query awareness) a varstring page id and the raw payload; kind 2 is a JSON control message (`open`, `close`, `ping` from the client; `opened` with generation and write flag, `denied`, `refused`, `closed`, `error`, `ping` from the server). On `open` the server sends `opened`, its step 1 and the awareness snapshot under the room lock so later broadcasts cannot overtake them. The client side in `sync.ts` and `docs.ts` must agree byte for byte. Close codes: 4001 signed out (the client does not reconnect), 4002 fell behind, 4003 server stopping.
+
+### internal/doc/conn.go · permission checks on a long-lived socket
+- refers-to: internal/doc/conn.go :: `mayWrite`, `recheck`, `sameOrigin`
+- kind: rationale
+- logged: v0.4.0 · 2026-10-08
+
+Write permission is decided per update frame through `pages.CanWrite`, cached for three seconds so typing does not query the database on every keystroke; a refusal is reported once per page as `refused`. Read access is rechecked every 20 seconds and a page that became hidden is closed with `closed`. Sign-out and deactivation close every socket of the account through the revoke hook. The Origin header must equal the request's own origin (proxy headers honoured when trusted), so `InsecureSkipVerify` on the library only means the check is ours. Ending one session from the devices list still leaves its socket open until the next read recheck, the same known gap as the event stream.
+
+### internal/doc/room.go · awareness
+- refers-to: internal/doc/room.go :: `applyAwareness`, `removeSub`; internal/doc/conn.go :: `identity`, `tintHex`
+- kind: rationale
+- logged: v0.4.0 · 2026-10-08
+
+Awareness is relayed by our own code rather than a library object: a client id belongs to the first socket that sent it, entries from another socket for that id are ignored, the clock must not go backwards, states are capped at 8 KiB and 64 clients per page, and the `user` field is replaced with the account's id, name, palette name (`tint`) and its hex colour, so nobody can appear as someone else. When a socket leaves, its ids are broadcast as removed with the clock bumped, so a closed tab's cursor vanishes at once.
+
+### internal/doc/service.go · materialiser
+- refers-to: internal/doc/service.go :: `materialise`, `writeRefs`; internal/page/content.go :: `SetContent`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+1.5 s after the last update (at most 10 s while someone keeps typing) the room flushes, then summarises its fragment to Markdown, plain text, a 240-character snippet, the first picture as thumbnail, and page, file and person references. `doc_state.markdown` and `doc_refs` are rewritten; `pages.snippet`, `thumb`, `updated_at` and `updated_by` change and a page event goes out, so trees and notes cards update. Page links in `doc_refs` are what backlinks read; file references will keep attachments from being swept once they are referenced from another page (not wired into the sweep yet). Rooms unload 60 s after their last subscriber, after a final materialise.
+
+### internal/doc/markdown.go · Markdown dialect
+- refers-to: internal/doc/markdown.go; internal/doc/parse.go; web/src/extensions/blocks/markdown.ts
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+Both directions use the same conventions, and the client's writer mirrors the server's: callouts are GitHub alerts (`> [!NOTE]`, tone mapped to NOTE, TIP, IMPORTANT, WARNING, CAUTION), toggles are `<details>` with an optional `<h1>` to `<h3>` inside the summary, empty paragraphs are `<br>`, the table of contents is `<!-- toc -->`, underline is `<u>`, page mentions are links to `/p/<id>` (parsed back into mention chips), files are links or images pointing at `/files/<id>` (the parser looks the id up to choose image, video, audio or file), and a paragraph holding only an autolink becomes a link card or, for YouTube and Vimeo, an embed. Colours, highlights, icons and column layout do not survive a round trip. Marks open and close by common prefix in the fixed order link, strong, em, strike, underline, code, so runs that share marks do not produce `****`.
+
+### internal/doc/parse.go · writing text into the CRDT
+- refers-to: internal/doc/parse.go :: `writeNode`
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+ygo's `YText.Insert` inherits the formatting at the cursor when `attrs` is nil or empty (unlike Yjs, where `{}` clears it), so each run of text is inserted unformatted in one piece and marks are applied afterwards with `Format` over UTF-16 ranges. Elements are attached to their parent before their attributes and children are written. Integer attributes are stored as float64 so they read back as numbers in the browser.
+
+### internal/doc/html.go · first-frame HTML must match the editor
+- refers-to: internal/doc/html.go; web/src/engine/doc/schema.ts :: `toDOM`; web/src/extensions/blocks/nodeviews.ts
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+The server writes the same tags, classes and attributes as the schema's `toDOM` and the node views, including the empty icon boxes that the client fills, `ProseMirror-trailingBreak` in empty text blocks and `width` and `height` on pictures for reserved space. Style attributes are never written because the document CSP forbids them. Change a block's DOM in all three places together, or the editor's first render will shift the page.
+
+### internal/doc/service.go · Copy inside the duplicate transaction
+- refers-to: internal/doc/service.go :: `Copy`; internal/page/page.go :: `OnDuplicate`
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+The copier runs inside the page duplicate transaction on the single writer connection, so it must not call `flush` (which opens its own transaction and would deadlock). A loaded room is encoded from memory, which includes unflushed updates; otherwise snapshot and log are read through the same transaction.
+
+### internal/app/app.go · Drainer
+- refers-to: internal/app/app.go :: `Drainer`, `drainGrace`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+`Stop` hooks run when shutdown starts and close sockets; `Drain` runs after the HTTP server has returned, with its own four-second budget, and the documents module uses it to flush and materialise every open room before `main` closes the store.
+
+### internal/static/static.go · html slots
+- refers-to: internal/static/static.go :: `htmlSlotPattern`, `Document.HTML`
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+`<!--html:name-->` is replaced with trusted server-made markup without escaping, after the escaped text slots, and only the documents service fills one (`doc-body`). Never put user text into `Document.HTML` without escaping it first.
+
+### tools/notices/main.go · every bundled package
+- refers-to: tools/notices/main.go :: `webPackages`, `licenseFiles`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+Web packages come from `package-lock.json`: every entry under `node_modules/` that is not marked dev, so transitive packages that end up in the bundle (entities, linkify-it, mdurl, orderedmap, w3c-keyname and others) are listed with their licence text. Without a lock file it falls back to the direct dependencies. argparse is listed because markdown-it depends on it, though only markdown-it's command line uses it.

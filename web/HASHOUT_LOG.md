@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.3.0
-Last updated: 2026-10-07 · page store, live updates, workspace shell
+Current build version: v0.4.0
+Last updated: 2026-10-08 · document sync engine, block editor, first-frame body, page switch hold
 
 ---
 
@@ -40,15 +40,37 @@ web/
     │   ├── i18n.ts                  t(), plural(), lazy catalogs, language resolution
     │   ├── format.ts                Intl date, time and relative formatting from account preferences
     │   ├── health.ts                server health polling
-    │   └── prefs.ts                 persisted preference keys and readers
+    │   ├── prefs.ts                 persisted preference keys and readers
+    │   └── doc/
+    │       ├── schema.ts            ProseMirror schema, block ids, embed and href rules (DOM matches the server)
+    │       ├── sync.ts              DocSync: one socket for every open page, frames, watchdog, backoff
+    │       └── docs.ts              DocSession (Y.Doc, IndexedDB, awareness, generation) and DocStore cache
     ├── extensions/
     │   ├── registry.ts              register, activateAll, disposeAll
     │   ├── shell/
     │   │   └── index.ts             shell commands and their shortcuts
     │   ├── account/
     │   │   └── index.ts             account, workspace and admin commands, Ctrl or Cmd plus comma
-    │   └── pages/
-    │       └── index.ts             page, library, notes and tab commands and their shortcuts
+    │   ├── pages/
+    │   │   └── index.ts             page, library, notes and tab commands and their shortcuts
+    │   └── blocks/
+    │       ├── index.ts             editor commands and shortcuts (editor scope), hover prefetch, mountEditor
+    │       ├── editor.ts            EditorHost: binds sessions to one view, loading, paste, drop, clicks
+    │       ├── plugins.ts           block ids, placeholders, code highlight, upload widgets, keys, structure
+    │       ├── rules.ts             Markdown input rules
+    │       ├── triggers.ts          slash, @ and [[ menus
+    │       ├── catalog.ts           the block catalogue for the slash menu and turn into
+    │       ├── commands.ts          turn into, insert, move, duplicate, delete, marks, checks
+    │       ├── nodeviews.ts         code, task, toggle, callout, mention, toc, file, media, link card, embed, table
+    │       ├── handle.ts            block handle: add, drag, block menu, caption
+    │       ├── formatbar.ts         selection toolbar
+    │       ├── media.ts             uploads with progress and image sizes
+    │       ├── markdown.ts          Markdown writer and paste parser (markdown-it loaded on demand)
+    │       ├── popover.ts           caret-anchored list and prompt popovers
+    │       ├── context.ts           EditorCtx, caret and block rectangles
+    │       ├── languages.ts         code languages and aliases
+    │       ├── hl.ts                highlight.js core with 29 languages (its own chunk)
+    │       └── lightbox.ts          full-size image viewer
     ├── ui/                          DOM layer: renders engine state, dispatches commands
     │   ├── app.ts                   mountUI, platform and storage adapters, command click delegation
     │   ├── auth.ts                  set-up, sign-in, sign-up and invitation screens, workspace cookie
@@ -98,6 +120,7 @@ web/
         ├── panels.css               menus, dialog sizes, tabbed dialog layout
         ├── settings.css             settings dialog parts: swatches, option cards, users pane
         ├── pages.css                sidebar sections and rows, tabs, views, page header, covers, pickers, library, trash
+        ├── editor.css               document typography, blocks, handle, format bar, menus, cursors, uploads, lightbox
         └── auth.css                 sign-in card and the data-auth visibility rules
 ```
 
@@ -134,6 +157,7 @@ web/
 - [v0.2.1: fonts, appearance and in-place panes](#v021)
 - [Phase 3: engine](#p3-engine)
 - [Phase 3: shell](#p3-shell)
+- [Phase 4: documents and editor](#p4)
 
 ---
 
@@ -908,3 +932,91 @@ The server renders the initial letter and the kind of picture; until the client 
 - logged: v0.3.0 · 2026-10-07
 
 Menus, popovers and the drag ghost moved from `--z-dropdown` to `--z-popover`: anything anchored must be able to open from inside a modal dialog, which sits on `--z-overlay`. `--z-dropdown` is now unused and kept in the scale.
+
+---
+
+## Phase 4: documents and editor {#p4}
+
+### src/engine/doc/docs.ts · sessions, readiness and generation
+- refers-to: src/engine/doc/docs.ts :: `DocSession.opened`, `message`, `markReady`, `reset`
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+A session is ready when IndexedDB has loaded a non-empty fragment or the server's step 2 has arrived, whichever is first, or when access is denied (so a waiting view can show the notice). On `opened` the session reads the generation stored in IndexedDB before it answers anything: incoming sync frames are queued in `gate` until then, and a mismatch clears the local copy and starts a fresh Y.Doc (`reset`), which the editor rebinds to. Local updates are sent only while the socket is live and the person may write; updates applied from IndexedDB or from the server (origin is the persistence or the session) are never echoed, and offline edits reach the server through the step 2 that answers the server's step 1 on the next `opened`. A read-only session does not answer the server's step 1.
+
+### src/engine/doc/docs.ts · DocStore
+- refers-to: src/engine/doc/docs.ts :: `DocStore.open`, `release`, `prefetch`, `trim`, `clearLocal`, `dbName`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+Sessions are kept in insertion order as an LRU of eight; a session with references is never evicted. `prefetch` opens and releases, so hovering a row loads the page into memory and IndexedDB without holding it. Database names are `formmd-doc-<user>-<page>`, so two accounts in one browser never share a copy, and sign-out deletes every `formmd-doc-` database. Hidden tabs set every local awareness state to null and restore an empty state when visible again; the cursor plugin refills it on the next selection.
+
+### src/engine/doc/sync.ts · DocSync
+- refers-to: src/engine/doc/sync.ts; backend log `internal/doc/conn.go · the socket protocol`
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+One socket serves every page. Each channel is re-opened after a reconnect. The watchdog closes a socket that has heard nothing for 45 s (the server pings every 20 s). Backoff is jittered from 0.5 s to 15 s and reset by `reconnectNow` on online and visibility. Close code 4001 (signed out) stops reconnecting.
+
+### src/engine/doc/schema.ts · names and DOM are a contract
+- refers-to: src/engine/doc/schema.ts; backend log `internal/doc/html.go · first-frame HTML must match the editor`
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+Node and mark names are the CRDT's element and format names, read by the Go side; renaming one orphans stored documents. Mark order (link, strong, em, strike, underline, highlight, color, code) decides nesting in the DOM and matches the server's. Block ids come from `newBlockId` (ten base32 characters) and are not read from pasted HTML, so a pasted block always gets a fresh id. The callout's class is `doc-callout` because `.callout` is the settings dialogs' notice box.
+
+### src/extensions/blocks/editor.ts · zero-flash binding
+- refers-to: src/extensions/blocks/editor.ts :: `bind`, `show`, `loading`
+- kind: rationale
+- logged: v0.4.0 · 2026-10-08
+
+The view is created once with the server-rendered body element as its root (`mount`), and every later page is an `updateState` on the same view. The state's document comes from `initProseMirrorDoc` and its mapping is passed to `ySyncPlugin`, so the first render already shows the content and the plugin does not re-render on a timer. A page that is not ready yet shows nothing new: the page view holds (see below), and only past the hold does the editor switch to an empty, read-only state with a reserved height (`is-loading`). External pictures in pasted HTML are removed, because the document CSP allows only this site's images.
+
+### src/ui/page-view.ts · the page switch hold
+- refers-to: src/ui/page-view.ts :: `paint`, `HOLD_MS`, `onPage`
+- kind: rationale
+- logged: v0.4.0 · 2026-10-08
+
+When the route moves from one page to another and the next document is not ready, the whole page view (header and body) keeps showing the old page until the document is ready or 450 ms pass, so a title is never painted over another page's body. Coming from another route, or the first paint, never holds. Hovering a page row for 90 ms prefetches its document, which makes most switches instant.
+
+### src/extensions/blocks/plugins.ts · block ids
+- refers-to: src/extensions/blocks/plugins.ts :: `idsPlugin`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+After any local change, blocks without an id or with an id already seen earlier in the document get a fresh one, so the first copy keeps its id after a split or a paste. Transactions that come from the sync plugin are skipped, so two people never fight over one block's id, and the fix is kept out of undo history.
+
+### src/extensions/blocks/triggers.ts · slash, @ and [[
+- refers-to: src/extensions/blocks/triggers.ts :: `triggerPlugin`, `TriggerView`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+A trigger opens only at the start of a text block or after whitespace, never in code. The typed character is inserted by the plugin in the same transaction that opens the menu, so the menu's start position is exact. The menu closes when the cursor leaves the run, the trigger character is deleted, the query has two spaces in a row, or (for the slash menu) nothing matches and a space was typed. Members for @ are fetched once a minute per workspace.
+
+### src/extensions/blocks/index.ts · editor shortcuts in the shared keymap
+- refers-to: src/extensions/blocks/index.ts :: `setup`; src/ui/keyboard.ts :: `activeScopes`; src/ui/shortcuts-sheet.ts :: `LISTED_SCOPES`
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+Marks, turn into, undo and redo, moving and duplicating blocks and ticking to-dos are commands bound in the `editor` scope, which is active while focus is inside a `.ProseMirror` element. The window capture listener runs them before ProseMirror sees the key, and a command that is not enabled lets the key through (Ctrl+Enter falls back to leaving a code block). Enter, Backspace, Tab and the arrows stay in ProseMirror's own keymap.
+
+### src/extensions/blocks/markdown.ts · on-demand parser
+- refers-to: src/extensions/blocks/markdown.ts :: `preloadMarkdown`, `looksLikeMarkdown`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+markdown-it is loaded the first time the editor gets focus. Until it has loaded (or if loading failed offline, which resets the loader so the next focus retries) pasted text is handled as plain text. The highlighter chunk follows the same retry rule.
+
+### src/extensions/blocks/nodeviews.ts · CSP and node views
+- refers-to: src/extensions/blocks/nodeviews.ts; src/extensions/blocks/editor.ts :: `cursorBuilder`, `selectionBuilder`
+- kind: warning-context
+- logged: v0.4.0 · 2026-10-08
+
+Nothing in the editor may set a `style` attribute: the document CSP has no `unsafe-inline` for styles. Colours travel as `data-color` or `data-tone` and resolve through the `--tint` tokens; positions use the CSSOM (`el.style.transform`), which the CSP allows. That is why the collaborator cursor and selection builders replace y-prosemirror's defaults.
+
+### src/extensions/blocks/media.ts · uploads
+- refers-to: src/extensions/blocks/media.ts :: `uploadFiles`, `boundary`
+- kind: explainer
+- logged: v0.4.0 · 2026-10-08
+
+Uploads use XMLHttpRequest for progress. A local-only widget marks the insertion point at a block boundary while the file uploads; the finished block is inserted where the widget has been mapped to, so other people's edits in between do not misplace it. Images are measured first so the block reserves its height. The form fields keep the order the server reads: purpose, page_id, name, then the file.
