@@ -38,6 +38,7 @@ function setup(engine: Engine): void {
       enabled: signedIn,
       run: async () => {
         await engine.api.auth.logout().catch(() => undefined);
+        await engine.docs.clearLocal().catch(() => undefined);
         engine.platform.navigate("/login");
       },
     }),

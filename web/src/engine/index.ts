@@ -1,6 +1,8 @@
 import type { FetchFn } from "./api";
 import { type Client, createClient } from "./client";
 import { Commands } from "./commands";
+import { DocStore } from "./doc/docs";
+import { DocSync } from "./doc/sync";
 import { setFormatPrefs } from "./format";
 import type { Boot, LiveEvent, Me, Page, PageDetail, Workspace } from "./types";
 import { type Health, HealthMonitor, initialHealth } from "./health";
@@ -23,6 +25,8 @@ export interface Platform {
   pushHistory(state: unknown, url: string): void;
   replaceHistory(state: unknown, url: string): void;
   eventSource(url: string): EventSource;
+  webSocket(path: string): WebSocket;
+  persistDocs: boolean;
 }
 
 export interface EngineState {
@@ -67,6 +71,7 @@ export interface Engine {
   readonly api: Client;
   readonly boot: Boot;
   readonly pages: PageStore;
+  readonly docs: DocStore;
   resolvedTheme(): "dark" | "light";
   workspace(): Workspace | null;
   workspaceById(id: string): Workspace | null;
@@ -162,6 +167,11 @@ export function createEngine(deps: EngineDeps): Engine {
     for (const fn of errorHandlers) fn(e);
   };
   const pages = new PageStore(api, reportError);
+  const docs = new DocStore({
+    sync: new DocSync({ url: "/sync", open: (url) => deps.platform.webSocket(url) }),
+    user: () => state.get("me")?.user.id ?? "",
+    persist: deps.platform.persistDocs,
+  });
   const workspaceById = (id: string) => state.get("me")?.workspaces.find((w) => w.id === id) ?? null;
   const refreshMe = async () => setMe(await api.me.get());
 
@@ -312,6 +322,7 @@ export function createEngine(deps: EngineDeps): Engine {
     api,
     boot: deps.boot,
     pages,
+    docs,
     resolvedTheme() {
       const pref = state.get("themePref");
       if (pref !== "auto") return pref;
@@ -391,6 +402,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
     reconnect() {
       if (state.get("live") !== "live") live.reconnectNow();
+      docs.sync.reconnectNow();
     },
   };
 }

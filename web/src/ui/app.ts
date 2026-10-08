@@ -19,6 +19,8 @@ export function platformAdapter(): Platform {
     pushHistory: (state, url) => history.pushState(state, "", url),
     replaceHistory: (state, url) => history.replaceState(state, "", url),
     eventSource: (url) => new EventSource(url, { withCredentials: true }),
+    webSocket: (path) => new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${path}`),
+    persistDocs: typeof indexedDB !== "undefined",
   };
 }
 
@@ -61,7 +63,9 @@ export function mountUI(engine: Engine): void {
   window.addEventListener("online", () => engine.reconnect());
   window.addEventListener("pagehide", () => engine.pages.flushAll());
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") engine.reconnect();
+    const visible = document.visibilityState === "visible";
+    engine.docs.setHidden(!visible);
+    if (visible) engine.reconnect();
     else engine.pages.flushAll();
   });
 }
