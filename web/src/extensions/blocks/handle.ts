@@ -8,7 +8,7 @@ import { iconNode } from "../../ui/icons";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { toast } from "../../ui/toast";
 import { CATALOG } from "./catalog";
-import { type BlockRef, blockAt, blockFromPos, deleteBlock, duplicateBlock, moveBlock, turnInto } from "./commands";
+import { type BlockRef, blockAt, blockFromPos, deleteBlock, duplicateBlock, moveBlock, tableAddColumn, tableAddRow, tableRemoveColumn, tableRemoveRow, turnInto } from "./commands";
 import { blockRect, type EditorCtx } from "./context";
 import { openPrompt } from "./popover";
 import { triggerKey } from "./triggers";
@@ -146,6 +146,15 @@ export class BlockHandle {
           run: () => view.dispatch(view.state.tr.setNodeMarkup(ref.pos, undefined, { ...ref.node.attrs, tone })),
         });
       }
+    }
+    if (ref.node.type.name === "table") {
+      entries.push(
+        { kind: "heading", label: t("Table") },
+        { label: t("Add a row"), icon: "plus", run: () => tableAddRow(view, ref) },
+        { label: t("Add a column"), icon: "plus", run: () => tableAddColumn(view, ref) },
+        { label: t("Remove the last row"), icon: "close", run: () => tableRemoveRow(view, ref) },
+        { label: t("Remove the last column"), icon: "close", run: () => tableRemoveColumn(view, ref) },
+      );
     }
     if (ref.node.type.name === "image" || ref.node.type.name === "video" || ref.node.type.name === "audio") {
       entries.push({ kind: "separator" }, { label: t("Caption"), icon: "align-left", run: () => this.caption(view, ref) });

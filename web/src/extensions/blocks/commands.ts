@@ -256,6 +256,73 @@ export function markActive(state: EditorState, name: string): boolean {
   return state.doc.rangeHasMark(from, to, type);
 }
 
+function emptyCell(header: boolean): PMNode {
+  return ((header ? N.table_header : N.table_cell) as NodeType).create(null, [(N.paragraph as NodeType).create({ id: newBlockId() })]);
+}
+
+export function tableAddRow(view: EditorView, table: BlockRef): boolean {
+  const last = table.node.lastChild;
+  if (!last) return false;
+  const cells: PMNode[] = [];
+  last.forEach((c) => cells.push(emptyCell(false)));
+  const at = table.pos + table.node.nodeSize - 1;
+  const tr = view.state.tr.insert(at, (N.table_row as NodeType).create(null, cells));
+  tr.setSelection(TextSelection.near(tr.doc.resolve(at + 3)));
+  view.dispatch(tr.scrollIntoView());
+  view.focus();
+  return true;
+}
+
+export function tableAddColumn(view: EditorView, table: BlockRef): boolean {
+  const rows: PMNode[] = [];
+  table.node.forEach((row) => {
+    const cells: PMNode[] = [];
+    row.forEach((c) => cells.push(c));
+    cells.push(emptyCell(row.firstChild?.type === N.table_header));
+    rows.push(row.type.create(row.attrs, cells));
+  });
+  view.dispatch(view.state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, table.node.type.create(table.node.attrs, rows)));
+  view.focus();
+  return true;
+}
+
+export function tableRemoveRow(view: EditorView, table: BlockRef): boolean {
+  if (table.node.childCount < 2) return false;
+  const last = table.node.lastChild as PMNode;
+  const end = table.pos + table.node.nodeSize - 1;
+  view.dispatch(view.state.tr.delete(end - last.nodeSize, end));
+  return true;
+}
+
+export function tableRemoveColumn(view: EditorView, table: BlockRef): boolean {
+  if ((table.node.firstChild?.childCount ?? 0) < 2) return false;
+  const rows: PMNode[] = [];
+  table.node.forEach((row) => {
+    const cells: PMNode[] = [];
+    row.forEach((c, _o, i) => {
+      if (i < row.childCount - 1) cells.push(c);
+    });
+    rows.push(row.type.create(row.attrs, cells));
+  });
+  view.dispatch(view.state.tr.replaceWith(table.pos, table.pos + table.node.nodeSize, table.node.type.create(table.node.attrs, rows)));
+  return true;
+}
+
+export const tabOutOfLastCell: Command = (state, dispatch, view) => {
+  const $from = state.selection.$from;
+  for (let d = $from.depth; d > 0; d--) {
+    if ($from.node(d).type !== N.table) continue;
+    const table = $from.node(d);
+    const rowIndex = $from.index(d);
+    const row = table.child(rowIndex);
+    const cellIndex = $from.index(d + 1);
+    if (rowIndex !== table.childCount - 1 || cellIndex !== row.childCount - 1) return false;
+    if (dispatch && view) tableAddRow(view, { node: table, pos: $from.before(d), depth: d });
+    return true;
+  }
+  return false;
+};
+
 export function selectBlock(view: EditorView, b: BlockRef): void {
   view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, b.pos)));
 }

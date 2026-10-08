@@ -10,6 +10,7 @@ import { Decoration, DecorationSet, type EditorView } from "prosemirror-view";
 import { ySyncPluginKey } from "y-prosemirror";
 import { BLOCKS_WITH_ID, newBlockId, schema } from "../../engine/doc/schema";
 import { t } from "../../engine/i18n";
+import { tabOutOfLastCell } from "./commands";
 import type { EditorCtx } from "./context";
 import { normaliseLanguage } from "./languages";
 
@@ -243,7 +244,7 @@ export function keysPlugin(ctx: EditorCtx): Plugin[] {
       "Mod-Enter": exitCode,
       "Shift-Enter": hardBreak,
       Backspace: chainCommands(deleteSelection, resetEmptyBlock, liftAtStart, joinBackward, selectNodeBackward),
-      Tab: chainCommands(codeTab, sinkListItem(N.list_item as NodeType), sinkListItem(N.task_item as NodeType), goToNextCell(1)),
+      Tab: chainCommands(codeTab, sinkListItem(N.list_item as NodeType), sinkListItem(N.task_item as NodeType), goToNextCell(1), tabOutOfLastCell),
       "Shift-Tab": chainCommands(liftListItem(N.list_item as NodeType), liftListItem(N.task_item as NodeType), goToNextCell(-1)),
     }),
     keymap(baseKeymap),
