@@ -1020,3 +1020,66 @@ Nothing in the editor may set a `style` attribute: the document CSP has no `unsa
 - logged: v0.4.0 · 2026-10-08
 
 Uploads use XMLHttpRequest for progress. A local-only widget marks the insertion point at a block boundary while the file uploads; the finished block is inserted where the widget has been mapped to, so other people's edits in between do not misplace it. Images are measured first so the block reserves its height. The form fields keep the order the server reads: purpose, page_id, name, then the file.
+
+### src/engine/collections.ts · query sessions and windows
+- refers-to: src/engine/collections.ts :: `QuerySession`, `setVisible`, `pump`, `window`, `dropWindows`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+A session holds one view's result as `slots` (row ids by position, `undefined` until loaded) plus the rows and refs it has seen. Rows load in windows of 100. `setVisible` cancels any window that has left the visible range by more than one window, waits until scrolling pauses for 70 ms (or 220 ms at most while it keeps moving) and then fetches at most three missing windows, nearest first; each finished window pulls the next. A cancelled request rejects with `cancelled` and is never reported. Grouped views keep `groups` and `lanes` instead of slots and page within a group with `moreInGroup`.
+
+### src/engine/collections.ts · edits are optimistic
+- refers-to: src/engine/collections.ts :: `setValue`, `flushRow`, `pending`, `apply`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+`setValue` patches every open session at once and sends the change after the debounce; changes made while a write is in flight are folded into the next write. While a row has pending changes, live events for only that row are ignored, so a slow echo cannot undo typing. A failed write reports the error and refreshes the row from the server.
+
+### src/engine/collections.ts · first pages
+- refers-to: src/engine/collections.ts :: `seedQuery`, `takeBootQuery`, `load`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+The boot document and `GET /api/collections/{id}?view=` both carry the first 100 rows of a table or list view. They are kept per view id and taken once, within 15 seconds; an older one is ignored and the view queries instead. `load(id, false, view)` asks for the first page only when the collection is not cached yet.
+
+### src/engine/api.ts · cancellable requests
+- refers-to: src/engine/api.ts :: `request` (`cancel`); src/engine/client.ts :: `collections.query`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+`request` takes an optional `AbortSignal`. Aborting it throws `ApiError` with code `cancelled`, which callers drop silently; the timeout still throws `timeout`.
+
+### src/ui/page-view.ts · switching to a database
+- refers-to: src/ui/page-view.ts :: `HOLD_MS`, `HOLD_DB_MS`, `prepareDb`, `showDb`, `paint`; src/styles/shell.css :: `.topbar::after`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+The current page stays on screen until the next one is ready: 450 ms at most for a document, 1,600 ms for a database, whose readiness means its first rows are painted in a detached box. While a switch is held the root carries `data-navigating`, and after 180 ms a thin line moves along the bottom of the top bar; a switch that is ready sooner never shows it. Do not shorten the database hold below one slow round trip, or a database title appears over an empty table.
+
+### src/styles/database.css · full-width databases without a width change
+- refers-to: src/styles/database.css :: `.view--page`, `.page-db`, `--db-w`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+The page column keeps the same width for documents and databases; a database breaks out of it with container query units (`--db-w: max(100%, calc(100cqi - 2 * var(--space-10)))` and a negative start margin). Changing `.page` width by page kind made every switch between a document and a database shift the layout.
+
+### src/extensions/database/views/table.ts · virtual rows
+- refers-to: src/extensions/database/views/table.ts :: `ROW_H`, `OVERSCAN`, `paintFlat`, `visibleRange`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+Ungrouped tables give the body the full height (`total * 34px`) and position only the visible rows plus 10 above and below with `transform`. Rows not yet loaded are drawn as placeholders of the same height, so nothing below moves when they fill. Grouped tables flow normally and page within each group. Keep `ROW_H` equal to `--row-h` in the stylesheet.
+
+### src/extensions/database/surface.ts · switching views
+- refers-to: src/extensions/database/surface.ts :: `mountView`, `ready`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+A new view renders off screen and replaces the old one when its first result is painted, or after 450 ms. The surface's `ready` resolves after the first view has painted, which is what the page switch waits for.
+
+### src/extensions/database/views/timeline.ts and calendar.ts · keyed painting
+- refers-to: src/extensions/database/views/timeline.ts :: `ResizeObserver`; src/extensions/database/views/calendar.ts :: reconcile of cells and items
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+The calendar reconciles days and items by key; it never rebuilds the month grid. The timeline measures its width before placing bars and scrolling to today, and repaints once through a ResizeObserver when it was first painted detached with zero width.

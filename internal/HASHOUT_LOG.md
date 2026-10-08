@@ -957,3 +957,87 @@ The copier runs inside the page duplicate transaction on the single writer conne
 - logged: v0.4.0 · 2026-10-08
 
 Web packages come from `package-lock.json`: every entry under `node_modules/` that is not marked dev, so transitive packages that end up in the bundle (entities, linkify-it, mdurl, orderedmap, w3c-keyname and others) are listed with their licence text. Without a lock file it falls back to the direct dependencies. argparse is listed because markdown-it depends on it, though only markdown-it's command line uses it.
+
+### internal/page/page.go · databases and rows are pages
+- refers-to: internal/page/page.go :: `Hooks`, `OnCreate`, `notify`; internal/page/write.go :: `Create`, `Duplicate`, `moveAcross`; internal/page/tree.go :: `workspacePages`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+A database is a page with `kind = 'collection'`; each row is a page with `is_row = 1` whose parent is the database. Rows never appear in the tree, recents or the sidebar count (`workspacePages(..., withRows=false)`). The collection service registers four hooks: creators (insert the `collections` row and the first view inside the page create transaction), remaps (rewrite relation ids and copy views and row values inside the duplicate transaction), movers (record the new workspace on the `collections` row when a database crosses workspaces; its rows move with it as children) and watchers (trash, restore and delete drop the snapshot and emit row events). Hook notifications are deferred until the transaction commits so an event never describes a write that rolled back.
+
+### internal/collection/cache.go · one snapshot per database
+- refers-to: internal/collection/cache.go :: `snap`, `loadSnap`, `maxCached`, `refresh`, `ordered`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+Queries read an in-memory snapshot of every row of a database (values decoded once), kept for the 64 most recently used databases. Writes update the snapshot in place after commit (`put`, `drop`); `refresh` re-sorts under the write lock, never under the read lock, because `ordered()` is read concurrently. A snapshot that cannot be trusted is dropped and rebuilt on the next read, never patched.
+
+### internal/collection/eval.go · lazy values
+- refers-to: internal/collection/eval.go :: `evaluator`, `value`, `visiting`, `memo`; internal/collection/formula/eval.go :: `maxSteps`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+Formula and rollup cells are computed on demand per query, memoised per row and property, so a filter on one formula does not compute every other one. A cell that is reached again while it is being computed is a cycle: it yields empty and records "this refers back to itself" as the cell's error. One formula run is capped at 200,000 steps.
+
+### internal/collection/results.go · result cache
+- refers-to: internal/collection/results.go :: `maxResults`; internal/collection/query.go :: `Query`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+The ordered, filtered id list for a view is cached by epoch, user, database and a hash of the effective config (view config plus search, range and extra filter), 24 entries. Paging through a view therefore sorts once; any write bumps the epoch and every entry goes stale. Rows are cut from the cached list per window.
+
+### internal/collection/service.go · two-way relations
+- refers-to: internal/collection/service.go :: `syncPairs`, `applyValues`, `finishWrite`; internal/collection/schemaops.go :: `addPair`, `dropPair`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+A two-way relation is two properties that name each other in `Pair`. A write to one side updates the other side of every added or removed target inside the same transaction, and every touched database gets its own event after commit. Deleting one side, switching it to one-way (`two_way` false) or pointing it at another database removes the paired property from the other database.
+
+### internal/collection/schemaops.go · type changes keep what they can
+- refers-to: internal/collection/schemaops.go :: `convert`, `displayText`, `pruneOptions`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+Changing a property's type rewrites each row through the value's display text, so text to number, select to text and the reverse keep what makes sense and drop the rest. Formulas are compiled against the schema before they are saved; a failure returns `bad_formula` with the message and position, and nothing is written.
+
+### internal/collection/forms.go · public forms
+- refers-to: internal/collection/forms.go :: `SetFormLink`, `PublicForm`, `PublicSubmit`, `submit`; internal/collection/service.go :: `formLimit`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+A public form is reachable only through its random token in `form_links`, which can be turned off (the token is deleted) and on again (a new token). Public submissions are limited to 20 a minute per address with a burst of 10. Conditional questions are evaluated on the server against the submitted answers; a hidden question's answer is discarded even when the client sent one. A public row has no author and no owner (`created_by` empty); a signed-in submission is attributed to the person unless the form is anonymous.
+
+### internal/collection/csv.go · two-step import
+- refers-to: internal/collection/csv.go :: `PreviewCSV`, `ImportCSV`, `stashTTL`, `guessType`; internal/order/order.go :: `Sequence`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+Preview parses the upload (delimiter sniffed, BOM removed), guesses a type per column and keeps the parsed rows for 20 minutes under a token tied to the user. Import takes the token once and inserts every row in one transaction with prepared statements. Sort keys come from `order.Sequence`, which gives fixed-width keys after the last row; repeated `After` calls would grow a key by one character every five rows and made a 20,000-row import take 38 seconds and send 300 KB windows.
+
+### internal/order/order.go · Sequence
+- refers-to: internal/order/order.go :: `Sequence`, `After`
+- kind: warning-context
+- logged: v0.5.0 · 2026-10-08
+
+`Sequence(after, n)` returns n increasing keys, all greater than `after`: the key `After(after)` followed by a fixed-width base-62 counter and a closing `V`, so no key ends in `0`. Use it for any bulk append. Single appends with `After` still lengthen the last key by one character every five appends, which is fine at human pace and is noted in BUILD_NOTES.
+
+### internal/httpx/respond.go · compressed JSON
+- refers-to: internal/httpx/respond.go :: `JSONZ`, `gzPool`; internal/collection/module.go :: `okz`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+`JSONZ` encodes first, then gzips (best speed, pooled writers) when the body is at least 1,400 bytes and the request accepts gzip, and sets `Vary: Accept-Encoding`. It is used where bodies are large: database reads, queries and row reads. Plain `JSON` stays for everything else, and streaming routes must never use either.
+
+### internal/collection/module.go · first page in the same trip
+- refers-to: internal/collection/module.go :: `GET /api/collections/{id}`; internal/server/server.go :: `bootCollection`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+`GET /api/collections/{id}?view=<id>` also returns `first: {view_id, result}`, the first 100 rows of that view (or of the first view when the id is empty or unknown), for table and list views only. Opening a database therefore costs one round trip instead of two. The boot document does the same for the page being loaded.
+
+### internal/collection/formula · the language
+- refers-to: internal/collection/formula/parse.go; internal/collection/formula/eval.go :: `Compile`, `Program.Props`; internal/collection/formula/funcs.go :: `Names`
+- kind: explainer
+- logged: v0.5.0 · 2026-10-08
+
+A Pratt parser with infix operators, the ternary, the words `and`, `or` and `not`, method calls (`prop("Due").dateAdd(1, "days")`), lists and lambdas over `current` and `index`. Smart quotes and the symbols for not equal, at least and at most are accepted so pasted formulas work. `if`, `ifs`, `and`, `or`, `let`, `lets` and the list functions that take a lambda are special forms evaluated lazily. `Props()` lists the properties a formula reads; the formula check endpoint returns it with the result.
