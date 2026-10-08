@@ -71,3 +71,26 @@ func After(a string) string {
 func Before(b string) string {
 	return midpoint("", b)
 }
+
+func Sequence(after string, n int) []string {
+	if n <= 0 {
+		return nil
+	}
+	head := After(after)
+	width := 1
+	for m := n - 1; m >= base; m /= base {
+		width++
+	}
+	out := make([]string, n)
+	buf := make([]byte, width+1)
+	buf[width] = digits[base/2]
+	for i := range out {
+		v := i
+		for j := width - 1; j >= 0; j-- {
+			buf[j] = digits[v%base]
+			v /= base
+		}
+		out[i] = head + string(buf)
+	}
+	return out
+}
