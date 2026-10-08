@@ -106,6 +106,8 @@ export class MarkdownWriter {
         return [`<${String(n.attrs.url)}>`];
       case "toc":
         return ["<!-- toc -->"];
+      case "database":
+        return [`<!-- database:${String(n.attrs.collection)} -->`];
       case "columns": {
         const out: string[] = [];
         n.forEach((col) => {

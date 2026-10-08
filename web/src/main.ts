@@ -3,6 +3,8 @@ import { createClient } from "./engine/client";
 import { resolveLang, setLang } from "./engine/i18n";
 import account from "./extensions/account";
 import blocks from "./extensions/blocks";
+import database from "./extensions/database";
+import { mountPublicForm } from "./extensions/database/publicform";
 import pagesExtension from "./extensions/pages";
 import { activateAll, register } from "./extensions/registry";
 import shell from "./extensions/shell";
@@ -21,7 +23,7 @@ import { mountTrashView } from "./ui/trash-view";
 import { mountTree } from "./ui/tree";
 import { mountWorkspaceSettings } from "./ui/workspace-settings";
 
-const AUTH_STATES: readonly AuthState[] = ["pending", "setup", "signed-out", "signup", "invite", "app"];
+const AUTH_STATES: readonly AuthState[] = ["pending", "setup", "signed-out", "signup", "invite", "app", "form"];
 
 function readBoot(): Boot {
   try {
@@ -40,6 +42,7 @@ async function devBoot(fetchFn: typeof fetch): Promise<{ auth: AuthState; boot: 
   const api = createClient(fetchFn);
   const root = document.documentElement;
   const path = location.pathname;
+  if (path.startsWith("/form/")) return { auth: "form", boot: {} };
   const policy = await api.auth.policy();
   if (policy.setup_required) return { auth: "setup", boot: { setup: true } };
   const signup = policy.signup === "invite" ? "closed" : "open";
@@ -95,8 +98,14 @@ async function start(): Promise<void> {
   register(account);
   register(pagesExtension);
   register(blocks);
+  register(database);
   activateAll(engine);
   mountUI(engine);
+  if (auth === "form") {
+    document.documentElement.dataset.auth = "form";
+    mountPublicForm(engine);
+    return;
+  }
   mountAuth(engine);
   if (auth === "app") {
     engine.onError((e) => toast({ id: "error", tone: "danger", message: errorMessage(e) }));

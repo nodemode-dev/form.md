@@ -601,8 +601,17 @@ class BlockTableView extends TableView {
   }
 }
 
+const extraViews = new Map<string, (ctx: EditorCtx) => NodeViewConstructor>();
+
+export function registerNodeView(name: string, factory: (ctx: EditorCtx) => NodeViewConstructor): void {
+  extraViews.set(name, factory);
+}
+
 export function nodeViews(ctx: EditorCtx): Record<string, NodeViewConstructor> {
+  const extra: Record<string, NodeViewConstructor> = {};
+  for (const [name, make] of extraViews) extra[name] = make(ctx);
   return {
+    ...extra,
     code_block: (node, view, getPos) => new CodeView(node, view, getPos),
     task_item: (node, view, getPos) => new TaskView(node, view, getPos),
     toggle: (node) => new ToggleView(node, ctx),
