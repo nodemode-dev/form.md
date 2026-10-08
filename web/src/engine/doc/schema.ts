@@ -403,7 +403,7 @@ const nodes: Record<string, NodeSpec> = {
     toDOM: (n) => ["div", { class: "dbblock", ...blockAttr(n), "data-collection": String(n.attrs.collection), "data-view": String(n.attrs.view), contenteditable: "false" }],
   },
   columns: {
-    content: "column{2,3}",
+    content: "column{2,}",
     group: "block",
     isolating: true,
     attrs: withId,
@@ -413,8 +413,9 @@ const nodes: Record<string, NodeSpec> = {
   column: {
     content: "block+",
     isolating: true,
-    parseDOM: [{ tag: "div.column" }],
-    toDOM: () => ["div", { class: "column" }, 0],
+    attrs: { width: { default: null } },
+    parseDOM: [{ tag: "div.column", getAttrs: (d) => ({ width: Number((d as HTMLElement).dataset.w) || null }) }],
+    toDOM: (n) => ["div", { class: "column", ...(n.attrs.width ? { "data-w": String(n.attrs.width) } : {}) }, 0],
   },
   text: { group: "inline" },
   hard_break: {

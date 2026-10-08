@@ -14,6 +14,7 @@ import { openIconPicker } from "../../ui/pickers";
 import type { EditorCtx, Refreshable } from "./context";
 import { LANGUAGES, languageLabel } from "./languages";
 import { openLightbox } from "./lightbox";
+import { ColumnView } from "./columns";
 import { MathView } from "./math";
 
 type GetPos = () => number | undefined;
@@ -690,6 +691,7 @@ export function nodeViews(ctx: EditorCtx): Record<string, NodeViewConstructor> {
     mention: (node) => new MentionView(node, ctx),
     toc: (node, view) => new TocView(node, view, ctx),
     breadcrumb: (node) => new CrumbView(node, ctx),
+    column: (node, view, getPos) => new ColumnView(node, view, getPos),
     math_block: (node, view, getPos) => new MathView(node, view, getPos, ctx, true),
     math_inline: (node, view, getPos) => new MathView(node, view, getPos, ctx, false),
     file: (node) => new FileView(node),

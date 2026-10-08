@@ -26,6 +26,7 @@
 
 .doc-body > * + *,
 .doc-body .column > * + *,
+.doc-body .column__body > * + *,
 .doc-body blockquote > * + *,
 .doc-body .callout__body > * + *,
 .doc-body .toggle__content > * + *,
@@ -768,14 +769,86 @@
 }
 
 .columns {
-  display: grid;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
+  display: flex;
   column-gap: var(--space-6);
 }
 
 .column {
+  position: relative;
+  flex: 1 1 0;
   min-inline-size: 0;
+}
+
+.column[data-w="5"] { flex-grow: 5; }
+.column[data-w="10"] { flex-grow: 10; }
+.column[data-w="15"] { flex-grow: 15; }
+.column[data-w="20"] { flex-grow: 20; }
+.column[data-w="25"] { flex-grow: 25; }
+.column[data-w="30"] { flex-grow: 30; }
+.column[data-w="35"] { flex-grow: 35; }
+.column[data-w="40"] { flex-grow: 40; }
+.column[data-w="45"] { flex-grow: 45; }
+.column[data-w="50"] { flex-grow: 50; }
+.column[data-w="55"] { flex-grow: 55; }
+.column[data-w="60"] { flex-grow: 60; }
+.column[data-w="65"] { flex-grow: 65; }
+.column[data-w="70"] { flex-grow: 70; }
+.column[data-w="75"] { flex-grow: 75; }
+.column[data-w="80"] { flex-grow: 80; }
+.column[data-w="85"] { flex-grow: 85; }
+.column[data-w="90"] { flex-grow: 90; }
+.column[data-w="95"] { flex-grow: 95; }
+.column[data-w="100"] { flex-grow: 100; }
+
+.column__resize {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: calc(var(--space-6) / -2 - 5px);
+  inline-size: 10px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.column__resize::after {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 4px;
+  inline-size: 2px;
+  content: "";
+  background: var(--accent);
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.column__resize:hover::after,
+.column.is-resizing > .column__resize::after {
+  opacity: 0.6;
+}
+
+.column:last-child > .column__resize,
+.doc-body[contenteditable="false"] .column__resize {
+  display: none;
+}
+
+.side-drop {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: var(--z-raised);
+  inline-size: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.side-drop.is-visible {
+  visibility: visible;
+}
+
+.is-side-drop .drop-cursor {
+  display: none;
 }
 
 .mention {
@@ -1157,8 +1230,12 @@ a.mention:hover {
 
 @media (max-width: 720px) {
   .columns {
-    grid-auto-flow: row;
+    flex-direction: column;
     row-gap: var(--space-2);
+  }
+
+  .column__resize {
+    display: none;
   }
 
   .bookmark__image {

@@ -284,7 +284,11 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.kids(el)
 		w.b.WriteString("</div>")
 	case "column":
-		w.b.WriteString(`<div class="column">`)
+		if wd := attrInt(el, "width", 0); wd > 0 && wd <= 100 {
+			w.b.WriteString(`<div class="column" data-w="` + strconv.Itoa(wd) + `">`)
+		} else {
+			w.b.WriteString(`<div class="column">`)
+		}
 		w.kids(el)
 		w.b.WriteString("</div>")
 	default:

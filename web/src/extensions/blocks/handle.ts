@@ -8,6 +8,7 @@ import { iconNode } from "../../ui/icons";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { toast } from "../../ui/toast";
 import { CATALOG } from "./catalog";
+import { addColumn, removeLastColumn, resetWidths } from "./columns";
 import { type BlockRef, blockAt, blockFromPos, deleteBlock, duplicateBlock, moveBlock, tableAddColumn, tableAddRow, tableRemoveColumn, tableRemoveRow, turnInto } from "./commands";
 import { blockRect, type EditorCtx } from "./context";
 import { openPrompt } from "./popover";
@@ -24,6 +25,7 @@ export class BlockHandle {
   private hideTimer: ReturnType<typeof setTimeout> | undefined;
   private frame = 0;
   private lastY = 0;
+  private lastX = 0;
 
   constructor(
     private readonly ctx: EditorCtx,
@@ -34,8 +36,10 @@ export class BlockHandle {
     this.el = h("div", { class: "block-handle", attrs: { contenteditable: "false" } }, this.add, this.grip);
     wrap.prepend(this.el);
     wrap.addEventListener("pointermove", (e) => {
-      if (e.pointerType === "touch") return;
+      if (e.pointerType === "touch" || this.el.contains(e.target as Node)) return;
+      if ((e.target as Element).closest?.(".column__resize")) return this.hide();
       this.lastY = e.clientY;
+      this.lastX = e.clientX;
       if (!this.frame) this.frame = requestAnimationFrame(() => this.track());
     });
     wrap.addEventListener("pointerleave", () => this.hideSoon());
@@ -62,7 +66,8 @@ export class BlockHandle {
     this.frame = 0;
     const view = this.ctx.view();
     if (!view || !view.editable || !view.dom.isConnected) return this.hide();
-    const box = view.dom.getBoundingClientRect();
+    const under = document.elementFromPoint(this.lastX, this.lastY)?.closest(".column");
+    const box = under instanceof HTMLElement && view.dom.contains(under) ? under.getBoundingClientRect() : view.dom.getBoundingClientRect();
     const hit = view.posAtCoords({ left: box.left + Math.min(48, box.width / 2), top: this.lastY });
     if (!hit) return this.hideSoon();
     const $pos = view.state.doc.resolve(hit.inside >= 0 ? hit.inside : hit.pos);
@@ -154,6 +159,17 @@ export class BlockHandle {
         { label: t("Add a column"), icon: "plus", run: () => tableAddColumn(view, ref) },
         { label: t("Remove the last row"), icon: "close", run: () => tableRemoveRow(view, ref) },
         { label: t("Remove the last column"), icon: "close", run: () => tableRemoveColumn(view, ref) },
+      );
+    }
+    let rowPos = ref.node.type.name === "columns" ? ref.pos : -1;
+    const $ref = view.state.doc.resolve(ref.pos);
+    for (let d = $ref.depth; d > 0 && rowPos < 0; d--) if ($ref.node(d).type.name === "columns") rowPos = $ref.before(d);
+    if (rowPos >= 0) {
+      entries.push(
+        { kind: "heading", label: t("Columns") },
+        { label: t("Add a column"), icon: "plus", run: () => addColumn(view, rowPos) },
+        { label: t("Remove the last column"), icon: "close", run: () => removeLastColumn(view, rowPos) },
+        { label: t("Make columns equal"), icon: "columns", run: () => view.dispatch(resetWidths(view.state.tr, rowPos)) },
       );
     }
     if (ref.node.type.name === "image" || ref.node.type.name === "video" || ref.node.type.name === "audio") {

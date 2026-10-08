@@ -14,6 +14,7 @@ import { looksLikeMarkdown, MarkdownWriter, parseMarkdownSlice, preloadMarkdown 
 import { pickFiles, uploadFiles } from "./media";
 import { nodeViews } from "./nodeviews";
 import { highlightPlugin, idsPlugin, keysPlugin, livePlugin, placeholderPlugin, structurePlugins, uploadsPlugin } from "./plugins";
+import { columnsPlugins } from "./columns";
 import { mathKeys } from "./math";
 import { rulesPlugin } from "./rules";
 import { triggerPlugin } from "./triggers";
@@ -184,6 +185,7 @@ export class EditorHost implements EditorCtx {
       highlightPlugin(),
       uploadsPlugin(),
       livePlugin(this),
+      ...columnsPlugins(() => this.wrap),
       ...structurePlugins(),
       new Plugin({
         key: new PluginKey("formmd-chrome"),
