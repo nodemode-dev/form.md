@@ -14,6 +14,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/config"
+	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/events"
 	"github.com/nodemode-ai/form.md/internal/files"
 	"github.com/nodemode-ai/form.md/internal/httpx"
@@ -40,6 +41,7 @@ type Server struct {
 	Hub      *events.Hub
 	Pages    *page.Service
 	Files    *files.Service
+	Docs     *doc.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -63,6 +65,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	if err != nil {
 		return nil, err
 	}
+	docs := doc.New(st, pages, authSvc, log)
+	pages.OnDuplicate(docs.Copy)
 
 	ws.SetNotifier(hub)
 	ws.SetImageCheck(func(ctx context.Context, ref, workspaceID string) bool {
@@ -71,7 +75,10 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	authSvc.SetAvatarCheck(func(ctx context.Context, ref, userID string) bool {
 		return fsvc.Owned(ctx, ref, userID, "avatar")
 	})
-	authSvc.OnRevoke(func(_ context.Context, userID string) { hub.CloseUser(userID) })
+	authSvc.OnRevoke(func(_ context.Context, userID string) {
+		hub.CloseUser(userID)
+		docs.CloseUser(userID)
+	})
 	authSvc.SetAccountHooks(ws)
 	authSvc.SetMailer(mailer)
 	ws.SetCreatePolicy(func(p *policy.Principal) bool { return p.IsAdmin() || set.Bool("workspaces.member_create") })
@@ -83,7 +90,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{authSvc.Middleware},
@@ -97,6 +104,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		hub.Module(authSvc),
 		pages.Module(authSvc),
 		fsvc.Module(authSvc),
+		docs.Module(),
 		static.Module(s.renderDocument),
 	}
 	return s, nil
@@ -178,6 +186,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 	}
 	userLang := ""
 	slots := map[string]string{"instance-name": s.Settings.Get("instance.name")}
+	htmlSlots := map[string]string{}
 	if signedIn {
 		me, err := s.Auth.Me(ctx, p)
 		if err != nil {
@@ -200,6 +209,12 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 			if id, ok := strings.CutPrefix(path, "/p/"); ok {
 				if d, err := s.Pages.Get(ctx, p, strings.TrimSuffix(id, "/")); err == nil {
 					boot["page"] = d
+					if body, err := s.Docs.Render(ctx, p, d.ID); err == nil {
+						htmlSlots["doc-body"] = body
+						slots["doc-page"] = d.ID
+					} else {
+						s.Deps.Log.Warn("doc: first paint", "page", d.ID, "err", err)
+					}
 					for _, w := range list {
 						if w.ID == d.WorkspaceID {
 							cur = w
@@ -254,7 +269,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 			attrs["route"] = "trash"
 		}
 	}
-	return static.Document{Attrs: attrs, Slots: slots, Lang: preferredLang(r, userLang), Boot: boot}, nil
+	return static.Document{Attrs: attrs, Slots: slots, HTML: htmlSlots, Lang: preferredLang(r, userLang), Boot: boot}, nil
 }
 
 func (s *Server) landing(ctx context.Context, p *policy.Principal, workspaceID string, tree []*page.Meta) string {

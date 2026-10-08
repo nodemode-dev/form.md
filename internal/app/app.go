@@ -34,7 +34,14 @@ type Stopper interface {
 	Stop()
 }
 
-const shutdownGrace = 15 * time.Second
+type Drainer interface {
+	Drain(ctx context.Context)
+}
+
+const (
+	shutdownGrace = 15 * time.Second
+	drainGrace    = 4 * time.Second
+)
 
 func Run(ctx context.Context, d *Deps, modules []Module) error {
 	r := httpx.NewRouter(d.Log)
@@ -97,5 +104,13 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 	d.Log.Info("shutting down", "grace", shutdownGrace.String())
 	sctx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
 	defer cancel()
-	return srv.Shutdown(sctx)
+	err = srv.Shutdown(sctx)
+	dctx, dcancel := context.WithTimeout(context.Background(), drainGrace)
+	defer dcancel()
+	for _, m := range modules {
+		if d, ok := m.(Drainer); ok {
+			d.Drain(dctx)
+		}
+	}
+	return err
 }

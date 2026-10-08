@@ -32,6 +32,7 @@ type asset struct {
 type Document struct {
 	Attrs    map[string]string
 	Slots    map[string]string
+	HTML     map[string]string
 	Lang     string
 	Boot     any
 	Redirect string
@@ -68,6 +69,8 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 var inlineScript = regexp.MustCompile(`(?s)<script>(.*?)</script>`)
 
 var slotPattern = regexp.MustCompile(`<!--slot:([a-z-]+)-->`)
+
+var htmlSlotPattern = regexp.MustCompile(`<!--html:([a-z-]+)-->`)
 
 var fontPreload = regexp.MustCompile(`\s*<link rel="preload"[^>]*as="font"[^>]*>`)
 
@@ -162,6 +165,9 @@ func RenderIndex(index []byte, doc Document) ([]byte, error) {
 		key := string(slotPattern.FindSubmatch(m)[1])
 		return []byte(html.EscapeString(doc.Slots[key]))
 	})
+	out = htmlSlotPattern.ReplaceAllFunc(out, func(m []byte) []byte {
+		return []byte(doc.HTML[string(htmlSlotPattern.FindSubmatch(m)[1])])
+	})
 	if doc.Lang != "" && doc.Lang != "en" {
 		out = bytes.Replace(out, langMarker, []byte(`<html lang="`+doc.Lang+`"`), 1)
 	}
@@ -240,6 +246,7 @@ func buildCSP(index *asset) string {
 		"img-src 'self' data: blob:",
 		"font-src 'self'",
 		"connect-src 'self'",
+		"frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com",
 		"object-src 'none'",
 		"base-uri 'none'",
 		"form-action 'self'",
