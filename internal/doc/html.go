@@ -1,0 +1,432 @@
+package doc
+
+import (
+	"fmt"
+	"html"
+	"strconv"
+	"strings"
+
+	"github.com/reearth/ygo/crdt"
+)
+
+type htmlWriter struct {
+	b     strings.Builder
+	title func(id string) string
+	heads []tocEntry
+}
+
+type tocEntry struct {
+	id    string
+	level int
+	text  string
+}
+
+func RenderHTML(frag *crdt.YXmlFragment, title func(id string) string) string {
+	w := &htmlWriter{title: title}
+	w.collectHeadings(children(frag))
+	for _, c := range children(frag) {
+		if el, ok := c.(*crdt.YXmlElement); ok {
+			w.node(el)
+		}
+	}
+	return w.b.String()
+}
+
+func (w *htmlWriter) collectHeadings(nodes []any) {
+	for _, n := range nodes {
+		el, ok := n.(*crdt.YXmlElement)
+		if !ok {
+			continue
+		}
+		if el.NodeName == "heading" {
+			sw := &mdWriter{pages: map[string]bool{}, files: map[string]bool{}, users: map[string]bool{}, title: w.title}
+			sw.inline(el, false)
+			w.heads = append(w.heads, tocEntry{id: attrString(el, "id"), level: attrInt(el, "level", 1), text: strings.TrimSpace(sw.text.String())})
+			continue
+		}
+		if !textblocks[el.NodeName] && !atoms[el.NodeName] {
+			w.collectHeadings(children(el))
+		}
+	}
+}
+
+func esc(s string) string { return html.EscapeString(s) }
+
+func (w *htmlWriter) open(tag string, attrs ...string) {
+	w.b.WriteString("<" + tag)
+	for i := 0; i+1 < len(attrs); i += 2 {
+		if attrs[i+1] == "" && attrs[i] != "alt" {
+			continue
+		}
+		w.b.WriteString(" " + attrs[i] + `="` + esc(attrs[i+1]) + `"`)
+	}
+	w.b.WriteString(">")
+}
+
+func (w *htmlWriter) kids(el *crdt.YXmlElement) {
+	for _, c := range children(el) {
+		if k, ok := c.(*crdt.YXmlElement); ok {
+			w.node(k)
+		}
+	}
+}
+
+func (w *htmlWriter) node(el *crdt.YXmlElement) {
+	id := attrString(el, "id")
+	switch el.NodeName {
+	case "paragraph":
+		w.open("p", "data-block", id)
+		w.inline(el)
+		w.b.WriteString("</p>")
+	case "heading":
+		lvl := attrInt(el, "level", 1)
+		if lvl < 1 || lvl > 6 {
+			lvl = 1
+		}
+		tag := "h" + strconv.Itoa(lvl)
+		w.open(tag, "data-block", id)
+		w.inline(el)
+		w.b.WriteString("</" + tag + ">")
+	case "blockquote":
+		w.open("blockquote", "data-block", id)
+		w.kids(el)
+		w.b.WriteString("</blockquote>")
+	case "callout":
+		w.open("div", "class", "doc-callout", "data-block", id, "data-tone", attrString(el, "tone"), "data-icon", attrString(el, "icon"))
+		w.b.WriteString(`<span class="callout__icon" contenteditable="false"></span><div class="callout__body">`)
+		w.kids(el)
+		w.b.WriteString("</div></div>")
+	case "toggle":
+		lvl := attrInt(el, "level", 0)
+		level := ""
+		if lvl > 0 {
+			level = strconv.Itoa(lvl)
+		}
+		w.open("div", "class", "toggle", "data-block", id, "data-level", level)
+		w.b.WriteString(`<button class="toggle__btn" type="button" contenteditable="false" aria-expanded="false"></button><div class="toggle__content">`)
+		w.kids(el)
+		w.b.WriteString("</div></div>")
+	case "toggle_title":
+		w.b.WriteString(`<div class="toggle__title">`)
+		w.inline(el)
+		w.b.WriteString("</div>")
+	case "bullet_list":
+		w.open("ul", "data-block", id)
+		w.kids(el)
+		w.b.WriteString("</ul>")
+	case "ordered_list":
+		start := attrInt(el, "start", 1)
+		s := ""
+		if start != 1 {
+			s = strconv.Itoa(start)
+		}
+		w.open("ol", "data-block", id, "start", s)
+		w.kids(el)
+		w.b.WriteString("</ol>")
+	case "task_list":
+		w.open("ul", "class", "tasks", "data-block", id)
+		w.kids(el)
+		w.b.WriteString("</ul>")
+	case "list_item":
+		w.open("li", "data-block", id)
+		w.kids(el)
+		w.b.WriteString("</li>")
+	case "task_item":
+		checked := "false"
+		box := `<input type="checkbox">`
+		if attrBool(el, "checked") {
+			checked = "true"
+			box = `<input type="checkbox" checked>`
+		}
+		w.open("li", "class", "task", "data-block", id, "data-checked", checked)
+		w.b.WriteString(`<span class="task__check" contenteditable="false">` + box + `</span><div class="task__body">`)
+		w.kids(el)
+		w.b.WriteString("</div></li>")
+	case "code_block":
+		w.open("div", "class", "code", "data-block", id, "data-language", attrString(el, "language"))
+		w.b.WriteString(`<div class="code__bar" contenteditable="false"></div><pre class="code__pre" spellcheck="false"><code>`)
+		code := (&mdWriter{}).plain(el)
+		w.b.WriteString(esc(code))
+		if code == "" || strings.HasSuffix(code, "\n") {
+			w.b.WriteString(`<br class="ProseMirror-trailingBreak">`)
+		}
+		w.b.WriteString("</code></pre></div>")
+	case "horizontal_rule":
+		w.open("hr", "data-block", id)
+	case "table":
+		cols := 0
+		for _, r := range children(el) {
+			if row, ok := r.(*crdt.YXmlElement); ok {
+				n := 0
+				for _, c := range children(row) {
+					if cell, ok := c.(*crdt.YXmlElement); ok {
+						n += attrInt(cell, "colspan", 1)
+					}
+				}
+				if n > cols {
+					cols = n
+				}
+			}
+		}
+		w.b.WriteString(`<div class="tableWrapper">`)
+		w.open("table", "data-block", id)
+		w.b.WriteString("<colgroup>" + strings.Repeat("<col>", cols) + "</colgroup><tbody>")
+		w.kids(el)
+		w.b.WriteString("</tbody></table></div>")
+	case "table_row":
+		w.b.WriteString("<tr>")
+		w.kids(el)
+		w.b.WriteString("</tr>")
+	case "table_cell", "table_header":
+		tag := "td"
+		if el.NodeName == "table_header" {
+			tag = "th"
+		}
+		cs, rs := "", ""
+		if n := attrInt(el, "colspan", 1); n != 1 {
+			cs = strconv.Itoa(n)
+		}
+		if n := attrInt(el, "rowspan", 1); n != 1 {
+			rs = strconv.Itoa(n)
+		}
+		w.open(tag, "colspan", cs, "rowspan", rs)
+		w.kids(el)
+		w.b.WriteString("</" + tag + ">")
+	case "image":
+		w.open("figure", "class", "media media--image", "data-block", id)
+		w.b.WriteString(`<div class="media__frame">`)
+		w.open("img", "src", fileURL(attrString(el, "src")), "alt", attrString(el, "alt"), "width", dim(el, "w"), "height", dim(el, "h"), "loading", "lazy", "decoding", "async", "draggable", "false")
+		w.b.WriteString("</div>")
+		w.caption(attrString(el, "caption"))
+		w.b.WriteString("</figure>")
+	case "video":
+		w.open("figure", "class", "media media--video", "data-block", id)
+		w.b.WriteString(`<div class="media__frame">`)
+		w.open("video", "src", fileURL(attrString(el, "src")), "width", dim(el, "w"), "height", dim(el, "h"), "controls", "controls", "preload", "metadata")
+		w.b.WriteString("</video></div>")
+		w.caption(attrString(el, "caption"))
+		w.b.WriteString("</figure>")
+	case "audio":
+		w.open("figure", "class", "media media--audio", "data-block", id)
+		w.open("audio", "src", fileURL(attrString(el, "src")), "controls", "controls", "preload", "metadata")
+		w.b.WriteString("</audio>")
+		w.caption(attrString(el, "caption"))
+		w.b.WriteString("</figure>")
+	case "file":
+		src := fileURL(attrString(el, "src"))
+		mime := attrString(el, "mime")
+		name := attrString(el, "name")
+		w.open("div", "class", "file", "data-block", id, "data-mime", mime)
+		w.b.WriteString(`<div class="file__card"><span class="file__icon"></span>`)
+		w.open("a", "class", "file__name", "href", src, "target", "_blank", "rel", "noopener")
+		w.b.WriteString(esc(name) + `</a><span class="file__size">` + esc(humanSize(int64(attrInt(el, "size", 0)))) + "</span></div>")
+		if mime == "application/pdf" {
+			w.open("iframe", "class", "file__pdf", "src", src, "title", name, "loading", "lazy")
+			w.b.WriteString("</iframe>")
+		}
+		w.b.WriteString("</div>")
+	case "bookmark":
+		url := attrString(el, "url")
+		if safeHref(url) == "" {
+			url = ""
+		}
+		w.open("div", "class", "bookmark", "data-block", id)
+		w.open("a", "class", "bookmark__link", "href", url, "target", "_blank", "rel", "noopener noreferrer nofollow")
+		title := attrString(el, "title")
+		if title == "" {
+			title = url
+		}
+		w.b.WriteString(`<span class="bookmark__text"><span class="bookmark__title">` + esc(title) + `</span><span class="bookmark__desc">` + esc(attrString(el, "description")) + `</span><span class="bookmark__url">` + esc(url) + `</span></span>`)
+		if img := attrString(el, "image"); fileID(img) != "" {
+			w.open("img", "class", "bookmark__image", "src", fileURL(img), "alt", "", "loading", "lazy")
+		}
+		w.b.WriteString("</a></div>")
+	case "embed":
+		url := attrString(el, "url")
+		w.open("figure", "class", "embed", "data-block", id, "data-provider", attrString(el, "provider"))
+		if src := EmbedSrc(url); src != "" {
+			w.open("iframe", "src", src, "title", url, "loading", "lazy", "allow", "encrypted-media; picture-in-picture; fullscreen", "referrerpolicy", "strict-origin-when-cross-origin", "sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups")
+			w.b.WriteString("</iframe>")
+		}
+		w.b.WriteString("</figure>")
+	case "toc":
+		w.open("nav", "class", "toc", "data-block", id, "contenteditable", "false")
+		for _, h := range w.heads {
+			w.open("a", "class", "toc__item", "data-level", strconv.Itoa(h.level), "href", "#"+h.id)
+			w.b.WriteString(esc(h.text) + "</a>")
+		}
+		w.b.WriteString("</nav>")
+	case "columns":
+		n := len(children(el))
+		w.open("div", "class", "columns", "data-block", id, "data-count", strconv.Itoa(n))
+		w.kids(el)
+		w.b.WriteString("</div>")
+	case "column":
+		w.b.WriteString(`<div class="column">`)
+		w.kids(el)
+		w.b.WriteString("</div>")
+	default:
+		w.kids(el)
+	}
+}
+
+func dim(el *crdt.YXmlElement, key string) string {
+	if n := attrInt(el, key, 0); n > 0 {
+		return strconv.Itoa(n)
+	}
+	return ""
+}
+
+func (w *htmlWriter) caption(s string) {
+	w.b.WriteString(`<figcaption class="media__caption">` + esc(s) + "</figcaption>")
+}
+
+func humanSize(n int64) string {
+	switch {
+	case n <= 0:
+		return ""
+	case n < 1024:
+		return fmt.Sprintf("%d B", n)
+	case n < 1024*1024:
+		return fmt.Sprintf("%.0f KB", float64(n)/1024)
+	case n < 1024*1024*1024:
+		return fmt.Sprintf("%.1f MB", float64(n)/(1024*1024))
+	}
+	return fmt.Sprintf("%.1f GB", float64(n)/(1024*1024*1024))
+}
+
+func EmbedSrc(url string) string {
+	if m := youtubeRE.FindStringSubmatch(url); m != nil {
+		return "https://www.youtube-nocookie.com/embed/" + m[1]
+	}
+	if m := vimeoRE.FindStringSubmatch(url); m != nil {
+		return "https://player.vimeo.com/video/" + m[1] + "?dnt=1"
+	}
+	return ""
+}
+
+func (w *htmlWriter) inline(el *crdt.YXmlElement) {
+	var open []string
+	var openHref string
+	closeTo := func(n int) {
+		for len(open) > n {
+			m := open[len(open)-1]
+			open = open[:len(open)-1]
+			w.b.WriteString(markClose(m))
+		}
+	}
+	empty := true
+	lastBreak := false
+	for _, c := range el.Children() {
+		switch x := c.(type) {
+		case *crdt.YXmlText:
+			for _, d := range x.ToDelta() {
+				s, ok := d.Insert.(string)
+				if !ok || s == "" {
+					continue
+				}
+				marks := map[string]any{}
+				for k, v := range d.Attributes {
+					if v != nil {
+						marks[markName(k)] = v
+					}
+				}
+				var want []string
+				for _, m := range markOrder {
+					if _, ok := marks[m]; ok {
+						want = append(want, m)
+					}
+				}
+				href := safeHref(markAttr(marks["link"], "href"))
+				keep := 0
+				for keep < len(open) && keep < len(want) && open[keep] == want[keep] && (open[keep] != "link" || href == openHref) {
+					keep++
+				}
+				closeTo(keep)
+				for _, m := range want[keep:] {
+					switch m {
+					case "link":
+						openHref = href
+						w.open("a", "href", href, "rel", "noopener noreferrer nofollow")
+					case "highlight":
+						w.open("mark", "data-color", markAttr(marks[m], "value"))
+					case "color":
+						w.open("span", "class", "tc", "data-color", markAttr(marks[m], "value"))
+					default:
+						w.b.WriteString("<" + markTag(m) + ">")
+					}
+					open = append(open, m)
+				}
+				w.b.WriteString(esc(s))
+				empty = false
+				lastBreak = false
+			}
+		case *crdt.YXmlElement:
+			closeTo(0)
+			switch x.NodeName {
+			case "hard_break":
+				w.b.WriteString("<br>")
+				lastBreak = true
+			case "mention":
+				w.mention(x)
+				lastBreak = false
+			}
+			empty = false
+		}
+	}
+	closeTo(0)
+	if empty || lastBreak {
+		w.b.WriteString(`<br class="ProseMirror-trailingBreak">`)
+	}
+}
+
+func markTag(m string) string {
+	switch m {
+	case "strong":
+		return "strong"
+	case "em":
+		return "em"
+	case "strike":
+		return "s"
+	case "underline":
+		return "u"
+	case "code":
+		return "code"
+	}
+	return "span"
+}
+
+func markClose(m string) string {
+	switch m {
+	case "link":
+		return "</a>"
+	case "highlight":
+		return "</mark>"
+	case "color":
+		return "</span>"
+	}
+	return "</" + markTag(m) + ">"
+}
+
+func (w *htmlWriter) mention(el *crdt.YXmlElement) {
+	kind, ref, label := attrString(el, "kind"), attrString(el, "ref"), attrString(el, "label")
+	switch kind {
+	case "page":
+		if w.title != nil {
+			if t := w.title(ref); t != "" {
+				label = t
+			}
+		}
+		if label == "" {
+			label = "Untitled"
+		}
+		w.open("a", "class", "mention", "data-kind", "page", "data-ref", ref, "href", "/p/"+ref, "contenteditable", "false")
+		w.b.WriteString(`<span class="mention__icon"></span><span class="mention__label">` + esc(label) + "</span></a>")
+	case "user":
+		w.open("span", "class", "mention", "data-kind", "user", "data-ref", ref, "contenteditable", "false")
+		w.b.WriteString("@" + esc(label) + "</span>")
+	case "date":
+		w.open("span", "class", "mention", "data-kind", "date", "data-ref", ref, "contenteditable", "false")
+		w.b.WriteString(esc(ref) + "</span>")
+	}
+}
