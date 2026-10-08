@@ -38,9 +38,11 @@ export async function upload<T>(fetchFn: FetchFn, path: string, form: FormData, 
   }
 }
 
-export async function request<T>(fetchFn: FetchFn, method: Method, path: string, body?: unknown, timeoutMs = 15000): Promise<T> {
+export async function request<T>(fetchFn: FetchFn, method: Method, path: string, body?: unknown, timeoutMs = 15000, cancel?: AbortSignal): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  if (cancel?.aborted) controller.abort();
+  cancel?.addEventListener("abort", () => controller.abort(), { once: true });
   try {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -60,6 +62,7 @@ export async function request<T>(fetchFn: FetchFn, method: Method, path: string,
     return parsed as T;
   } catch (e) {
     if (e instanceof ApiError) throw e;
+    if (cancel?.aborted) throw new ApiError(0, "cancelled", "request cancelled");
     const aborted = e instanceof DOMException && e.name === "AbortError";
     throw new ApiError(0, aborted ? "timeout" : "network", aborted ? "request timed out" : "network unreachable");
   } finally {

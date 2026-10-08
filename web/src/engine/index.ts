@@ -1,5 +1,6 @@
 import type { FetchFn } from "./api";
 import { type Client, createClient } from "./client";
+import { CollectionStore } from "./collections";
 import { Commands } from "./commands";
 import { DocStore } from "./doc/docs";
 import { DocSync } from "./doc/sync";
@@ -14,7 +15,7 @@ import { closeTab, cycleTab, moveTab, type NavState, openNewTab, openTab, parseR
 import { State } from "./state";
 
 export type Overlay = null | "shortcuts" | "account" | "admin" | "workspace" | "new-workspace";
-export type AuthState = "pending" | "setup" | "signed-out" | "signup" | "invite" | "app";
+export type AuthState = "pending" | "setup" | "signed-out" | "signup" | "invite" | "app" | "form";
 
 export interface Platform {
   mac: boolean;
@@ -72,6 +73,7 @@ export interface Engine {
   readonly boot: Boot;
   readonly pages: PageStore;
   readonly docs: DocStore;
+  readonly collections: CollectionStore;
   resolvedTheme(): "dark" | "light";
   workspace(): Workspace | null;
   workspaceById(id: string): Workspace | null;
@@ -167,6 +169,11 @@ export function createEngine(deps: EngineDeps): Engine {
     for (const fn of errorHandlers) fn(e);
   };
   const pages = new PageStore(api, reportError);
+  const collections = new CollectionStore(api, reportError);
+  if (deps.boot.collection) collections.seed(deps.boot.collection);
+  if (deps.boot.query) collections.seedQuery(deps.boot.query);
+  if (deps.boot.row) collections.seed(deps.boot.row.collection);
+  if (bootPage?.row) pages.upsert(bootPage);
   const docs = new DocStore({
     sync: new DocSync({ url: "/sync", open: (url) => deps.platform.webSocket(url) }),
     user: () => state.get("me")?.user.id ?? "",
@@ -203,6 +210,7 @@ export function createEngine(deps: EngineDeps): Engine {
     try {
       const r = await api.pages.get(id);
       if (mine !== detailSeq) return;
+      if (r.page.row) pages.upsert(r.page);
       state.set("detail", r.page);
       if (workspaceById(r.page.workspace_id) && r.page.workspace_id !== state.get("workspaceId")) state.set("workspaceId", r.page.workspace_id);
     } catch (e) {
@@ -268,6 +276,7 @@ export function createEngine(deps: EngineDeps): Engine {
   let needsLoad = false;
   const dispatch = (e: LiveEvent) => {
     pages.apply(e);
+    collections.apply(e);
     if (e.type === "workspace" && (e.what === "members" || e.what === "settings" || e.what === "rules" || e.what === "deleted")) void refreshMe().catch(reportError);
     if (e.type === "user" && (e.what === "workspaces" || e.what === "break_glass")) void refreshMe().catch(reportError);
   };
@@ -276,6 +285,7 @@ export function createEngine(deps: EngineDeps): Engine {
     try {
       const ws = state.get("workspaceId");
       const jobs: Promise<unknown>[] = [pages.reloadAll(), refreshMe(), pages.loadFavorites()];
+      collections.resync();
       if (ws && !pages.isLoaded(ws)) jobs.push(pages.load(ws), pages.loadTags(ws));
       const r = state.get("route");
       if (r.name === "page") jobs.push(loadDetail(r.id));
@@ -323,6 +333,7 @@ export function createEngine(deps: EngineDeps): Engine {
     boot: deps.boot,
     pages,
     docs,
+    collections,
     resolvedTheme() {
       const pref = state.get("themePref");
       if (pref !== "auto") return pref;

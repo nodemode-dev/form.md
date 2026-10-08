@@ -3,6 +3,18 @@ import type {
   AccessWorkspace,
   AdminUser,
   BreakGlassGrant,
+  Collection,
+  CollectionView,
+  CSVPreview,
+  FormDef,
+  Property,
+  QueryInput,
+  QueryResult,
+  RowData,
+  RowDetail,
+  SchemaOp,
+  ViewConfig,
+  ViewType,
   DeletionPlan,
   EmergencyGrant,
   Favorite,
@@ -117,6 +129,48 @@ export function createClient(f: FetchFn) {
       visit: (id: string) => post<void>(`/api/pages/${enc(id)}/visit`),
       recent: (limit = 50) => get<{ pages: RecentPage[] }>(`/api/recent?limit=${limit}`),
       backlinks: (id: string) => get<{ pages: Page[] }>(`/api/pages/${enc(id)}/backlinks`),
+      createCollection: (body: { workspace_id: string; parent_id?: string; after_id?: string; title?: string; inline?: boolean; view?: ViewType }) =>
+        post<{ page: Page }>("/api/pages", {
+          workspace_id: body.workspace_id,
+          parent_id: body.parent_id,
+          after_id: body.after_id,
+          title: body.title ?? "",
+          kind: "collection",
+          extra: { inline: !!body.inline, view: body.view ?? "table" },
+        }),
+    },
+    collections: {
+      get: (id: string, view?: string) =>
+        get<{ collection: Collection; first?: { view_id: string; result: QueryResult } }>(`/api/collections/${enc(id)}${view !== undefined ? `?view=${enc(view)}` : ""}`),
+      schema: (id: string, ops: SchemaOp[]) => post<{ schema: Property[]; epoch: number }>(`/api/collections/${enc(id)}/schema`, { ops }),
+      formula: (id: string, expr: string) => post<{ ok: boolean; error?: string; pos: number; props?: string[] }>(`/api/collections/${enc(id)}/formula`, { expr }),
+      query: (id: string, input: QueryInput, cancel?: AbortSignal) => request<QueryResult>(f, "POST", `/api/collections/${enc(id)}/query`, input, 15000, cancel),
+      search: (id: string, q: string, limit = 50) => get<{ rows: { id: string; title: string; icon: string }[] }>(`/api/collections/${enc(id)}/search?q=${enc(q)}&limit=${limit}`),
+      createRow: (id: string, body: { title?: string; values?: Record<string, unknown>; before_id?: string; after_id?: string; top?: boolean }) =>
+        post<{ row: RowData; epoch: number }>(`/api/collections/${enc(id)}/rows`, body),
+      deleteRows: (id: string, ids: string[]) => post<{ trashed: number }>(`/api/collections/${enc(id)}/rows/delete`, { ids }),
+      row: (id: string) => get<RowDetail>(`/api/rows/${enc(id)}`),
+      updateRow: (id: string, body: { title?: string; values?: Record<string, unknown>; before_id?: string; after_id?: string; move?: boolean }) =>
+        patch<{ row: RowData; epoch: number }>(`/api/rows/${enc(id)}`, body),
+      createView: (id: string, body: { name?: string; type?: ViewType; config?: ViewConfig; after_id?: string }) =>
+        post<{ view: CollectionView }>(`/api/collections/${enc(id)}/views`, body),
+      updateView: (id: string, body: { name?: string; type?: ViewType; config?: ViewConfig }) => patch<{ view: CollectionView }>(`/api/views/${enc(id)}`, body),
+      deleteView: (id: string) => del(`/api/views/${enc(id)}`),
+      moveView: (id: string, afterId: string) => post<void>(`/api/views/${enc(id)}/move`, { after_id: afterId }),
+      duplicateView: (id: string) => post<{ view: CollectionView }>(`/api/views/${enc(id)}/duplicate`),
+      exportUrl: (viewId: string) => `/api/views/${enc(viewId)}/export.csv`,
+      previewCSV: (file: File) => {
+        const form = new FormData();
+        form.append("file", file);
+        return upload<CSVPreview>(f, "/api/csv/preview", form);
+      },
+      importCSV: (body: { token: string; types: string[]; title?: string; workspace_id?: string; parent_id?: string; collection_id?: string }) =>
+        post<{ collection_id: string; rows: number }>("/api/csv/import", body),
+      form: (viewId: string) => get<{ form: FormDef }>(`/api/views/${enc(viewId)}/form`),
+      submit: (viewId: string, answers: Record<string, unknown>) => post<{ row_id: string }>(`/api/views/${enc(viewId)}/form`, { answers }),
+      formLink: (viewId: string, pub: boolean) => put<{ token: string }>(`/api/views/${enc(viewId)}/form/link`, { public: pub }),
+      publicForm: (token: string) => get<{ form: FormDef }>(`/api/public/forms/${enc(token)}`),
+      publicSubmit: (token: string, answers: Record<string, unknown>) => post<void>(`/api/public/forms/${enc(token)}`, { answers }),
     },
     favorites: {
       list: () => get<{ favorites: Favorite[] }>("/api/favorites"),

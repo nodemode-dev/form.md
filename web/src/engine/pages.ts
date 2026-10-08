@@ -87,7 +87,7 @@ export class PageStore {
 
   all(workspaceId: string): Page[] {
     const out: Page[] = [];
-    for (const p of this.pages.values()) if (p.workspace_id === workspaceId) out.push(p);
+    for (const p of this.pages.values()) if (p.workspace_id === workspaceId && !p.row) out.push(p);
     return out;
   }
 
@@ -117,6 +117,7 @@ export class PageStore {
   }
 
   private index(p: Page): void {
+    if (p.row) return;
     const k = slot(p.workspace_id, p.parent_id);
     let set = this.byParent.get(k);
     if (!set) {
@@ -210,7 +211,9 @@ export class PageStore {
     switch (e.type) {
       case "page":
         if (e.page.trashed_at) this.drop([e.page.id]);
-        else if (this.loadedWs.has(e.workspace_id) || this.pages.has(e.page.id) || this.isFavorite(e.page.id)) this.upsert(e.page);
+        else if (e.page.row) {
+          if (this.pages.has(e.page.id)) this.upsert(e.page);
+        } else if (this.loadedWs.has(e.workspace_id) || this.pages.has(e.page.id) || this.isFavorite(e.page.id)) this.upsert(e.page);
         return;
       case "page_removed":
         this.drop(e.ids);

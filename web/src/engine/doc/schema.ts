@@ -378,6 +378,15 @@ const nodes: Record<string, NodeSpec> = {
     parseDOM: [{ tag: "nav.toc" }],
     toDOM: (n) => ["nav", { class: "toc", ...blockAttr(n), contenteditable: "false" }],
   },
+  database: {
+    group: "block",
+    atom: true,
+    selectable: true,
+    draggable: false,
+    attrs: { ...withId, collection: { default: "" }, view: { default: "" } },
+    parseDOM: [{ tag: "div.dbblock[data-collection]", getAttrs: (d) => ({ id: (d as HTMLElement).dataset.block ?? null, collection: (d as HTMLElement).dataset.collection ?? "", view: (d as HTMLElement).dataset.view ?? "" }) }],
+    toDOM: (n) => ["div", { class: "dbblock", ...blockAttr(n), "data-collection": String(n.attrs.collection), "data-view": String(n.attrs.view), contenteditable: "false" }],
+  },
   columns: {
     content: "column{2,3}",
     group: "block",

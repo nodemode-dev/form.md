@@ -70,6 +70,259 @@ export interface Boot {
   favorites?: Favorite[];
   tags?: TagInfo[];
   page?: PageDetail;
+  collection?: Collection;
+  query?: { view_id: string; result: QueryResult };
+  row?: RowDetail;
+  form?: FormDef;
+}
+
+export type PropType =
+  | "title" | "text" | "number" | "select" | "multi_select" | "status" | "date" | "person" | "files" | "checkbox" | "url" | "email" | "phone"
+  | "relation" | "rollup" | "formula" | "created_time" | "created_by" | "last_edited_time" | "last_edited_by" | "unique_id" | "place" | "button";
+
+export interface PropOption {
+  id: string;
+  name: string;
+  color: string;
+  group?: "todo" | "doing" | "done";
+}
+
+export interface ButtonAction {
+  kind: string;
+  config?: Record<string, unknown>;
+}
+
+export interface Property {
+  id: string;
+  name: string;
+  type: PropType;
+  description?: string;
+  options?: PropOption[];
+  format?: string;
+  display?: "" | "bar" | "ring";
+  precision?: number;
+  max?: number;
+  color?: string;
+  time_format?: "" | "12" | "24";
+  collection?: string;
+  pair?: string;
+  limit?: number;
+  relation?: string;
+  target?: string;
+  fn?: string;
+  expr?: string;
+  prefix?: string;
+  actions?: ButtonAction[];
+}
+
+export interface Filter {
+  op?: "and" | "or";
+  items?: Filter[];
+  prop?: string;
+  cond?: string;
+  value?: unknown;
+}
+
+export interface SortKey {
+  prop: string;
+  dir: "asc" | "desc";
+}
+
+export interface Grouping {
+  prop: string;
+  by?: string;
+  step?: number;
+  sort?: "asc" | "desc" | "manual";
+  order?: string[];
+  hidden?: string[];
+  hide_empty?: boolean;
+}
+
+export interface ViewProp {
+  id: string;
+  hidden?: boolean;
+  width?: number;
+}
+
+export interface FormQuestion {
+  prop: string;
+  label?: string;
+  help?: string;
+  required?: boolean;
+  when?: Filter;
+}
+
+export interface FormConfig {
+  title?: string;
+  description?: string;
+  questions?: FormQuestion[];
+  submit?: string;
+  done?: string;
+  anonymous?: boolean;
+  closed?: boolean;
+}
+
+export interface ViewConfig {
+  props?: ViewProp[];
+  filter?: Filter;
+  sorts?: SortKey[];
+  group?: Grouping;
+  sub_group?: Grouping;
+  calcs?: Record<string, string>;
+  layout?: Record<string, unknown>;
+  form?: FormConfig;
+}
+
+export type ViewType = "table" | "board" | "list" | "gallery" | "calendar" | "timeline" | "form" | "chart" | "map" | "feed" | "dashboard";
+
+export interface CollectionView {
+  id: string;
+  collection_id: string;
+  sort_key: string;
+  name: string;
+  type: ViewType;
+  config: ViewConfig;
+  created_at: number;
+  updated_at: number;
+  form_token?: string;
+}
+
+export interface Collection {
+  id: string;
+  workspace_id: string;
+  title: string;
+  icon: string;
+  inline: boolean;
+  schema: Property[];
+  views: CollectionView[];
+  can_write: boolean;
+  rows: number;
+  epoch: number;
+}
+
+export type CellValue = unknown;
+
+export interface ComputedValue {
+  type: "number" | "text" | "boolean" | "date" | "list" | "person" | "page" | "error";
+  value: unknown;
+  href?: string;
+  style?: string;
+}
+
+export interface RowData {
+  id: string;
+  title: string;
+  icon: string;
+  cover?: string;
+  thumb?: string;
+  snippet?: string;
+  sort_key: string;
+  values: Record<string, CellValue>;
+  number: number;
+  version: number;
+  created_at: number;
+  created_by: string;
+  updated_at: number;
+  updated_by: string;
+}
+
+export interface GroupResult {
+  key: string;
+  label: string;
+  color?: string;
+  count: number;
+  rows: string[];
+  calcs?: Record<string, ComputedValue | null>;
+  hidden?: boolean;
+}
+
+export interface LaneResult {
+  key: string;
+  label: string;
+  color?: string;
+  count: number;
+  groups: GroupResult[];
+  hidden?: boolean;
+}
+
+export interface RowRef {
+  title: string;
+  icon: string;
+  collection: string;
+}
+
+export interface QueryResult {
+  total: number;
+  rows: RowData[];
+  order: string[];
+  groups?: GroupResult[];
+  lanes?: LaneResult[];
+  calcs?: Record<string, ComputedValue | null>;
+  refs: Record<string, RowRef>;
+  epoch: number;
+  offset: number;
+}
+
+export interface QueryInput {
+  view_id?: string;
+  filter?: Filter;
+  sorts?: SortKey[];
+  search?: string;
+  offset?: number;
+  limit?: number;
+  group_key?: string;
+  lane_key?: string;
+  group_limit?: number;
+  range?: { prop: string; end_prop?: string; from: string; to: string };
+  ids?: string[];
+  no_groups?: boolean;
+}
+
+export interface RowDetail {
+  collection: Collection;
+  row: RowData | null;
+  refs: Record<string, RowRef>;
+}
+
+export interface SchemaOp {
+  op: "add" | "update" | "delete" | "move";
+  id?: string;
+  after?: string;
+  prop?: Partial<Property>;
+  two_way?: boolean;
+  pair_name?: string;
+}
+
+export interface FormQuestionDef extends FormQuestion {
+  name: string;
+  type: PropType;
+  options?: PropOption[];
+  limit?: number;
+  collection?: string;
+  format?: string;
+}
+
+export interface FormDef {
+  view_id: string;
+  collection_id: string;
+  workspace_id?: string;
+  title: string;
+  description: string;
+  icon: string;
+  questions: FormQuestionDef[];
+  submit: string;
+  done: string;
+  public: boolean;
+  token?: string;
+  closed: boolean;
+  anonymous: boolean;
+}
+
+export interface CSVPreview {
+  token: string;
+  name: string;
+  rows: number;
+  columns: { name: string; type: PropType | "skip"; samples: string[] }[];
 }
 
 export type PageKind = "doc" | "collection";
@@ -98,6 +351,7 @@ export interface Page {
   trashed_at?: number;
   trashed_by?: string;
   trashed_by_kind?: string;
+  row?: boolean;
 }
 
 export interface Crumb {
@@ -152,7 +406,8 @@ export type LiveEvent =
   | { type: "page"; seq: number; workspace_id: string; page: Page }
   | { type: "page_removed"; seq: number; workspace_id: string; ids: string[] }
   | { type: "workspace"; seq: number; workspace_id: string; what: string }
-  | { type: "user"; seq: number; what: string };
+  | { type: "user"; seq: number; what: string }
+  | { type: "collection"; seq: number; workspace_id: string; collection_id: string; what: "rows" | "schema" | "views"; ids?: string[]; epoch: number };
 
 export interface Member {
   user_id: string;
