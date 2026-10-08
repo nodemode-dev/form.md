@@ -305,7 +305,7 @@ func buildCSP(index *asset) string {
 		"img-src 'self' data: blob:",
 		"font-src 'self'",
 		"connect-src 'self'",
-		"frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com",
+		"frame-src 'self' https:",
 		"object-src 'none'",
 		"base-uri 'none'",
 		"form-action 'self'",

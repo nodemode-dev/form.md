@@ -3,6 +3,7 @@ package doc
 import (
 	"fmt"
 	"html"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -69,6 +70,18 @@ func (w *htmlWriter) open(tag string, attrs ...string) {
 	w.b.WriteString(">")
 }
 
+func (w *htmlWriter) remoteMedia(el *crdt.YXmlElement, id string) {
+	src := attrString(el, "src")
+	host := src
+	if u, err := url.Parse(src); err == nil && u.Host != "" {
+		host = u.Host
+	}
+	w.open("figure", "class", "media media--"+el.NodeName+" is-remote", "data-block", id, "data-src", src)
+	w.b.WriteString(`<div class="media__pending"><span class="media__pending-text">` + esc(host) + `</span></div>`)
+	w.caption(attrString(el, "caption"))
+	w.b.WriteString("</figure>")
+}
+
 func (w *htmlWriter) kids(el *crdt.YXmlElement) {
 	for _, c := range children(el) {
 		if k, ok := c.(*crdt.YXmlElement); ok {
@@ -79,6 +92,10 @@ func (w *htmlWriter) kids(el *crdt.YXmlElement) {
 
 func (w *htmlWriter) node(el *crdt.YXmlElement) {
 	id := attrString(el, "id")
+	if (el.NodeName == "image" || el.NodeName == "video" || el.NodeName == "audio") && fileID(attrString(el, "src")) == "" {
+		w.remoteMedia(el, id)
+		return
+	}
 	switch el.NodeName {
 	case "paragraph":
 		w.open("p", "data-block", id)
@@ -242,7 +259,11 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		if title == "" {
 			title = url
 		}
-		w.b.WriteString(`<span class="bookmark__text"><span class="bookmark__title">` + esc(title) + `</span><span class="bookmark__desc">` + esc(attrString(el, "description")) + `</span><span class="bookmark__url">` + esc(url) + `</span></span>`)
+		w.b.WriteString(`<span class="bookmark__text"><span class="bookmark__title">` + esc(title) + `</span><span class="bookmark__desc">` + esc(attrString(el, "description")) + `</span><span class="bookmark__url">`)
+		if ic := attrString(el, "icon"); fileID(ic) != "" {
+			w.open("img", "class", "bookmark__icon", "src", fileURL(ic), "alt", "", "width", "16", "height", "16")
+		}
+		w.b.WriteString(esc(url) + `</span></span>`)
 		if img := attrString(el, "image"); fileID(img) != "" {
 			w.open("img", "class", "bookmark__image", "src", fileURL(img), "alt", "", "loading", "lazy")
 		}
@@ -250,9 +271,19 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 	case "embed":
 		url := attrString(el, "url")
 		w.open("figure", "class", "embed", "data-block", id, "data-provider", attrString(el, "provider"))
-		if src := EmbedSrc(url); src != "" {
-			w.open("iframe", "src", src, "title", url, "loading", "lazy", "allow", "encrypted-media; picture-in-picture; fullscreen", "referrerpolicy", "strict-origin-when-cross-origin", "sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups")
+		if src, height := EmbedSrc(url, attrString(el, "provider")); src != "" {
+			if hh := attrInt(el, "height", 0); hh >= 80 && hh <= 2000 {
+				height = hh
+			}
+			hs := ""
+			if height > 0 {
+				hs = strconv.Itoa(height)
+			}
+			w.open("iframe", "src", src, "title", url, "height", hs, "loading", "lazy", "allow", "encrypted-media; picture-in-picture; fullscreen; clipboard-write", "referrerpolicy", "strict-origin-when-cross-origin", "sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms")
 			w.b.WriteString("</iframe>")
+		} else if safeHref(url) != "" {
+			w.open("a", "class", "embed__fallback", "href", safeHref(url), "target", "_blank", "rel", "noopener noreferrer nofollow")
+			w.b.WriteString(esc(url) + "</a>")
 		}
 		w.b.WriteString("</figure>")
 	case "database":
@@ -319,16 +350,6 @@ func humanSize(n int64) string {
 		return fmt.Sprintf("%.1f MB", float64(n)/(1024*1024))
 	}
 	return fmt.Sprintf("%.1f GB", float64(n)/(1024*1024*1024))
-}
-
-func EmbedSrc(url string) string {
-	if m := youtubeRE.FindStringSubmatch(url); m != nil {
-		return "https://www.youtube-nocookie.com/embed/" + m[1]
-	}
-	if m := vimeoRE.FindStringSubmatch(url); m != nil {
-		return "https://player.vimeo.com/video/" + m[1] + "?dnt=1"
-	}
-	return ""
 }
 
 func (w *htmlWriter) inline(el *crdt.YXmlElement) {

@@ -54,6 +54,8 @@ type File struct {
 	CreatedAt   int64  `json:"created_at"`
 	URL         string `json:"url"`
 	Ref         string `json:"ref"`
+	W           int    `json:"w,omitempty"`
+	H           int    `json:"h,omitempty"`
 	ext         string
 }
 
@@ -65,6 +67,11 @@ type Service struct {
 	audit    *audit.Log
 	log      *slog.Logger
 	dir      string
+	fetch    *http.Client
+}
+
+func (s *Service) UseFetcher(c *http.Client) {
+	s.fetch = c
 }
 
 func New(st *store.Store, gate *policy.Gate, pages *page.Service, set *settings.Service, al *audit.Log, log *slog.Logger, dataDir string) (*Service, error) {
@@ -273,7 +280,7 @@ func (s *Service) store(ctx context.Context, p *policy.Principal, part io.Reader
 		os.Remove(s.path(id, ext))
 		return nil, err
 	}
-	return &File{ID: id, WorkspaceID: t.workspaceID, PageID: t.pageID, OwnerID: p.UserID, Purpose: purpose, Name: name, Mime: ctype, Size: n, CreatedAt: now, URL: "/files/" + id, Ref: "f:" + id}, nil
+	return &File{ID: id, WorkspaceID: t.workspaceID, PageID: t.pageID, OwnerID: p.UserID, Purpose: purpose, Name: name, Mime: ctype, Size: n, CreatedAt: now, URL: "/files/" + id, Ref: "f:" + id, ext: ext}, nil
 }
 
 func nullable(v string) any {
@@ -445,6 +452,7 @@ func (module) ID() string { return "files" }
 func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	s, a := m.s, m.auth
 	r.HandleFunc("POST /api/files", a.Require(s.Upload))
+	r.HandleFunc("POST /api/files/import", a.Require(s.importHandler))
 	r.HandleFunc("GET /files/{id}", a.Require(s.Serve))
 	r.HandleFunc("GET /api/workspaces/{id}/files", a.Require(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 		list, err := s.List(r.Context(), p, r.PathValue("id"))

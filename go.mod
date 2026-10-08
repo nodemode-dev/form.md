@@ -7,6 +7,7 @@ require (
 	github.com/reearth/ygo v1.51.0
 	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.57.0
+	golang.org/x/net v0.59.0
 	modernc.org/sqlite v1.60.1
 	rsc.io/qr v0.2.0
 )

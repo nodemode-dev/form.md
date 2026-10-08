@@ -266,16 +266,10 @@ func (c *converter) paragraph(n gast.Node) *pmNode {
 }
 
 func linkBlock(url string) *pmNode {
-	if m := youtubeRE.FindStringSubmatch(url); m != nil {
+	if p := EmbedProvider(url); p != "" {
 		e := newNode("embed")
 		e.attrs["url"] = url
-		e.attrs["provider"] = "youtube"
-		return e
-	}
-	if m := vimeoRE.FindStringSubmatch(url); m != nil {
-		e := newNode("embed")
-		e.attrs["url"] = url
-		e.attrs["provider"] = "vimeo"
+		e.attrs["provider"] = p
 		return e
 	}
 	b := newNode("bookmark")

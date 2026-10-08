@@ -20,6 +20,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/files"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/mail"
+	"github.com/nodemode-ai/form.md/internal/netguard"
 	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/search"
@@ -27,6 +28,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/settings"
 	"github.com/nodemode-ai/form.md/internal/static"
 	"github.com/nodemode-ai/form.md/internal/store"
+	"github.com/nodemode-ai/form.md/internal/unfurl"
 	"github.com/nodemode-ai/form.md/internal/workspace"
 )
 
@@ -68,6 +70,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	if err != nil {
 		return nil, err
 	}
+	fetcher := netguard.NewClient(netguard.Options{AllowPrivate: cfg.FetchPrivate})
+	fsvc.UseFetcher(fetcher)
+	links := unfurl.New(fetcher, pages, fsvc, log)
 	docs := doc.New(st, pages, authSvc, log)
 	pages.OnDuplicate(docs.Copy)
 	pages.OnDuplicated(docs.Remap)
@@ -112,6 +117,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		hub.Module(authSvc),
 		pages.Module(authSvc),
 		fsvc.Module(authSvc),
+		links.Module(authSvc),
 		docs.Module(),
 		cols.Module(authSvc, authSvc.TrustProxy),
 		finder.Module(),

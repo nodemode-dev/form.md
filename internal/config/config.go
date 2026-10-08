@@ -15,6 +15,8 @@ type Config struct {
 	DataDir string
 	TLSCert string
 	TLSKey  string
+
+	FetchPrivate bool
 }
 
 type Var struct {
@@ -28,6 +30,7 @@ var Vars = []Var{
 	{"DATA", "./data", "data directory holding the database and uploads"},
 	{"TLS_CERT", "", "path to a TLS certificate; set together with FORMMD_TLS_KEY"},
 	{"TLS_KEY", "", "path to the TLS private key; set together with FORMMD_TLS_CERT"},
+	{"FETCH_PRIVATE", "", "set to 1 to let link previews and media imports reach private network addresses such as intranet sites; off by default"},
 }
 
 func Load() (Config, error) {
@@ -36,6 +39,8 @@ func Load() (Config, error) {
 		DataDir: get("DATA"),
 		TLSCert: get("TLS_CERT"),
 		TLSKey:  get("TLS_KEY"),
+
+		FetchPrivate: get("FETCH_PRIVATE") == "1" || get("FETCH_PRIVATE") == "true",
 	}
 	if _, _, err := net.SplitHostPort(c.Addr); err != nil {
 		return c, fmt.Errorf("%sADDR %q: %w", EnvPrefix, c.Addr, err)
