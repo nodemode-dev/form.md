@@ -3,6 +3,9 @@ module github.com/nodemode-ai/form.md
 go 1.26.0
 
 require (
+	github.com/coder/websocket v1.8.15
+	github.com/reearth/ygo v1.51.0
+	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.57.0
 	modernc.org/sqlite v1.60.1
 	rsc.io/qr v0.2.0

@@ -19,7 +19,7 @@ type component struct {
 	text    string
 }
 
-var licenseFiles = []string{"LICENSE", "LICENSE.md", "LICENSE.txt", "LICENCE", "COPYING", "license", "license.md"}
+var licenseFiles = []string{"LICENSE", "LICENSE.md", "LICENSE.txt", "LICENSE-MIT.txt", "LICENCE", "COPYING", "license", "license.md"}
 
 func main() {
 	root, err := os.Getwd()
@@ -82,13 +82,30 @@ func webPackages(root string) []component {
 		Dependencies map[string]string `json:"dependencies"`
 	}
 	check(json.Unmarshal(raw, &pkg))
-	names := []string{"vite"}
-	for n := range pkg.Dependencies {
-		names = append(names, n)
+	type entry struct{ name, dir string }
+	entries := []entry{{"vite", filepath.Join(web, "node_modules", "vite")}}
+	if lockRaw, err := os.ReadFile(filepath.Join(web, "package-lock.json")); err == nil {
+		var lock struct {
+			Packages map[string]struct {
+				Dev bool `json:"dev"`
+			} `json:"packages"`
+		}
+		check(json.Unmarshal(lockRaw, &lock))
+		for path, p := range lock.Packages {
+			i := strings.LastIndex(path, "node_modules/")
+			if p.Dev || i < 0 {
+				continue
+			}
+			entries = append(entries, entry{path[i+len("node_modules/"):], filepath.Join(web, filepath.FromSlash(path))})
+		}
+	} else {
+		for n := range pkg.Dependencies {
+			entries = append(entries, entry{n, filepath.Join(web, "node_modules", n)})
+		}
 	}
 	var comps []component
-	for _, n := range names {
-		dir := filepath.Join(web, "node_modules", n)
+	for _, e := range entries {
+		n, dir := e.name, e.dir
 		meta, err := os.ReadFile(filepath.Join(dir, "package.json"))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "notices: %s not installed; run web/oc_install first\n", n)
