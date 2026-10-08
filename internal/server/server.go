@@ -13,6 +13,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auth"
+	"github.com/nodemode-ai/form.md/internal/collection"
 	"github.com/nodemode-ai/form.md/internal/config"
 	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/events"
@@ -42,6 +43,7 @@ type Server struct {
 	Pages    *page.Service
 	Files    *files.Service
 	Docs     *doc.Service
+	Cols     *collection.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -67,6 +69,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	}
 	docs := doc.New(st, pages, authSvc, log)
 	pages.OnDuplicate(docs.Copy)
+	pages.OnDuplicated(docs.Remap)
+	cols := collection.New(st, pages, al, hub, log)
 
 	ws.SetNotifier(hub)
 	ws.SetImageCheck(func(ctx context.Context, ref, workspaceID string) bool {
@@ -90,7 +94,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{authSvc.Middleware},
@@ -105,6 +109,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		pages.Module(authSvc),
 		fsvc.Module(authSvc),
 		docs.Module(),
+		cols.Module(authSvc, authSvc.TrustProxy),
 		static.Module(s.renderDocument),
 	}
 	return s, nil
@@ -209,6 +214,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 			if id, ok := strings.CutPrefix(path, "/p/"); ok {
 				if d, err := s.Pages.Get(ctx, p, strings.TrimSuffix(id, "/")); err == nil {
 					boot["page"] = d
+					s.bootCollection(ctx, p, d, boot)
 					if body, err := s.Docs.Render(ctx, p, d.ID); err == nil {
 						htmlSlots["doc-body"] = body
 						slots["doc-page"] = d.ID
@@ -249,6 +255,12 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		}
 	}
 	switch {
+	case strings.HasPrefix(path, "/form/"):
+		attrs["auth"] = "form"
+		if def, err := s.Cols.PublicForm(ctx, strings.TrimSuffix(strings.TrimPrefix(path, "/form/"), "/")); err == nil {
+			boot["form"] = def
+			slots["instance-name"] = def.Title
+		}
 	case strings.HasPrefix(path, "/invite/"):
 		attrs["auth"] = "invite"
 	case !signedIn && path == "/signup" && attrs["signup"] == "open":
@@ -270,6 +282,29 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		}
 	}
 	return static.Document{Attrs: attrs, Slots: slots, HTML: htmlSlots, Lang: preferredLang(r, userLang), Boot: boot}, nil
+}
+
+func (s *Server) bootCollection(ctx context.Context, p *policy.Principal, d *page.Detail, boot map[string]any) {
+	if d.Row {
+		if row, err := s.Cols.Row(ctx, p, d.ID); err == nil {
+			boot["row"] = row
+		}
+	}
+	if d.Kind != "collection" {
+		return
+	}
+	col, err := s.Cols.Get(ctx, p, d.ID)
+	if err != nil {
+		s.Deps.Log.Warn("collection: first paint", "page", d.ID, "err", err)
+		return
+	}
+	boot["collection"] = col
+	if len(col.Views) > 0 {
+		v := col.Views[0]
+		if res, err := s.Cols.Query(ctx, p, d.ID, collection.QueryInput{ViewID: v.ID, Limit: 100}); err == nil {
+			boot["query"] = map[string]any{"view_id": v.ID, "result": res}
+		}
+	}
 }
 
 func (s *Server) landing(ctx context.Context, p *policy.Principal, workspaceID string, tree []*page.Meta) string {
