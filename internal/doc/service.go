@@ -268,6 +268,75 @@ func (s *Service) Copy(ctx context.Context, tx *sql.Tx, from, to string) error {
 	return err
 }
 
+func (s *Service) Remap(ctx context.Context, tx *sql.Tx, mapping map[string]string) error {
+	copied := make(map[string]bool, len(mapping))
+	for _, to := range mapping {
+		copied[to] = true
+	}
+	hosts := map[string]bool{}
+	for _, to := range mapping {
+		var parent sql.NullString
+		err := tx.QueryRowContext(ctx, "SELECT parent_id FROM pages WHERE id = ? AND kind = 'collection'", to).Scan(&parent)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if parent.Valid && copied[parent.String] {
+			hosts[parent.String] = true
+		}
+	}
+	for to := range hosts {
+		var snap []byte
+		err := tx.QueryRowContext(ctx, "SELECT snapshot FROM doc_state WHERE page_id = ?", to).Scan(&snap)
+		if errors.Is(err, sql.ErrNoRows) || (err == nil && len(snap) == 0) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		d := crdt.New()
+		if err := crdt.ApplyUpdateV1(d, snap, nil); err != nil {
+			d.Destroy()
+			return err
+		}
+		frag := d.GetXmlFragment(Root)
+		var hits []*crdt.YXmlElement
+		var walk func(n any)
+		walk = func(n any) {
+			for _, c := range children(n) {
+				if el, ok := c.(*crdt.YXmlElement); ok {
+					if _, moved := mapping[attrString(el, "collection")]; moved && el.NodeName == "database" {
+						hits = append(hits, el)
+					}
+					walk(el)
+				}
+			}
+		}
+		walk(frag)
+		if len(hits) == 0 {
+			d.Destroy()
+			continue
+		}
+		d.Transact(func(txn *crdt.Transaction) {
+			for _, el := range hits {
+				el.SetAttributeValue(txn, "collection", mapping[attrString(el, "collection")])
+			}
+		}, &origin{})
+		sum := Summarise(frag, nil)
+		state := crdt.EncodeStateAsUpdateV1(d, nil)
+		d.Destroy()
+		if _, err := tx.ExecContext(ctx, "UPDATE doc_state SET snapshot = ?, markdown = ?, text_size = ? WHERE page_id = ?", state, sum.Markdown, len(sum.Text), to); err != nil {
+			return err
+		}
+		if err := writeRefs(ctx, tx, to, sum); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Service) withRoom(ctx context.Context, id string, fn func(r *room)) error {
 	r, err := s.acquire(ctx, id)
 	if err != nil {

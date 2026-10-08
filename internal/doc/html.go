@@ -249,6 +249,9 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 			w.b.WriteString("</iframe>")
 		}
 		w.b.WriteString("</figure>")
+	case "database":
+		w.open("div", "class", "dbblock", "data-block", id, "data-collection", attrString(el, "collection"), "data-view", attrString(el, "view"), "contenteditable", "false")
+		w.b.WriteString("</div>")
 	case "toc":
 		w.open("nav", "class", "toc", "data-block", id, "contenteditable", "false")
 		for _, h := range w.heads {

@@ -238,6 +238,13 @@ func (w *mdWriter) block(el *crdt.YXmlElement) []string {
 		return []string{"<" + attrString(el, "url") + ">"}
 	case "toc":
 		return []string{"<!-- toc -->"}
+	case "database":
+		id := attrString(el, "collection")
+		if id == "" {
+			return nil
+		}
+		w.pages[id] = true
+		return []string{"<!-- database:" + id + " -->"}
 	case "columns":
 		var out []string
 		for _, c := range children(el) {

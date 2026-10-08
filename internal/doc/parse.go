@@ -38,7 +38,7 @@ var withID = map[string]bool{
 	"paragraph": true, "heading": true, "blockquote": true, "callout": true, "toggle": true,
 	"bullet_list": true, "ordered_list": true, "task_list": true, "list_item": true, "task_item": true,
 	"code_block": true, "horizontal_rule": true, "table": true, "image": true, "video": true, "audio": true,
-	"file": true, "bookmark": true, "embed": true, "toc": true, "columns": true,
+	"file": true, "bookmark": true, "embed": true, "toc": true, "columns": true, "database": true,
 }
 
 var md = goldmark.New(goldmark.WithExtensions(extension.Table, extension.Strikethrough, extension.TaskList, extension.Linkify))
@@ -155,8 +155,29 @@ func unescapeHTML(s string) string {
 	return strings.NewReplacer("&lt;", "<", "&gt;", ">", "&quot;", `"`, "&#39;", "'", "&amp;", "&").Replace(s)
 }
 
+func isPageID(s string) bool {
+	if len(s) != 26 {
+		return false
+	}
+	for _, r := range s {
+		if !(r >= 'a' && r <= 'z') && !(r >= '2' && r <= '7') {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *converter) htmlBlock(raw string) *pmNode {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
+	trimmed := strings.TrimSpace(raw)
+	if id, ok := strings.CutPrefix(trimmed, "<!-- database:"); ok {
+		if id, ok = strings.CutSuffix(id, " -->"); ok && isPageID(id) {
+			n := newNode("database")
+			n.attrs["collection"] = id
+			n.attrs["view"] = ""
+			return n
+		}
+	}
+	switch strings.ToLower(trimmed) {
 	case "<!-- toc -->":
 		return newNode("toc")
 	case "<br>", "<br/>", "<br />":
