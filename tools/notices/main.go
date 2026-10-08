@@ -31,7 +31,13 @@ func main() {
 	comps = append(comps, webPackages(root)...)
 	comps = append(comps, fonts(root)...)
 
-	sort.SliceStable(comps[1:], func(i, j int) bool { return comps[1+i].name < comps[1+j].name })
+	sort.SliceStable(comps[1:], func(i, j int) bool {
+		a, b := comps[1+i], comps[1+j]
+		if a.name != b.name {
+			return a.name < b.name
+		}
+		return a.version < b.version
+	})
 
 	var b bytes.Buffer
 	b.WriteString("# Third-party notices\n\n")

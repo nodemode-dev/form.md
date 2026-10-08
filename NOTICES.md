@@ -48,16 +48,16 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | Inter (font files from @fontsource-variable/inter) | 5.3.0 | OFL-1.1 |
 | JetBrains Mono (font files from @fontsource-variable/jetbrains-mono) | 5.3.0 | OFL-1.1 |
 | argparse | 3.0.2 | PSF-2.0 |
-| commander | 7.2.0 | MIT |
 | commander | 15.0.0 | MIT |
+| commander | 7.2.0 | MIT |
 | cose-base | 1.0.3 | MIT |
 | cose-base | 2.2.0 | MIT |
 | cytoscape | 3.34.3 | MIT |
 | cytoscape-cose-bilkent | 4.1.0 | MIT |
 | cytoscape-fcose | 2.2.0 | MIT |
 | d3 | 7.9.0 | ISC |
-| d3-array | 3.2.4 | ISC |
 | d3-array | 2.12.1 | BSD-3-Clause |
+| d3-array | 3.2.4 | ISC |
 | d3-axis | 3.0.0 | ISC |
 | d3-brush | 3.0.0 | ISC |
 | d3-chord | 3.0.1 | ISC |
@@ -110,8 +110,8 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | highlight.js | 11.12.0 | BSD-3-Clause |
 | iconv-lite | 0.6.3 | MIT |
 | import-meta-resolve | 4.2.0 | MIT |
-| internmap | 2.0.3 | ISC |
 | internmap | 1.0.1 | ISC |
+| internmap | 2.0.3 | ISC |
 | isomorphic.js | 0.2.5 | MIT |
 | katex | 0.18.9 | MIT |
 | khroma | 2.1.0 | MIT |
@@ -1664,7 +1664,7 @@ agrees to be bound by the terms and conditions of this License
 Agreement.
 ```
 
-## commander 7.2.0
+## commander 15.0.0
 
 ```text
 (The MIT License)
@@ -1691,7 +1691,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-## commander 15.0.0
+## commander 7.2.0
 
 ```text
 (The MIT License)
@@ -1860,24 +1860,6 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-## d3-array 3.2.4
-
-```text
-Copyright 2010-2023 Mike Bostock
-
-Permission to use, copy, modify, and/or distribute this software for any purpose
-with or without fee is hereby granted, provided that the above copyright notice
-and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
-OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
-THIS SOFTWARE.
-```
-
 ## d3-array 2.12.1
 
 ```text
@@ -1908,6 +1890,24 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+## d3-array 3.2.4
+
+```text
+Copyright 2010-2023 Mike Bostock
+
+Permission to use, copy, modify, and/or distribute this software for any purpose
+with or without fee is hereby granted, provided that the above copyright notice
+and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+THIS SOFTWARE.
 ```
 
 ## d3-axis 3.0.0
@@ -3348,7 +3348,7 @@ IN THE SOFTWARE.
 """
 ```
 
-## internmap 2.0.3
+## internmap 1.0.1
 
 ```text
 Copyright 2021 Mike Bostock
@@ -3366,7 +3366,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-## internmap 1.0.1
+## internmap 2.0.3
 
 ```text
 Copyright 2021 Mike Bostock
