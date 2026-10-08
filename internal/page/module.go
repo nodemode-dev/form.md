@@ -190,5 +190,6 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		}
 		return done(w)
 	})
+	m.mountSharing(route)
 	return nil
 }

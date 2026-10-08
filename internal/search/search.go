@@ -35,6 +35,7 @@ type Service struct {
 	st      *store.Store
 	gate    *policy.Gate
 	auth    *auth.Service
+	pages   *page.Service
 	log     *slog.Logger
 	rowText func(ctx context.Context, id string) (string, bool)
 	rowIDs  func(ctx context.Context, collectionID string) []string
@@ -48,7 +49,7 @@ type Service struct {
 }
 
 func New(st *store.Store, gate *policy.Gate, a *auth.Service, pages *page.Service, log *slog.Logger) *Service {
-	s := &Service{st: st, gate: gate, auth: a, log: log, dirty: map[string]struct{}{}, wake: make(chan struct{}, 1)}
+	s := &Service{st: st, gate: gate, auth: a, pages: pages, log: log, dirty: map[string]struct{}{}, wake: make(chan struct{}, 1)}
 	pages.OnChange(func(_ context.Context, ids []string) { s.Touch(ids...) })
 	return s
 }
@@ -384,7 +385,8 @@ func ftsQuery(q string) string {
 
 func (s *Service) Search(ctx context.Context, p *policy.Principal, in Query) (*Result, error) {
 	start := time.Now()
-	if _, err := s.gate.Workspace(ctx, p, in.WorkspaceID); err != nil {
+	visible, err := s.pages.Filter(ctx, p, in.WorkspaceID)
+	if err != nil {
 		return nil, err
 	}
 	limit := in.Limit
@@ -398,7 +400,7 @@ func (s *Service) Search(ctx context.Context, p *policy.Principal, in Query) (*R
 		res.TookMS = ms(start)
 		return res, nil
 	}
-	hidden, err := s.hidden(ctx, p, in.WorkspaceID)
+	templates, err := s.templates(ctx, in.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +456,7 @@ func (s *Service) Search(ctx context.Context, p *policy.Principal, in Query) (*R
 			if err := rows.Scan(&h.part, &h.ID, &h.Match, &h.Heading, &ws, &h.Title, &h.Icon, &h.Kind, &row, &h.parentID, &h.CreatedAt, &h.CreatedBy, &h.UpdatedAt); err != nil {
 				return read, err
 			}
-			if ws != in.WorkspaceID || seen[h.ID] || hidden[h.ID] {
+			if ws != in.WorkspaceID || seen[h.ID] || !visible(h.ID) || templates[h.ID] {
 				continue
 			}
 			seen[h.ID] = true
@@ -572,11 +574,11 @@ func ms(t time.Time) float64 {
 	return float64(time.Since(t).Microseconds()) / 1000
 }
 
-func (s *Service) hidden(ctx context.Context, p *policy.Principal, workspaceID string) (map[string]bool, error) {
-	rows, err := s.st.R.QueryContext(ctx, `WITH RECURSIVE hid(id) AS (
-		SELECT id FROM pages WHERE workspace_id = ? AND (visibility = 'private' OR is_template = 1) AND (is_template = 1 OR owner_id IS NOT ?)
-		UNION SELECT c.id FROM pages c JOIN hid ON c.parent_id = hid.id)
-		SELECT id FROM hid`, workspaceID, p.UserID)
+func (s *Service) templates(ctx context.Context, workspaceID string) (map[string]bool, error) {
+	rows, err := s.st.R.QueryContext(ctx, `WITH RECURSIVE tpl(id) AS (
+		SELECT id FROM pages WHERE workspace_id = ? AND is_template = 1
+		UNION SELECT c.id FROM pages c JOIN tpl ON c.parent_id = tpl.id)
+		SELECT id FROM tpl`, workspaceID)
 	if err != nil {
 		return nil, err
 	}

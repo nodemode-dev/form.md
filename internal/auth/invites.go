@@ -103,7 +103,7 @@ func (s *Service) handleListInvites(w http.ResponseWriter, r *http.Request, p *p
 		return err
 	}
 	rows, err := s.st.R.QueryContext(r.Context(), `SELECT id, email, role, workspace_id, COALESCE(created_by, ''), created_at, expires_at
-		FROM invites WHERE workspace_id = ? AND accepted_at = 0 AND expires_at > ? ORDER BY created_at DESC`, wsID, store.NowMS())
+		FROM invites WHERE workspace_id = ? AND page_id IS NULL AND accepted_at = 0 AND expires_at > ? ORDER BY created_at DESC`, wsID, store.NowMS())
 	if err != nil {
 		return err
 	}
@@ -141,16 +141,37 @@ func (s *Service) handleDeleteInvite(w http.ResponseWriter, r *http.Request, p *
 
 type pendingInvite struct {
 	ID, Email, Role, WorkspaceID, WorkspaceName, WorkspaceIcon, Inviter string
+	PageID, PageTitle, ShareLevel                                       string
 	ExpiresAt, AcceptedAt                                               int64
+}
+
+type GuestAccept func(ctx context.Context, tx *sql.Tx, userID, pageID, level string) error
+
+func (s *Service) SetGuestAccept(fn GuestAccept) { s.guestAccept = fn }
+
+func (s *Service) SendInviteMail(ctx context.Context, email, inviter, title, path string) bool {
+	if email == "" || s.mailer == nil || !s.mailer.Enabled() {
+		return false
+	}
+	base := strings.TrimRight(s.settings.Get("instance.public_url"), "/")
+	body := fmt.Sprintf("%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n", inviter, title, s.settings.Get("instance.name"), base, path)
+	if err := s.mailer.Send(ctx, email, inviter+" shared a page with you", body); err != nil {
+		s.log.Warn("guest invite email failed", "err", err)
+		return false
+	}
+	return true
 }
 
 func (s *Service) lookupInvite(ctx context.Context, token string) (*pendingInvite, error) {
 	var i pendingInvite
 	err := s.st.R.QueryRowContext(ctx, `
-		SELECT i.id, i.email, i.role, i.workspace_id, w.name, w.icon, COALESCE(u.name, ''), i.expires_at, i.accepted_at
+		SELECT i.id, i.email, i.role, i.workspace_id, w.name, w.icon, COALESCE(u.name, ''), i.expires_at, i.accepted_at,
+			COALESCE(i.page_id, ''), COALESCE(p.title, ''), i.share_level
 		FROM invites i JOIN workspaces w ON w.id = i.workspace_id LEFT JOIN users u ON u.id = i.created_by
+		LEFT JOIN pages p ON p.id = i.page_id
 		WHERE i.token_hash = ?`, secrets.Hash(token)).
-		Scan(&i.ID, &i.Email, &i.Role, &i.WorkspaceID, &i.WorkspaceName, &i.WorkspaceIcon, &i.Inviter, &i.ExpiresAt, &i.AcceptedAt)
+		Scan(&i.ID, &i.Email, &i.Role, &i.WorkspaceID, &i.WorkspaceName, &i.WorkspaceIcon, &i.Inviter, &i.ExpiresAt, &i.AcceptedAt,
+			&i.PageID, &i.PageTitle, &i.ShareLevel)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, httpx.Fail(http.StatusNotFound, "invite_invalid", "this invitation does not exist or was already used")
 	}
@@ -177,6 +198,9 @@ func (s *Service) handleGetInvite(w http.ResponseWriter, r *http.Request) error 
 		"role":           i.Role,
 		"email":          i.Email,
 		"account_exists": false,
+	}
+	if i.PageID != "" {
+		out["page"] = map[string]string{"id": i.PageID, "title": i.PageTitle, "level": i.ShareLevel}
 	}
 	if i.Email != "" {
 		var n int
@@ -267,6 +291,12 @@ func (s *Service) handleAcceptInvite(w http.ResponseWriter, r *http.Request) err
 				return err
 			}
 		}
+		if inv.PageID != "" {
+			if s.guestAccept == nil {
+				return httpx.Fail(http.StatusServiceUnavailable, "no_invites", "guest invitations are not available")
+			}
+			return s.guestAccept(ctx, tx, userID, inv.PageID, inv.ShareLevel)
+		}
 		if s.accounts == nil {
 			return nil
 		}
@@ -280,6 +310,10 @@ func (s *Service) handleAcceptInvite(w http.ResponseWriter, r *http.Request) err
 			return err
 		}
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"workspace_id": inv.WorkspaceID})
+	out := map[string]any{"workspace_id": inv.WorkspaceID}
+	if inv.PageID != "" {
+		out["page_id"] = inv.PageID
+	}
+	httpx.JSON(w, http.StatusOK, out)
 	return nil
 }

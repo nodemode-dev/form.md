@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nodemode-ai/form.md/internal/audit"
+	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/events"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/icon"
@@ -24,7 +25,6 @@ const (
 	MaxDescription = 2000
 	MaxTags        = 20
 	MaxTag         = 40
-	nobody         = "-"
 )
 
 var Covers = []string{"dawn", "lagoon", "meadow", "ember", "dusk", "glacier", "orchard", "slate", "aurora", "sand", "tide", "plum"}
@@ -53,12 +53,15 @@ type Meta struct {
 	TrashedBy     string   `json:"trashed_by,omitempty"`
 	TrashedByKind string   `json:"trashed_by_kind,omitempty"`
 	Row           bool     `json:"row,omitempty"`
+	TeamspaceID   string   `json:"teamspace_id,omitempty"`
+	Detached      bool     `json:"detached,omitempty"`
+	Access        string   `json:"access,omitempty"`
 	trashBatch    string
 }
 
 const metaColumns = `p.id, p.workspace_id, COALESCE(p.parent_id, ''), p.kind, p.sort_key, p.title, p.icon, p.cover, p.description, p.tags,
 	p.visibility, COALESCE(p.owner_id, ''), p.is_template, p.snippet, p.thumb, p.created_at, p.created_by, p.updated_at, p.updated_by,
-	p.trashed_at, p.trashed_by, p.trashed_by_kind, p.trash_batch, p.is_row`
+	p.trashed_at, p.trashed_by, p.trashed_by_kind, p.trash_batch, p.is_row, COALESCE(p.teamspace_id, '')`
 
 func scanMeta(row interface{ Scan(...any) error }) (*Meta, error) {
 	var m Meta
@@ -66,7 +69,7 @@ func scanMeta(row interface{ Scan(...any) error }) (*Meta, error) {
 	var tpl, isRow int
 	err := row.Scan(&m.ID, &m.WorkspaceID, &m.ParentID, &m.Kind, &m.SortKey, &m.Title, &m.Icon, &m.Cover, &m.Description, &tags,
 		&m.Visibility, &m.OwnerID, &tpl, &m.Snippet, &m.Thumb, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy,
-		&m.TrashedAt, &m.TrashedBy, &m.TrashedByKind, &m.trashBatch, &isRow)
+		&m.TrashedAt, &m.TrashedBy, &m.TrashedByKind, &m.trashBatch, &isRow, &m.TeamspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +96,8 @@ type Service struct {
 	movers   []func(ctx context.Context, tx *sql.Tx, ids []string, workspaceID string) error
 	watchers []func(ctx context.Context, ids []string)
 	creators []func(ctx context.Context, tx *sql.Tx, id, workspaceID, kind string, extra json.RawMessage) error
+	sharers  []func(ctx context.Context, m *Meta, kind, subject string)
+	auth     *auth.Service
 }
 
 func (s *Service) OnCreate(fn func(ctx context.Context, tx *sql.Tx, id, workspaceID, kind string, extra json.RawMessage) error) {
@@ -120,8 +125,21 @@ func (s *Service) notify(ctx context.Context, ids []string) {
 	}
 }
 
-func (s *Service) PrivateOwner(ctx context.Context, id string) (string, error) {
-	return s.privateOwner(ctx, s.st.R, id)
+func (s *Service) Audience(ctx context.Context, m *Meta) (events.Audience, error) {
+	scope, users, err := s.Readers(ctx, m)
+	if scope == "workspace" {
+		scope = ""
+	}
+	return events.Audience{Scope: scope, Grantees: users}, err
+}
+
+func (s *Service) AudienceOf(ctx context.Context, id string) (string, events.Audience, error) {
+	m, err := s.load(ctx, s.st.R, id)
+	if err != nil {
+		return "", events.Audience{}, err
+	}
+	a, err := s.Audience(ctx, m)
+	return m.WorkspaceID, a, err
 }
 
 func (s *Service) Load(ctx context.Context, id string) (*Meta, error) {
@@ -133,7 +151,7 @@ func (s *Service) Writable(ctx context.Context, p *policy.Principal, id string) 
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.check(ctx, s.st.R, p, m, true); err != nil {
+	if _, err := s.check(ctx, s.st.R, p, m, LevelContent); err != nil {
 		return nil, err
 	}
 	if m.TrashedAt > 0 {
@@ -147,7 +165,19 @@ func (s *Service) ReadableMeta(ctx context.Context, p *policy.Principal, id stri
 	if err != nil {
 		return nil, false, err
 	}
-	return m, a.ws.CanWrite() && m.TrashedAt == 0, nil
+	return m, a.level >= LevelContent && p.CanWrite() && m.TrashedAt == 0, nil
+}
+
+func (s *Service) ReadableLevel(ctx context.Context, p *policy.Principal, id string) (*Meta, Level, error) {
+	m, a, err := s.readable(ctx, p, id)
+	if err != nil {
+		return nil, LevelNone, err
+	}
+	l := a.level
+	if !p.CanWrite() && l > LevelView {
+		l = LevelView
+	}
+	return m, l, nil
 }
 
 func New(st *store.Store, gate *policy.Gate, al *audit.Log, hub *events.Hub, set *settings.Service, log *slog.Logger) *Service {
@@ -168,52 +198,25 @@ func (s *Service) load(ctx context.Context, q store.Querier, id string) (*Meta, 
 	return m, nil
 }
 
-func (s *Service) privateOwner(ctx context.Context, q store.Querier, id string) (string, error) {
-	rows, err := q.QueryContext(ctx, `WITH RECURSIVE chain(id, parent_id, visibility, owner_id) AS (
-			SELECT id, parent_id, visibility, owner_id FROM pages WHERE id = ?
-			UNION ALL
-			SELECT p.id, p.parent_id, p.visibility, p.owner_id FROM pages p JOIN chain c ON p.id = c.parent_id
-		) SELECT COALESCE(owner_id, '') FROM chain WHERE visibility = 'private'`, id)
-	if err != nil {
-		return "", err
-	}
-	defer rows.Close()
-	owner := ""
-	for rows.Next() {
-		var o string
-		if err := rows.Scan(&o); err != nil {
-			return "", err
-		}
-		if o == "" || (owner != "" && owner != o) {
-			owner = nobody
-		} else if owner != nobody {
-			owner = o
-		}
-	}
-	return owner, rows.Err()
-}
-
 type access struct {
-	ws    policy.Access
-	owner string
+	ws     policy.Access
+	level  Level
+	viewer *viewer
+	chain  []chainNode
 }
 
-func (s *Service) check(ctx context.Context, q store.Querier, p *policy.Principal, m *Meta, write bool) (access, error) {
-	a, err := s.gate.Workspace(ctx, p, m.WorkspaceID)
+func (s *Service) check(ctx context.Context, q store.Querier, p *policy.Principal, m *Meta, need Level) (access, error) {
+	l, v, chain, err := s.levelOf(ctx, q, p, m)
 	if err != nil {
 		return access{}, err
 	}
-	owner, err := s.privateOwner(ctx, q, m.ID)
-	if err != nil {
-		return access{}, err
-	}
-	if owner != "" && owner != p.UserID {
+	if l < LevelView {
 		return access{}, policy.ErrHidden
 	}
-	if write && !a.CanWrite() {
+	if l < need {
 		return access{}, httpx.ErrForbidden
 	}
-	return access{ws: a, owner: owner}, nil
+	return access{ws: v.ws, level: l, viewer: v, chain: chain}, nil
 }
 
 func (s *Service) readable(ctx context.Context, p *policy.Principal, id string) (*Meta, access, error) {
@@ -221,7 +224,7 @@ func (s *Service) readable(ctx context.Context, p *policy.Principal, id string) 
 	if err != nil {
 		return nil, access{}, err
 	}
-	a, err := s.check(ctx, s.st.R, p, m, false)
+	a, err := s.check(ctx, s.st.R, p, m, LevelView)
 	return m, a, err
 }
 
@@ -293,10 +296,10 @@ func hidden(err error) bool {
 
 func (s *Service) emit(ctx context.Context, m *Meta) {
 	defer s.notify(ctx, []string{m.ID})
-	owner, err := s.privateOwner(ctx, s.st.R, m.ID)
+	aud, err := s.Audience(ctx, m)
 	if err != nil {
 		s.log.Warn("page: emit", "err", err)
 		return
 	}
-	s.hub.Page(m.WorkspaceID, owner, m)
+	s.hub.Page(m.WorkspaceID, aud, m)
 }

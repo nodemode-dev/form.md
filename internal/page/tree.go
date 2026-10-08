@@ -9,35 +9,6 @@ import (
 	"github.com/nodemode-ai/form.md/internal/policy"
 )
 
-func visibleIn(all []*Meta, me string) map[string]bool {
-	byID := make(map[string]*Meta, len(all))
-	for _, m := range all {
-		byID[m.ID] = m
-	}
-	memo := make(map[string]bool, len(all))
-	var visit func(m *Meta, depth int) bool
-	visit = func(m *Meta, depth int) bool {
-		if v, ok := memo[m.ID]; ok {
-			return v
-		}
-		ok := !(m.Visibility == "private" && m.OwnerID != me)
-		if ok && m.ParentID != "" && depth < 512 {
-			if parent, found := byID[m.ParentID]; found {
-				ok = visit(parent, depth+1)
-			}
-		}
-		memo[m.ID] = ok
-		return ok
-	}
-	out := make(map[string]bool, len(all))
-	for _, m := range all {
-		if visit(m, 0) {
-			out[m.ID] = true
-		}
-	}
-	return out
-}
-
 func inTemplates(all []*Meta) map[string]bool {
 	byID := make(map[string]*Meta, len(all))
 	for _, m := range all {
@@ -92,22 +63,93 @@ func (s *Service) workspacePages(ctx context.Context, workspaceID string, trashe
 }
 
 func (s *Service) Tree(ctx context.Context, p *policy.Principal, workspaceID string) ([]*Meta, error) {
-	if _, err := s.gate.Workspace(ctx, p, workspaceID); err != nil {
-		return nil, err
-	}
-	all, err := s.workspacePages(ctx, workspaceID, false, false)
+	v, err := s.viewer(ctx, s.st.R, p, workspaceID)
 	if err != nil {
 		return nil, err
 	}
-	seen := visibleIn(all, p.UserID)
+	all, err := s.workspacePages(ctx, workspaceID, false, true)
+	if err != nil {
+		return nil, err
+	}
+	levels := v.levels(all)
 	tpl := inTemplates(all)
 	out := make([]*Meta, 0, len(all))
 	for _, m := range all {
-		if seen[m.ID] && !tpl[m.ID] {
+		if levels[m.ID] >= LevelView && !tpl[m.ID] && !m.Row {
 			out = append(out, m)
 		}
 	}
+	for _, m := range out {
+		m.Access = levels[m.ID].String()
+		switch {
+		case m.ParentID != "" && levels[m.ParentID] < LevelView:
+		case m.ParentID == "" && (!v.member || (m.Visibility == "private" && m.OwnerID != v.me) || (m.TeamspaceID != "" && v.root(chainNode{teamspace: m.TeamspaceID}) == LevelNone)):
+		default:
+			continue
+		}
+		m.Detached = true
+	}
 	return out, nil
+}
+
+func marks(n int) string {
+	if n == 0 {
+		return "SELECT NULL WHERE 0"
+	}
+	return strings.TrimSuffix(strings.Repeat("?,", n), ",")
+}
+
+func (s *Service) Filter(ctx context.Context, p *policy.Principal, workspaceID string) (func(id string) bool, error) {
+	v, err := s.viewer(ctx, s.st.R, p, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	shared := make([]any, 0, len(v.shares))
+	for id := range v.shares {
+		shared = append(shared, id)
+	}
+	var q string
+	var args []any
+	if v.member {
+		var teams []any
+		for id := range v.teams {
+			if v.root(chainNode{teamspace: id}) == LevelNone {
+				teams = append(teams, id)
+			}
+		}
+		q = `WITH RECURSIVE hid(id) AS (
+			SELECT id FROM pages WHERE workspace_id = ? AND ((visibility = 'private' AND COALESCE(owner_id, '') != ?) OR (parent_id IS NULL AND teamspace_id IN (` + marks(len(teams)) + `))) AND id NOT IN (` + marks(len(shared)) + `)
+			UNION SELECT c.id FROM pages c JOIN hid ON c.parent_id = hid.id WHERE c.id NOT IN (` + marks(len(shared)) + `))
+			SELECT id FROM hid`
+		args = append([]any{workspaceID, v.me}, teams...)
+		args = append(append(args, shared...), shared...)
+	} else {
+		q = `WITH RECURSIVE vis(id) AS (
+			SELECT id FROM pages WHERE workspace_id = ? AND id IN (` + marks(len(shared)) + `)
+			UNION SELECT c.id FROM pages c JOIN vis ON c.parent_id = vis.id WHERE c.visibility != 'private' OR c.id IN (` + marks(len(shared)) + `))
+			SELECT id FROM vis`
+		args = append(append([]any{workspaceID}, shared...), shared...)
+	}
+	rows, err := s.st.R.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	set := map[string]bool{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		set[id] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if v.member {
+		return func(id string) bool { return !set[id] }, nil
+	}
+	return func(id string) bool { return set[id] }, nil
 }
 
 type TrashItem struct {
@@ -124,7 +166,15 @@ func (s *Service) Trash(ctx context.Context, p *policy.Principal, workspaceID, q
 	if err != nil {
 		return nil, err
 	}
-	seen := visibleIn(all, p.UserID)
+	v, err := s.viewer(ctx, s.st.R, p, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	levels := v.levels(all)
+	seen := make(map[string]bool, len(levels))
+	for id, l := range levels {
+		seen[id] = l >= LevelEdit
+	}
 	byID := make(map[string]*Meta, len(all))
 	for _, m := range all {
 		byID[m.ID] = m
@@ -188,17 +238,7 @@ func (s *Service) CanRead(ctx context.Context, p *policy.Principal, id string) e
 }
 
 func (s *Service) CanWrite(ctx context.Context, p *policy.Principal, id string) (string, error) {
-	m, err := s.load(ctx, s.st.R, id)
-	if err != nil {
-		return "", err
-	}
-	if _, err := s.check(ctx, s.st.R, p, m, true); err != nil {
-		return "", err
-	}
-	if m.TrashedAt > 0 {
-		return "", errTrashed
-	}
-	return m.WorkspaceID, nil
+	return s.require(ctx, p, id, LevelContent)
 }
 
 type Crumb struct {
@@ -209,8 +249,13 @@ type Crumb struct {
 
 type Detail struct {
 	*Meta
-	Path     []Crumb `json:"path"`
-	CanWrite bool    `json:"can_write"`
+	Path       []Crumb `json:"path"`
+	CanWrite   bool    `json:"can_write"`
+	Level      string  `json:"level"`
+	CanEdit    bool    `json:"can_edit"`
+	CanComment bool    `json:"can_comment"`
+	CanShare   bool    `json:"can_share"`
+	Guest      bool    `json:"guest,omitempty"`
 }
 
 func (s *Service) Get(ctx context.Context, p *policy.Principal, id string) (*Detail, error) {
@@ -222,7 +267,24 @@ func (s *Service) Get(ctx context.Context, p *policy.Principal, id string) (*Det
 	if err != nil {
 		return nil, err
 	}
-	return &Detail{Meta: m, Path: path, CanWrite: a.ws.CanWrite() && m.TrashedAt == 0}, nil
+	if !a.viewer.member || len(a.viewer.shares) > 0 {
+		visible := path[:0]
+		l := LevelNone
+		for i, n := range a.chain {
+			l = a.viewer.step(l, n, i == 0)
+			if i < len(path) && l >= LevelView {
+				visible = append(visible, path[i])
+			}
+		}
+		path = visible
+	}
+	level := a.level
+	if !p.CanWrite() && level > LevelView {
+		level = LevelView
+	}
+	live := m.TrashedAt == 0
+	return &Detail{Meta: m, Path: path, CanWrite: live && level >= LevelContent, Level: level.String(), CanEdit: live && level >= LevelEdit,
+		CanComment: live && level >= LevelComment, CanShare: live && level >= LevelFull, Guest: !a.viewer.member}, nil
 }
 
 func (s *Service) path(ctx context.Context, m *Meta) ([]Crumb, error) {

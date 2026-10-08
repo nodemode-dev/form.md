@@ -96,7 +96,7 @@ func (s *Service) emitViews(ctx context.Context, collectionID string) {
 }
 
 func (s *Service) CreateView(ctx context.Context, p *policy.Principal, collectionID string, in ViewInput) (*View, error) {
-	m, err := s.writable(ctx, p, collectionID)
+	m, err := s.structural(ctx, p, collectionID)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (s *Service) writableView(ctx context.Context, p *policy.Principal, viewID 
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.writable(ctx, p, v.CollectionID); err != nil {
+	if _, err := s.structural(ctx, p, v.CollectionID); err != nil {
 		return nil, err
 	}
 	return v, nil

@@ -1,5 +1,7 @@
 export type InstanceRole = "owner" | "admin" | "member";
 export type WorkspaceRole = "admin" | "member" | "viewer";
+export type AccessLevel = "full" | "edit" | "content" | "create" | "comment" | "view";
+export type TeamAccess = "open" | "closed" | "private";
 export type AgentAccess = "open" | "strict" | "closed";
 
 export interface Prefs {
@@ -31,7 +33,7 @@ export interface Workspace {
   name: string;
   icon: string;
   image: string;
-  role: WorkspaceRole;
+  role: WorkspaceRole | "guest";
   personal: boolean;
   auto_join: boolean;
   sidebar_mode: "split" | "tree";
@@ -69,6 +71,7 @@ export interface Boot {
   pages?: Page[];
   favorites?: Favorite[];
   tags?: TagInfo[];
+  teamspaces?: Teamspace[];
   page?: PageDetail;
   collection?: Collection;
   query?: { view_id: string; result: QueryResult };
@@ -196,6 +199,7 @@ export interface Collection {
   schema: Property[];
   views: CollectionView[];
   can_write: boolean;
+  can_design: boolean;
   rows: number;
   epoch: number;
 }
@@ -352,6 +356,82 @@ export interface Page {
   trashed_by?: string;
   trashed_by_kind?: string;
   row?: boolean;
+  teamspace_id?: string;
+  detached?: boolean;
+  access?: AccessLevel;
+}
+
+export interface Teamspace {
+  id: string;
+  workspace_id: string;
+  name: string;
+  icon: string;
+  description: string;
+  access: TeamAccess;
+  sort_key: string;
+  role: "" | "owner" | "member";
+  members: number;
+  can_manage: boolean;
+}
+
+export interface TeamMember {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface Group {
+  id: string;
+  workspace_id: string;
+  name: string;
+  external_id?: string;
+  members: number;
+}
+
+export interface Share {
+  id: string;
+  page_id: string;
+  kind: "user" | "group";
+  subject_id: string;
+  name: string;
+  email?: string;
+  level: AccessLevel;
+  expires_at: number;
+  guest?: boolean;
+  inherited?: boolean;
+  from_title?: string;
+}
+
+export interface ShareLink {
+  id: string;
+  page_id: string;
+  level: "view" | "comment";
+  password: boolean;
+  expires_at: number;
+  created_at: number;
+  token?: string;
+}
+
+export interface GuestInvite {
+  id: string;
+  email: string;
+  level: AccessLevel;
+  expires_at: number;
+}
+
+export interface Sharing {
+  general: "workspace" | "teamspace" | "private";
+  teamspace?: Teamspace;
+  shares: Share[];
+  links: ShareLink[];
+  invites: GuestInvite[];
+  can_share: boolean;
+}
+
+export interface SharedPage extends Page {
+  workspace_name: string;
+  level: AccessLevel;
 }
 
 export interface Crumb {
@@ -363,6 +443,11 @@ export interface Crumb {
 export interface PageDetail extends Page {
   path: Crumb[];
   can_write: boolean;
+  level: AccessLevel;
+  can_edit: boolean;
+  can_comment: boolean;
+  can_share: boolean;
+  guest?: boolean;
 }
 
 export interface Favorite extends Page {
@@ -489,6 +574,7 @@ export interface InviteInfo {
   email: string;
   account_exists: boolean;
   signed_in_as?: string;
+  page?: { id: string; title: string; level: string };
 }
 
 export interface Token {

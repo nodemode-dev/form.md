@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nodemode-ai/form.md/internal/audit"
+	"github.com/nodemode-ai/form.md/internal/events"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/icon"
 	"github.com/nodemode-ai/form.md/internal/ids"
@@ -94,6 +95,7 @@ type CreateInput struct {
 	Title       string          `json:"title"`
 	Icon        string          `json:"icon"`
 	Kind        string          `json:"kind"`
+	TeamspaceID string          `json:"teamspace_id"`
 	Extra       json.RawMessage `json:"extra,omitempty"`
 }
 
@@ -113,12 +115,13 @@ func (s *Service) Create(ctx context.Context, p *policy.Principal, in CreateInpu
 		return nil, httpx.Fail(http.StatusBadRequest, "bad_icon", "an icon is a name from the icon set or an uploaded image")
 	}
 	workspaceID := in.WorkspaceID
+	teamspace := ""
 	if in.ParentID != "" {
 		parent, err := s.load(ctx, s.st.R, in.ParentID)
 		if err != nil {
 			return nil, err
 		}
-		if _, err := s.check(ctx, s.st.R, p, parent, true); err != nil {
+		if _, err := s.check(ctx, s.st.R, p, parent, LevelContent); err != nil {
 			return nil, err
 		}
 		if parent.TrashedAt > 0 {
@@ -133,6 +136,12 @@ func (s *Service) Create(ctx context.Context, p *policy.Principal, in CreateInpu
 		if !a.CanWrite() {
 			return nil, httpx.ErrForbidden
 		}
+		if in.TeamspaceID != "" {
+			if err := s.teamWritable(ctx, p, workspaceID, in.TeamspaceID); err != nil {
+				return nil, err
+			}
+			teamspace = in.TeamspaceID
+		}
 	}
 	id := ids.New()
 	now := store.NowMS()
@@ -141,8 +150,8 @@ func (s *Service) Create(ctx context.Context, p *policy.Principal, in CreateInpu
 		if err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO pages (id, workspace_id, parent_id, kind, sort_key, title, icon, owner_id, created_at, created_by, updated_at, updated_by)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, workspaceID, nullable(in.ParentID), kind, key, title, in.Icon, p.UserID, now, p.UserID, now, p.UserID); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO pages (id, workspace_id, parent_id, kind, sort_key, title, icon, owner_id, created_at, created_by, updated_at, updated_by, teamspace_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, workspaceID, nullable(in.ParentID), kind, key, title, in.Icon, p.UserID, now, p.UserID, now, p.UserID, nullable(teamspace)); err != nil {
 			return err
 		}
 		for _, fn := range s.creators {
@@ -177,12 +186,15 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 	if err != nil {
 		return nil, err
 	}
-	a, err := s.check(ctx, s.st.R, p, m, true)
+	a, err := s.check(ctx, s.st.R, p, m, LevelContent)
 	if err != nil {
 		return nil, err
 	}
 	if m.TrashedAt > 0 {
 		return nil, errTrashed
+	}
+	if in.Visibility != nil && (a.level < LevelEdit || !a.viewer.member) {
+		return nil, httpx.ErrForbidden
 	}
 	sets, args := []string{}, []any{}
 	var changes []audit.Change
@@ -249,6 +261,10 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 	if len(sets) == 0 {
 		return m, nil
 	}
+	before, err := s.Audience(ctx, m)
+	if err != nil {
+		return nil, err
+	}
 	sets = append(sets, "updated_at = ?", "updated_by = ?")
 	args = append(args, store.NowMS(), p.UserID, id)
 	err = s.st.Tx(ctx, func(tx *sql.Tx) error {
@@ -261,7 +277,7 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 		return nil, err
 	}
 	if movedPrivacy {
-		return s.republish(ctx, m.WorkspaceID, id, a.owner)
+		return s.republish(ctx, m.WorkspaceID, id, before)
 	}
 	out, err := s.load(ctx, s.st.R, id)
 	if err != nil {
@@ -296,11 +312,7 @@ func (s *Service) subtree(ctx context.Context, q store.Querier, id string, liveO
 	return out, rows.Err()
 }
 
-func (s *Service) republish(ctx context.Context, workspaceID, id, before string) (*Meta, error) {
-	after, err := s.privateOwner(ctx, s.st.R, id)
-	if err != nil {
-		return nil, err
-	}
+func (s *Service) republish(ctx context.Context, workspaceID, id string, before events.Audience) (*Meta, error) {
 	pages, err := s.subtree(ctx, s.st.R, id, true)
 	if err != nil {
 		return nil, err
@@ -308,15 +320,20 @@ func (s *Service) republish(ctx context.Context, workspaceID, id, before string)
 	if len(pages) == 0 {
 		return nil, store.ErrNotFound
 	}
-	if after != before && after != "" {
+	after, err := s.Audience(ctx, pages[0])
+	if err != nil {
+		return nil, err
+	}
+	same := after.Scope == before.Scope && strings.Join(after.Grantees, ",") == strings.Join(before.Grantees, ",")
+	if !same && after.Scope != "" {
 		ids := make([]string, len(pages))
 		for i, m := range pages {
 			ids[i] = m.ID
 		}
-		s.hub.Removed(workspaceID, ids, after)
+		s.hub.Removed(workspaceID, ids, &after)
 	}
 	for _, m := range pages {
-		if after == before && m.ID != id {
+		if same && m.ID != id {
 			continue
 		}
 		s.emit(ctx, m)
@@ -327,6 +344,7 @@ func (s *Service) republish(ctx context.Context, workspaceID, id, before string)
 type MoveInput struct {
 	WorkspaceID string  `json:"workspace_id"`
 	ParentID    *string `json:"parent_id"`
+	TeamspaceID *string `json:"teamspace_id"`
 	BeforeID    string  `json:"before_id"`
 	AfterID     string  `json:"after_id"`
 }
@@ -336,7 +354,7 @@ func (s *Service) Move(ctx context.Context, p *policy.Principal, id string, in M
 	if err != nil {
 		return nil, err
 	}
-	a, err := s.check(ctx, s.st.R, p, m, true)
+	a, err := s.check(ctx, s.st.R, p, m, LevelEdit)
 	if err != nil {
 		return nil, err
 	}
@@ -350,6 +368,7 @@ func (s *Service) Move(ctx context.Context, p *policy.Principal, id string, in M
 	if in.ParentID != nil {
 		parentID = *in.ParentID
 	}
+	teamspace := ""
 	if parentID != "" {
 		parent, err := s.load(ctx, s.st.R, parentID)
 		if err != nil {
@@ -358,12 +377,31 @@ func (s *Service) Move(ctx context.Context, p *policy.Principal, id string, in M
 		if parent.WorkspaceID != m.WorkspaceID {
 			return nil, httpx.Fail(http.StatusBadRequest, "bad_parent", "use workspace_id to move a page to another workspace")
 		}
-		if _, err := s.check(ctx, s.st.R, p, parent, true); err != nil {
+		if _, err := s.check(ctx, s.st.R, p, parent, LevelContent); err != nil {
 			return nil, err
 		}
 		if parent.TrashedAt > 0 {
 			return nil, errTrashed
 		}
+	} else {
+		if !a.viewer.member || !a.ws.CanWrite() {
+			return nil, httpx.ErrForbidden
+		}
+		if len(a.chain) > 0 {
+			teamspace = a.chain[0].teamspace
+		}
+		if in.TeamspaceID != nil {
+			teamspace = *in.TeamspaceID
+		}
+		if teamspace != "" {
+			if err := s.teamWritable(ctx, p, m.WorkspaceID, teamspace); err != nil {
+				return nil, err
+			}
+		}
+	}
+	before, err := s.Audience(ctx, m)
+	if err != nil {
+		return nil, err
 	}
 	err = s.st.Tx(ctx, func(tx *sql.Tx) error {
 		if parentID != "" {
@@ -383,17 +421,17 @@ func (s *Service) Move(ctx context.Context, p *policy.Principal, id string, in M
 		if err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, "UPDATE pages SET parent_id = ?, sort_key = ?, updated_at = ?, updated_by = ? WHERE id = ?",
-			nullable(parentID), key, store.NowMS(), p.UserID, id); err != nil {
+		if _, err := tx.ExecContext(ctx, "UPDATE pages SET parent_id = ?, teamspace_id = ?, sort_key = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+			nullable(parentID), nullable(teamspace), key, store.NowMS(), p.UserID, id); err != nil {
 			return err
 		}
 		return s.audit.Record(ctx, tx, p, audit.Entry{Action: "page.move", WorkspaceID: m.WorkspaceID, PageID: id,
-			Changes: []audit.Change{{Field: "parent", Before: m.ParentID, After: parentID}}})
+			Changes: []audit.Change{{Field: "parent", Before: m.ParentID, After: parentID}, {Field: "teamspace", Before: m.TeamspaceID, After: teamspace}}})
 	})
 	if err != nil {
 		return nil, err
 	}
-	return s.republish(ctx, m.WorkspaceID, id, a.owner)
+	return s.republish(ctx, m.WorkspaceID, id, before)
 }
 
 func (s *Service) moveAcross(ctx context.Context, p *policy.Principal, m *Meta, in MoveInput) (*Meta, error) {
@@ -416,7 +454,7 @@ func (s *Service) moveAcross(ctx context.Context, p *policy.Principal, m *Meta, 
 		if parent.WorkspaceID != in.WorkspaceID || parent.TrashedAt > 0 {
 			return nil, httpx.Fail(http.StatusBadRequest, "bad_parent", "the new parent is not a live page in that workspace")
 		}
-		if _, err := s.check(ctx, s.st.R, p, parent, true); err != nil {
+		if _, err := s.check(ctx, s.st.R, p, parent, LevelContent); err != nil {
 			return nil, err
 		}
 	}
@@ -428,11 +466,15 @@ func (s *Service) moveAcross(ctx context.Context, p *policy.Principal, m *Meta, 
 	if err != nil {
 		return nil, err
 	}
-	seen := visibleIn(all, p.UserID)
+	v, err := s.viewer(ctx, s.st.R, p, m.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	seen := v.levels(all)
 	ids := make([]string, len(pages))
 	for i, x := range pages {
-		if !seen[x.ID] {
-			return nil, httpx.Fail(http.StatusConflict, "hidden_subpages", "this page holds private pages of someone else, so it cannot change workspace")
+		if seen[x.ID] < LevelEdit {
+			return nil, httpx.Fail(http.StatusConflict, "hidden_subpages", "this page holds pages you cannot edit, so it cannot change workspace")
 		}
 		ids[i] = x.ID
 	}
@@ -442,12 +484,21 @@ func (s *Service) moveAcross(ctx context.Context, p *policy.Principal, m *Meta, 
 			return err
 		}
 		now := store.NowMS()
-		if _, err := tx.ExecContext(ctx, "UPDATE pages SET parent_id = ?, sort_key = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+		if _, err := tx.ExecContext(ctx, "UPDATE pages SET parent_id = ?, teamspace_id = NULL, sort_key = ?, updated_at = ?, updated_by = ? WHERE id = ?",
 			nullable(parentID), key, now, p.UserID, m.ID); err != nil {
 			return err
 		}
 		for _, id := range ids {
 			if _, err := tx.ExecContext(ctx, "UPDATE pages SET workspace_id = ? WHERE id = ?", in.WorkspaceID, id); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, "DELETE FROM page_shares WHERE page_id = ? AND subject_kind = 'group'", id); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, "UPDATE page_shares SET workspace_id = ? WHERE page_id = ?", in.WorkspaceID, id); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, "UPDATE share_links SET workspace_id = ? WHERE page_id = ?", in.WorkspaceID, id); err != nil {
 				return err
 			}
 			if _, err := tx.ExecContext(ctx, "UPDATE files SET workspace_id = ? WHERE page_id = ?", in.WorkspaceID, id); err != nil {
@@ -467,7 +518,7 @@ func (s *Service) moveAcross(ctx context.Context, p *policy.Principal, m *Meta, 
 	if err != nil {
 		return nil, err
 	}
-	s.hub.Removed(m.WorkspaceID, ids, "")
+	s.hub.Removed(m.WorkspaceID, ids, nil)
 	moved, err := s.subtree(ctx, s.st.R, m.ID, true)
 	if err != nil {
 		return nil, err
@@ -496,8 +547,20 @@ func (s *Service) Duplicate(ctx context.Context, p *policy.Principal, id string,
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.check(ctx, s.st.R, p, m, true); err != nil {
+	a, err := s.check(ctx, s.st.R, p, m, LevelView)
+	if err != nil {
 		return nil, err
+	}
+	if m.ParentID != "" {
+		parent, err := s.load(ctx, s.st.R, m.ParentID)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := s.check(ctx, s.st.R, p, parent, LevelContent); err != nil {
+			return nil, err
+		}
+	} else if !a.viewer.member || !a.ws.CanWrite() {
+		return nil, httpx.ErrForbidden
 	}
 	if m.TrashedAt > 0 {
 		return nil, errTrashed
@@ -520,13 +583,14 @@ func (s *Service) Duplicate(ctx context.Context, p *policy.Principal, id string,
 	if err != nil {
 		return nil, err
 	}
-	visible := visibleIn(all, p.UserID)
+	levels := a.viewer.levels(all)
+	visible := func(id string) bool { return levels[id] >= LevelView }
 	mapping := map[string]string{}
 	var rootID string
 	err = s.st.Tx(ctx, func(tx *sql.Tx) error {
 		now := store.NowMS()
 		for i, x := range pages {
-			if i > 0 && (!visible[x.ID] || mapping[x.ParentID] == "") {
+			if i > 0 && (!visible(x.ID) || mapping[x.ParentID] == "") {
 				continue
 			}
 			nid := ids.New()
@@ -544,11 +608,15 @@ func (s *Service) Duplicate(ctx context.Context, p *policy.Principal, id string,
 				key = k
 			}
 			tags, _ := json.Marshal(x.Tags)
+			team := ""
+			if i == 0 && parent == "" {
+				team = x.TeamspaceID
+			}
 			if _, err := tx.ExecContext(ctx, `INSERT INTO pages (id, workspace_id, parent_id, kind, sort_key, title, icon, cover, description, tags,
-				visibility, owner_id, is_template, snippet, thumb, created_at, created_by, updated_at, updated_by, is_row)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)`,
+				visibility, owner_id, is_template, snippet, thumb, created_at, created_by, updated_at, updated_by, is_row, teamspace_id)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				nid, x.WorkspaceID, nullable(parent), x.Kind, key, name, x.Icon, x.Cover, x.Description, string(tags),
-				x.Visibility, p.UserID, x.Snippet, x.Thumb, now, p.UserID, now, p.UserID, store.Bool(x.Row)); err != nil {
+				x.Visibility, p.UserID, x.Snippet, x.Thumb, now, p.UserID, now, p.UserID, store.Bool(x.Row), nullable(team)); err != nil {
 				return err
 			}
 			for _, fn := range s.copiers {
@@ -584,7 +652,11 @@ func (s *Service) TrashPage(ctx context.Context, p *policy.Principal, id string)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.check(ctx, s.st.R, p, m, true); err != nil {
+	need := LevelEdit
+	if m.Row {
+		need = LevelContent
+	}
+	if _, err := s.check(ctx, s.st.R, p, m, need); err != nil {
 		return nil, err
 	}
 	if m.TrashedAt > 0 {
@@ -616,7 +688,7 @@ func (s *Service) TrashPage(ctx context.Context, p *policy.Principal, id string)
 	if err != nil {
 		return nil, err
 	}
-	s.hub.Removed(m.WorkspaceID, ids, "")
+	s.hub.Removed(m.WorkspaceID, ids, nil)
 	s.hub.Workspace(m.WorkspaceID, "trash")
 	s.notify(ctx, ids)
 	return ids, nil
@@ -629,7 +701,7 @@ func (s *Service) Restore(ctx context.Context, p *policy.Principal, id string) (
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.check(ctx, s.st.R, p, m, true); err != nil {
+	if _, err := s.check(ctx, s.st.R, p, m, LevelEdit); err != nil {
 		return nil, err
 	}
 	if m.TrashedAt == 0 {
@@ -702,7 +774,7 @@ func (s *Service) DeleteForever(ctx context.Context, p *policy.Principal, id str
 	if err != nil {
 		return err
 	}
-	if _, err := s.check(ctx, s.st.R, p, m, true); err != nil {
+	if _, err := s.check(ctx, s.st.R, p, m, LevelEdit); err != nil {
 		return err
 	}
 	if m.TrashedAt == 0 {

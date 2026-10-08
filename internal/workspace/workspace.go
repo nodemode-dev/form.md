@@ -160,7 +160,30 @@ func (s *Service) List(ctx context.Context, p *policy.Principal) ([]*Workspace, 
 			out = append(out, w)
 		}
 	}
-	return out, withheld, nil
+	listed := make(map[string]bool, len(out))
+	for _, w := range out {
+		listed[w.ID] = true
+	}
+	guest, err := s.st.R.QueryContext(ctx, "SELECT "+wsColumns+` FROM workspaces w
+		WHERE w.id IN (SELECT ps.workspace_id FROM page_shares ps JOIN pages pg ON pg.id = ps.page_id WHERE pg.trashed_at = 0
+			AND (ps.expires_at = 0 OR ps.expires_at > ?) AND ps.subject_kind = 'user' AND ps.subject_id = ?)
+		AND w.id NOT IN (SELECT workspace_id FROM workspace_members WHERE user_id = ?) ORDER BY w.name COLLATE NOCASE`, store.NowMS(), p.UserID, p.UserID)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer guest.Close()
+	for guest.Next() {
+		w, err := scanWorkspace(guest)
+		if err != nil {
+			return nil, 0, err
+		}
+		if listed[w.ID] || !p.Reaches(w.ID) || !policy.AgentAllowed(p, w.AgentAccess) {
+			continue
+		}
+		w.Role, w.ProposalWaits, w.MemberCount, w.OwnerID = "guest", false, 0, ""
+		out = append(out, w)
+	}
+	return out, withheld, guest.Err()
 }
 
 func (s *Service) Get(ctx context.Context, p *policy.Principal, id string) (*Workspace, policy.Access, error) {

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,13 +25,19 @@ const (
 )
 
 type Event struct {
-	Seq          int64
-	Type         string
-	Workspace    string
-	PrivateOwner string
-	Except       string
-	User         string
-	Data         map[string]any
+	Seq       int64
+	Type      string
+	Workspace string
+	Audience
+	Invert bool
+	Except string
+	User   string
+	Data   map[string]any
+}
+
+type Audience struct {
+	Scope    string
+	Grantees []string
 }
 
 type subscriber struct {
@@ -54,24 +61,35 @@ func New(st *store.Store, log *slog.Logger, version string) *Hub {
 	return &Hub{st: st, log: log, version: version, subs: map[*subscriber]struct{}{}}
 }
 
-func (h *Hub) Page(workspaceID, privateOwner string, page any) {
-	h.publish(Event{Type: "page", Workspace: workspaceID, PrivateOwner: privateOwner, Data: map[string]any{"workspace_id": workspaceID, "page": page}})
+func (h *Hub) Page(workspaceID string, aud Audience, page any) {
+	h.publish(Event{Type: "page", Workspace: workspaceID, Audience: aud, Data: map[string]any{"workspace_id": workspaceID, "page": page}})
 }
 
-func (h *Hub) Removed(workspaceID string, ids []string, except string) {
+func (h *Hub) Removed(workspaceID string, ids []string, keep *Audience) {
 	if len(ids) == 0 {
 		return
 	}
-	h.publish(Event{Type: "page_removed", Workspace: workspaceID, Except: except, Data: map[string]any{"workspace_id": workspaceID, "ids": ids}})
+	e := Event{Type: "page_removed", Workspace: workspaceID, Data: map[string]any{"workspace_id": workspaceID, "ids": ids}}
+	if keep != nil {
+		e.Audience, e.Invert = *keep, true
+	}
+	h.publish(e)
+}
+
+func (h *Hub) UserRemoved(userID, workspaceID string, ids []string) {
+	if len(ids) == 0 {
+		return
+	}
+	h.publish(Event{Type: "page_removed", User: userID, Data: map[string]any{"workspace_id": workspaceID, "ids": ids}})
 }
 
 func (h *Hub) Workspace(workspaceID, what string) {
 	h.publish(Event{Type: "workspace", Workspace: workspaceID, Data: map[string]any{"workspace_id": workspaceID, "what": what}})
 }
 
-func (h *Hub) Collection(workspaceID, privateOwner string, data map[string]any) {
+func (h *Hub) Collection(workspaceID string, aud Audience, data map[string]any) {
 	data["workspace_id"] = workspaceID
-	h.publish(Event{Type: "collection", Workspace: workspaceID, PrivateOwner: privateOwner, Data: data})
+	h.publish(Event{Type: "collection", Workspace: workspaceID, Audience: aud, Data: data})
 }
 
 func (h *Hub) User(userID, what string) {
@@ -149,11 +167,48 @@ func (h *Hub) audience(e Event) func(p *policy.Principal) bool {
 		}
 	}
 	rows.Close()
-	return func(p *policy.Principal) bool {
-		if p.UserID == e.Except || !readers[p.UserID] || !p.Reaches(e.Workspace) || !policy.AgentAllowed(p, agentAccess) {
+	grant := make(map[string]bool, len(e.Grantees))
+	for _, u := range e.Grantees {
+		grant[u] = true
+	}
+	team := map[string]bool{}
+	if t, ok := strings.CutPrefix(e.Scope, "team:"); ok {
+		rows, err := h.st.R.QueryContext(ctx, `SELECT user_id FROM teamspace_members WHERE teamspace_id = ?
+			UNION SELECT m.user_id FROM workspace_members m JOIN teamspaces t ON t.workspace_id = m.workspace_id
+			WHERE t.id = ? AND t.access = 'closed' AND m.role = 'admin'`, t, t)
+		if err == nil {
+			for rows.Next() {
+				var id string
+				if rows.Scan(&id) == nil {
+					team[id] = true
+				}
+			}
+			rows.Close()
+		}
+	}
+	within := func(p *policy.Principal) bool {
+		if grant[p.UserID] {
+			return true
+		}
+		if !readers[p.UserID] {
 			return false
 		}
-		return e.PrivateOwner == "" || e.PrivateOwner == p.UserID
+		if u, ok := strings.CutPrefix(e.Scope, "user:"); ok {
+			return p.UserID == u
+		}
+		if strings.HasPrefix(e.Scope, "team:") {
+			return team[p.UserID]
+		}
+		return true
+	}
+	return func(p *policy.Principal) bool {
+		if p.UserID == e.Except || !p.Reaches(e.Workspace) || !policy.AgentAllowed(p, agentAccess) {
+			return false
+		}
+		if e.Invert {
+			return readers[p.UserID] && !within(p)
+		}
+		return within(p)
 	}
 }
 

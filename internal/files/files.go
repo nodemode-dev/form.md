@@ -313,6 +313,9 @@ func (s *Service) canRead(ctx context.Context, p *policy.Principal, f *File) err
 	if f.WorkspaceID == "" {
 		return policy.ErrHidden
 	}
+	if f.Purpose == "workspace" {
+		return s.pages.Reach(ctx, p, f.WorkspaceID)
+	}
 	_, err := s.gate.Workspace(ctx, p, f.WorkspaceID)
 	return err
 }

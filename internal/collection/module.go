@@ -64,7 +64,7 @@ func (s *Service) Row(ctx context.Context, p *policy.Principal, rowID string) (*
 		return nil, err
 	}
 	if m.TrashedAt > 0 {
-		out.CanWrite = false
+		out.CanWrite, out.CanDesign = false, false
 	}
 	res, err := s.Query(ctx, p, col, QueryInput{IDs: []string{rowID}})
 	if err != nil {

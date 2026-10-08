@@ -94,6 +94,7 @@ type Out struct {
 	Schema      Schema `json:"schema"`
 	Views       []View `json:"views"`
 	CanWrite    bool   `json:"can_write"`
+	CanDesign   bool   `json:"can_design"`
 	Rows        int    `json:"rows"`
 	Epoch       int64  `json:"epoch"`
 }
@@ -401,13 +402,13 @@ func (s *Service) emit(ctx context.Context, collectionID string, data map[string
 	if err != nil {
 		return
 	}
-	owner, err := s.pages.PrivateOwner(ctx, collectionID)
+	aud, err := s.pages.Audience(ctx, m)
 	if err != nil {
 		return
 	}
 	data["collection_id"] = collectionID
 	data["epoch"] = s.epoch.Load()
-	s.hub.Collection(m.WorkspaceID, owner, data)
+	s.hub.Collection(m.WorkspaceID, aud, data)
 }
 
 func (s *Service) emitRows(ctx context.Context, collectionID string, rowIDs []string) {
@@ -464,6 +465,17 @@ func (s *Service) writable(ctx context.Context, p *policy.Principal, id string) 
 		return nil, store.ErrNotFound
 	}
 	if err := s.ensure(ctx, m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (s *Service) structural(ctx context.Context, p *policy.Principal, id string) (*page.Meta, error) {
+	m, err := s.writable(ctx, p, id)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := s.pages.CanEdit(ctx, p, id); err != nil {
 		return nil, err
 	}
 	return m, nil
@@ -541,7 +553,12 @@ func (s *Service) Get(ctx context.Context, p *policy.Principal, id string) (*Out
 			views[i].FormToken = ""
 		}
 	}
-	return &Out{ID: id, WorkspaceID: m.WorkspaceID, Title: m.Title, Icon: m.Icon, Inline: inline, Schema: schema, Views: views, CanWrite: canWrite, Rows: n, Epoch: s.epoch.Load()}, nil
+	design := false
+	if canWrite {
+		_, err := s.pages.CanEdit(ctx, p, id)
+		design = err == nil
+	}
+	return &Out{ID: id, WorkspaceID: m.WorkspaceID, Title: m.Title, Icon: m.Icon, Inline: inline, Schema: schema, Views: views, CanWrite: canWrite, CanDesign: design, Rows: n, Epoch: s.epoch.Load()}, nil
 }
 
 func (s *Service) Query(ctx context.Context, p *policy.Principal, collectionID string, in QueryInput) (*QueryResult, error) {
@@ -1203,8 +1220,8 @@ func (s *Service) UpdateRow(ctx context.Context, p *policy.Principal, rowID stri
 	s.finishWrite(ctx, collectionID, touched, schemaChanged)
 	if in.Title != nil {
 		if m, err := s.pages.Load(ctx, rowID); err == nil {
-			owner, _ := s.pages.PrivateOwner(ctx, rowID)
-			s.hub.Page(m.WorkspaceID, owner, m)
+			aud, _ := s.pages.Audience(ctx, m)
+			s.hub.Page(m.WorkspaceID, aud, m)
 		}
 	}
 	return s.rowOut(ctx, p, collectionID, rowID)

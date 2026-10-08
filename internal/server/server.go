@@ -94,6 +94,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	})
 	authSvc.SetAccountHooks(ws)
 	authSvc.SetMailer(mailer)
+	pages.SetAuth(authSvc)
+	authSvc.SetGuestAccept(pages.AcceptGuest)
 	ws.SetCreatePolicy(func(p *policy.Principal) bool { return p.IsAdmin() || set.Bool("workspaces.member_create") })
 	authSvc.SetMeExtras(func(ctx context.Context, p *policy.Principal) (map[string]any, error) {
 		list, withheld, err := ws.List(ctx, p)
@@ -258,6 +260,9 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 				}
 				if tags, err := s.Pages.Tags(ctx, p, cur.ID); err == nil {
 					boot["tags"] = tags
+				}
+				if teams, err := s.Pages.Teamspaces(ctx, p, cur.ID); err == nil {
+					boot["teamspaces"] = teams
 				}
 			}
 			if favs, err := s.Pages.Favorites(ctx, p); err == nil {

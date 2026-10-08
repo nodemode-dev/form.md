@@ -121,7 +121,7 @@ func (st *schemaTx) dropPair(p *Property) {
 }
 
 func (s *Service) UpdateSchema(ctx context.Context, p *policy.Principal, collectionID string, ops []SchemaOp) (Schema, error) {
-	m, err := s.writable(ctx, p, collectionID)
+	m, err := s.structural(ctx, p, collectionID)
 	if err != nil {
 		return nil, err
 	}
