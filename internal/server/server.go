@@ -20,6 +20,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/events"
 	"github.com/nodemode-ai/form.md/internal/files"
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/inbox"
 	"github.com/nodemode-ai/form.md/internal/mail"
 	"github.com/nodemode-ai/form.md/internal/netguard"
 	"github.com/nodemode-ai/form.md/internal/page"
@@ -49,6 +50,7 @@ type Server struct {
 	Docs     *doc.Service
 	Cols     *collection.Service
 	Comments *comment.Service
+	Inbox    *inbox.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -80,6 +82,14 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	pages.OnDuplicated(docs.Remap)
 	cols := collection.New(st, pages, al, hub, log)
 	comments := comment.New(st, pages, al, hub, log)
+	notes, err := inbox.New(ctx, st, pages, hub, mailer, set, fetcher, log)
+	if err != nil {
+		return nil, err
+	}
+	comments.OnComment(notes.FromComment)
+	docs.OnRefs(notes.FromRefs)
+	pages.OnShare(notes.FromShare)
+	cols.OnAssign(notes.FromAssign)
 	finder := search.New(st, gate, authSvc, pages, log)
 	finder.SetRows(cols.RowText, cols.RowIDs)
 	cols.OnRows(finder.RowsChanged)
@@ -108,7 +118,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{authSvc.Middleware},
@@ -126,6 +136,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		docs.Module(),
 		cols.Module(authSvc, authSvc.TrustProxy),
 		comments.Module(authSvc),
+		notes.Module(authSvc),
 		finder.Module(),
 		static.Module(s.renderDocument),
 	}
@@ -134,6 +145,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 
 func (s *Server) Run(ctx context.Context) error {
 	go s.housekeeping(ctx)
+	go s.Inbox.Run(ctx)
 	return app.Run(ctx, s.Deps, s.Modules)
 }
 
@@ -274,6 +286,9 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 			}
 			if favs, err := s.Pages.Favorites(ctx, p); err == nil {
 				boot["favorites"] = favs
+			}
+			if n, err := s.Inbox.Unread(ctx, p); err == nil {
+				boot["inbox_unread"] = n
 			}
 		}
 	}

@@ -35,6 +35,7 @@ type Service struct {
 	results   *resultCache
 
 	rowWatchers []func(ctx context.Context, collectionID string, ids []string)
+	assigners   []func(ctx context.Context, p *policy.Principal, rowID string, users []string)
 }
 
 func New(st *store.Store, pages *page.Service, al *audit.Log, hub *events.Hub, log *slog.Logger) *Service {
@@ -1028,8 +1029,25 @@ func (s *Service) applyValues(ctx context.Context, tx *sql.Tx, schema Schema, nc
 				changes = append(changes, relChange{prop: p, added: added, removed: removed})
 			}
 		}
+		if p.Type == TPerson {
+			added, _ := diff(before, strList(vals[p.ID]))
+			nc.assigned = append(nc.assigned, added...)
+		}
 	}
 	return changes, title, nil
+}
+
+func (s *Service) OnAssign(fn func(ctx context.Context, p *policy.Principal, rowID string, users []string)) {
+	s.assigners = append(s.assigners, fn)
+}
+
+func (s *Service) assignedTo(ctx context.Context, p *policy.Principal, rowID string, nc *normCtx) {
+	if len(nc.assigned) == 0 {
+		return
+	}
+	for _, fn := range s.assigners {
+		fn(ctx, p, rowID, nc.assigned)
+	}
 }
 
 func (s *Service) finishWrite(ctx context.Context, collectionID string, touched map[string]map[string]bool, schemaChanged bool) {
@@ -1119,6 +1137,9 @@ func (s *Service) createRow(ctx context.Context, p *policy.Principal, m *page.Me
 		return "", err
 	}
 	s.finishWrite(ctx, collectionID, touched, schemaChanged)
+	if p != nil {
+		s.assignedTo(ctx, p, id, nc)
+	}
 	return id, nil
 }
 
@@ -1218,6 +1239,7 @@ func (s *Service) UpdateRow(ctx context.Context, p *policy.Principal, rowID stri
 		return nil, err
 	}
 	s.finishWrite(ctx, collectionID, touched, schemaChanged)
+	s.assignedTo(ctx, p, rowID, nc)
 	if in.Title != nil {
 		if m, err := s.pages.Load(ctx, rowID); err == nil {
 			aud, _ := s.pages.Audience(ctx, m)

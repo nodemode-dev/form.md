@@ -74,10 +74,11 @@ func (d DateVal) Times(loc *time.Location) (time.Time, time.Time, bool, bool) {
 }
 
 type normCtx struct {
-	members map[string]bool
-	fileOK  func(id string) bool
-	targets func(collectionID string, ids []string) []string
-	changed bool
+	members  map[string]bool
+	fileOK   func(id string) bool
+	targets  func(collectionID string, ids []string) []string
+	changed  bool
+	assigned []string
 }
 
 func trimText(s string, limit int) string {

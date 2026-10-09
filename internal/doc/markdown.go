@@ -10,26 +10,34 @@ import (
 )
 
 type Summary struct {
-	Markdown string
-	Text     string
-	Snippet  string
-	Thumb    string
-	Pages    []string
-	Files    []string
-	Users    []string
+	Markdown  string
+	Text      string
+	Snippet   string
+	Thumb     string
+	Pages     []string
+	Files     []string
+	Users     []string
+	Reminders []Reminder
+}
+
+type Reminder struct {
+	Ref  string
+	User string
+	At   int64
 }
 
 const snippetRunes = 240
 
 type mdWriter struct {
-	text  strings.Builder
-	thumb string
-	pages map[string]bool
-	files map[string]bool
-	users map[string]bool
-	title func(id string) string
-	self  string
-	doc   *crdt.Doc
+	text   strings.Builder
+	thumb  string
+	pages  map[string]bool
+	files  map[string]bool
+	users  map[string]bool
+	remind []Reminder
+	title  func(id string) string
+	self   string
+	doc    *crdt.Doc
 }
 
 func Summarise(frag *crdt.YXmlFragment, title func(id string) string) Summary {
@@ -48,13 +56,14 @@ func summarise(w *mdWriter, frag *crdt.YXmlFragment) Summary {
 	}
 	text := strings.TrimSpace(w.text.String())
 	return Summary{
-		Markdown: md,
-		Text:     text,
-		Snippet:  snippet(text),
-		Thumb:    w.thumb,
-		Pages:    keys(w.pages),
-		Files:    keys(w.files),
-		Users:    keys(w.users),
+		Markdown:  md,
+		Text:      text,
+		Snippet:   snippet(text),
+		Thumb:     w.thumb,
+		Pages:     keys(w.pages),
+		Files:     keys(w.files),
+		Users:     keys(w.users),
+		Reminders: w.remind,
 	}
 }
 
@@ -467,6 +476,10 @@ func (w *mdWriter) mention(el *crdt.YXmlElement) []run {
 		w.addText("@" + label)
 		return []run{{text: "@" + label}}
 	case "date":
+		if who := attrString(el, "remind"); who != "" && len(w.remind) < 200 {
+			at, _ := strconv.ParseInt(attrString(el, "at"), 10, 64)
+			w.remind = append(w.remind, Reminder{Ref: ref, User: who, At: at})
+		}
 		w.addText(ref)
 		return []run{{text: ref}}
 	}

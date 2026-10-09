@@ -100,6 +100,17 @@ func (h *Hub) User(userID, what string) {
 	h.publish(Event{Type: "user", User: userID, Data: map[string]any{"what": what}})
 }
 
+func (h *Hub) Online(userID string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for s := range h.subs {
+		if !s.closed && s.p.UserID == userID && s.p.IsSession() {
+			return true
+		}
+	}
+	return false
+}
+
 func (h *Hub) CloseUser(userID string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

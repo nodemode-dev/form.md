@@ -507,7 +507,11 @@ func (w *htmlWriter) mention(el *crdt.YXmlElement) {
 		w.open("span", "class", "mention", "data-kind", "user", "data-ref", ref, "contenteditable", "false")
 		w.b.WriteString("@" + esc(label) + "</span>")
 	case "date":
-		w.open("span", "class", "mention", "data-kind", "date", "data-ref", ref, "contenteditable", "false")
+		if who := attrString(el, "remind"); who != "" {
+			w.open("span", "class", "mention", "data-kind", "date", "data-ref", ref, "data-remind", who, "data-at", attrString(el, "at"), "contenteditable", "false")
+		} else {
+			w.open("span", "class", "mention", "data-kind", "date", "data-ref", ref, "contenteditable", "false")
+		}
 		w.b.WriteString(esc(ref) + "</span>")
 	}
 }

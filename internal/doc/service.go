@@ -26,10 +26,11 @@ type Service struct {
 	auth  *auth.Service
 	log   *slog.Logger
 
-	mu      sync.Mutex
-	rooms   map[string]*room
-	conns   map[*conn]struct{}
-	stopped bool
+	mu       sync.Mutex
+	rooms    map[string]*room
+	conns    map[*conn]struct{}
+	stopped  bool
+	refHooks []func(ctx context.Context, pageID, actor string, mentioned []string, reminders []Reminder)
 }
 
 func New(st *store.Store, pages *page.Service, a *auth.Service, log *slog.Logger) *Service {
@@ -123,11 +124,22 @@ func (s *Service) materialise(ctx context.Context, r *room) {
 	user := r.lastEditor
 	r.mu.Unlock()
 	now := store.NowMS()
+	var added []string
 	err := s.st.Tx(ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO doc_state (page_id, snapshot, markdown, text_size, materialised_at, updated_at) VALUES (?, X'', ?, ?, ?, ?)
 			ON CONFLICT (page_id) DO UPDATE SET markdown = excluded.markdown, text_size = excluded.text_size, materialised_at = excluded.materialised_at`,
 			r.id, sum.Markdown, len(sum.Text), now, now); err != nil {
 			return err
+		}
+		before, err := mentionedUsers(ctx, tx, r.id)
+		if err != nil {
+			return err
+		}
+		added = added[:0]
+		for _, u := range sum.Users {
+			if !before[u] {
+				added = append(added, u)
+			}
 		}
 		return writeRefs(ctx, tx, r.id, sum)
 	})
@@ -140,6 +152,30 @@ func (s *Service) materialise(ctx context.Context, r *room) {
 	if err := s.pages.SetContent(ctx, r.id, sum.Snippet, sum.Thumb, user); err != nil && !hidden(err) {
 		s.log.Warn("doc: page content", "page", r.id, "err", err)
 	}
+	for _, fn := range s.refHooks {
+		fn(ctx, r.id, user, added, sum.Reminders)
+	}
+}
+
+func (s *Service) OnRefs(fn func(ctx context.Context, pageID, actor string, mentioned []string, reminders []Reminder)) {
+	s.refHooks = append(s.refHooks, fn)
+}
+
+func mentionedUsers(ctx context.Context, tx *sql.Tx, id string) (map[string]bool, error) {
+	rows, err := tx.QueryContext(ctx, "SELECT target FROM doc_refs WHERE page_id = ? AND kind = 'user'", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var t string
+		if err := rows.Scan(&t); err != nil {
+			return nil, err
+		}
+		out[t] = true
+	}
+	return out, rows.Err()
 }
 
 func writeRefs(ctx context.Context, tx *sql.Tx, id string, sum Summary) error {

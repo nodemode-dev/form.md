@@ -72,6 +72,8 @@ var Defs = []Def{
 	{Key: "tunnel.mode", Kind: Enum, Default: "off", Options: []string{"off", "quick", "token"}},
 	{Key: "tunnel.token", Kind: Secret},
 	{Key: "tunnel.autostart", Kind: Bool, Default: "false"},
+	{Key: "push.vapid_private", Kind: Secret},
+	{Key: "notify.email_delay_minutes", Kind: Int, Default: "10", Min: 1, Max: 1440},
 }
 
 var byKey = func() map[string]Def {
