@@ -34,6 +34,7 @@ import type {
   WebhookInput,
   AuditPage,
   AuditQuery,
+  ScimToken,
   Site,
   SiteInput,
   SiteStatus,
@@ -213,6 +214,11 @@ export function createClient(f: FetchFn) {
       test: (id: string) => post<void>(`/api/webhooks/${enc(id)}/test`),
       deliveries: (id: string) => get<{ deliveries: WebhookDelivery[] }>(`/api/webhooks/${enc(id)}/deliveries`),
       retry: (deliveryId: string) => post<void>(`/api/deliveries/${enc(deliveryId)}/retry`),
+    },
+    scim: {
+      tokens: (workspaceId: string) => get<{ tokens: ScimToken[]; base_url: string }>(`/api/workspaces/${enc(workspaceId)}/scim`),
+      create: (workspaceId: string, label: string) => post<{ token: string; info: ScimToken }>(`/api/workspaces/${enc(workspaceId)}/scim`, { label }),
+      revoke: (id: string) => del(`/api/scim-tokens/${enc(id)}`),
     },
     audit: {
       list: (workspaceId: string, q: AuditQuery) => get<AuditPage>(`/api/workspaces/${enc(workspaceId)}/audit?${auditParams(q)}`),

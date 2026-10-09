@@ -79,6 +79,15 @@ class SettingsForm {
     return field(label, el, hint);
   }
 
+  area(key: string, label: string, hint?: string, placeholder = ""): HTMLLabelElement {
+    const el = textarea("", 6);
+    el.name = key;
+    el.placeholder = placeholder;
+    el.spellcheck = false;
+    this.bind({ key, label, control: el, read: () => el.value.trim(), write: () => (el.value = this.store.get(key)) });
+    return field(label, el, hint);
+  }
+
   number(key: string, label: string, hint?: string): HTMLLabelElement {
     const el = input({ type: "number", name: key, inputmode: "numeric" });
     this.bind({ key, label, control: el, read: () => el.value.trim(), write: () => (el.value = this.store.get(key)) });
@@ -279,7 +288,23 @@ function signInTab(store: SettingsStore): Tab {
       h("div", { class: "form-row" }, f.text("sso.oidc.client_id", t("Client ID")), f.secret("sso.oidc.client_secret", t("Client secret"))),
       callback("oidc"),
     );
-    f.el.append(s1, google, ms, oidc);
+    const spField = (label: string, path: string) => {
+      const box = h("div", { class: "secret-box" }, h("span"), iconButton("copy", t("Copy address")));
+      const paint = () => setText(box.firstElementChild!, `${(store.get("instance.public_url") || location.origin).replace(/\/+$/, "")}${path}`);
+      paint();
+      store.onChange(paint);
+      box.lastElementChild?.addEventListener("click", async () => toast({ message: (await copyText(box.firstElementChild?.textContent ?? "")) ? t("Address copied.") : t("Copying failed."), id: "copy" }));
+      return field(label, box);
+    };
+    const saml = section(t("SAML 2.0"), t("Okta, Microsoft Entra ID, Google Workspace, OneLogin, JumpCloud and any SAML 2.0 identity provider. Register the addresses below, then paste the provider's metadata XML."));
+    saml.append(
+      h("div", { class: "form-row" }, spField(t("Entity ID and metadata"), "/api/auth/saml/metadata"), spField(t("Assertion consumer service (ACS)"), "/api/auth/saml/acs")),
+      f.text("sso.saml.name", t("Button label"), "", "text", t("SAML single sign-on")),
+      f.area("sso.saml.metadata", t("Identity provider metadata XML"), t("Includes the sign-on address and the signing certificate."), "<md:EntityDescriptor ...>"),
+      h("div", { class: "form-row" }, f.text("sso.saml.email_attr", t("Email attribute"), t("Leave empty to use email, mail or the NameID.")), f.text("sso.saml.name_attr", t("Name attribute"), t("Leave empty to use displayName or the given and family names."))),
+      f.bool("auth.saml_only", t("Require SAML sign-in"), t("Turns off passwords, other providers and sign-up for everyone but the instance owner, who keeps a password for emergencies.")),
+    );
+    f.el.append(s1, saml, google, ms, oidc);
     f.finish();
     panel.append(f.el);
   });

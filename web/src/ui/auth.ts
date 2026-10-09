@@ -15,6 +15,7 @@ const SSO_ERRORS: Record<string, () => string> = {
   signup_closed: () => t("There is no account for this email and sign-up is by invitation."),
   disabled: () => t("This account is deactivated."),
   no_email: () => t("The provider did not share an email address."),
+  saml_only: () => t("This instance signs people in through SAML single sign-on only."),
   internal: () => t("Something went wrong. Try again."),
 };
 
@@ -77,6 +78,10 @@ function bindLogin(engine: Engine): void {
   for (const a of form.querySelectorAll<HTMLAnchorElement>(".auth__sso-btn")) a.href = `${a.getAttribute("href")}?next=${encodeURIComponent(next)}`;
   const oidc = engine.boot.sso?.find((p) => p.id === "oidc");
   if (oidc) setText(form.querySelector('[data-ref="oidc-btn"]')!, t("Continue with {name}", { name: oidc.name }));
+  form.querySelector('[data-ref="owner-password"]')?.addEventListener("click", () => {
+    document.documentElement.dataset.samlOnly = "false";
+    (form.elements.namedItem("email") as HTMLInputElement).focus();
+  });
 
   let useRecovery = false;
   toggle.addEventListener("click", () => {

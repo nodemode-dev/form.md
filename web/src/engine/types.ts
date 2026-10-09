@@ -575,6 +575,14 @@ export interface WebhookDelivery {
   payload?: string;
 }
 
+export interface ScimToken {
+  id: string;
+  label: string;
+  created_by: string;
+  created_at: number;
+  last_used_at: number;
+}
+
 export interface AuditEntry {
   id: number;
   at: number;
