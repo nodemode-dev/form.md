@@ -81,6 +81,10 @@ var Defs = []Def{
 	{Key: "push.vapid_private", Kind: Secret},
 	{Key: "notify.email_delay_minutes", Kind: Int, Default: "10", Min: 1, Max: 1440},
 	{Key: "sites.key", Kind: Secret},
+	{Key: "ai.enabled", Kind: Bool, Default: "true"},
+	{Key: "ai.default_model", Kind: Text},
+	{Key: "ai.transcribe_model", Kind: Text},
+	{Key: "ai.user_limit_per_hour", Kind: Int, Default: "200", Min: 1, Max: 100000},
 }
 
 var byKey = func() map[string]Def {

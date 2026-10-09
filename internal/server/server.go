@@ -12,6 +12,7 @@ import (
 
 	"github.com/nodemode-ai/form.md/internal/admin"
 	"github.com/nodemode-ai/form.md/internal/agentrun"
+	"github.com/nodemode-ai/form.md/internal/ai"
 	"github.com/nodemode-ai/form.md/internal/analytics"
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/audit"
@@ -64,6 +65,7 @@ type Server struct {
 	Hooks    *webhook.Service
 	Runs     *agentrun.Service
 	OAuth    *oauth.Service
+	AI       *ai.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -115,6 +117,18 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	prov := scim.New(st, gate, authSvc, ws, al, log)
 	runs := agentrun.New(st, authSvc, log)
 	grants := oauth.New(st, authSvc, gate, al, fetcher, cfg.FetchPrivate, log)
+	brain := ai.New(st, box, set, gate, al, log)
+	pageText := func(ctx context.Context, p *policy.Principal, id string) (string, string, error) {
+		d, err := pages.Get(ctx, p, id)
+		if err != nil {
+			return "", "", err
+		}
+		md, err := docs.Markdown(ctx, p, id)
+		if err != nil {
+			return "", "", err
+		}
+		return d.WorkspaceID, md, nil
+	}
 	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Version: app.Version, Log: log})
 	docs.OnRefs(func(ctx context.Context, pageID, actor string, _ []string, _ []doc.Reminder) {
 		var wsID string
@@ -158,7 +172,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks, Runs: runs, OAuth: grants}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks, Runs: runs, OAuth: grants, AI: brain}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{sites.Host, prov.Middleware, authSvc.Middleware},
@@ -186,6 +200,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		runs.Module(),
 		grants.Module(),
 		agents.Module(),
+		brain.Module(authSvc, pageText),
 		static.Module(s.renderDocument),
 	}
 	return s, nil

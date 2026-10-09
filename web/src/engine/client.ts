@@ -1,7 +1,10 @@
-import { type FetchFn, request, upload } from "./api";
+import { type FetchFn, request, stream, upload } from "./api";
 import type {
   AccessWorkspace,
   AdminUser,
+  AIAdmin,
+  AIAsk,
+  AIChoices,
   AgentGrant,
   AgentRun,
   BreakGlassGrant,
@@ -118,6 +121,20 @@ export function createClient(f: FetchFn) {
   const enc = encodeURIComponent;
 
   return {
+    ai: {
+      models: (workspaceId = "") => get<AIChoices>(`/api/ai/models${workspaceId ? `?workspace=${enc(workspaceId)}` : ""}`),
+      complete: (body: AIAsk, onText: (t: string) => void, cancel?: AbortSignal) =>
+        stream(f, "/api/ai/complete", body, (e) => e.event === "delta" && onText((e.data as { t: string }).t), cancel),
+      admin: () => get<AIAdmin>("/api/admin/ai"),
+      saveSettings: (body: { enabled?: boolean; default_model?: string; transcribe_model?: string; limit_per_hour?: number }) => put<void>("/api/admin/ai", body),
+      addProvider: (body: { kind: string; name?: string; base_url?: string; api_key?: string }) => post<{ id: string; models: number; warning?: string }>("/api/admin/ai/providers", body),
+      updateProvider: (id: string, body: { name?: string; base_url?: string; api_key?: string; enabled?: boolean }) => patch<void>(`/api/admin/ai/providers/${enc(id)}`, body),
+      removeProvider: (id: string) => del(`/api/admin/ai/providers/${enc(id)}`),
+      refreshModels: (id: string) => post<{ models: number }>(`/api/admin/ai/providers/${enc(id)}/refresh`),
+      setModel: (id: string, body: { model: string; label?: string; enabled?: boolean; audio?: boolean }) => put<void>(`/api/admin/ai/providers/${enc(id)}/models`, body),
+      test: (model: string) => post<{ reply: string }>("/api/admin/ai/test", { model }),
+      setWorkspace: (workspaceId: string, enabled: boolean) => put<void>(`/api/workspaces/${enc(workspaceId)}/ai`, { enabled }),
+    },
     auth: {
       policy: () =>
         get<{ setup_required: boolean; signup: "open" | "invite"; sso: { id: string; name: string }[]; instance_name: string }>("/api/auth/policy"),

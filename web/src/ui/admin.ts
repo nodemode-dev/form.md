@@ -2,6 +2,7 @@ import { ApiError } from "../engine/api";
 import type { AccessWorkspace, AdminUser, BreakGlassGrant, DeletionPlan, Engine, SettingsMap, StrandedWorkspace, WorkspaceRole } from "../engine";
 import { formatDate, formatDateTime, formatRelative } from "../engine/format";
 import { plural, t } from "../engine/i18n";
+import { aiTab } from "./admin-ai";
 import { avatar, updateAvatar } from "./avatar";
 import { confirmDialog, confirmTyped, overlayDialog, simpleDialog, type Tab } from "./dialog";
 import { h, setAttr, setText } from "./dom";
@@ -989,6 +990,7 @@ export function mountAdmin(engine: Engine): void {
     emailTab(engine, store),
     usersTab(engine),
     workspacesTab(engine),
+    aiTab(engine),
     aboutTab(engine),
   ]);
 }

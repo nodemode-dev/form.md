@@ -82,6 +82,52 @@ export interface Boot {
   oauth?: { request: string };
 }
 
+export interface AIChoice {
+  ref: string;
+  label: string;
+  provider: string;
+  audio?: boolean;
+}
+
+export interface AIChoices {
+  enabled: boolean;
+  models: AIChoice[];
+  default: string;
+}
+
+export type AIAction = "improve" | "fix" | "shorter" | "longer" | "simplify" | "professional" | "casual" | "summarize" | "explain" | "actions" | "continue" | "translate" | "ask" | "block";
+
+export interface AIAsk {
+  action: AIAction;
+  workspace_id?: string;
+  page_id?: string;
+  model?: string;
+  language?: string;
+  instruction?: string;
+  selection?: string;
+  before?: string;
+}
+
+export interface AIProvider {
+  id: string;
+  kind: "anthropic" | "openai" | "gemini" | "compatible";
+  name: string;
+  base_url: string;
+  has_key: boolean;
+  enabled: boolean;
+  models: { model: string; label: string; enabled: boolean; audio: boolean }[];
+}
+
+export interface AIAdmin {
+  enabled: boolean;
+  default_model: string;
+  transcribe_model: string;
+  limit_per_hour: number;
+  providers: AIProvider[];
+  usage: { model: string; calls: number; input: number; output: number }[];
+  kinds: Record<string, string>;
+}
+
 export interface AgentGrant {
   id: string;
   client: string;
