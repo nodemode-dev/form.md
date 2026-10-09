@@ -1,0 +1,9 @@
+.git
+bin
+release
+data
+web/node_modules
+web/dist/assets
+*.db
+*.db-wal
+*.db-shm

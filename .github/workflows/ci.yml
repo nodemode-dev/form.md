@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: install web dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: web
+      - name: format, vet and typecheck
+        run: make check
+      - name: build
+        run: make build VERSION=v0.0.0-ci
+      - name: cross-compile
+        run: |
+          for t in linux/arm64 darwin/arm64 windows/amd64; do
+            GOOS=${t%/*} GOARCH=${t#*/} CGO_ENABLED=0 go build -o /dev/null ./cmd/form-md
+          done
+      - name: smoke
+        run: |
+          FORMMD_DATA="$RUNNER_TEMP/data" ./bin/form-md &
+          for i in $(seq 1 50); do curl -fsS http://127.0.0.1:8750/healthz && break; sleep 0.2; done
+          FORMMD_DATA="$RUNNER_TEMP/data" ./bin/form-md backup "$RUNNER_TEMP/backup.tgz"
+          FORMMD_DATA="$RUNNER_TEMP/data" ./bin/form-md doctor || true
+          kill %1
