@@ -97,6 +97,9 @@ export function mountTree(engine: Engine): void {
   const notes = makeSection("notes", t("Notes"), "cards", t("New page"));
   const teams = makeSection("teams", t("Teamspaces"), "users", t("New teamspace"));
   const shared = makeSection("shared", t("Shared with me"), "users");
+  const dbs = makeSection("databases", t("Databases"), "database");
+  const dbList = h("ul", { class: "sb-list", attrs: { role: "list" } });
+  dbs.body.append(dbList);
   const favList = h("ul", { class: "sb-list", attrs: { role: "list" } });
   const cloud = h("div", { class: "tag-cloud" });
   const root = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Pages") } });
@@ -126,6 +129,13 @@ export function mountTree(engine: Engine): void {
     h("span", { class: "sb-label", text: t("Templates") }),
   );
   templatesRow.addEventListener("click", () => void import("./templates-dialog").then((m) => m.openTemplates(engine), engine.reportError));
+  const graphRow = h(
+    "button",
+    { class: "sb-trash sb-templates", attrs: { type: "button" } },
+    h("span", { class: "sb-icon" }, iconNode("diagram")),
+    h("span", { class: "sb-label", text: t("Link graph") }),
+  );
+  graphRow.addEventListener("click", () => void import("./graph-view").then((m) => m.openGraph(engine), engine.reportError));
   const trashCount = h("span", { class: "sb-count" });
   const trashRow = h(
     "a",
@@ -142,7 +152,7 @@ export function mountTree(engine: Engine): void {
   notes.body.append(noteChips, noteList, noteEmpty);
   const indicator = h("div", { class: "drop-indicator", attrs: { "aria-hidden": "true" } });
   indicator.hidden = true;
-  nav.append(inboxRow, favs.el, tags.el, filter, notes.el, teams.el, tree.el, shared.el, templatesRow, trashRow, indicator);
+  nav.append(inboxRow, favs.el, tags.el, filter, notes.el, teams.el, tree.el, shared.el, dbs.el, templatesRow, graphRow, trashRow, indicator);
 
   const nodes = new Map<string, HTMLLIElement>();
   const teamNodes = new Map<string, HTMLLIElement>();
@@ -402,6 +412,14 @@ export function mountTree(engine: Engine): void {
     reconcileFlat(favList, list, "fav", parentHint);
   };
 
+  const renderDatabases = () => {
+    const list = pages.isLoaded(ws) ? pages.all(ws).filter((p) => p.kind === "collection" && !p.is_template && !p.row) : [];
+    list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    dbs.el.hidden = list.length === 0;
+    setText(dbs.count, list.length ? String(list.length) : "");
+    reconcileFlat(dbList, list, "flat", parentHint);
+  };
+
   const renderTags = () => {
     const counts = pages.tagCounts(ws);
     tags.el.hidden = counts.length === 0;
@@ -541,6 +559,7 @@ export function mountTree(engine: Engine): void {
     paintWritable();
     renderRoot();
     renderFavorites();
+    renderDatabases();
     renderTags();
     renderFilter();
     renderNotes();
@@ -1087,6 +1106,7 @@ export function mountTree(engine: Engine): void {
           renderNotes();
         }
         if (pages.isFavorite(p.id) || prev?.title !== p.title) renderFavorites();
+        if (p.kind === "collection" || prev?.kind === "collection") renderDatabases();
         if (state.get("tagFilter")) renderFilter();
         return;
       }
@@ -1104,6 +1124,7 @@ export function mountTree(engine: Engine): void {
           renderNotes();
         }
         renderFavorites();
+        if (c.pages.some((p) => p.kind === "collection")) renderDatabases();
         ensureRoving();
         return;
       }

@@ -247,6 +247,58 @@
   block-size: 14px;
 }
 
+.dialog--graph {
+  inline-size: min(1100px, calc(100vw - var(--space-8)));
+}
+
+.dialog--graph .dialog__body {
+  padding: 0;
+}
+
+.graphv__frame {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.graphv__canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: min(62vh, 640px);
+  cursor: grab;
+  touch-action: none;
+}
+
+.graphv__bar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-block-size: 32px;
+  padding: var(--space-1) var(--space-4);
+  font-size: var(--text-xs);
+  line-height: 24px;
+  color: var(--text-faint);
+  border-block-start: 1px solid var(--border);
+}
+
+.graphv__legend {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.graphv__key::before {
+  content: "";
+  display: inline-block;
+  inline-size: 14px;
+  block-size: 2px;
+  margin-inline-end: var(--space-1);
+  vertical-align: middle;
+  background: var(--accent);
+}
+
+.graphv__key--child::before {
+  background: var(--border-strong);
+}
+
 .sb-templates {
   inline-size: 100%;
   font: inherit;
