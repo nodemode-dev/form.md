@@ -13,6 +13,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/analytics"
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/audit"
+	"github.com/nodemode-ai/form.md/internal/auditapi"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/collection"
 	"github.com/nodemode-ai/form.md/internal/comment"
@@ -33,6 +34,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/static"
 	"github.com/nodemode-ai/form.md/internal/store"
 	"github.com/nodemode-ai/form.md/internal/unfurl"
+	"github.com/nodemode-ai/form.md/internal/webhook"
 	"github.com/nodemode-ai/form.md/internal/workspace"
 )
 
@@ -54,6 +56,7 @@ type Server struct {
 	Comments *comment.Service
 	Inbox    *inbox.Service
 	Views    *analytics.Service
+	Hooks    *webhook.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -101,6 +104,27 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	views := analytics.New(st, gate, pages, al, log)
 	pages.OnVisit(views.FromVisit)
 	sites.OnView(views.Record)
+	hooks := webhook.New(st, gate, box, al, fetcher, cfg.FetchPrivate, log)
+	docs.OnRefs(func(ctx context.Context, pageID, actor string, _ []string, _ []doc.Reminder) {
+		var wsID string
+		if st.R.QueryRowContext(ctx, "SELECT workspace_id FROM pages WHERE id = ?", pageID).Scan(&wsID) == nil {
+			hooks.Emit(ctx, wsID, "page.content", pageID, &policy.Principal{UserID: actor, Kind: policy.KindSession}, nil)
+		}
+	})
+	comments.OnComment(func(ctx context.Context, e comment.Event) {
+		kind := map[string]string{"edit": "comment.edit", "resolve": "comment.resolve", "decision": "suggestion.decide"}[e.Kind]
+		if kind == "" || e.Page == nil {
+			return
+		}
+		var data any
+		switch {
+		case e.Suggestion != nil:
+			data = map[string]any{"suggestion": e.Suggestion.ID, "status": e.Suggestion.Status}
+		case e.Thread != nil:
+			data = map[string]any{"thread": e.Thread.ID, "resolved": e.Thread.ResolvedAt > 0}
+		}
+		hooks.Emit(ctx, e.Page.WorkspaceID, kind, e.Page.ID, e.Actor, data)
+	})
 
 	ws.SetNotifier(hub)
 	ws.SetImageCheck(func(ctx context.Context, ref, workspaceID string) bool {
@@ -126,7 +150,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{sites.Host, authSvc.Middleware},
@@ -148,6 +172,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		finder.Module(),
 		sites.Module(authSvc),
 		views.Module(authSvc),
+		hooks.Module(authSvc),
+		auditapi.Module(al, gate, authSvc, set),
 		static.Module(s.renderDocument),
 	}
 	return s, nil
@@ -156,6 +182,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 func (s *Server) Run(ctx context.Context) error {
 	go s.housekeeping(ctx)
 	go s.Inbox.Run(ctx)
+	go s.Hooks.Run(ctx)
 	return app.Run(ctx, s.Deps, s.Modules)
 }
 
@@ -175,6 +202,9 @@ func (s *Server) housekeeping(ctx context.Context) {
 			s.Deps.Log.Warn("history purge failed", "err", err)
 		}
 		s.Views.Purge(ctx)
+		if _, err := s.Audit.Purge(ctx, s.Settings.Int("audit.retention_days")); err != nil {
+			s.Deps.Log.Warn("audit purge failed", "err", err)
+		}
 		select {
 		case <-ctx.Done():
 			return
