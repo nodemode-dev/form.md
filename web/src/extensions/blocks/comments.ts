@@ -59,6 +59,11 @@ function resolve(b: Binding, enc: string): number | null {
   }
 }
 
+export function resolveAnchor(state: EditorState, enc: string): number | null {
+  const b = binding(state);
+  return b ? resolve(b, enc) : null;
+}
+
 export function threadRange(state: EditorState, th: CommentThread): { from: number; to: number } | null {
   const b = binding(state);
   if (!b || th.anchor === "page") return null;

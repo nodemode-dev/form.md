@@ -17,12 +17,15 @@ import { nodeViews } from "./nodeviews";
 import { highlightPlugin, idsPlugin, keysPlugin, livePlugin, placeholderPlugin, structurePlugins, uploadsPlugin } from "./plugins";
 import { columnsPlugins } from "./columns";
 import { commentsPlugin } from "./comments";
+import { suggestPlugin, suggestUI } from "./suggest";
 import { linksPlugin, offerLinkChoice } from "./links";
 import { mathKeys } from "./math";
 import { rulesPlugin } from "./rules";
 import { triggerPlugin } from "./triggers";
 
 const URL_ONLY = /^https?:\/\/\S+$/i;
+
+export type EditMode = "edit" | "suggest" | "view";
 
 function cursorBuilder(user: { name?: string; tint?: string }): HTMLElement {
   const label = h("span", { class: "collab-cursor__label", text: user.name ?? "" });
@@ -47,6 +50,8 @@ export class EditorHost implements EditorCtx {
   private md = new MarkdownWriter((id) => this.engine.pages.get(id)?.title ?? "");
   private notice: HTMLElement | null = null;
   private listeners = new Set<(id: string) => void>();
+  private modeListeners = new Set<(m: EditMode) => void>();
+  private mode: EditMode = "edit";
   private snaps = new Map<string, string>();
 
   constructor(
@@ -64,6 +69,9 @@ export class EditorHost implements EditorCtx {
     };
     engine.state.watch("me", recheck);
     engine.state.watch("detail", recheck);
+    engine.comments.subscribe((id) => {
+      if (id === this.session?.id) recheck();
+    });
     mount.addEventListener("pointerover", (e) => {
       const m = (e.target as Element).closest?.<HTMLElement>(".mention[data-kind=page]");
       if (m?.dataset.ref) engine.docs.prefetch(m.dataset.ref);
@@ -90,11 +98,44 @@ export class EditorHost implements EditorCtx {
   }
 
   writable(): boolean {
+    return this.mode === "edit" && this.canEdit();
+  }
+
+  canEdit(): boolean {
     const s = this.session;
     if (!s || s.phase !== "ready" || !s.write) return false;
     const d = this.engine.state.get("detail");
     if (d && d.id === s.id && !d.can_write) return false;
     return this.engine.can(s.id, "content");
+  }
+
+  canSuggest(): boolean {
+    const s = this.session;
+    return !!s && s.phase === "ready" && this.engine.comments.get(s.id).can_comment;
+  }
+
+  suggesting(): boolean {
+    return this.mode === "suggest" && this.canSuggest();
+  }
+
+  editMode(): EditMode {
+    if (this.mode === "edit" && this.canEdit()) return "edit";
+    if (this.mode === "suggest" && this.canSuggest()) return "suggest";
+    return "view";
+  }
+
+  setMode(mode: EditMode): void {
+    if (this.mode === mode) return;
+    const v = this.ed;
+    if (v && this.mode === "suggest") void suggestUI(v)?.commit();
+    this.mode = mode;
+    this.ed?.setProps({});
+    for (const fn of this.modeListeners) fn(mode);
+  }
+
+  onMode(fn: (m: EditMode) => void): () => void {
+    this.modeListeners.add(fn);
+    return () => this.modeListeners.delete(fn);
   }
 
   pickFiles(view: EditorView, accept: string, at?: number): void {
@@ -204,6 +245,7 @@ export class EditorHost implements EditorCtx {
     return [
       ySyncPlugin(s.fragment, mapping ? ({ mapping } as Parameters<typeof ySyncPlugin>[1]) : {}),
       yCursorPlugin(s.awareness, { cursorBuilder, selectionBuilder }),
+      suggestPlugin(this),
       yUndoPlugin(),
       triggerPlugin(this),
       rulesPlugin(),
@@ -257,7 +299,7 @@ export class EditorHost implements EditorCtx {
         {
           state,
           nodeViews: nodeViews(this),
-          editable: () => this.writable(),
+          editable: () => this.writable() || this.suggesting(),
           attributes: { class: "doc-body", "aria-label": t("Page content"), spellcheck: "true" },
           clipboardTextSerializer: (slice: Slice) => this.md.doc(slice.content),
           clipboardTextParser: ((text: string, $context: ResolvedPos, plain: boolean) => (!plain && looksLikeMarkdown(text) ? parseMarkdownSlice(text, $context) : null)) as never,
@@ -279,7 +321,7 @@ export class EditorHost implements EditorCtx {
       this.ed.dom.addEventListener("focusin", preloadMarkdown);
     } else {
       this.ed.updateState(state);
-      this.ed.setProps({ editable: () => this.writable() });
+      this.ed.setProps({ editable: () => this.writable() || this.suggesting() });
     }
     this.mount.classList.remove("is-loading");
     delete this.mount.dataset.page;
@@ -289,7 +331,7 @@ export class EditorHost implements EditorCtx {
 
   private paste(view: EditorView, e: ClipboardEvent): boolean {
     const data = e.clipboardData;
-    if (!data) return false;
+    if (!data || this.suggesting()) return false;
     const files = Array.from(data.files ?? []);
     if (files.length && !data.types.includes("text/html") && this.writable()) {
       this.uploadFiles(view, files);

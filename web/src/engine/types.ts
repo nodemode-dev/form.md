@@ -472,10 +472,30 @@ export interface CommentThread {
   comments: PageComment[];
 }
 
+export interface Suggestion {
+  id: string;
+  page_id: string;
+  start: string;
+  end: string;
+  original: string;
+  text: string;
+  author_id: string;
+  author_name: string;
+  author_color: string;
+  author_avatar: string;
+  status: "open" | "accepted" | "rejected";
+  decided_by: string;
+  decided_at: number;
+  created_at: number;
+  updated_at: number;
+}
+
 export interface CommentListing {
   threads: CommentThread[];
+  suggestions: Suggestion[];
   can_comment: boolean;
   can_moderate: boolean;
+  can_decide: boolean;
 }
 
 export interface Crumb {

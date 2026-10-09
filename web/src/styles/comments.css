@@ -22,6 +22,78 @@
   background: color-mix(in srgb, var(--c-amber) 10%, transparent);
 }
 
+.s-del {
+  color: var(--danger);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--danger) 70%, transparent);
+  cursor: pointer;
+}
+
+.s-ins {
+  color: var(--success);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--success) 60%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.sugg {
+  display: grid;
+  row-gap: var(--space-2);
+}
+
+.sugg__what {
+  padding: 0 0 0 28px;
+  font-size: var(--text-md);
+  line-height: 1.5;
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.sugg__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-inline-start: 28px;
+}
+
+.sugg__actions .btn {
+  min-block-size: 26px;
+  padding-inline: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.sugg__state {
+  margin-inline-end: auto;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.sugg[data-status="accepted"] .sugg__state {
+  color: var(--success);
+}
+
+.cpane__suggestions,
+.cpane__threads {
+  display: grid;
+  row-gap: var(--space-5);
+}
+
+.cpane__suggestions:empty,
+.cpane__threads:empty {
+  display: none;
+}
+
+.cpane__list .sugg {
+  padding-block-end: var(--space-4);
+  border-block-end: 1px solid var(--border);
+}
+
 .composer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

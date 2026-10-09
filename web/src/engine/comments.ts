@@ -3,7 +3,7 @@ import type { CommentListing, CommentThread, LiveEvent } from "./types";
 
 type Listener = (pageId: string) => void;
 
-const EMPTY: CommentListing = { threads: [], can_comment: false, can_moderate: false };
+const EMPTY: CommentListing = { threads: [], suggestions: [], can_comment: false, can_moderate: false, can_decide: false };
 
 export class CommentStore {
   private cache = new Map<string, CommentListing>();

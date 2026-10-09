@@ -43,6 +43,7 @@ import type {
   ShareLink,
   Sharing,
   StrandedWorkspace,
+  Suggestion,
   TagInfo,
   TeamAccess,
   TeamMember,
@@ -174,6 +175,9 @@ export function createClient(f: FetchFn) {
       edit: (id: string, body: string) => patch<void>(`/api/comments/${enc(id)}`, { body }),
       remove: (id: string) => del(`/api/comments/${enc(id)}`),
       react: (id: string, icon: string, on: boolean) => (on ? put<void>(`/api/comments/${enc(id)}/reactions/${enc(icon)}`, {}) : del(`/api/comments/${enc(id)}/reactions/${enc(icon)}`)),
+      suggest: (pageId: string, body: { start: string; end: string; original: string; text: string }) => post<{ suggestion: Suggestion }>(`/api/pages/${enc(pageId)}/suggestions`, body),
+      revise: (id: string, body: { start: string; end: string; original: string; text: string }) => patch<void>(`/api/suggestions/${enc(id)}`, body),
+      decide: (id: string, accept: boolean) => put<void>(`/api/suggestions/${enc(id)}/decision`, { accept }),
     },
     sharing: {
       get: (pageId: string) => get<Sharing>(`/api/pages/${enc(pageId)}/shares`),

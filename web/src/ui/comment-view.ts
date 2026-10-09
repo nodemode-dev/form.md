@@ -1,4 +1,4 @@
-import type { CommentListing, CommentThread, Engine, Member, PageComment, ReactionIcon } from "../engine";
+import type { CommentListing, CommentThread, Engine, Member, PageComment, ReactionIcon, Suggestion } from "../engine";
 import { formatDateTime, formatRelative } from "../engine/format";
 import { t } from "../engine/i18n";
 import { type ListItem, ListPopover } from "../extensions/blocks/popover";
@@ -421,6 +421,50 @@ export function threadView(engine: Engine, pageId: string, first: CommentThread,
   };
   update(first, listing);
   return { el, update, focusReply: () => reply.focus() };
+}
+
+export interface SuggestionOptions {
+  onDecide: (s: Suggestion, accept: boolean) => void;
+  onJump?: (s: Suggestion) => void;
+}
+
+export interface SuggestionView {
+  el: HTMLElement;
+  update(s: Suggestion, listing: CommentListing): void;
+}
+
+export function suggestionView(engine: Engine, pageId: string, first: Suggestion, o: SuggestionOptions): SuggestionView {
+  let cur = first;
+  const face = avatar(first.author_name, first.author_color, false, first.author_avatar);
+  const name = h("span", { class: "cmt__name" });
+  const when = h("time", { class: "cmt__time" });
+  const what = h("button", { class: "sugg__what", attrs: { type: "button" } });
+  what.addEventListener("click", () => o.onJump?.(cur));
+  const accept = h("button", { class: "btn btn--primary sugg__accept", attrs: { type: "button" } }, iconNode("check"), h("span", { text: t("Accept") }));
+  const reject = h("button", { class: "btn btn--ghost sugg__reject", attrs: { type: "button" } }, iconNode("close"), h("span", { text: t("Reject") }));
+  const state = h("span", { class: "sugg__state" });
+  accept.addEventListener("click", () => o.onDecide(cur, true));
+  reject.addEventListener("click", () => o.onDecide(cur, false));
+  const el = h("article", { class: "sugg", attrs: { "data-suggestion": first.id } }, h("div", { class: "cmt__head" }, face, name, when, h("span")), what, h("div", { class: "sugg__actions" }, state, reject, accept));
+  const quote = (s: string) => `“${s.length > 80 ? `${s.slice(0, 80)}…` : s}”`;
+  const update = (s: Suggestion, l: CommentListing) => {
+    cur = s;
+    const me = engine.state.get("me")?.user.id ?? "";
+    updateAvatar(face, s.author_name, s.author_color, s.author_avatar);
+    setText(name, s.author_name || t("Someone"));
+    setText(when, formatRelative(s.updated_at));
+    setAttr(when, "title", formatDateTime(s.updated_at));
+    const label = s.text && s.original ? t("Replace {old} with {new}", { old: quote(s.original), new: quote(s.text) }) : s.text ? t("Add {new}", { new: quote(s.text) }) : t("Delete {old}", { old: quote(s.original) });
+    setText(what, label);
+    setAttr(el, "data-status", s.status);
+    const open = s.status === "open";
+    accept.hidden = !open || !l.can_decide;
+    reject.hidden = !open || !(l.can_decide || s.author_id === me);
+    setText(reject.lastElementChild as HTMLElement, l.can_decide ? t("Reject") : t("Withdraw"));
+    setText(state, s.status === "accepted" ? t("Accepted") : s.status === "rejected" ? t("Rejected") : "");
+  };
+  update(first, engine.comments.get(pageId));
+  return { el, update };
 }
 
 export function reconcileThreads(engine: Engine, pageId: string, container: HTMLElement, threads: CommentThread[], listing: CommentListing, o: ThreadOptions, views: Map<string, ThreadView>): void {

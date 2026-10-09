@@ -13,6 +13,7 @@ export interface EditorCtx {
   pageId(): string;
   workspaceId(): string;
   writable(): boolean;
+  suggesting(): boolean;
   openToggles: Set<string>;
   live: Set<Refreshable>;
   pickFiles(view: EditorView, accept: string, at?: number): void;

@@ -11,6 +11,7 @@ import { openCoverPicker, openIconPicker } from "./pickers";
 import { tagColorFor, focusTitleSoon } from "./tree";
 import { mountEditor } from "../extensions/blocks";
 import { mountDiscussion } from "./discussion";
+import { mountModeSwitch } from "./mode-switch";
 import { type DatabaseViews, databaseViews, loadDatabase } from "../extensions/database/load";
 import type { RowPropsHandle } from "../extensions/database/rowprops";
 import type { DatabaseHandle } from "../extensions/database/surface";
@@ -102,6 +103,7 @@ export function mountPageView(engine: Engine): void {
   const inner = h("div", { class: "page" }, head, propsHost, discussion.el, body);
   view.append(cover, inner);
   const editor = mountEditor(engine, docBody, editorWrap);
+  mountModeSwitch(engine, editor);
   let rowProps: RowPropsHandle | null = null;
   const rowPanel = (): RowPropsHandle | null => {
     const m = rowProps ? null : databaseViews();

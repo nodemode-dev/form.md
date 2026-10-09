@@ -1,10 +1,12 @@
-import type { CommentThread, Engine } from "../engine";
+import type { CommentThread, Engine, Suggestion } from "../engine";
 import { t } from "../engine/i18n";
 import { editorHost } from "../extensions/blocks";
 import { revealThread } from "../extensions/blocks/comments";
-import { reconcileThreads, type ThreadView } from "./comment-view";
+import { suggestionRange, suggestUI } from "../extensions/blocks/suggest";
+import { reconcileThreads, type SuggestionView, suggestionView, type ThreadView } from "./comment-view";
 import { byId, h, ref, setAttr, setText } from "./dom";
 import { iconNode } from "./icons";
+import { reconcile } from "./list";
 
 type Filter = "open" | "resolved";
 
@@ -22,16 +24,31 @@ export function mountCommentsPane(engine: Engine): void {
   tabBtn("open", t("Open"));
   tabBtn("resolved", t("Resolved"));
   const people = h("select", { class: "select cpane__people", attrs: { "aria-label": t("Filter by person") } });
-  const list = h("div", { class: "cpane__list" });
+  const slist = h("div", { class: "cpane__suggestions" });
+  const list = h("div", { class: "cpane__threads" });
   const empty = h("p", { class: "cpane__empty" });
   const pane = h(
     "aside",
     { class: "cpane", attrs: { "aria-label": t("Comments"), tabindex: "-1" } },
     h("header", { class: "cpane__head" }, h("h2", { class: "cpane__title", text: t("Comments") }), close),
     h("div", { class: "cpane__tools" }, tabs, people),
-    list,
+    h("div", { class: "cpane__list" }, slist, list),
     empty,
   );
+  const suggestionViews = new Map<string, SuggestionView>();
+  const decide = (s: Suggestion, accept: boolean) => {
+    const v = editorHost()?.view();
+    const ui = v ? suggestUI(v) : undefined;
+    if (ui) void ui.decide(s, accept);
+    else if (!accept) void engine.comments.run(s.page_id, () => engine.api.comments.decide(s.id, false)).catch(engine.reportError);
+  };
+  const jumpTo = (s: Suggestion) => {
+    const v = editorHost()?.view();
+    const r = v ? suggestionRange(v.state, s) : null;
+    if (!v || !r) return;
+    const dom = v.domAtPos(r.from).node;
+    (dom instanceof Element ? dom : dom.parentElement)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
   pane.hidden = true;
   byId("overlay-root").append(pane);
   const views = new Map<string, ThreadView>();
@@ -53,7 +70,8 @@ export function mountCommentsPane(engine: Engine): void {
 
   const paintCount = () => {
     const id = currentPage();
-    const n = id ? engine.comments.get(id).threads.filter((x) => !x.resolved_at).length : 0;
+    const l = id ? engine.comments.get(id) : null;
+    const n = l ? l.threads.filter((x) => !x.resolved_at).length + l.suggestions.filter((x) => x.status === "open").length : 0;
     setText(count, n ? String(n) : "");
     setAttr(btn, "aria-pressed", open ? "true" : "false");
     const label = n ? t("Comments, {count} open", { count: n }) : t("Comments");
@@ -67,6 +85,7 @@ export function mountCommentsPane(engine: Engine): void {
     const listing = engine.comments.get(pageId);
     const authors = new Map<string, string>();
     for (const th of listing.threads) for (const c of th.comments) if (c.author_id) authors.set(c.author_id, c.author_name);
+    for (const s of listing.suggestions) if (s.author_id) authors.set(s.author_id, s.author_name);
     const want = [["", t("Everyone")], ...[...authors].sort((a, b) => a[1].localeCompare(b[1]))];
     const keep = people.value;
     if (people.options.length !== want.length || want.some(([v], i) => people.options[i]?.value !== v)) {
@@ -79,7 +98,20 @@ export function mountCommentsPane(engine: Engine): void {
       .filter((x) => !who || x.comments.some((c) => c.author_id === who))
       .sort((a, b) => (a.anchor === "page" ? 0 : 1) - (b.anchor === "page" ? 0 : 1) || a.created_at - b.created_at);
     reconcileThreads(engine, pageId, list, shown, listing, { workspaceId, onJump: jump }, views);
-    empty.hidden = shown.length > 0;
+    const sugg = listing.suggestions.filter((x) => (filter === "open" ? x.status === "open" : x.status !== "open")).filter((x) => !who || x.author_id === who);
+    reconcile(
+      slist,
+      sugg,
+      (x) => x.id,
+      (x) => {
+        const v = suggestionView(engine, pageId, x, { onDecide: decide, onJump: jumpTo });
+        suggestionViews.set(x.id, v);
+        return v.el;
+      },
+      (_el, x) => suggestionViews.get(x.id)?.update(x, listing),
+    );
+    for (const id of [...suggestionViews.keys()]) if (!sugg.some((x) => x.id === id)) suggestionViews.delete(id);
+    empty.hidden = shown.length > 0 || sugg.length > 0;
     setText(empty, filter === "open" ? (listing.can_comment ? t("No open comments. Select text and choose Comment to start one.") : t("No open comments.")) : t("Nothing resolved yet."));
   };
 
@@ -90,7 +122,9 @@ export function mountCommentsPane(engine: Engine): void {
     unwatch = null;
     pageId = id;
     list.replaceChildren();
+    slist.replaceChildren();
     views.clear();
+    suggestionViews.clear();
     if (id) {
       unwatch = engine.comments.watch(id);
       if (!engine.comments.has(id)) void engine.comments.load(id).catch(() => undefined);

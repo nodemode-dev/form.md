@@ -175,11 +175,15 @@ export class FormatBar {
   update(view: EditorView): void {
     if (!this.wanted(view, view.state)) return this.hide();
     if (!this.el) this.build(view);
+    const suggesting = this.ctx.suggesting();
     for (const tool of this.tools) {
-      if (!tool.mark) continue;
       const b = this.buttons.get(tool.id);
+      if (b) b.hidden = suggesting && tool.id !== "comment";
+      if (!tool.mark) continue;
       if (b) setAttr(b, "aria-pressed", markActive(view.state, tool.mark) ? "true" : "false");
     }
+    const sep = this.el?.querySelector<HTMLElement>(".formatbar__sep");
+    if (sep) sep.hidden = suggesting;
     this.place?.update();
   }
 
