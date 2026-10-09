@@ -13,10 +13,6 @@ import type {
   CustomAgent,
   CustomAgentRun,
   BreakGlassGrant,
-  ActionOutcome,
-  Automation,
-  AutomationAction,
-  AutomationRun,
   ChartResult,
   ChartSpec,
   Collection,
@@ -132,6 +128,7 @@ export function createClient(f: FetchFn) {
   const enc = encodeURIComponent;
 
   return {
+    http: { get, post, patch, put, del },
     agent: {
       state: (ws: string) => get<AgentState>(`/api/agent?workspace=${enc(ws)}`),
       setPrefs: (ws: string, prefs: { instructions_page: string; memory: boolean }) => put<void>("/api/agent/prefs", { workspace_id: ws, ...prefs }),
@@ -384,18 +381,6 @@ export function createClient(f: FetchFn) {
       formLink: (viewId: string, pub: boolean) => put<{ token: string }>(`/api/views/${enc(viewId)}/form/link`, { public: pub }),
       publicForm: (token: string) => get<{ form: FormDef }>(`/api/public/forms/${enc(token)}`),
       publicSubmit: (token: string, answers: Record<string, unknown>) => post<void>(`/api/public/forms/${enc(token)}`, { answers }),
-    },
-    automations: {
-      list: (colId: string) => get<{ automations: Automation[]; can_design: boolean }>(`/api/collections/${enc(colId)}/automations`),
-      create: (colId: string, body: Partial<Automation>) => post<{ automation: Automation }>(`/api/collections/${enc(colId)}/automations`, body),
-      update: (id: string, body: Partial<Automation>) => patch<{ automation: Automation }>(`/api/automations/${enc(id)}`, body),
-      remove: (id: string) => del(`/api/automations/${enc(id)}`),
-      runs: (id: string) => get<{ runs: AutomationRun[] }>(`/api/automations/${enc(id)}/runs`),
-      run: (id: string, rowId = "") => post<{ outcome: ActionOutcome }>(`/api/automations/${enc(id)}/run`, rowId ? { row_id: rowId } : {}),
-      key: (ws: string) => get<{ key: string }>(`/api/workspaces/${enc(ws)}/automation-key`),
-      rotateKey: (ws: string) => post<{ key: string }>(`/api/workspaces/${enc(ws)}/automation-key`),
-      button: (body: { page_id: string; row_id?: string; name?: string; actions: AutomationAction[] }) => post<{ outcome: ActionOutcome }>("/api/buttons/run", body),
-      property: (rowId: string, propId: string) => post<{ outcome: ActionOutcome }>(`/api/rows/${enc(rowId)}/buttons/${enc(propId)}`),
     },
     favorites: {
       list: () => get<{ favorites: Favorite[] }>("/api/favorites"),

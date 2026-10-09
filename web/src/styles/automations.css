@@ -131,6 +131,97 @@
   font-size: var(--text-sm);
 }
 
+.docbtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: 36px;
+  margin-block: var(--space-1);
+}
+
+.docbtn__btn,
+.docbtn > .docbtn__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 32px;
+  padding-inline: var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium, 500);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.docbtn__btn:hover {
+  background: var(--active);
+}
+
+.docbtn__btn .icon {
+  inline-size: 14px;
+  block-size: 14px;
+  color: var(--text-muted);
+}
+
+.docbtn[aria-busy="true"] .docbtn__btn {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.docbtn[data-empty="true"] .docbtn__btn {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.docbtn__edit {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.docbtn:hover .docbtn__edit,
+.docbtn__edit:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .docbtn__edit {
+    opacity: 1;
+  }
+}
+
+.ProseMirror-selectednode.docbtn .docbtn__btn {
+  box-shadow: 0 0 0 2px var(--accent-wash);
+  border-color: var(--accent);
+}
+
+.btn-cell {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 24px;
+  padding-inline: var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-cell:hover {
+  background: var(--active);
+}
+
+.btn-cell[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
 .automation-key {
   display: flex;
   flex-wrap: wrap;

@@ -31,7 +31,7 @@ export const TYPE_INFO: Record<PropType, { label: string; icon: IconName }> = {
 
 export const CREATABLE: PropType[] = [
   "text", "number", "select", "multi_select", "status", "date", "person", "files", "checkbox", "url", "email", "phone",
-  "relation", "rollup", "formula", "created_time", "created_by", "last_edited_time", "last_edited_by", "unique_id", "place",
+  "relation", "rollup", "formula", "created_time", "created_by", "last_edited_time", "last_edited_by", "unique_id", "place", "button",
 ];
 
 export const VIEW_INFO: Record<ViewType, { label: string; icon: IconName }> = {

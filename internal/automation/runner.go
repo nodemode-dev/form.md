@@ -208,6 +208,11 @@ func (s *Service) RunButton(ctx context.Context, p *policy.Principal, base strin
 	if err != nil {
 		return nil, err
 	}
+	if in.RowID == "" {
+		if col, err := s.Cols.RowCollection(ctx, in.PageID); err == nil && col != "" {
+			in.RowID = in.PageID
+		}
+	}
 	var server []Action
 	for _, a := range in.Actions {
 		if serverKinds[a.Kind] {

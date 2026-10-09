@@ -4,6 +4,7 @@ import { embedProvider, newBlockId, schema } from "../../engine/doc/schema";
 import { t } from "../../engine/i18n";
 import type { IconName } from "../../ui/icons";
 import { newAIBlock, openAI } from "./ai";
+import { editButton, newButton } from "./button";
 import { newMeeting } from "./meeting";
 import { type BlockKind, insertBlock, turnInto } from "./commands";
 import { caretRect, type EditorCtx } from "./context";
@@ -29,6 +30,7 @@ const MEDIA = () => t("Media");
 const LAYOUT = () => t("Layout");
 const LINKS = () => t("Links");
 const AI = () => t("AI");
+const ADVANCED = () => t("Actions");
 
 const turn = (kind: BlockKind) => (view: EditorView) => {
   turnInto(view, kind);
@@ -220,7 +222,36 @@ export const CATALOG: CatalogEntry[] = [
     keywords: "meeting notes record transcribe transcript call summary audio",
     run: (view) => insertBlock(view, newMeeting()),
   },
+  {
+    id: "button",
+    label: () => t("Button"),
+    section: ADVANCED,
+    icon: "button",
+    keywords: "button action automation click insert add page notify webhook",
+    run: (view, ctx) => placeButton(view, ctx, newButton(t("New button"))),
+  },
+  {
+    id: "template-button",
+    label: () => t("Template button"),
+    section: ADVANCED,
+    icon: "button",
+    keywords: "template button repeat insert checklist duplicate blocks",
+    run: (view, ctx) => placeButton(view, ctx, newButton(t("Add a checklist"), [{ kind: "insert", where: "below", markdown: "- [ ] To do on {{date}}" }])),
+  },
 ];
+
+function placeButton(view: EditorView, ctx: EditorCtx, node: ReturnType<typeof newButton>): void {
+  insertBlock(view, node);
+  const id = String(node.attrs.id);
+  requestAnimationFrame(() => {
+    let at: number | undefined;
+    view.state.doc.descendants((n, pos) => {
+      if (at === undefined && n.type.name === "button" && n.attrs.id === id) at = pos;
+      return at === undefined;
+    });
+    if (at !== undefined) editButton(ctx, view, () => at);
+  });
+}
 
 export function filterCatalog(query: string, entries: CatalogEntry[] = CATALOG): CatalogEntry[] {
   const q = query.trim().toLowerCase();

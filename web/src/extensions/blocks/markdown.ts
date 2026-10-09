@@ -107,6 +107,18 @@ export class MarkdownWriter {
         return [`<${String(n.attrs.url)}>`];
       case "toc":
         return ["<!-- toc -->"];
+      case "button": {
+        let actions: unknown = [];
+        try {
+          actions = JSON.parse(String(n.attrs.actions));
+        } catch {
+          actions = [];
+        }
+        const bytes = new TextEncoder().encode(JSON.stringify({ label: String(n.attrs.label), actions }));
+        let bin = "";
+        for (const b of bytes) bin += String.fromCharCode(b);
+        return [`<!-- button:${btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")} -->`];
+      }
       case "breadcrumb":
         return ["<!-- breadcrumb -->"];
       case "synced":

@@ -39,7 +39,7 @@ var withID = map[string]bool{
 	"bullet_list": true, "ordered_list": true, "task_list": true, "list_item": true, "task_item": true,
 	"code_block": true, "horizontal_rule": true, "table": true, "image": true, "video": true, "audio": true,
 	"file": true, "bookmark": true, "embed": true, "toc": true, "columns": true, "database": true, "breadcrumb": true,
-	"math_block": true, "synced": true, "ai_block": true, "meeting": true,
+	"math_block": true, "synced": true, "ai_block": true, "meeting": true, "button": true,
 }
 
 var md = goldmark.New(goldmark.WithExtensions(extension.Table, extension.Strikethrough, extension.TaskList, extension.Linkify, mathExtension{}))
@@ -188,6 +188,13 @@ func (c *converter) htmlBlock(raw string) *pmNode {
 				n := newNode("synced")
 				n.attrs["page"] = pg
 				n.attrs["key"] = key
+				return n
+			}
+		}
+	}
+	if enc, ok := strings.CutPrefix(trimmed, "<!-- button:"); ok {
+		if enc, ok = strings.CutSuffix(enc, " -->"); ok {
+			if n := buttonNode(enc); n != nil {
 				return n
 			}
 		}

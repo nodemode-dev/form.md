@@ -387,6 +387,18 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 			w.b.WriteString(w.pub.Table(attrString(el, "collection"), attrString(el, "view")))
 		}
 		w.b.WriteString("</div>")
+	case "button":
+		label := attrString(el, "label")
+		if label == "" {
+			label = "Button"
+		}
+		actions := attrString(el, "actions")
+		if w.pub != nil {
+			actions = ""
+		}
+		w.open("div", "class", "docbtn", "data-block", id, "data-label", attrString(el, "label"), "data-actions", actions, "contenteditable", "false")
+		w.open("span", "class", "docbtn__label")
+		w.b.WriteString(esc(label) + "</span></div>")
 	case "toc":
 		w.open("nav", "class", "toc", "data-block", id, "contenteditable", "false")
 		for _, h := range w.heads {

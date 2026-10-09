@@ -11,11 +11,25 @@ import type { ViewHost, ViewRenderer } from "../surface";
 import { groupable, propSelect, saveConfig } from "../toolbar";
 import { drawChart, exportChart } from "./chartdraw";
 
+const KIND_PATHS: Record<string, string> = {
+  hbar: '<path d="M4 4.5v15M4 7h6M4 12h13M4 17h9.5"/>',
+  line: '<path d="M4.5 20h15"/><path d="m4.5 15.5 4.5-5 4 3 6-7.5"/>',
+  donut: '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 4.5v4M19.5 12h-4"/>',
+};
+
+function kindIcon(kind: ChartKind, fallback: IconName): Element {
+  const path = KIND_PATHS[kind];
+  if (!path) return iconNode(fallback);
+  const tpl = document.createElement("template");
+  tpl.innerHTML = `<svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+  return tpl.content.firstElementChild as Element;
+}
+
 const KINDS: [ChartKind, string, IconName][] = [
   ["bar", "Vertical bar", "chart"],
-  ["hbar", "Horizontal bar", "chart-hbar"],
-  ["line", "Line", "chart-line"],
-  ["donut", "Donut", "chart-donut"],
+  ["hbar", "Horizontal bar", "chart"],
+  ["line", "Line", "chart"],
+  ["donut", "Donut", "chart"],
   ["number", "Number", "hash"],
 ];
 
@@ -107,7 +121,7 @@ export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, ch
 
   const kinds = h("div", { class: "segmented chartset__kinds", attrs: { role: "group", "aria-label": t("Chart type") } });
   for (const [k, l, icon] of KINDS) {
-    const b = h("button", { class: "segmented__btn", attrs: { type: "button", "data-kind": k, "aria-label": t(l), title: t(l), "aria-pressed": "false" } }, iconNode(icon));
+    const b = h("button", { class: "segmented__btn", attrs: { type: "button", "data-kind": k, "aria-label": t(l), title: t(l), "aria-pressed": "false" } }, kindIcon(k, icon));
     b.addEventListener("click", () => {
       spec.kind = k;
       emit();

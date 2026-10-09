@@ -324,6 +324,16 @@ func (p *Property) normalise() error {
 	}
 	if p.Type != TButton {
 		p.Actions = nil
+	} else if len(p.Actions) > 10 {
+		return badSchema("a button can run up to 10 actions")
+	} else {
+		for _, a := range p.Actions {
+			switch a.Kind {
+			case "edit", "add", "notify", "mail", "webhook":
+			default:
+				return badSchema("a button action is edit, add, notify, mail or webhook")
+			}
+		}
 	}
 	if p.Autofill != nil {
 		if !autofillTypes[p.Type] {

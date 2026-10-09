@@ -15,6 +15,7 @@ import { mountInboxView } from "./ui/inbox-view";
 import { listenForPushClicks } from "./ui/push";
 import { errorMessage } from "./ui/errors";
 import { mountLibraryView } from "./ui/library-view";
+import { prefetchPageDialogs } from "./ui/page-actions";
 import { mountPageView } from "./ui/page-view";
 import { mountHome, mountRoutes } from "./ui/routes";
 import { mountSession } from "./ui/session";
@@ -152,6 +153,7 @@ async function start(): Promise<void> {
     const prefetch = () => {
       void ensureSearch();
       void ensureSettings();
+      prefetchPageDialogs();
     };
     setTimeout(() => ("requestIdleCallback" in window ? requestIdleCallback(prefetch) : prefetch()), 2500);
     engine.start();

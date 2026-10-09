@@ -66,7 +66,7 @@ export function tableView(host: ViewHost): ViewRenderer {
     frozen = Math.max(0, Math.min(6, Number((cfg.layout?.frozen as number | undefined) ?? 0)));
     let left = GUTTER;
     cols = orderedProps(ctx, cfg)
-      .filter((x) => !x.vp.hidden && x.p.type !== "button")
+      .filter((x) => !x.vp.hidden)
       .map(({ p, vp }) => {
         const width = Math.max(60, vp.width ?? defaultWidth(p));
         const c = { p, vp, width, left };

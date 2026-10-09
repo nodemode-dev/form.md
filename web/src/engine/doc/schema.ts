@@ -473,6 +473,14 @@ const nodes: Record<string, NodeSpec> = {
       return ["figure", a, ["iframe", frame]];
     },
   },
+  button: {
+    group: "block",
+    atom: true,
+    selectable: true,
+    attrs: { ...withId, label: { default: "" }, actions: { default: "[]" } },
+    parseDOM: [{ tag: "div.docbtn", getAttrs: (d) => ({ id: (d as HTMLElement).dataset.block ?? null, label: (d as HTMLElement).dataset.label ?? "", actions: (d as HTMLElement).dataset.actions || "[]" }) }],
+    toDOM: (n) => ["div", { class: "docbtn", ...blockAttr(n), "data-label": String(n.attrs.label), "data-actions": String(n.attrs.actions), contenteditable: "false" }, ["span", { class: "docbtn__label" }, String(n.attrs.label || "Button")]],
+  },
   toc: {
     group: "block",
     atom: true,

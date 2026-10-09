@@ -40,6 +40,7 @@ export function openAddProperty(anchor: HTMLElement, ctx: DbCtx, after = "", onA
             if (added) {
               onAdded?.(added.id);
               if (["select", "multi_select", "status", "relation", "rollup", "formula", "number"].includes(type)) setTimeout(() => openPropertyEditor(anchor, added, ctx), 0);
+              if (type === "button") void import("./buttonprop").then((m) => m.editButtonProperty(ctx, added));
             }
           })
           .catch(() => undefined);
@@ -296,6 +297,16 @@ export function openPropertyEditor(anchor: HTMLElement, p0: Property, ctx: DbCtx
             pad.append(field(t("Related to"), sel), field(t("Limit"), limit), tw, pn);
             const icon = cols.find((c) => c.id === sel.value);
             if (icon) pad.prepend(h("div", { class: "prop-editor__target" }, pageIcon(icon.icon, "database"), h("span", { text: icon.title || t("Untitled") })));
+            break;
+          }
+          case "button": {
+            const n = p.actions?.length ?? 0;
+            const edit = h("button", { class: "btn btn--sm", attrs: { type: "button" } }, iconNode("bolt"), h("span", { text: n ? t("Edit {n} actions", { n }) : t("Choose what it does") }));
+            edit.addEventListener("click", () => {
+              close();
+              void import("./buttonprop").then((m) => m.editButtonProperty(ctx, { ...p, name: name.value.trim() || p.name }));
+            });
+            pad.append(edit);
             break;
           }
           case "unique_id": {

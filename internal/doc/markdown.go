@@ -256,6 +256,10 @@ func (w *mdWriter) block(el *crdt.YXmlElement) []string {
 		return []string{"<" + attrString(el, "url") + ">"}
 	case "toc":
 		return []string{"<!-- toc -->"}
+	case "button":
+		label := attrString(el, "label")
+		w.addText(label)
+		return []string{"<!-- button:" + buttonEncode(label, attrString(el, "actions")) + " -->"}
 	case "breadcrumb":
 		return []string{"<!-- breadcrumb -->"}
 	case "synced":

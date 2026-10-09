@@ -7,6 +7,8 @@ import { avatar } from "../../ui/avatar";
 import { h, setAttr, setText } from "../../ui/dom";
 import { iconNode } from "../../ui/icons";
 import { fileUrl, pageIcon } from "../../ui/pageicon";
+import { toast } from "../../ui/toast";
+import { automationApi } from "../automation/api";
 import { asList, computedText, type DateValue, formatNumber, formatRange } from "./props";
 
 export interface DbCtx {
@@ -132,6 +134,7 @@ function sigOf(ctx: DbCtx, p: Property, row: RowData, mode: CellMode): string {
   let extra = "";
   if (p.type === "relation") extra = asList(v).map((id) => ctx.session.refs.get(id)?.title ?? "").join("\u0001");
   if (p.type === "person" || p.type === "created_by" || p.type === "last_edited_by") extra = asList(v).map((id) => ctx.engine.collections.person(ctx.workspaceId(), id)?.name ?? "").join("\u0001");
+  if (p.type === "button") extra = p.name;
   return JSON.stringify([p.type, p.format, p.display, p.max, p.color, p.precision, p.prefix, p.options?.length, mode, v, extra]);
 }
 
@@ -239,8 +242,25 @@ export function renderValue(ctx: DbCtx, p: Property, row: RowData, mode: CellMod
       if (!pl) return "";
       return h("span", { class: "place" }, iconNode("pin"), h("span", { text: pl.name || pl.address || `${pl.lat.toFixed(4)}, ${pl.lng.toFixed(4)}` }));
     }
-    case "button":
-      return h("span", { class: "btn-cell", text: p.name });
+    case "button": {
+      const b = h("button", { class: "btn-cell", attrs: { type: "button", "data-button": p.id }, text: p.name });
+      b.addEventListener("mousedown", (e) => e.stopPropagation());
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (b.getAttribute("aria-busy")) return;
+        b.setAttribute("aria-busy", "true");
+        void automationApi(ctx.engine)
+          .property(row.id, p.id)
+          .then((r) => {
+            const failed = r.outcome.failed ?? [];
+            toast({ id: "button-run", tone: failed.length ? "danger" : "success", message: failed.length ? failed.join("; ") : (r.outcome.done ?? []).join("; ") || t("Done") });
+          })
+          .catch(ctx.engine.reportError)
+          .finally(() => b.removeAttribute("aria-busy"));
+      });
+      return b;
+    }
   }
   return "";
 }

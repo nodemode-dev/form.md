@@ -4,8 +4,7 @@ import { tile, updateTile } from "./avatar";
 import { h, ref, setAttr, setText } from "./dom";
 import { iconNode } from "./icons";
 import { menuButton } from "./menu";
-import { pageMenu, setVisibility } from "./page-actions";
-import { openShareDialog } from "./share-dialog";
+import { openShareDialog, pageMenu, setVisibility } from "./page-actions";
 import { fallbackGlyph, pageIcon, paintIcon } from "./pageicon";
 import { focusTitleSoon } from "./tree";
 

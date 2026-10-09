@@ -3,12 +3,27 @@ import { t } from "../engine/i18n";
 import { errorMessage } from "./errors";
 import { copyText } from "./form";
 import { openAnalytics } from "./analytics-dialog";
-import { openHistory } from "./history-dialog";
-import { openPublishDialog } from "./publish-dialog";
 import type { MenuEntry } from "./menu";
 import { tile } from "./avatar";
-import { openShareDialog } from "./share-dialog";
 import { toast } from "./toast";
+
+export function openShareDialog(engine: Engine, id: string): void {
+  void import("./share-dialog").then((m) => m.openShareDialog(engine, id), engine.reportError);
+}
+
+function openPublishDialog(engine: Engine, id: string): Promise<void> {
+  return import("./publish-dialog").then((m) => m.openPublishDialog(engine, id), engine.reportError);
+}
+
+function openHistory(engine: Engine, id: string): void {
+  void import("./history-dialog").then((m) => m.openHistory(engine, id), engine.reportError);
+}
+
+export function prefetchPageDialogs(): void {
+  void import("./share-dialog").catch(() => undefined);
+  void import("./publish-dialog").catch(() => undefined);
+  void import("./history-dialog").catch(() => undefined);
+}
 
 export interface PageMenuHandlers {
   addInside: () => void;

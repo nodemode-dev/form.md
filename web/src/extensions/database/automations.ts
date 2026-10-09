@@ -8,6 +8,7 @@ import { actions, busy, button, field, iconButton, input, select, status, toggle
 import { reconcile } from "../../ui/list";
 import { toast } from "../../ui/toast";
 import { actionEditor } from "../automation/actions";
+import { automationApi } from "../automation/api";
 
 const KINDS: [AutomationTriggerKind, string][] = [
   ["row_added", "When a page is added"],
@@ -140,7 +141,7 @@ function editor(engine: Engine, col: Collection, a: Automation | null, done: () 
         }
         const payload: Partial<Automation> = { name: name.value.trim(), trigger_kind: k, trigger, actions: acts?.value() ?? [] };
         try {
-          await busy(save, () => (a ? engine.api.automations.update(a.id, payload) : engine.api.automations.create(col.id, payload)));
+          await busy(save, () => (a ? automationApi(engine).update(a.id, payload) : automationApi(engine).create(col.id, payload)));
           close();
           done();
         } catch (err) {
@@ -165,8 +166,9 @@ export function openAutomations(engine: Engine, col: Collection): void {
       const st = status();
       const add = button(t("New automation"), "primary", "plus");
       let design = col.can_design;
+      const api = automationApi(engine);
       const load = () => {
-        engine.api.automations
+        api
           .list(col.id)
           .then((r) => {
             design = r.can_design;
@@ -190,7 +192,7 @@ export function openAutomations(engine: Engine, col: Collection): void {
         const cur = () => (el as HTMLElement & { auto?: Automation }).auto ?? a;
         on.input.addEventListener("change", async () => {
           try {
-            await engine.api.automations.update(a.id, { ...cur(), enabled: on.input.checked });
+            await api.update(a.id, { ...cur(), enabled: on.input.checked });
             load();
           } catch (err) {
             on.input.checked = !on.input.checked;
@@ -199,7 +201,7 @@ export function openAutomations(engine: Engine, col: Collection): void {
         });
         run.addEventListener("click", async () => {
           try {
-            const r = await engine.api.automations.run(a.id);
+            const r = await api.run(a.id);
             const failed = r.outcome.failed ?? [];
             toast({ tone: failed.length ? "danger" : "success", message: failed.length ? failed.join("; ") : (r.outcome.done ?? []).join("; ") || t("Nothing to do") });
             load();
@@ -211,7 +213,7 @@ export function openAutomations(engine: Engine, col: Collection): void {
         del.addEventListener("click", async () => {
           if (!(await confirmDialog({ title: t("Delete {name}?", { name: cur().name }), body: t("The automation stops. Changes it already made stay."), confirm: t("Delete"), variant: "danger" }))) return;
           try {
-            await engine.api.automations.remove(a.id);
+            await api.remove(a.id);
             load();
           } catch (err) {
             st.error(err);
@@ -221,7 +223,7 @@ export function openAutomations(engine: Engine, col: Collection): void {
           history.hidden = !history.hidden;
           if (history.hidden) return;
           try {
-            const r = await engine.api.automations.runs(a.id);
+            const r = await api.runs(a.id);
             history.replaceChildren(...(r.runs.length ? r.runs.map((x) => h("div", { class: "agent-runs__row" }, h("span", { class: "row__meta", text: `${formatRelative(x.at)} · ${x.status}${x.detail ? ` · ${x.detail}` : ""}` }))) : [h("p", { class: "muted", text: t("No runs yet.") })]));
           } catch (err) {
             st.error(err);
@@ -254,7 +256,7 @@ export function openAutomations(engine: Engine, col: Collection): void {
         keyOut.hidden = true;
         reveal.addEventListener("click", async () => {
           try {
-            const r = await engine.api.automations.key(col.workspace_id);
+            const r = await api.key(col.workspace_id);
             setText(keyOut, r.key);
             keyOut.hidden = false;
             reveal.hidden = true;
