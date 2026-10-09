@@ -217,6 +217,7 @@ form.md/
 - [Phase 7: collaboration, sharing and identity](#p7)
 - [Phase 8: agents and AI](#p8)
 - [Phase 9: automations, charts, buttons, templates, views](#p9)
+- [Phase 10: import, export and API](#p10)
 
 ---
 
@@ -1498,3 +1499,89 @@ With a self relation named in `tree`, rows come back parent first, children only
 - logged: v0.9.0 · 2026-10-09
 
 Nodes come from the page tree the caller can read, so the graph inherits every access rule; edges are parent links plus `doc_refs` between readable pages. Large workspaces are cut at 3,000 nodes with `truncated` set.
+
+## Phase 10: import, export and API {#p10}
+
+### internal/transfer/tree.go · one import tree, one writer
+- refers-to: internal/transfer/tree.go :: `Node`, `Table`, `Asset`, `Bundle`, `writer.create`, `writer.body`, `materialise`
+- kind: explainer
+- logged: v0.10.0 · 2026-10-09
+
+Every reader builds the same tree: pages with Markdown bodies, databases as headers and rows with optional row pages, and attachments as bytes. Bodies refer to other imported pages as `page:N` and to attachments as `asset:N` in link destinations. The writer creates every page first (so ids exist), then writes bodies, replacing `page:N` with `/p/<id>` and storing each asset once, on the first page that uses it, as `/files/<id>`. A failure on one page becomes a warning on the job; the rest continues.
+
+### internal/transfer/source.go · zip limits
+- refers-to: internal/transfer/source.go :: `vfs`, `addZip`, `maxEntries`, `maxDeclared`, `maxEntryBytes`, `maxRatio`
+- kind: warning-context
+- logged: v0.10.0 · 2026-10-09
+
+Uploads go to temp files under the data directory and zips are read in place. Limits: 50,000 entries, 4 GB declared, 256 MB per entry (also enforced while reading, since headers can lie), and entries over 50 MB that compress more than 200 to 1 are skipped. Zips inside the top zip (Notion's part files) are opened one level deep; paths are cleaned so `..` cannot escape. `__MACOSX` and dot-underscore files are ignored.
+
+### internal/transfer/markdown.go · Markdown, Notion and HTML trees
+- refers-to: internal/transfer/markdown.go :: `importTree`, `treeImporter.place`, `fillTable`, `convert`, `resolve`, `dropNotionProps`, `notionAsides`
+- kind: warning-context
+- logged: v0.10.0 · 2026-10-09
+
+A file `A.md` owns the folder `A/`; a folder with no owner becomes a page of its own, and `index.md` or `README.md` inside a folder becomes that folder's body. Relative links are resolved against the file's folder, URL-decoded and matched case-insensitively to documents, CSVs or attachments. Notion mode strips the 32-hex ids from names, prefers the `_all.csv` twin, matches row pages to CSV rows by title in order (unmatched pages become extra rows), drops the `Key: value` lines Notion writes under a row's title, turns `<aside>` into a callout without its leading emoji, and keeps relation cells as plain titles.
+
+### internal/transfer/htmlmd.go · HTML to Markdown
+- refers-to: internal/transfer/htmlmd.go :: `htmlToMarkdown`, `container`, `paragraph`, `block`, `items`, `inline`, `joinBlocks`
+- kind: warning-context
+- logged: v0.10.0 · 2026-10-09
+
+One converter serves HTML files, Evernote notes and Confluence pages. Containers gather inline runs into paragraphs and flush them at each block child, which is how Evernote's line-per-div notes come out right. `en-todo` and checkbox inputs make task items; consecutive list blocks are joined tightly, and a plain list that follows a task list switches to `*` markers so the two stay separate lists. Bold, italic, strike and underline also come from inline styles. The HTML parser treats `<en-todo/>` as an open element, so its text is read from inside it.
+
+### internal/transfer/enex.go, office.go, formats.go, pdftext.go · the other readers
+- refers-to: internal/transfer/enex.go :: `importENEX`; internal/transfer/office.go :: `importDOCX`, `importXLSX`; internal/transfer/formats.go :: `importOPML`, `importTrello`, `importAsana`, `importConfluence`; internal/transfer/pdftext.go :: `pdfText`, `glyphsToText`
+- kind: explainer
+- logged: v0.10.0 · 2026-10-09
+
+Evernote media are matched to resources by MD5; resources no note body uses are appended as files, and tags, created time and source URL go in a footer. Word: paragraphs, heading styles (also through `styles.xml` outline levels), numbering (bullet or ordered from `numbering.xml`), runs with bold, italic, strike and underline, hyperlinks from relationships, tables and embedded pictures. Excel: shared and inline strings, booleans, and dates from date number formats; one database per sheet. Trello becomes a database with a board view by list, the row page holding the description, checklists and comments. Asana CSVs are recognised by their headers. PDF text uses the glyph positions from `Page.Content()` (the row grouping in the library ignores `Td`), joins glyphs into lines by height, inserts spaces from gaps and breaks paragraphs at line gaps over 1.6 times the usual one.
+
+### internal/transfer/export.go · exports
+- refers-to: internal/transfer/export.go :: `collect`, `addRows`, `assignPaths`, `exportMarkdown`, `exportHTML`, `mountExports`
+- kind: explainer
+- logged: v0.10.0 · 2026-10-09
+
+The set is the readable page tree (`pages.Tree`) under the root plus each database's rows from a query, capped at 5,000 pages. Paths follow the tree with names cleaned of path characters and pictographs and numbered when they collide, so the zip mirrors what our importer reads back. Markdown export rewrites `/p/<id>` to relative paths (database links to the CSV) or to absolute URLs for pages outside the export, and copies files into `files/`. HTML export goes through the published-site renderer with an export scope; a single page inlines its pictures as data URIs up to 24 MB.
+
+### internal/transfer/pdf.go · PDF
+- refers-to: internal/transfer/pdf.go :: `exportPDF`, `pdfR.block`, `pdfR.list`, `pdfR.table`, `pdfR.image`
+- kind: explainer
+- logged: v0.10.0 · 2026-10-09
+
+The page's Markdown is parsed with goldmark (tables, strikethrough, task lists) and drawn with fpdf using the Go fonts embedded from golang.org/x/image, so no font files ship. Each page starts a new sheet with a bookmark at its depth; lists indent by 6 mm with drawn check boxes, quotes and callouts get a bar, code a shaded mono block, tables equal columns with wrapped cells, and PNG, JPEG and GIF pictures are embedded at up to the text width. Databases print their first view, six columns and 300 rows at most, with a note pointing to the Markdown export.
+
+### internal/site/export.go · the export scope
+- refers-to: internal/site/export.go :: `NewExport`, `Export.Page`; internal/site/render.go :: `scope.hrefFn`, `scope.fileFn`, `scope.export`, `assets.cssText`
+- kind: explainer
+- logged: v0.10.0 · 2026-10-09
+
+An export scope carries its own link and file functions and an export flag, so the same renderer that serves published sites writes relative links and copied files, inlines the site stylesheet read from the embedded dist, and adds a small script for toggles. Pages come from the caller's readable tree, not from publishing settings.
+
+### internal/collection/importtable.go and csv.go · tables from importers
+- refers-to: internal/collection/importtable.go :: `ImportTable`, `AddBoardView`; internal/collection/csv.go :: `parseDateCell`, `guessType`, `stashed.ids`
+- kind: warning-context
+- logged: v0.10.0 · 2026-10-09
+
+`ImportTable` goes through the CSV import path with a stash entry that also collects the new row ids in order, so the importer can attach row pages. Dates may be ranges with an arrow, a spaced dash or an en dash. Type guesses accept small tables: a select when values repeat and stay short, a multi-select when comma-separated short tokens repeat. A multi-select now needs short tokens, which keeps free text with commas as text.
+
+### internal/apidoc · the OpenAPI document
+- refers-to: internal/apidoc/apidoc.go :: `routes`, `summarize`, `overrides`, `tagOf`, `public`, `build`, `page`; internal/httpx/router.go :: `Router.Patterns`
+- kind: warning-context
+- logged: v0.10.0 · 2026-10-09
+
+The document is built from the router's recorded patterns at request time, so a new route is documented the moment it is registered; summaries are generated from the path unless `overrides` has one, and `public` is a prefix list that must be kept in step with routes that skip authentication. The result is cached until the route count changes. `/api/docs` renders the same data with inline styles only, under its own CSP.
+
+### internal/auth/service.go and internal/oauth · token limits and REST audience
+- refers-to: internal/auth/service.go :: the middleware (`apiLimit`, `wrong_audience`); internal/oauth/oauth.go :: `apiResource`, `canonResource`, `protectedResource`; internal/policy/principal.go :: `Audience`
+- kind: warning-context
+- logged: v0.10.0 · 2026-10-09
+
+Tokens (personal or OAuth) are limited per credential in the auth middleware; sessions are not, and `/mcp` keeps its own limiter. An OAuth authorization may ask for `<origin>/api`; the grant stores the canonical resource and the principal's `Audience` is `api` for such tokens. The middleware allows OAuth tokens only where their audience matches: REST tokens off `/mcp`, MCP tokens only at `/mcp`.
+
+### internal/httpx/cursor.go · cursors
+- refers-to: internal/httpx/cursor.go :: `Cursor`, `EncodeCursor`, `DecodeCursor`; internal/page/window.go :: `pageWindow`
+- kind: explainer
+- logged: v0.10.0 · 2026-10-09
+
+Cursors are base64url JSON with an offset or a time and id. Page lists use keyset order (created time, then id), so new pages do not shift a running walk; rows and search wrap offsets, the audit log wraps its `before` time. Clients must treat cursors as opaque.

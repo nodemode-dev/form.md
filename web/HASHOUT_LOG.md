@@ -199,6 +199,7 @@ web/
 - [Phase 7: collaboration, sharing and identity](#p7)
 - [Phase 8: agents and AI](#p8)
 - [Phase 9: automations, charts, buttons, templates, views](#p9)
+- [Phase 10: import, export and API](#p10)
 
 ---
 
@@ -1435,3 +1436,19 @@ The force layout runs a fixed number of ticks before the first draw (fewer above
 - logged: v0.9.0 · 2026-10-09
 
 Recomputed only when a page event touches a database page (created, renamed, moved, trashed) and reconciled with `reconcileFlat`, so existing rows are kept and only changed ones are patched. Templates and databases that are themselves rows of another database are left out.
+
+## Phase 10: import, export and API {#p10}
+
+### src/ui/transfer-dialog.ts · import and export
+- refers-to: src/ui/transfer-dialog.ts :: `openImport`, `send`, `openExport`, `download`
+- kind: warning-context
+- logged: v0.10.0 · 2026-10-09
+
+The upload uses XMLHttpRequest for upload progress (fetch has none); the job is then polled every 600 ms. The status area has a fixed three-row grid (bar, line, result row) present from the start, so starting, progress, finishing and the Open buttons never resize or move the dialog; the file list stays as it was until new files are picked. Exports are plain downloads through a temporary anchor, so the browser handles large zips and the session cookie. Both dialogs load on first use from the sidebar, the page menu and workspace settings.
+
+### src/ui/menu.ts · reopening after an item
+- refers-to: src/ui/menu.ts :: `menuButton`, the item click handler
+- kind: warning-context
+- logged: v0.10.0 · 2026-10-09
+
+`menuClosedAt` stops the press that closed a menu from reopening it; choosing an item now clears it, since that close did not come from the anchor.
