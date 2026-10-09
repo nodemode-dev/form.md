@@ -96,7 +96,7 @@ export interface AIChoices {
   default: string;
 }
 
-export type AIAction = "improve" | "fix" | "shorter" | "longer" | "simplify" | "professional" | "casual" | "summarize" | "explain" | "actions" | "continue" | "translate" | "ask" | "block";
+export type AIAction = "improve" | "fix" | "shorter" | "longer" | "simplify" | "professional" | "casual" | "summarize" | "explain" | "actions" | "continue" | "translate" | "ask" | "block" | "meeting";
 
 export interface AIAsk {
   action: AIAction;

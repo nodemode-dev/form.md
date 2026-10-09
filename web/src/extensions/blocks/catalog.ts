@@ -4,6 +4,7 @@ import { embedProvider, newBlockId, schema } from "../../engine/doc/schema";
 import { t } from "../../engine/i18n";
 import type { IconName } from "../../ui/icons";
 import { newAIBlock, openAI } from "./ai";
+import { newMeeting } from "./meeting";
 import { type BlockKind, insertBlock, turnInto } from "./commands";
 import { caretRect, type EditorCtx } from "./context";
 import { embedFor, mediaFromLink } from "./links";
@@ -210,6 +211,14 @@ export const CATALOG: CatalogEntry[] = [
     icon: "sparkle",
     keywords: "ai block generate prompt regenerate summary",
     run: (view) => insertBlock(view, newAIBlock()),
+  },
+  {
+    id: "meeting",
+    label: () => t("Meeting notes"),
+    section: AI,
+    icon: "audio",
+    keywords: "meeting notes record transcribe transcript call summary audio",
+    run: (view) => insertBlock(view, newMeeting()),
   },
 ];
 

@@ -204,6 +204,25 @@ const nodes: Record<string, NodeSpec> = {
       ["div", { class: "ai-block__body" }, 0],
     ],
   },
+  meeting: {
+    content: "block+",
+    group: "block",
+    defining: true,
+    attrs: { ...withId, title: { default: "" }, started: { default: 0 }, duration: { default: 0 }, state: { default: "" } },
+    parseDOM: [
+      {
+        tag: "div.meeting",
+        contentElement: ".meeting__body",
+        getAttrs: (dom: HTMLElement) => ({ title: dom.dataset.title ?? "", started: Number(dom.dataset.started) || 0, duration: Number(dom.dataset.duration) || 0, state: dom.dataset.state ?? "" }),
+      },
+    ],
+    toDOM: (n) => [
+      "div",
+      { class: "meeting", ...blockAttr(n), "data-title": String(n.attrs.title ?? ""), "data-started": String(n.attrs.started ?? 0), "data-duration": String(n.attrs.duration ?? 0), "data-state": String(n.attrs.state ?? "") },
+      ["div", { class: "meeting__head", contenteditable: "false" }, ["span", { class: "meeting__title" }, String(n.attrs.title || "Meeting notes")]],
+      ["div", { class: "meeting__body" }, 0],
+    ],
+  },
   toggle: {
     content: "toggle_title block*",
     group: "block",

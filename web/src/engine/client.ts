@@ -154,6 +154,7 @@ export function createClient(f: FetchFn) {
       refreshModels: (id: string) => post<{ models: number }>(`/api/admin/ai/providers/${enc(id)}/refresh`),
       setModel: (id: string, body: { model: string; label?: string; enabled?: boolean; audio?: boolean }) => put<void>(`/api/admin/ai/providers/${enc(id)}/models`, body),
       test: (model: string) => post<{ reply: string }>("/api/admin/ai/test", { model }),
+      transcribe: (form: FormData) => upload<{ text: string }>(f, "/api/ai/transcribe", form, 600000),
       setWorkspace: (workspaceId: string, enabled: boolean) => put<void>(`/api/workspaces/${enc(workspaceId)}/ai`, { enabled }),
     },
     auth: {

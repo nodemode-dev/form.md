@@ -73,7 +73,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
-		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+		h.Set("Permissions-Policy", "camera=(), microphone=(self), display-capture=(self), geolocation=(), payment=()")
 		h.Set("Content-Security-Policy", apiCSP)
 		if r.TLS != nil {
 			h.Set("Strict-Transport-Security", "max-age=31536000")

@@ -153,6 +153,26 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.b.WriteString(`</div><div class="ai-block__body">`)
 		w.kids(el)
 		w.b.WriteString("</div></div>")
+	case "meeting":
+		title := attrString(el, "title")
+		state := attrString(el, "state")
+		started := attrInt(el, "started", 0)
+		duration := attrInt(el, "duration", 0)
+		w.open("div", "class", "meeting", "data-block", id, "data-state", state)
+		icon := ""
+		if w.pub != nil {
+			icon = w.pub.UI("audio")
+		}
+		if title == "" {
+			title = "Meeting notes"
+		}
+		w.b.WriteString(`<div class="meeting__head" contenteditable="false"><span class="meeting__icon">` + icon + `</span><span class="meeting__title">` + esc(title) + `</span><span class="meeting__meta">` + esc(MeetingMeta(state, int64(started), duration)) + `</span><span class="meeting__controls">`)
+		if w.pub == nil && state == "" && started == 0 {
+			w.b.WriteString(`<button class="meeting__go" type="button">Start</button>`)
+		}
+		w.b.WriteString(`</span></div><div class="meeting__body">`)
+		w.kids(el)
+		w.b.WriteString("</div></div>")
 	case "callout":
 		w.open("div", "class", "doc-callout", "data-block", id, "data-tone", attrString(el, "tone"), "data-icon", attrString(el, "icon"))
 		if w.pub != nil {

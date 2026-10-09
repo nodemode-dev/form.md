@@ -271,5 +271,34 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		_ = st.Send("done", map[string]any{"usage": res.Usage})
 		return nil
 	}))
+	r.HandleFunc("POST /api/ai/transcribe", a.Require(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		r.Body = http.MaxBytesReader(w, r.Body, 26<<20)
+		if err := r.ParseMultipartForm(8 << 20); err != nil {
+			return httpx.Fail(http.StatusRequestEntityTooLarge, "too_large", "an audio segment can be up to 25 MB")
+		}
+		f, hdr, err := r.FormFile("file")
+		if err != nil {
+			return httpx.Fail(http.StatusBadRequest, "no_file", "send the audio as the file field")
+		}
+		defer f.Close()
+		mime := hdr.Header.Get("Content-Type")
+		if !strings.HasPrefix(mime, "audio/") && !strings.HasPrefix(mime, "video/webm") {
+			return httpx.Fail(http.StatusBadRequest, "not_audio", "that file is not audio")
+		}
+		ws := r.FormValue("workspace_id")
+		if pid := r.FormValue("page_id"); pid != "" && m.page != nil {
+			pws, _, err := m.page(r.Context(), p, pid)
+			if err != nil {
+				return err
+			}
+			ws = pws
+		}
+		text, err := s.Transcribe(r.Context(), p, ws, hdr.Filename, mime, f)
+		if err != nil {
+			return err
+		}
+		httpx.JSON(w, http.StatusOK, map[string]string{"text": strings.TrimSpace(text)})
+		return nil
+	}))
 	return nil
 }

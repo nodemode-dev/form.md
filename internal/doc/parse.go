@@ -39,7 +39,7 @@ var withID = map[string]bool{
 	"bullet_list": true, "ordered_list": true, "task_list": true, "list_item": true, "task_item": true,
 	"code_block": true, "horizontal_rule": true, "table": true, "image": true, "video": true, "audio": true,
 	"file": true, "bookmark": true, "embed": true, "toc": true, "columns": true, "database": true, "breadcrumb": true,
-	"math_block": true, "synced": true, "ai_block": true,
+	"math_block": true, "synced": true, "ai_block": true, "meeting": true,
 }
 
 var md = goldmark.New(goldmark.WithExtensions(extension.Table, extension.Strikethrough, extension.TaskList, extension.Linkify, mathExtension{}))

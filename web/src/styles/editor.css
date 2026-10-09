@@ -1365,6 +1365,109 @@ a.mention:hover {
   visibility: hidden;
 }
 
+.meeting {
+  margin-block: var(--space-1);
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.meeting__head {
+  display: grid;
+  grid-template-columns: 18px auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-2);
+  block-size: 32px;
+  font-size: var(--text-sm);
+  user-select: none;
+}
+
+.meeting__icon {
+  display: grid;
+  place-items: center;
+  inline-size: 18px;
+  block-size: 18px;
+  color: var(--accent);
+}
+
+.meeting__icon .icon {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.meeting__title {
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.meeting__meta {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meeting__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 24px;
+}
+
+.meeting__go {
+  block-size: 24px;
+  padding: 0 var(--space-2);
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.meeting__go:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.meeting__go--primary {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.meeting__go--primary:hover {
+  color: var(--on-accent);
+  background: var(--accent-hover);
+}
+
+.meeting__level {
+  position: relative;
+  inline-size: 48px;
+  block-size: 4px;
+  overflow: hidden;
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.meeting__level i {
+  position: absolute;
+  inset: 0;
+  background: var(--danger);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.meeting[data-state="recording"] .meeting__icon {
+  color: var(--danger);
+}
+
+.doc-body[contenteditable="false"] .meeting__controls {
+  visibility: hidden;
+}
+
 .doc-body[contenteditable="false"] .ai-block__prompt {
   cursor: default;
 }
