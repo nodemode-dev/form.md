@@ -47,6 +47,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | @upsetjs/venn.js | 2.0.0 | MIT |
 | Inter (font files from @fontsource-variable/inter) | 5.3.0 | OFL-1.1 |
 | JetBrains Mono (font files from @fontsource-variable/jetbrains-mono) | 5.3.0 | OFL-1.1 |
+| Natural Earth 1:110m countries (map view basemap, via world-atlas) | 4.1.0 / 2.0.2 | Public domain data; ISC packaging |
 | argparse | 3.0.2 | PSF-2.0 |
 | commander | 15.0.0 | MIT |
 | commander | 7.2.0 | MIT |
@@ -1615,6 +1616,31 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
+```
+
+## Natural Earth 1:110m countries (map view basemap, via world-atlas) 4.1.0 / 2.0.2
+
+```text
+world-110m.json is derived from Natural Earth 1:110m Admin 0 country boundaries,
+version 4.1.0 (https://www.naturalearthdata.com/), which are in the public domain.
+The geometry was taken from the world-atlas 2.0.2 TopoJSON redistribution and
+projected to Web Mercator paths by form.md. Antarctica is left out.
+
+world-atlas carries this notice:
+
+Copyright 2013-2019 Michael Bostock
+
+Permission to use, copy, modify, and/or distribute this software for any purpose
+with or without fee is hereby granted, provided that the above copyright notice
+and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+THIS SOFTWARE.
 ```
 
 ## argparse 3.0.2

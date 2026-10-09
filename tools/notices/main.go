@@ -30,6 +30,7 @@ func main() {
 	comps = append(comps, goModules(root)...)
 	comps = append(comps, webPackages(root)...)
 	comps = append(comps, fonts(root)...)
+	comps = append(comps, basemap(root))
 
 	sort.SliceStable(comps[1:], func(i, j int) bool {
 		a, b := comps[1+i], comps[1+j]
@@ -149,6 +150,12 @@ func fonts(root string) []component {
 		comps = append(comps, component{name: f.name, version: f.version, license: classify(string(text)), text: string(text)})
 	}
 	return comps
+}
+
+func basemap(root string) component {
+	text, err := os.ReadFile(filepath.Join(root, "web", "public", "maps", "LICENSE.txt"))
+	check(err)
+	return component{name: "Natural Earth 1:110m countries (map view basemap, via world-atlas)", version: "4.1.0 / 2.0.2", license: "Public domain data; ISC packaging", text: string(text)}
 }
 
 func readLicense(dir string) string {
