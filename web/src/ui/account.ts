@@ -436,7 +436,29 @@ function notificationsTab(engine: Engine): Tab {
       const test = button(t("Send a test"), "ghost");
       const pushSec = section(t("Push notifications"), t("If you do not see a notification within ten seconds, this browser shows it even when form.md is in the background."));
       pushSec.append(pushState, actions(off, test, on), pushSt.el);
-      panel.append(mailSec, pushSec);
+      const viewSt = status();
+      const record = toggle(t("Show my name in page analytics"), true, t("When off, your visits still count toward view totals but your name is not listed."));
+      const viewSec = section(t("Page views"));
+      viewSec.append(record.el, viewSt.el);
+      panel.append(mailSec, pushSec, viewSec);
+      record.el.dataset.loading = "";
+      void engine.api.analytics
+        .prefs()
+        .then((r) => {
+          record.input.checked = r.record;
+        })
+        .catch(() => undefined)
+        .finally(() => delete record.el.dataset.loading);
+      record.input.addEventListener("change", async () => {
+        viewSt.clear();
+        try {
+          await engine.api.analytics.setPrefs(record.input.checked);
+          viewSt.say(t("Saved."), "success");
+        } catch (e) {
+          record.input.checked = !record.input.checked;
+          viewSt.error(e);
+        }
+      });
 
       let key = "";
       const refresh = async () => {

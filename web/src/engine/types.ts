@@ -532,6 +532,54 @@ export interface Site {
   path: string;
 }
 
+export interface AnalyticsPerson {
+  id: string;
+  name: string;
+  email?: string;
+  at: number;
+  views?: number;
+}
+
+export interface AnalyticsDay {
+  day: string;
+  views: number;
+  viewers: number;
+}
+
+export interface PageAnalytics {
+  days: number;
+  series: AnalyticsDay[];
+  views: number;
+  viewers: number;
+  anonymous: number;
+  created_at: number;
+  created_by: AnalyticsPerson | null;
+  updated_at: number;
+  updated_by: AnalyticsPerson | null;
+  editors: AnalyticsPerson[];
+  people: AnalyticsPerson[];
+  history: boolean;
+}
+
+export interface TopPage {
+  id: string;
+  title: string;
+  icon: string;
+  kind: PageKind;
+  views: number;
+  viewers: number;
+}
+
+export interface WorkspaceAnalytics {
+  days: number;
+  series: AnalyticsDay[];
+  views: number;
+  viewers: number;
+  pages: number;
+  top: TopPage[];
+  history: boolean;
+}
+
 export interface SiteStatus {
   site: Site | null;
   can_publish: boolean;

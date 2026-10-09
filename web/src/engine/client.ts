@@ -27,6 +27,8 @@ import type {
   LinkPreview,
   NotifyPrefs,
   PageVersion,
+  PageAnalytics,
+  WorkspaceAnalytics,
   Site,
   SiteInput,
   SiteStatus,
@@ -190,6 +192,13 @@ export function createClient(f: FetchFn) {
       get: (id: string) => get<{ version: PageVersion; state: string }>(`/api/versions/${enc(id)}`),
       save: (pageId: string, beforeRestore = false) => post<{ id: string }>(`/api/pages/${enc(pageId)}/versions${beforeRestore ? "?kind=restore" : ""}`),
       restored: (id: string) => post<void>(`/api/versions/${enc(id)}/restored`),
+    },
+    analytics: {
+      page: (pageId: string, days: number) => get<PageAnalytics>(`/api/pages/${enc(pageId)}/analytics?days=${days}`),
+      workspace: (workspaceId: string, days: number) => get<WorkspaceAnalytics>(`/api/workspaces/${enc(workspaceId)}/analytics?days=${days}`),
+      setHistory: (workspaceId: string, enabled: boolean) => put<void>(`/api/workspaces/${enc(workspaceId)}/view-history`, { enabled }),
+      prefs: () => get<{ record: boolean }>("/api/me/analytics"),
+      setPrefs: (record: boolean) => put<void>("/api/me/analytics", { record }),
     },
     sites: {
       status: (pageId: string) => get<SiteStatus>(`/api/pages/${enc(pageId)}/site`),

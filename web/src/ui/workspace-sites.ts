@@ -16,8 +16,10 @@ export function sitesTab(engine: Engine): Tab {
     const st = status();
     const allow = toggle(t("Allow publishing to the web"), true, t("When off, every published page in this workspace stops being served until it is turned back on."));
     allow.input.disabled = !admin;
+    allow.el.dataset.loading = "";
     const list = h("div", { class: "rows" });
     const empty = h("p", { class: "muted", text: t("Nothing is published yet. Publish a page from its menu or its Share dialog.") });
+    empty.hidden = true;
     const top = section(t("Publishing"));
     top.append(allow.el);
     const sites = section(t("Published pages"));
@@ -62,6 +64,7 @@ export function sitesTab(engine: Engine): Tab {
         .list(w.id)
         .then((r) => {
           allow.input.checked = r.publishing;
+          delete allow.el.dataset.loading;
           reconcile(list, r.sites, (x) => x.id, row, update);
           empty.hidden = r.sites.length > 0;
         })

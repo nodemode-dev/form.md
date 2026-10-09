@@ -217,6 +217,10 @@
   row-gap: 2px;
 }
 
+.switch[data-loading] input {
+  visibility: hidden;
+}
+
 .switch__label {
   font-size: var(--text-md);
 }

@@ -256,6 +256,100 @@
   font-size: var(--text-sm);
 }
 
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-3);
+}
+
+.kpi {
+  display: grid;
+  row-gap: 2px;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.kpi__value {
+  font-size: 22px;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi__label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.chart-box {
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chart {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  color: var(--accent);
+}
+
+.chart__bar {
+  fill: currentColor;
+}
+
+.chart__bar:hover {
+  fill: var(--accent-hover);
+}
+
+.chart__axis {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.chart__label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  fill: var(--text-faint);
+}
+
+.an-head {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.an-origin {
+  font-size: var(--text-sm);
+}
+
+.section[data-loading] .kpis,
+.section[data-loading] .chart-box {
+  visibility: hidden;
+}
+
+.row--button {
+  inline-size: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  background: transparent;
+  border-inline: 0;
+  border-block-end: 0;
+  cursor: pointer;
+}
+
+.row--button:hover {
+  background: var(--hover);
+}
+
+.row__icon .icon,
+.row__icon img {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
 .hv-item {
   grid-template-columns: minmax(0, 1fr);
   align-content: center;
