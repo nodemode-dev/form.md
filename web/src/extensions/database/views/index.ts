@@ -4,6 +4,8 @@ import { boardView } from "./board";
 import { calendarView } from "./calendar";
 import { chartView } from "./chart";
 import { dashboardView } from "./dashboard";
+import { feedView } from "./feed";
+import { mapView } from "./map";
 import { formView } from "./form";
 import { galleryView, listView } from "./list";
 import { tableView } from "./table";
@@ -19,4 +21,6 @@ export const renderers: Partial<Record<ViewType, ViewFactory>> = {
   form: formView,
   chart: chartView,
   dashboard: dashboardView,
+  map: mapView,
+  feed: feedView,
 };

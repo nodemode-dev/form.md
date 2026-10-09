@@ -184,7 +184,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     const type = v?.type ?? "table";
     groupBtn.hidden = !["table", "board", "list", "gallery"].includes(type);
     sortBtn.hidden = ["form", "chart", "dashboard"].includes(type);
-    propsBtn.hidden = ["chart", "dashboard"].includes(type);
+    propsBtn.hidden = ["chart", "dashboard", "map", "feed"].includes(type);
     filterBtn.hidden = type === "form";
     searchBtn.hidden = type === "form";
     layoutBtn.hidden = !current?.r.settings;

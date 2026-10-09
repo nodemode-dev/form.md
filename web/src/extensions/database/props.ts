@@ -48,7 +48,7 @@ export const VIEW_INFO: Record<ViewType, { label: string; icon: IconName }> = {
   dashboard: { label: "Dashboard", icon: "dashboard" },
 };
 
-export const PHASE5_VIEWS: ViewType[] = ["table", "board", "list", "gallery", "calendar", "timeline", "form", "chart", "dashboard"];
+export const PHASE5_VIEWS: ViewType[] = ["table", "board", "list", "gallery", "calendar", "timeline", "form", "chart", "dashboard", "map", "feed"];
 
 export const OPTION_COLORS = ["default", "gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red"] as const;
 

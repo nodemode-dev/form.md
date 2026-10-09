@@ -735,6 +735,22 @@ export interface CommentListing {
   can_comment: boolean;
   can_moderate: boolean;
   can_decide: boolean;
+  reactions?: CommentReaction[];
+}
+
+export interface FeedItem {
+  id: string;
+  title: string;
+  icon: string;
+  created_at: number;
+  created_by: string;
+  author: string;
+  updated_at: number;
+  html: string;
+  clipped?: boolean;
+  reactions: CommentReaction[];
+  comments: number;
+  values: Record<string, unknown>;
 }
 
 export interface PageVersion {

@@ -69,6 +69,7 @@ type Listing struct {
 	CanComment  bool         `json:"can_comment"`
 	CanModerate bool         `json:"can_moderate"`
 	CanDecide   bool         `json:"can_decide"`
+	Reactions   []Reaction   `json:"reactions"`
 }
 
 type Mention struct {
@@ -171,7 +172,11 @@ func (s *Service) List(ctx context.Context, p *policy.Principal, pageID string) 
 		return nil, err
 	}
 	write := p.CanWrite()
-	return &Listing{Threads: threads, Suggestions: sugg, CanComment: write && level >= page.LevelComment, CanModerate: write && level >= page.LevelEdit, CanDecide: write && level >= page.LevelContent}, nil
+	reacts := s.PageReactions(ctx, p.UserID, []string{pageID})[pageID]
+	if reacts == nil {
+		reacts = []Reaction{}
+	}
+	return &Listing{Threads: threads, Suggestions: sugg, CanComment: write && level >= page.LevelComment, CanModerate: write && level >= page.LevelEdit, CanDecide: write && level >= page.LevelContent, Reactions: reacts}, nil
 }
 
 func (s *Service) threads(ctx context.Context, p *policy.Principal, where string, args ...any) ([]*Thread, error) {

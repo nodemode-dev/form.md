@@ -259,3 +259,332 @@
   display: flex;
   gap: var(--space-2);
 }
+
+.mapv {
+  display: grid;
+  row-gap: var(--space-1);
+  padding-block: var(--space-2);
+}
+
+.mapv__frame {
+  position: relative;
+  block-size: clamp(360px, 62vh, 640px);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--c-blue) 7%, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  touch-action: none;
+  contain: layout paint;
+}
+
+.mapv[data-inline="true"] .mapv__frame {
+  block-size: 360px;
+}
+
+.mapv__svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  cursor: grab;
+  user-select: none;
+}
+
+.mapv__svg:active {
+  cursor: grabbing;
+}
+
+.mapv__svg:not([data-ready]) > g {
+  visibility: hidden;
+}
+
+.mapv__sea {
+  fill: transparent;
+}
+
+.mapv__country {
+  fill: color-mix(in srgb, var(--text) 9%, var(--surface));
+  stroke: var(--surface);
+  stroke-width: 0.8px;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+
+.mapv__pin {
+  cursor: pointer;
+  outline: none;
+}
+
+.mapv__pinshape {
+  fill: var(--accent);
+  stroke: var(--sheet);
+  stroke-width: 1.5;
+}
+
+.mapv__pindot {
+  fill: var(--sheet);
+}
+
+.mapv__pin:hover .mapv__pinshape,
+.mapv__pin:focus-visible .mapv__pinshape,
+.mapv__pin[data-open] .mapv__pinshape {
+  fill: var(--c-rose);
+}
+
+.mapv__controls {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  display: grid;
+  gap: 2px;
+  padding: 2px;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm, none);
+}
+
+.mapv__minus {
+  display: block;
+  inline-size: 10px;
+  block-size: 1.75px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+.mapv__card {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  display: grid;
+  row-gap: var(--space-1);
+  inline-size: 240px;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  background: var(--sheet);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  will-change: transform;
+}
+
+.mapv__cardhead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mapv__cardtitle {
+  flex: 1;
+  min-inline-size: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mapv__cardtitle:hover {
+  text-decoration: underline;
+}
+
+.mapv__cardprops {
+  display: grid;
+  row-gap: 2px;
+}
+
+.mapv__cardprop {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.mapv__cardname {
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mapv__cardval {
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+.mapv__bar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-block-size: 20px;
+  font-size: var(--text-xs);
+  line-height: 20px;
+  color: var(--text-faint);
+}
+
+.feed {
+  display: grid;
+  row-gap: var(--space-3);
+  padding-block: var(--space-3);
+}
+
+.feed__list {
+  display: grid;
+  row-gap: var(--space-3);
+  max-inline-size: 760px;
+}
+
+.feed__item {
+  display: grid;
+  row-gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, var(--radius));
+}
+
+.feed__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 28px;
+}
+
+.feed__meta {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.feed__who {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.feed__when {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.feed__title {
+  justify-self: start;
+  padding: 0;
+  font: inherit;
+  font-size: var(--text-lg, 18px);
+  font-weight: var(--weight-semibold);
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.feed__title:hover {
+  text-decoration: underline;
+}
+
+.feed__doc {
+  max-block-size: 260px;
+  min-block-size: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 78%, transparent);
+}
+
+.feed__item[data-expanded="true"] .feed__doc {
+  max-block-size: none;
+  mask-image: none;
+}
+
+.feed__doc:empty {
+  display: none;
+}
+
+.feed__docwrap {
+  position: relative;
+  min-inline-size: 0;
+}
+
+.feed__expand {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  padding: var(--space-1) var(--space-2) var(--space-1) 0;
+  background: var(--surface);
+  box-shadow: 0 -8px 12px var(--surface);
+}
+
+.feed__item[data-expanded="true"] .feed__docwrap {
+  padding-block-end: 28px;
+}
+
+.feed__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: 30px;
+}
+
+.feed__reacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.feed__react,
+.feed__talk {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: 26px;
+  padding-inline: var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.feed__react[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--accent-wash);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.feed__react .icon,
+.feed__talk .icon {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+.feed__talk {
+  border-color: transparent;
+}
+
+.feed__talk:hover,
+.feed__react:hover {
+  background: var(--hover);
+}
+
+.feed__comments {
+  display: grid;
+  row-gap: var(--space-2);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--border);
+}
+
+.feed__threads {
+  display: grid;
+  row-gap: var(--space-2);
+}
+
+.feed__threads:empty {
+  display: none;
+}

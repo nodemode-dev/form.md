@@ -27,6 +27,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/config"
 	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/events"
+	"github.com/nodemode-ai/form.md/internal/feed"
 	"github.com/nodemode-ai/form.md/internal/files"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/inbox"
@@ -217,6 +218,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		filler.Module(),
 		crew.Module(),
 		flows.Module(),
+		feed.New(st, authSvc, cols, docs, comments).Module(),
 		answer.New(st, authSvc, finder, brain).Module(),
 		static.Module(s.renderDocument),
 	}

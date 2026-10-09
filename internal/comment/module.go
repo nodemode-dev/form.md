@@ -143,5 +143,20 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		}
 		return done(w)
 	})
+	pageReact := func(on bool) func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		return func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+			list, err := s.ReactPage(r.Context(), p, r.PathValue("id"), r.PathValue("icon"), on)
+			if err != nil {
+				return err
+			}
+			if list == nil {
+				list = []Reaction{}
+			}
+			httpx.JSON(w, http.StatusOK, map[string]any{"reactions": list})
+			return nil
+		}
+	}
+	route("PUT /api/pages/{id}/reactions/{icon}", pageReact(true))
+	route("DELETE /api/pages/{id}/reactions/{icon}", pageReact(false))
 	return nil
 }
