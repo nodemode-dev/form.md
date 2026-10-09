@@ -1511,3 +1511,24 @@ The manifest makes the app installable (standalone, dark background, the SVG mar
 - logged: v0.11.0 · 2026-10-09
 
 Tunnel start and stop call `/api/admin/tunnel/*` and paint the returned status in place. Connecting a mail account opens the provider in a new tab after the settings are saved; the redirect address shown is built from the public address. The backup button is a plain download link, owner only. When `/healthz` reports a newer release, About says so and, for owners and admins, the sidebar version turns accent-coloured with the version in its title.
+
+### src/engine/doc/docs.ts · editing kept pages after a cold offline start
+- refers-to: src/engine/doc/docs.ts :: `DocSession.attach` (idb `gen`, `write`), `DocSession.opened`, `loaded`; src/extensions/blocks/editor.ts :: `prepare(id, local)`; src/ui/page-view.ts :: `HOLD_LOCAL_MS`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+Edit rights come from the server's `opened` frame, which never arrives offline, so each session stores `write` (1 or 0; y-indexeddb takes no booleans) beside `gen` and restores it from IndexedDB while not live. A page with stored `gen` but an empty fragment is still ready. The session marks ready as soon as IndexedDB has content, before reading the two keys, so the first paint is not delayed. In the offline shell, the page view waits on `loaded` (IndexedDB finished, content or not) with a 6 s ceiling instead of the 450 ms hold, because the hold used to release a kept page before IndexedDB answered under a slow CPU and showed the loading box, which then collapsed.
+
+### public/sw.js, src/main.ts · file cache and session end
+- refers-to: public/sw.js :: `FILES`, `fileRead`; src/main.ts :: `guardSession`; src/engine/doc/docs.ts :: `clearLocal`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+Whole `200` responses for `/files/<id>` are kept network-first, so pictures on kept pages show offline; range responses are not stored. A `401 unauthorized` while in the app deletes the shell, API and file caches before the redirect to sign-in, so an expired session leaves no account data in the worker's caches.
+
+### src/ui/session.ts · the offline shell's workspace
+- refers-to: src/ui/session.ts :: `mountSession` (`rememberWorkspace(startWs)`)
+- kind: bug-context
+- logged: v0.11.0 · 2026-10-09
+
+The server renders `/offline-shell` for the workspace in the remembered-workspace cookie. That cookie was only written on a switch, so after a deep link into another workspace the cached shell showed the wrong tree. The workspace the app boots into is now remembered at start.

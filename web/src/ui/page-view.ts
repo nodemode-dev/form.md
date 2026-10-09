@@ -20,6 +20,7 @@ import type { RowDetail } from "../engine/types";
 
 const HOLD_MS = 450;
 const HOLD_DB_MS = 1600;
+const HOLD_LOCAL_MS = 6000;
 
 const autosize = typeof CSS !== "undefined" && CSS.supports("field-sizing", "content") ? null : (el: HTMLTextAreaElement) => {
   el.style.height = "auto";
@@ -189,8 +190,9 @@ export function mountPageView(engine: Engine): void {
   const preparePage = (p: Page): Promise<unknown> => {
     const notes = engine.comments.load(p.id).catch(() => undefined);
     if (p.kind === "collection") return Promise.all([prepareDb(p.id), notes]);
-    if (p.row) return Promise.all([editor.prepare(p.id), rowDetail(p.id).then((d) => rowResolved.set(p.id, d)), loadDatabase(), notes]);
-    return Promise.all([editor.prepare(p.id), notes]);
+    const local = document.documentElement.dataset.shell === "offline";
+    if (p.row) return Promise.all([editor.prepare(p.id, local), rowDetail(p.id).then((d) => rowResolved.set(p.id, d)), loadDatabase(), notes]);
+    return Promise.all([editor.prepare(p.id, local), notes]);
   };
   const pageReady = (p: Page): boolean => {
     if (!engine.comments.has(p.id)) return false;
@@ -346,7 +348,7 @@ export function mountPageView(engine: Engine): void {
         paint();
       };
       void preparePage(p).then(release, release);
-      setTimeout(release, p.kind === "collection" || !onPage ? HOLD_DB_MS : HOLD_MS);
+      setTimeout(release, document.documentElement.dataset.shell === "offline" ? HOLD_LOCAL_MS : p.kind === "collection" || !onPage ? HOLD_DB_MS : HOLD_MS);
       return;
     }
     pendingId = "";

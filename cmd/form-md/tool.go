@@ -69,7 +69,7 @@ func tool(cmd string, args []string) int {
 		if err != nil {
 			return fail(err)
 		}
-		fmt.Printf("encrypted the database and %d files (%d already encrypted); start the server with the same FORMMD_KEY_FILE\n", rep.Files, rep.Skipped)
+		fmt.Printf("encrypted the database and %d files (%d already encrypted, %d unfinished temporary files removed); start the server with the same FORMMD_KEY_FILE\n", rep.Files, rep.Skipped, rep.Removed)
 	case "admin":
 		if len(args) == 3 && args[0] == "set" {
 			v, err := ops.SetSetting(ctx, cfg.DataDir, cfg.KeyFile, args[1], args[2])

@@ -116,6 +116,13 @@ func (s *snap) drop(id string) {
 type cache struct {
 	mu    sync.Mutex
 	snaps map[string]*snap
+	gen   uint64
+}
+
+func (c *cache) bump() {
+	c.mu.Lock()
+	c.gen++
+	c.mu.Unlock()
 }
 
 const rowColumns = `p.id, p.title, p.icon, p.cover, p.thumb, p.snippet, p.sort_key, r.vals, r.number, r.version, p.created_at, p.created_by, p.updated_at, p.updated_by, p.is_template`
@@ -175,18 +182,29 @@ func loadSnap(ctx context.Context, q store.Querier, id string) (*snap, error) {
 }
 
 func (c *cache) get(ctx context.Context, q store.Querier, id string) (*snap, error) {
-	c.mu.Lock()
-	if s, ok := c.snaps[id]; ok {
-		s.used = time.Now()
+	var s *snap
+	for try := 0; ; try++ {
+		c.mu.Lock()
+		if have, ok := c.snaps[id]; ok {
+			have.used = time.Now()
+			c.mu.Unlock()
+			return have, nil
+		}
+		gen := c.gen
 		c.mu.Unlock()
-		return s, nil
+		var err error
+		if s, err = loadSnap(ctx, q, id); err != nil {
+			return nil, err
+		}
+		c.mu.Lock()
+		if c.gen == gen {
+			break
+		}
+		c.mu.Unlock()
+		if try == 2 {
+			return s, nil
+		}
 	}
-	c.mu.Unlock()
-	s, err := loadSnap(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	c.mu.Lock()
 	defer c.mu.Unlock()
 	if have, ok := c.snaps[id]; ok {
 		return have, nil
@@ -215,16 +233,19 @@ func (c *cache) peek(id string) *snap {
 func (c *cache) drop(id string) {
 	c.mu.Lock()
 	delete(c.snaps, id)
+	c.gen++
 	c.mu.Unlock()
 }
 
 func (c *cache) dropAll() {
 	c.mu.Lock()
 	c.snaps = map[string]*snap{}
+	c.gen++
 	c.mu.Unlock()
 }
 
 func (c *cache) refresh(ctx context.Context, q store.Querier, collectionID string, ids []string) error {
+	c.bump()
 	s := c.peek(collectionID)
 	if s == nil || len(ids) == 0 {
 		return nil
@@ -274,6 +295,7 @@ func (c *cache) refresh(ctx context.Context, q store.Querier, collectionID strin
 }
 
 func (c *cache) setSchema(collectionID string, schema Schema) {
+	c.bump()
 	s := c.peek(collectionID)
 	if s == nil {
 		return

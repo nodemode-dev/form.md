@@ -1720,3 +1720,24 @@ With no TLS in the environment, `https.auto` plus `https.domain` turn on ACME at
 - logged: v0.11.0 · 2026-10-09
 
 The filter matches the `form-md auth failure` log line (password, second factor and bad token) from the systemd journal; the address is the client address as the server sees it, so behind a proxy turn on `net.trust_proxy`.
+
+### internal/crypt/stream.go, internal/store/store.go · strict sealed reads
+- refers-to: internal/crypt/stream.go :: `ErrNotSealed`, `Key.Reader`; internal/store/store.go :: `Open` (mode 0600, `PRAGMA page_size`)
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+With a key, a reader refuses a plain file instead of passing it through, so a file that skipped encryption (copied in by hand, or left from before `encrypt`) is never served as if it were fine; `doctor` counts such files and `encrypt` seals them. `sealFile` reads with `os.Open`, not through the key, so it is unaffected. The VFS encrypts in fixed 4096-byte units, so the store checks `PRAGMA page_size` on open and refuses any other size rather than corrupt it. The database file is created 0600 and chmodded on every start, and `encrypt` chmods its `VACUUM INTO` copy before the rename, because SQLite creates files with the process umask.
+
+### internal/ops/encrypt.go · temporary leftovers
+- refers-to: internal/ops/encrypt.go :: `sealAll`, `EncryptReport.Removed`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+`sealAll` walks `tmp/` as well as `carriedDirs`. Dot-prefixed files there (`.upload-*`, `.import-*`, `.seal-*`) are temporaries of a write that never finished; with the lock held nothing will rename them into place, so they are deleted rather than left as plain copies.
+
+### internal/collection/cache.go · stale snapshot after a schema change
+- refers-to: internal/collection/cache.go :: `cache.gen`, `cache.get`, `bump`
+- kind: bug-context
+- logged: v0.11.0 · 2026-10-09
+
+`get` loads a snapshot outside the lock. A schema change or row refresh landing while that load ran used to find nothing to update (`setSchema` and `refresh` only touch a cached snapshot), and the load then cached what it had read before the change, so `GET /api/collections/{id}` kept serving the old schema until the next eviction. Every invalidation now bumps `gen`; a load that sees `gen` move retries (up to three times, then returns its result uncached).

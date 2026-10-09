@@ -71,7 +71,9 @@ function guardSession(base: typeof fetch, engine: () => Engine | null): typeof f
         .catch(() => null)) as { error?: { code?: string } } | null;
       if (body?.error?.code === "unauthorized") {
         leaving = true;
-        location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+        const next = `/login?next=${encodeURIComponent(location.pathname + location.search)}`;
+        const clear = typeof caches === "undefined" ? Promise.resolve([]) : Promise.all(["formmd-shell", "formmd-api", "formmd-files"].map((n) => caches.delete(n).catch(() => false)));
+        void clear.finally(() => location.assign(next));
       }
     }
     return res;

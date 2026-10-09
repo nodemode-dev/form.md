@@ -18,6 +18,7 @@ import (
 type EncryptReport struct {
 	Files   int
 	Skipped int
+	Removed int
 }
 
 func Encrypt(ctx context.Context, dataDir, keyFile string) (*EncryptReport, error) {
@@ -90,6 +91,9 @@ func Encrypt(ctx context.Context, dataDir, keyFile string) (*EncryptReport, erro
 	if err != nil {
 		return rep, err
 	}
+	if err := os.Chmod(encPath, 0o600); err != nil {
+		return rep, err
+	}
 	if err := os.Rename(encPath, dbPath); err != nil {
 		return rep, err
 	}
@@ -104,7 +108,7 @@ func Encrypt(ctx context.Context, dataDir, keyFile string) (*EncryptReport, erro
 
 func sealAll(key *crypt.Key, dataDir string) (*EncryptReport, error) {
 	rep := &EncryptReport{}
-	for _, dir := range carriedDirs {
+	for _, dir := range append([]string{"tmp"}, carriedDirs...) {
 		err := filepath.WalkDir(filepath.Join(dataDir, dir), func(p string, d fs.DirEntry, err error) error {
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
@@ -112,7 +116,14 @@ func sealAll(key *crypt.Key, dataDir string) (*EncryptReport, error) {
 				}
 				return err
 			}
-			if d.IsDir() || strings.HasPrefix(d.Name(), ".") {
+			if d.IsDir() {
+				return nil
+			}
+			if strings.HasPrefix(d.Name(), ".") {
+				if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
+					return err
+				}
+				rep.Removed++
 				return nil
 			}
 			sealed, err := sealFile(key, p)

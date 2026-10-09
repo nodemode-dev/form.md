@@ -230,9 +230,9 @@ export class EditorHost implements EditorCtx {
     return !!s && s.phase !== "loading";
   }
 
-  prepare(id: string): Promise<void> {
+  prepare(id: string, local = false): Promise<void> {
     const s = this.engine.docs.prefetch(id);
-    return s.ready.then(() => {
+    return (local ? Promise.race([s.ready, s.loaded]) : s.ready).then(() => {
       if (s.phase !== "ready") return;
       const sources = new Set<string>();
       const walk = (el: Y.XmlFragment | Y.XmlElement) => {

@@ -24,7 +24,9 @@ export class DocSession {
   gen = 0;
   refs = 0;
   readonly ready: Promise<void>;
+  readonly loaded: Promise<void>;
   private resolveReady!: () => void;
+  private resolveLoaded!: () => void;
   private idb: IndexeddbPersistence | null = null;
   private live = false;
   private gate: Uint8Array[] | null = null;
@@ -37,6 +39,7 @@ export class DocSession {
     private readonly store: DocStore,
   ) {
     this.ready = new Promise((r) => (this.resolveReady = r));
+    this.loaded = new Promise((r) => (this.resolveLoaded = r));
     this.attach();
     store.sync.join(id, {
       onOpened: (info) => void this.opened(info.gen, info.write),
@@ -96,12 +99,19 @@ export class DocSession {
     if (name) {
       const idb = new IndexeddbPersistence(name, doc);
       this.idb = idb;
-      void idb.whenSynced.then(() => {
+      void idb.whenSynced.then(async () => {
         if (this.idb !== idb) return;
         this.local = true;
         if (this.fragment.length > 0) this.markReady();
-      });
-    }
+        const [gen, write] = await Promise.all([idb.get("gen").catch(() => undefined), idb.get("write").catch(() => undefined)]);
+        if (this.idb !== idb) return;
+        if (!this.live && write === 1 && !this.write) {
+          this.write = true;
+          this.emit("write");
+        }
+        if (this.fragment.length > 0 || gen !== undefined) this.markReady();
+      }).finally(() => this.resolveLoaded());
+    } else this.resolveLoaded();
   }
 
   private detach(): void {
@@ -123,6 +133,7 @@ export class DocSession {
         const stored = (await this.idb.get("gen")) as number | undefined;
         if (stored !== undefined && stored !== gen) await this.reset();
         await this.idb?.set("gen", gen);
+        await this.idb?.set("write", write ? 1 : 0);
       } catch {
         this.idb = null;
       }
@@ -281,7 +292,7 @@ export class DocStore {
     for (const s of this.sessions.values()) s.destroy();
     this.sessions.clear();
     this.sync.stop();
-    if (typeof caches !== "undefined") await Promise.all(["formmd-shell", "formmd-api"].map((name) => caches.delete(name).catch(() => false)));
+    if (typeof caches !== "undefined") await Promise.all(["formmd-shell", "formmd-api", "formmd-files"].map((name) => caches.delete(name).catch(() => false)));
     if (typeof indexedDB === "undefined" || !indexedDB.databases) return;
     const dbs = await indexedDB.databases().catch(() => []);
     await Promise.all(

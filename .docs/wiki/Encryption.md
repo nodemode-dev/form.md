@@ -75,14 +75,13 @@ It needs the key (`FORMMD_KEY_FILE` or the credential) and refuses when there is
 
 1. checkpoints the WAL and writes an encrypted copy of the database with `VACUUM INTO` to `form-md.db.encrypting`,
 2. runs `PRAGMA integrity_check` on the copy and stops if it fails,
-3. seals every file under `files/` and `acme/`, and `secret.key` (files that are already sealed are skipped),
-4. renames the copy over `form-md.db`, removes the old `-wal` and `-shm`, and writes `encryption.json`.
-
+3. seals every file under `files/`, `tmp/` and `acme/`, and `secret.key` (files that are already sealed are skipped), and deletes the unfinished temporary files an interrupted upload or import leaves behind (names starting with a dot, such as `.upload-*` and `.import-*`), since nothing reads them again,
+4. makes the copy readable by its owner only (mode 0600), renames it over `form-md.db`, removes the old `-wal` and `-shm`, and writes `encryption.json`,
 5. when run as root, hands every file in the data directory back to the directory's owner.
 
-It prints `encrypted the database and N files (M already encrypted)`. If it stops partway, run it again.
+It prints `encrypted the database and N files (M already encrypted, K unfinished temporary files removed)`. If it stops partway, run it again.
 
-On a directory that is already encrypted it checks the key against `encryption.json` (a wrong key stops it), takes the lock, and seals any file under `files/` and `acme/`, and `secret.key`, that is still plain, skipping the sealed ones. This is what to run when `form-md doctor` reports `N files are not encrypted`:
+On a directory that is already encrypted it checks the key against `encryption.json` (a wrong key stops it), takes the lock, seals any file under those directories, and `secret.key`, that is still plain, skipping the sealed ones, and removes leftover temporary files the same way. This is what to run when `form-md doctor` reports `N files are not encrypted`:
 
 ```sh
 sudo systemctl stop form-md
@@ -112,6 +111,8 @@ All subkeys (database, WAL, journal, files, key check) are derived from the one 
 - The WAL file header and each WAL frame header (page number, database size, salts and the frame checksums).
 - The `-shm` file (SQLite's WAL index).
 - `encryption.json`, `form-md.lock` and the backup manifest `form-md-backup.json` (version, time, counts, size and whether the backup is encrypted).
+- Tampering with database pages is not detected as such. XTS keeps page contents secret but carries no authentication tag, so a page changed on disk decrypts to noise, which SQLite then reports as a damaged database (`PRAGMA integrity_check`, `form-md doctor`). Files, uploads and `secret.key` use AES-GCM and refuse to open when changed.
+- Copies made before encryption was turned on: earlier backup archives, a directory kept aside by `restore`, or snapshots of the disk. `form-md encrypt` converts only the data directory; delete or re-create older plain backups yourself.
 - Anything outside the data directory: data in memory, traffic on the network (use [[TLS-and-ACME]]), and pages kept in browsers for offline use (see [[Offline]]).
 
 ## Missing or wrong key
@@ -125,15 +126,18 @@ All subkeys (database, WAL, journal, files, key check) are derived from the one 
 | Key file is not 32 bytes of hex or base64 | `the key file must hold 32 bytes as 64 hex characters or base64 (form-md keygen makes one)` |
 | Key given, directory holds a plain database | `a key is set but this data directory is not encrypted: stop the server and run form-md encrypt first` |
 | A sealed file is damaged or was sealed with another key | `crypt: the encrypted data is damaged or the key is wrong` |
+| A plain file sits where an encrypted one is expected (copied in by hand, or left from before `encrypt`) | `crypt: this file is not encrypted although the instance is; run form-md doctor` (the file is not served; `form-md encrypt` seals it) |
+| The encrypted database does not use 4096-byte pages | `an encrypted database must use 4096-byte pages (found N)` |
 
 **Losing the key loses the data.** There is no recovery path, no command to change the key, and no command to turn encryption off.
 
 ## The contract
 
-1. Anything written to the data directory that holds user content goes through the store's key: `Key.Writer`, `Key.WriteFile` or `Key.Seal` to write, `Key.Open`, `Key.ReadFile` or `Key.Unseal` to read. These pass data through unchanged when encryption is off, and readers accept plain files too, so the same code serves both modes.
-2. The database is opened only through `store.Open` or `ops.openDB`, which select the `formmd-crypt` VFS when a key is set. A second connection opened some other way reads ciphertext.
-3. A new directory of user content in the data directory is added to `carriedDirs` in `internal/ops/backup.go`; `form-md backup` copies those directories and `form-md encrypt` seals them.
-4. The key never goes into the data directory, the database or a log line. `form-md doctor` warns when the key file sits inside the data directory.
+1. Anything written to the data directory that holds user content goes through the store's key: `Key.Writer`, `Key.WriteFile` or `Key.Seal` to write, `Key.Open`, `Key.ReadFile` or `Key.Unseal` to read. These pass data through unchanged when encryption is off, so the same code serves both modes. With a key set, readers refuse a plain file (`crypt.ErrNotSealed`) rather than serve something that bypassed encryption; the only place that reads plain files under a key is `form-md encrypt`, which seals them.
+2. The database file is created with mode 0600 and the store chmods it to 0600 on every start.
+3. The database is opened only through `store.Open` or `ops.openDB`, which select the `formmd-crypt` VFS when a key is set. A second connection opened some other way reads ciphertext.
+4. A new directory of user content in the data directory is added to `carriedDirs` in `internal/ops/backup.go`; `form-md backup` copies those directories and `form-md encrypt` seals them.
+5. The key never goes into the data directory, the database or a log line. `form-md doctor` warns when the key file sits inside the data directory.
 
 ## Gotchas
 

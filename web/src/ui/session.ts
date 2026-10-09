@@ -48,6 +48,8 @@ export function mountSession(engine: Engine): void {
   });
   paintUser();
   paintWorkspace();
+  const startWs = state.get("workspaceId");
+  if (startWs) rememberWorkspace(startWs);
 
   const commandItem = (id: string, icon: IconName, danger = false): MenuEntry[] => {
     const c = commands.get(id);

@@ -24,6 +24,8 @@ const (
 
 var ErrCorrupt = errors.New("crypt: the encrypted data is damaged or the key is wrong")
 
+var ErrNotSealed = errors.New("crypt: this file is not encrypted although the instance is; run form-md doctor")
+
 type ReadSeekCloser interface {
 	io.ReadSeekCloser
 	io.ReaderAt
@@ -187,6 +189,9 @@ func IsSealed(r io.ReaderAt) bool {
 
 func (k *Key) Reader(r io.ReaderAt, size int64) (io.ReaderAt, error) {
 	if !IsSealed(r) {
+		if k != nil {
+			return nil, ErrNotSealed
+		}
 		return r, nil
 	}
 	if k == nil {

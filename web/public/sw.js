@@ -3,6 +3,21 @@ const SHELL = "formmd-shell";
 const SHELL_URL = "/offline-shell";
 const API = "formmd-api";
 const API_READS = /^\/api\/(collections\/[^/]+|rows\/[^/]+)$/;
+const FILES = "formmd-files";
+const FILE_READS = /^\/files\/[a-z0-9]+$/;
+
+async function fileRead(request) {
+  const cache = await caches.open(FILES);
+  try {
+    const res = await fetch(request);
+    if (res.status === 200 && !request.headers.has("range")) await cache.put(request, res.clone());
+    return res;
+  } catch (err) {
+    const hit = await cache.match(request, { ignoreVary: true, ignoreSearch: true });
+    if (hit) return hit;
+    throw err;
+  }
+}
 const APP_ROUTES = /^\/(p\/[^/]+\/?|library\/?|trash\/?|inbox\/?)?$/;
 
 async function precache(all) {
@@ -82,6 +97,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/assets/")) event.respondWith(fromCache(request));
   else if (request.mode === "navigate" && APP_ROUTES.test(url.pathname)) event.respondWith(navigate(request));
   else if (API_READS.test(url.pathname)) event.respondWith(apiRead(request));
+  else if (FILE_READS.test(url.pathname)) event.respondWith(fileRead(request));
 });
 
 self.addEventListener("message", (event) => {
@@ -96,7 +112,7 @@ self.addEventListener("message", (event) => {
           .map((u) => apiRead(new Request(new URL(u, self.location.origin).href, { credentials: "same-origin" })).catch(() => undefined)),
       ),
     );
-  else if (type === "offline-clear") event.waitUntil(Promise.all([caches.delete(SHELL), caches.delete(API)]));
+  else if (type === "offline-clear") event.waitUntil(Promise.all([caches.delete(SHELL), caches.delete(API), caches.delete(FILES)]));
 });
 
 self.addEventListener("push", (event) => {

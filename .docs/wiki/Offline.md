@@ -1,6 +1,6 @@
 # Offline
 
-form.md opens without a connection to the server. A service worker keeps the built client and a copy of the signed-in app shell, and page bodies live in the browser's IndexedDB as the same CRDT documents the server holds, so pages saved on the device open, show their text and accept typing while the server is unreachable. Text edits merge into the server's copy when the connection comes back. Databases opened or kept on the device open read-only with their first window of rows. Everything else (database edits, filters and further rows, search, comments, the inbox, uploads, AI and settings) needs the server.
+form.md opens without a connection to the server. A service worker keeps the built client and a copy of the signed-in app shell, and page bodies live in the browser's IndexedDB as the same CRDT documents the server holds, so pages saved on the device open, show their text and accept typing while the server is unreachable, including after the browser was closed and reopened offline (the device remembers whether you may edit each page). Text edits merge into the server's copy when the connection comes back. Databases opened or kept on the device open read-only with their first window of rows when their first view is a table or a list. Everything else (database edits, filters and further rows, search, comments, the inbox, uploads, AI and settings) needs the server.
 
 ## Layout
 
@@ -22,7 +22,8 @@ form.md opens without a connection to the server. A service worker keeps the bui
 2. On install, the worker fetches `/offline.json` and caches the `core` assets (those the app document references or preloads) in the cache `formmd-assets`.
 3. About 20 seconds after start, when the browser is idle and not in data-saver mode, it caches every asset listed in `/offline.json` and drops cached assets the current build no longer lists.
 4. While online and signed in, the app asks the worker to fetch `/offline-shell` and keep it in the cache `formmd-shell`. The shell is the app document the server renders for you, with your account, the current workspace's page tree, tags, teamspaces and favorites. The app refreshes it after start and again 4 seconds after the page tree changes.
-5. Requests under `/assets/` are answered from the cache first. Navigations to `/`, `/p/<id>`, `/library`, `/trash` and `/inbox` go to the network first; when the network fails, the worker answers with the cached shell, marked with the right route so the layout does not move on first paint.
+5. Files and pictures under `/files/<id>` that this browser has loaded whole are kept in the cache `formmd-files` and answered from it when the network fails.
+6. Requests under `/assets/` are answered from the cache first. Navigations to `/`, `/p/<id>`, `/library`, `/trash` and `/inbox` go to the network first; when the network fails, the worker answers with the cached shell, marked with the right route so the layout does not move on first paint.
 
 ## Keeping pages on the device
 
@@ -33,10 +34,11 @@ Every page you open is kept in IndexedDB on that device, and every database you 
 | Works offline | Needs the server |
 |---|---|
 | Opening the app at `/`, a page, the library, the trash or the inbox route | Database edits, other views, filters, more rows, charts and forms |
-| Kept or opened databases, read-only, with the first window of rows of the view they opened with | |
-| The sidebar (page tree, favorites, tags) as of the last shell refresh | Search and the command palette's answers |
+| Kept or opened databases, read-only, with the first window of rows of the view they opened with, when that view is a table or a list | Databases whose first view is a board, calendar, gallery, timeline, chart or form show their title and no rows |
+| The sidebar (page tree, favorites, tags) of the workspace that was current at the last shell refresh | Search and the command palette's answers; the trees of other workspaces |
 | Reading pages saved on this device | Comments, the inbox contents, sharing, history |
-| Typing in those pages; edits are kept in IndexedDB and sync when the server is back | Uploads, files and pictures not already cached |
+| Typing in those pages; edits are kept in IndexedDB and sync when the server is back | Uploads, and files or pictures this browser has not loaded before |
+| Files and pictures this browser has loaded before | |
 | | AI, agents, settings and anything else under `/api` |
 
 A page that was neither opened nor kept on this device shows its title but no body. While the server is unreachable the app shows: "Cannot reach the server. Pages saved on this device stay open, and edits to their text sync when it is back." with a Retry button, and "Connection restored." when it is back.
@@ -49,7 +51,7 @@ In the installed window, a **Sync now** button appears in the top bar. It reconn
 
 ## Sign-out
 
-Signing out deletes the cached shell, the API cache and every IndexedDB document database the app created (names starting `formmd-doc-`), so the next person on that browser starts clean. The asset cache holds only the public client build and is kept.
+Signing out deletes the cached shell, the API cache, the file cache and every IndexedDB document database the app created (names starting `formmd-doc-`), so the next person on that browser starts clean. When the server answers that the session has ended (expired or revoked), the app deletes the shell, API and file caches before it goes to the sign-in page. The asset cache holds only the public client build and is kept.
 
 ## For operators
 
@@ -61,7 +63,7 @@ Signing out deletes the cached shell, the API cache and every IndexedDB document
 ## The contract
 
 1. A new top-level app route that should open offline is added to `APP_ROUTES` in `web/public/sw.js` and handled for `/offline-shell` in `internal/server/server.go`.
-2. The worker caches only same-origin `GET` requests under `/assets/` and the shell; API responses are never cached, so offline never shows stale data from `/api`.
+2. The worker caches only same-origin `GET` requests: assets, the shell, the two database reads matched by `API_READS` and whole (non-range) `200` file responses. API and file reads go to the network first, so a cached copy is only ever shown when the server cannot be reached. A new cached read is added to the matching pattern in `web/public/sw.js` and to the cache names `clearLocal` and the session guard in `web/src/main.ts` delete.
 3. Anything the app stores per account on the device is removed by `clearLocal` on sign-out.
 
 ## Related

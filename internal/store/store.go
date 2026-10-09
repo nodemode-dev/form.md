@@ -49,6 +49,10 @@ func Open(ctx context.Context, dataDir string, key *crypt.Key) (*Store, error) {
 		return nil, fmt.Errorf("data directory: %w", err)
 	}
 	path := filepath.Join(dataDir, FileName)
+	if f, err := os.OpenFile(path, os.O_CREATE|os.O_RDONLY, 0o600); err == nil {
+		f.Close()
+		_ = os.Chmod(path, 0o600)
+	}
 	s := &Store{Path: path, Key: key}
 	if key != nil {
 		if err := Register(key); err != nil {
@@ -70,6 +74,13 @@ func Open(ctx context.Context, dataDir string, key *crypt.Key) (*Store, error) {
 	}
 
 	s.W = w
+	if s.vfs != "" {
+		var size int
+		if err := w.QueryRowContext(ctx, "PRAGMA page_size").Scan(&size); err != nil || size != cryptvfs.PageSize {
+			w.Close()
+			return nil, fmt.Errorf("an encrypted database must use %d-byte pages (found %d): %v", cryptvfs.PageSize, size, err)
+		}
+	}
 	if err := s.migrate(ctx); err != nil {
 		w.Close()
 		return nil, err
