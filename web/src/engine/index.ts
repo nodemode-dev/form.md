@@ -17,7 +17,7 @@ import { closeTab, cycleTab, moveTab, type NavState, openNewTab, openTab, parseR
 import { State } from "./state";
 
 export type Overlay = null | "shortcuts" | "account" | "admin" | "workspace" | "new-workspace" | "search";
-export type AuthState = "pending" | "setup" | "signed-out" | "signup" | "invite" | "app" | "form";
+export type AuthState = "pending" | "setup" | "signed-out" | "signup" | "invite" | "app" | "form" | "consent";
 
 export interface Platform {
   mac: boolean;

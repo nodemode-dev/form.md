@@ -1,6 +1,7 @@
 import type { Engine, Me, NotifyPrefs, Prefs, SessionInfo, ThemePref, Token } from "../engine";
 import { formatDateTime, formatRelative, weekStart } from "../engine/format";
 import { currentLang, t } from "../engine/i18n";
+import { agentsTab } from "./account-agents";
 import { avatar, COLORS, updateAvatar } from "./avatar";
 import { confirmDialog, overlayDialog, type Tab } from "./dialog";
 import { h, setAttr, setText } from "./dom";
@@ -748,5 +749,5 @@ function languageTab(engine: Engine): Tab {
 }
 
 export function mountAccount(engine: Engine): void {
-  overlayDialog(engine, "account", t("Account settings"), [profileTab(engine), notificationsTab(engine), securityTab(engine), tokensTab(engine), languageTab(engine)]);
+  overlayDialog(engine, "account", t("Account settings"), [profileTab(engine), notificationsTab(engine), securityTab(engine), tokensTab(engine), agentsTab(engine), languageTab(engine)]);
 }

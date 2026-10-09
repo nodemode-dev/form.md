@@ -418,6 +418,13 @@
   background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
+.secret-box.snippet {
+  align-items: start;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
 .secret-box {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

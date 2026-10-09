@@ -172,6 +172,26 @@
           <p class="form-status" role="alert"></p>
           <button class="btn btn--primary btn--block" type="submit" data-ref="invite-submit">Join workspace</button>
         </form>
+
+        <form class="auth__panel" data-panel="consent" novalidate>
+          <h1 class="auth__title">Connect <!--slot:oauth-client--></h1>
+          <p class="auth__lead consent__expired">This connection request has expired or was already answered. Start again from the app that asked.</p>
+          <p class="auth__lead consent__ask"><b><!--slot:oauth-client--></b> at <span class="consent__host"><!--slot:oauth-host--></span> asks to work in form.md as you.</p>
+          <fieldset class="consent__group">
+            <legend class="field__label">Access</legend>
+            <div class="option-cards"><!--html:oauth-scope--></div>
+          </fieldset>
+          <fieldset class="consent__group">
+            <legend class="field__label">Workspaces</legend>
+            <div class="check-list consent__workspaces"><!--html:oauth-workspaces--></div>
+          </fieldset>
+          <p class="auth__note consent__ask">It can do what you can do in these workspaces, within each workspace's agent policy and rules. Disconnect it any time under Account settings, Connected apps.</p>
+          <p class="form-status" role="alert"></p>
+          <div class="consent__actions">
+            <button class="btn btn--ghost" type="button" data-ref="consent-deny">Deny</button>
+            <button class="btn btn--primary" type="submit">Allow</button>
+          </div>
+        </form>
       </div>
     </main>
     <div id="overlay-root"></div>

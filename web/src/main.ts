@@ -23,7 +23,7 @@ import { mountTopbar } from "./ui/topbar";
 import { mountTrashView } from "./ui/trash-view";
 import { mountTree } from "./ui/tree";
 
-const AUTH_STATES: readonly AuthState[] = ["pending", "setup", "signed-out", "signup", "invite", "app", "form"];
+const AUTH_STATES: readonly AuthState[] = ["pending", "setup", "signed-out", "signup", "invite", "app", "form", "consent"];
 
 function readBoot(): Boot {
   try {

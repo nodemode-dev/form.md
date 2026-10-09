@@ -2,6 +2,8 @@ import { type FetchFn, request, upload } from "./api";
 import type {
   AccessWorkspace,
   AdminUser,
+  AgentGrant,
+  AgentRun,
   BreakGlassGrant,
   Collection,
   CollectionView,
@@ -141,6 +143,12 @@ export function createClient(f: FetchFn) {
       deleteToken: (id: string) => del(`/api/me/tokens/${enc(id)}`),
       sessions: () => get<{ sessions: SessionInfo[] }>("/api/me/sessions"),
       endSession: (id: string) => del(`/api/me/sessions/${enc(id)}`),
+      grants: () => get<{ grants: AgentGrant[] }>("/api/me/grants"),
+      revokeGrant: (id: string) => del(`/api/me/grants/${enc(id)}`),
+      consent: (request: string, approve: boolean, scope: "read" | "write", workspaces: string[]) =>
+        post<{ redirect: string }>("/api/oauth/consent", { request, approve, scope, workspaces }),
+      runs: (agent = "") => get<{ runs: AgentRun[] }>(`/api/agent-runs${agent ? `?agent=${enc(agent)}` : ""}`),
+      undoRun: (id: string) => post<{ undone: number }>(`/api/agent-runs/${enc(id)}/undo`),
     },
     workspaces: {
       list: () => get<{ workspaces: Workspace[]; withheld: number }>("/api/workspaces"),

@@ -195,11 +195,40 @@ function bindInvite(engine: Engine): void {
   });
 }
 
+function bindConsent(engine: Engine, request: string): void {
+  const form = panel("consent");
+  const st = status(form.querySelector<HTMLElement>(".form-status")!);
+  const deny = form.querySelector<HTMLButtonElement>('[data-ref="consent-deny"]')!;
+  const send = async (approve: boolean, button: HTMLButtonElement) => {
+    st.clear();
+    const scope = (form.querySelector<HTMLInputElement>('input[name="scope"]:checked')?.value ?? "read") as "read" | "write";
+    const workspaces = [...form.querySelectorAll<HTMLInputElement>('input[name="workspace"]:checked')].map((i) => i.value);
+    if (approve && workspaces.length === 0) {
+      st.error(new Error(t("Choose at least one workspace.")));
+      return;
+    }
+    try {
+      const res = await busy(button, () => engine.api.me.consent(request, approve, scope, workspaces));
+      setAttr(form, "data-mode", "done");
+      location.assign(res.redirect);
+    } catch (err) {
+      st.error(err);
+    }
+  };
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    void send(true, submitButton(form));
+  });
+  deny.addEventListener("click", () => void send(false, deny));
+}
+
 export function mountAuth(engine: Engine): void {
   bindSetup(engine);
   bindLogin(engine);
   bindSignup(engine);
   if (engine.state.get("auth") === "invite") bindInvite(engine);
+  const oauth = engine.boot.oauth;
+  if (engine.state.get("auth") === "consent" && oauth) bindConsent(engine, oauth.request);
   engine.state.watch("auth", (v) => setAttr(document.documentElement, "data-auth", v), { immediate: true });
   const first = document.querySelector<HTMLInputElement>(`:root[data-auth="${engine.state.get("auth")}"] .auth__panel input:not([hidden] *)`);
   if (first && engine.state.get("auth") !== "app") {

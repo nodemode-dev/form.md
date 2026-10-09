@@ -79,6 +79,30 @@ export interface Boot {
   query?: { view_id: string; result: QueryResult };
   row?: RowDetail;
   form?: FormDef;
+  oauth?: { request: string };
+}
+
+export interface AgentGrant {
+  id: string;
+  client: string;
+  client_id: string;
+  scope: "read" | "write";
+  workspaces: { id: string; name: string; personal: boolean }[];
+  created_at: number;
+  last_used_at: number;
+}
+
+export interface AgentRun {
+  id: string;
+  kind: "mcp" | "chat" | "custom" | "ai";
+  client: string;
+  agent_id?: string;
+  title: string;
+  status: "open" | "done" | "undone" | "failed";
+  ops: number;
+  created_at: number;
+  updated_at: number;
+  undone_at?: number;
 }
 
 export type PropType =
