@@ -36,7 +36,10 @@ func (s *Service) routes() []route {
 	seen := map[string]bool{}
 	for _, p := range s.router.Patterns() {
 		method, path, ok := strings.Cut(p, " ")
-		if !ok || method == "OPTIONS" || method == "HEAD" {
+		if !ok {
+			method, path = "POST", p
+		}
+		if method == "OPTIONS" || method == "HEAD" {
 			continue
 		}
 		path = strings.ReplaceAll(path, "{$}", "")
