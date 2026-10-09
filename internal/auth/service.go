@@ -358,7 +358,7 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 			if !p.IsSession() && r.URL.Path != "/mcp" {
 				ok, left, wait := s.apiLimit.Take(p.CredentialID)
 				w.Header().Set("RateLimit-Limit", strconv.Itoa(apiBurst))
-				w.Header().Set("RateLimit-Policy", strconv.Itoa(apiBurst)+";w=60")
+				w.Header().Set("RateLimit-Policy", strconv.Itoa(apiBurst)+";w="+strconv.Itoa(apiBurst*60/apiPerMinute))
 				w.Header().Set("RateLimit-Remaining", strconv.Itoa(left))
 				if !ok {
 					secs := int(wait.Seconds()) + 1
