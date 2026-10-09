@@ -38,6 +38,8 @@ func run(args []string) int {
 		return 0
 	case "keygen", "encrypt", "backup", "restore", "doctor", "admin":
 		return tool(cmd, args[1:])
+	case "mcp":
+		return bridge(args[1:])
 	case "help", "--help", "-h":
 		usage(os.Stdout)
 		return 0
@@ -98,7 +100,7 @@ func serve() int {
 		return 1
 	}
 
-	srv, err := server.Build(ctx, cfg, log, st, formmd.Dist(), formmd.Notices(), instanceID)
+	srv, err := server.Build(ctx, cfg, log, st, formmd.Dist(), formmd.ContextSkill(), formmd.Notices(), instanceID)
 	if err != nil {
 		log.Error("startup", "err", err)
 		return 1
@@ -122,6 +124,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "  admin set KEY VALUE   change an instance setting, for example https.auto false")
 	fmt.Fprintln(w, "  keygen                print a new at-rest encryption key")
 	fmt.Fprintln(w, "  encrypt               encrypt a plain data directory with FORMMD_KEY_FILE (server stopped)")
+	fmt.Fprintln(w, "  mcp                   bridge MCP between standard input and output and a form.md server, for Codex and other clients that start a command")
 	fmt.Fprintln(w, "  version               print the version")
 	fmt.Fprintln(w, "  help                  show this help")
 	fmt.Fprintln(w, "\nEnvironment:")
@@ -132,6 +135,9 @@ func usage(w io.Writer) {
 		}
 		fmt.Fprintf(w, "  %s%-10s %s (default: %s)\n", config.EnvPrefix, v.Name, v.Purpose, def)
 	}
+	fmt.Fprintln(w, "\nFor form-md mcp:")
+	fmt.Fprintf(w, "  %-19s server address (default: http://127.0.0.1:8750), or --url\n", bridgeURLEnv)
+	fmt.Fprintf(w, "  %-19s personal API token, or --token\n", bridgeTokenEnv)
 	fmt.Fprintln(w, "\nInstance setting defaults (a value saved in Instance settings wins):")
 	for _, d := range settings.Defs {
 		if d.Env != "" {

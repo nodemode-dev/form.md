@@ -15,6 +15,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/ai"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/collection"
+	"github.com/nodemode-ai/form.md/internal/contextpack"
 	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/ids"
@@ -24,15 +25,16 @@ import (
 )
 
 type Deps struct {
-	Store *store.Store
-	Auth  *auth.Service
-	Gate  *policy.Gate
-	AI    *ai.Service
-	Tools *mcp.Server
-	Docs  *doc.Service
-	Cols  *collection.Service
-	Runs  *agentrun.Service
-	Log   *slog.Logger
+	Store   *store.Store
+	Auth    *auth.Service
+	Gate    *policy.Gate
+	AI      *ai.Service
+	Tools   *mcp.Server
+	Docs    *doc.Service
+	Cols    *collection.Service
+	Runs    *agentrun.Service
+	Context *contextpack.Service
+	Log     *slog.Logger
 }
 
 type Service struct {

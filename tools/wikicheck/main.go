@@ -37,6 +37,13 @@ func main() {
 	for _, m := range envRef.FindAllString(string(install), -1) {
 		known[m] = true
 	}
+	cmdFiles, _ := filepath.Glob("cmd/form-md/*.go")
+	for _, f := range cmdFiles {
+		src, _ := os.ReadFile(f)
+		for _, m := range envRef.FindAllString(string(src), -1) {
+			known[m] = true
+		}
+	}
 	commands := map[string]bool{}
 	for _, f := range []string{"cmd/form-md/main.go", "cmd/form-md/tool.go"} {
 		src, err := os.ReadFile(f)

@@ -24,6 +24,7 @@ type Tool struct {
 	Write       bool
 	Destructive bool
 	Idempotent  bool
+	Brief       bool
 	Run         func(ctx context.Context, x *exec, args json.RawMessage) (any, string, error)
 }
 
@@ -177,7 +178,7 @@ func (s *Server) callTool(ctx context.Context, c *call, t *Tool, raw json.RawMes
 	}
 	body, _ := json.MarshalIndent(structured, "", "  ")
 	text := summary
-	if structured != nil {
+	if structured != nil && !t.Brief {
 		text = strings.TrimSpace(summary + "\n" + x.frame("result", string(body)))
 	}
 	res := toolResult(structured, text, false)

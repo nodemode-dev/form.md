@@ -42,6 +42,7 @@ func (s *Server) register() {
 	s.add(&Tool{Name: "list_runs", Title: "List my runs",
 		Description: "The recent runs of this person's agents with the number of changes in each; undo_run reverts one.",
 		Props:       map[string]any{"limit": intp("Up to 100, default 20")}, Run: s.listRuns})
+	s.registerContext()
 	s.registerWrites()
 }
 
