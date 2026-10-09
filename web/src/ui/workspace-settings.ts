@@ -182,6 +182,16 @@ function generalTab(engine: Engine): Tab {
       panel.append(s);
     }
 
+    if (!w.break_glass && (w.role === "admin" || w.role === "member")) {
+      const s = section(t("Import and export"), t("Bring pages in from other tools, or take everything you can read here out as files."));
+      const imp = button(t("Import"), "default", "upload");
+      imp.addEventListener("click", () => void import("./transfer-dialog").then((m) => m.openImport(engine, { workspaceId: w.id }), engine.reportError));
+      const exp = button(t("Export workspace"), "default", "download");
+      exp.addEventListener("click", () => void import("./transfer-dialog").then((m) => m.openExport(engine, { workspaceId: w.id }), engine.reportError));
+      s.append(actions(imp, exp));
+      panel.append(s);
+    }
+
     if (w.personal || w.break_glass) return;
     const zone = section(t("Leave or delete"));
     const zoneStatus = status();

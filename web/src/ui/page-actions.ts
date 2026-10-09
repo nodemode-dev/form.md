@@ -104,6 +104,9 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
   entries.push({ kind: "separator" });
   if (engine.can(id, "view") && p.kind === "doc") entries.push({ label: t("Page history"), icon: "clock", run: () => openHistory(engine, id) });
   if (engine.can(id, "edit")) entries.push({ label: t("Analytics"), icon: "chart", run: () => void openAnalytics(engine, id) });
+  if (engine.can(id, "view")) entries.push({ label: t("Export"), icon: "download", run: () => void import("./transfer-dialog").then((m) => m.openExport(engine, { pageId: id }), engine.reportError) });
+  if (engine.can(id, "content") && p.kind === "doc" && !p.row)
+    entries.push({ label: t("Import into this page"), icon: "upload", run: () => void import("./transfer-dialog").then((m) => m.openImport(engine, { workspaceId: p.workspace_id, parentId: id }), engine.reportError) });
   entries.push({
     label: t("Copy link"),
     icon: "link",
