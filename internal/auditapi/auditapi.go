@@ -61,11 +61,21 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		if f.Limit <= 0 || f.Limit > 200 {
 			f.Limit = 50
 		}
+		if cur := r.URL.Query().Get("cursor"); cur != "" {
+			c, err := httpx.DecodeCursor(cur)
+			if err != nil {
+				return err
+			}
+			f.Before = c.At
+		}
 		rows, next, err := m.log.Query(r.Context(), f)
 		if err != nil {
 			return err
 		}
-		out := map[string]any{"entries": rows, "next": next, "retention_days": m.set.Int("audit.retention_days")}
+		out := map[string]any{"entries": rows, "next": next, "next_cursor": "", "retention_days": m.set.Int("audit.retention_days")}
+		if next > 0 {
+			out["next_cursor"] = httpx.EncodeCursor(httpx.Cursor{At: next})
+		}
 		if f.Before == 0 {
 			actions, actors, err := m.log.Facets(r.Context(), f.WorkspaceID)
 			if err != nil {

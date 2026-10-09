@@ -40,7 +40,15 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		if err != nil {
 			return err
 		}
-		return ok(w, map[string]any{"pages": pages})
+		q := r.URL.Query()
+		if q.Get("limit") == "" && q.Get("cursor") == "" {
+			return ok(w, map[string]any{"pages": pages})
+		}
+		out, err := pageWindow(pages, q.Get("limit"), q.Get("cursor"))
+		if err != nil {
+			return err
+		}
+		return ok(w, out)
 	})
 	route("GET /api/workspaces/{id}/trash", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 		items, err := s.Trash(r.Context(), p, r.PathValue("id"), r.URL.Query().Get("q"))

@@ -74,6 +74,7 @@ type QueryInput struct {
 	NoGroups   bool        `json:"no_groups,omitempty"`
 	Tree       string      `json:"tree,omitempty"`
 	Expanded   []string    `json:"expanded,omitempty"`
+	Cursor     string      `json:"cursor,omitempty"`
 }
 
 type RowOut struct {
@@ -121,15 +122,16 @@ type Ref struct {
 }
 
 type QueryResult struct {
-	Total  int            `json:"total"`
-	Rows   []RowOut       `json:"rows"`
-	Order  []string       `json:"order"`
-	Groups []GroupOut     `json:"groups,omitempty"`
-	Lanes  []LaneOut      `json:"lanes,omitempty"`
-	Calcs  map[string]any `json:"calcs,omitempty"`
-	Refs   map[string]Ref `json:"refs"`
-	Epoch  int64          `json:"epoch"`
-	Offset int            `json:"offset"`
+	Total      int            `json:"total"`
+	Rows       []RowOut       `json:"rows"`
+	Order      []string       `json:"order"`
+	Groups     []GroupOut     `json:"groups,omitempty"`
+	Lanes      []LaneOut      `json:"lanes,omitempty"`
+	Calcs      map[string]any `json:"calcs,omitempty"`
+	Refs       map[string]Ref `json:"refs"`
+	Epoch      int64          `json:"epoch"`
+	Offset     int            `json:"offset"`
+	NextCursor string         `json:"next_cursor,omitempty"`
 }
 
 func (ev *evaluator) rowOut(sn *snap, r *Row, refs map[string]Ref) RowOut {

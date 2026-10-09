@@ -114,9 +114,19 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		in.To, _ = strconv.ParseInt(q.Get("to"), 10, 64)
 		in.Limit, _ = strconv.Atoi(q.Get("limit"))
 		in.Offset, _ = strconv.Atoi(q.Get("offset"))
+		if cur := q.Get("cursor"); cur != "" {
+			c, err := httpx.DecodeCursor(cur)
+			if err != nil {
+				return err
+			}
+			in.Offset = c.Offset
+		}
 		res, err := s.Search(r.Context(), p, in)
 		if err != nil {
 			return err
+		}
+		if res.More {
+			res.NextCursor = httpx.EncodeCursor(httpx.Cursor{Offset: in.Offset + len(res.Hits)})
 		}
 		httpx.JSONZ(w, r, http.StatusOK, res)
 		return nil
@@ -362,9 +372,10 @@ type Hit struct {
 }
 
 type Result struct {
-	Hits   []*Hit  `json:"hits"`
-	More   bool    `json:"more"`
-	TookMS float64 `json:"took_ms"`
+	Hits       []*Hit  `json:"hits"`
+	More       bool    `json:"more"`
+	TookMS     float64 `json:"took_ms"`
+	NextCursor string  `json:"next_cursor,omitempty"`
 }
 
 func ftsQuery(q string) string {

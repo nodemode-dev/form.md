@@ -160,9 +160,19 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 				return err
 			}
 		}
+		if in.Cursor != "" {
+			c, err := httpx.DecodeCursor(in.Cursor)
+			if err != nil {
+				return err
+			}
+			in.Offset = c.Offset
+		}
 		res, err := s.Query(r.Context(), p, r.PathValue("id"), in)
 		if err != nil {
 			return err
+		}
+		if len(res.Groups) == 0 && len(res.Lanes) == 0 && res.Offset+len(res.Rows) < res.Total && len(res.Rows) > 0 {
+			res.NextCursor = httpx.EncodeCursor(httpx.Cursor{Offset: res.Offset + len(res.Rows)})
 		}
 		return okz(w, r, res)
 	})
