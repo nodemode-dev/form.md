@@ -39,6 +39,10 @@ export function propSelect(ctx: DbCtx, value: string, onChange: (id: string) => 
     b.replaceChildren(iconNode(p ? TYPE_INFO[p.type].icon : "text"), h("span", { text: p?.name ?? t("Choose") }), iconNode("chevron-down"));
   };
   paint(value);
+  b.addEventListener("prop:set", (e) => {
+    value = (e as CustomEvent<string>).detail;
+    paint(value);
+  });
   b.addEventListener("click", () =>
     openMenu(
       b,

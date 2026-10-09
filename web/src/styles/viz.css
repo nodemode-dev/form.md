@@ -88,11 +88,108 @@
   fill: var(--sheet);
 }
 
-.chart[data-heat="green"] { --heat: var(--c-green); }
-.chart[data-heat="amber"] { --heat: var(--c-amber); }
-.chart[data-heat="rose"] { --heat: var(--c-rose); }
-.chart[data-heat="violet"] { --heat: var(--c-violet); }
-.chart[data-heat="teal"] { --heat: var(--c-teal); }
+.heatv { --heat: var(--accent); }
+.chart[data-heat="green"], .heatv[data-heat="green"] { --heat: var(--c-green); }
+.chart[data-heat="amber"], .heatv[data-heat="amber"] { --heat: var(--c-amber); }
+.chart[data-heat="rose"], .heatv[data-heat="rose"] { --heat: var(--c-rose); }
+.chart[data-heat="violet"], .heatv[data-heat="violet"] { --heat: var(--c-violet); }
+.chart[data-heat="teal"], .heatv[data-heat="teal"] { --heat: var(--c-teal); }
+
+.heatv {
+  display: grid;
+  row-gap: var(--space-2);
+  padding-block: var(--space-2);
+  min-inline-size: 0;
+}
+
+.heatv__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: 28px;
+}
+
+.heatv__range {
+  min-inline-size: 0;
+  padding-inline: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.heatv__spacer {
+  flex: 1;
+}
+
+.heatv__total {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.heatv[data-error="true"] .heatv__total {
+  color: var(--danger);
+}
+
+.heatv__frame {
+  position: relative;
+  block-size: 210px;
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+.heatv[data-domain="month"] .heatv__frame {
+  block-size: 190px;
+}
+
+.heatv[data-domain="week"] .heatv__frame {
+  block-size: 380px;
+}
+
+.heatv[data-domain="day"] .heatv__frame {
+  block-size: 380px;
+}
+
+.heatv__svg {
+  display: block;
+}
+
+.heatv__foot {
+  display: flex;
+  justify-content: flex-end;
+  min-block-size: 18px;
+}
+
+.heatv__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.heatv__key i {
+  display: inline-block;
+  inline-size: 11px;
+  block-size: 11px;
+  border-radius: 2px;
+  --heat-0: color-mix(in srgb, var(--text) 7%, var(--surface));
+  background: var(--heat-0);
+}
+
+.heatv__key span:first-child {
+  margin-inline-end: var(--space-1);
+}
+
+.heatv__key span:last-child {
+  margin-inline-start: var(--space-1);
+}
+
+.heatv__key i[data-level="1"] { background: color-mix(in srgb, var(--heat) 22%, var(--heat-0)); }
+.heatv__key i[data-level="2"] { background: color-mix(in srgb, var(--heat) 40%, var(--heat-0)); }
+.heatv__key i[data-level="3"] { background: color-mix(in srgb, var(--heat) 60%, var(--heat-0)); }
+.heatv__key i[data-level="4"] { background: color-mix(in srgb, var(--heat) 80%, var(--heat-0)); }
+.heatv__key i[data-level="5"] { background: var(--heat); }
 
 .picklist {
   display: grid;

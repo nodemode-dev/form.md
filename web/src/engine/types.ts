@@ -429,7 +429,7 @@ export interface ChartResult {
   picked?: string[];
 }
 
-export type ViewType = "table" | "board" | "list" | "gallery" | "calendar" | "timeline" | "form" | "chart" | "map" | "feed" | "dashboard";
+export type ViewType = "table" | "board" | "list" | "gallery" | "calendar" | "timeline" | "form" | "chart" | "map" | "feed" | "dashboard" | "heatmap" | "graph";
 
 export interface CollectionView {
   id: string;

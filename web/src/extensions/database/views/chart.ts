@@ -161,9 +161,10 @@ export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, ch
     b.addEventListener("click", () => {
       spec.kind = k;
       adapt(k);
-      xSel.value = spec.x?.prop ?? "";
+      xSel.dispatchEvent(new CustomEvent("prop:set", { detail: spec.x?.prop ?? "" }));
       by.value = spec.x?.by ?? "month";
-      yProp.value = spec.prop ?? "";
+      step.value = String(spec.x?.step ?? 10);
+      yProp.dispatchEvent(new CustomEvent("prop:set", { detail: spec.prop ?? "" }));
       emit();
       sync();
     });

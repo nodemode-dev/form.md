@@ -46,9 +46,11 @@ export const VIEW_INFO: Record<ViewType, { label: string; icon: IconName }> = {
   map: { label: "Map", icon: "pin" },
   feed: { label: "Feed", icon: "feed" },
   dashboard: { label: "Dashboard", icon: "dashboard" },
+  heatmap: { label: "Heatmap", icon: "heatmap" },
+  graph: { label: "Graph", icon: "graph" },
 };
 
-export const PHASE5_VIEWS: ViewType[] = ["table", "board", "list", "gallery", "calendar", "timeline", "form", "chart", "dashboard", "map", "feed"];
+export const PHASE5_VIEWS: ViewType[] = ["table", "board", "list", "gallery", "calendar", "timeline", "form", "chart", "dashboard", "heatmap", "graph", "map", "feed"];
 
 export const OPTION_COLORS = ["default", "gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red"] as const;
 

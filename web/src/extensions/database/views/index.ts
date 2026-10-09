@@ -7,6 +7,7 @@ import { dashboardView } from "./dashboard";
 import { feedView } from "./feed";
 import { mapView } from "./map";
 import { formView } from "./form";
+import { heatmapView } from "./heatmap";
 import { galleryView, listView } from "./list";
 import { tableView } from "./table";
 import { timelineView } from "./timeline";
@@ -21,6 +22,7 @@ export const renderers: Partial<Record<ViewType, ViewFactory>> = {
   form: formView,
   chart: chartView,
   dashboard: dashboardView,
+  heatmap: heatmapView,
   map: mapView,
   feed: feedView,
 };

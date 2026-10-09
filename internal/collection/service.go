@@ -103,7 +103,7 @@ type Out struct {
 	DefaultTemplate string        `json:"default_template"`
 }
 
-var viewTypes = map[string]bool{"table": true, "board": true, "list": true, "gallery": true, "calendar": true, "timeline": true, "form": true, "chart": true, "map": true, "feed": true, "dashboard": true}
+var viewTypes = map[string]bool{"table": true, "board": true, "list": true, "gallery": true, "calendar": true, "timeline": true, "form": true, "chart": true, "map": true, "feed": true, "dashboard": true, "heatmap": true, "graph": true}
 
 func defaultViewName(t string) string {
 	switch t {
@@ -127,6 +127,10 @@ func defaultViewName(t string) string {
 		return "Map"
 	case "feed":
 		return "Feed"
+	case "heatmap":
+		return "Heatmap"
+	case "graph":
+		return "Graph"
 	}
 	return "Dashboard"
 }
