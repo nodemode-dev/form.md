@@ -1,6 +1,6 @@
 # Offline
 
-form.md opens without a connection to the server. A service worker keeps the built client and a copy of the signed-in app shell, and page bodies live in the browser's IndexedDB as the same CRDT documents the server holds, so pages saved on the device open, show their text and accept typing while the server is unreachable. Text edits merge into the server's copy when the connection comes back. Everything else (databases, search, comments, the inbox, uploads, AI and settings) needs the server.
+form.md opens without a connection to the server. A service worker keeps the built client and a copy of the signed-in app shell, and page bodies live in the browser's IndexedDB as the same CRDT documents the server holds, so pages saved on the device open, show their text and accept typing while the server is unreachable. Text edits merge into the server's copy when the connection comes back. Databases opened or kept on the device open read-only with their first window of rows. Everything else (database edits, filters and further rows, search, comments, the inbox, uploads, AI and settings) needs the server.
 
 ## Layout
 
@@ -26,13 +26,14 @@ form.md opens without a connection to the server. A service worker keeps the bui
 
 ## Keeping pages on the device
 
-Every page you open is kept in IndexedDB on that device. To keep pages you have not opened, use the page menu item **Available offline** (shown for document pages you can view, in browsers with service workers). It keeps that page and all of its subpages synced into IndexedDB now, shows how many were saved, and re-syncs them about 30 seconds after each start while online. Choosing it again stops keeping them.
+Every page you open is kept in IndexedDB on that device, and every database you open while the service worker controls the tab is kept in the worker's API cache (`formmd-api`: the reads `GET /api/collections/<id>` and `GET /api/rows/<id>`). To keep pages you have not opened, use the page menu item **Available offline** (shown for document and database pages you can view, not for database rows, in browsers with service workers). It keeps that page and all of its subpages synced into IndexedDB, and the first view of each database among them in the API cache, now, shows how many were saved, and re-syncs them about 30 seconds after each start while online. Choosing it again stops keeping them.
 
 ## What works and what does not
 
 | Works offline | Needs the server |
 |---|---|
-| Opening the app at `/`, a page, the library, the trash or the inbox route | Databases: rows, views, filters, charts and forms are answered by the server |
+| Opening the app at `/`, a page, the library, the trash or the inbox route | Database edits, other views, filters, more rows, charts and forms |
+| Kept or opened databases, read-only, with the first window of rows of the view they opened with | |
 | The sidebar (page tree, favorites, tags) as of the last shell refresh | Search and the command palette's answers |
 | Reading pages saved on this device | Comments, the inbox contents, sharing, history |
 | Typing in those pages; edits are kept in IndexedDB and sync when the server is back | Uploads, files and pictures not already cached |
@@ -48,7 +49,7 @@ In the installed window, a **Sync now** button appears in the top bar. It reconn
 
 ## Sign-out
 
-Signing out deletes the cached shell and every IndexedDB document database the app created (names starting `formmd-doc-`), so the next person on that browser starts clean. The asset cache holds only the public client build and is kept.
+Signing out deletes the cached shell, the API cache and every IndexedDB document database the app created (names starting `formmd-doc-`), so the next person on that browser starts clean. The asset cache holds only the public client build and is kept.
 
 ## For operators
 
