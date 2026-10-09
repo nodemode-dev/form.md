@@ -216,6 +216,7 @@ form.md/
 - [Phase 6: search and editor completion](#p6)
 - [Phase 7: collaboration, sharing and identity](#p7)
 - [Phase 8: agents and AI](#p8)
+- [Phase 9: automations, charts, buttons, templates, views](#p9)
 
 ---
 
@@ -1418,3 +1419,82 @@ The head text is the UTC date and rounded minutes, built the same way in the edi
 - logged: v0.8.0 · 2026-10-09
 
 `microphone=(self)` and `display-capture=(self)` let meeting notes record; camera, geolocation and payment stay off.
+
+## Phase 9: automations, charts, buttons, templates, views {#p9}
+
+### internal/collection/chart.go · charts through the query path
+- refers-to: internal/collection/chart.go :: `Chart`, `ChartSpec`, `measure`; internal/collection/module.go :: `POST /api/collections/{id}/chart`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+A chart is a query: the view's filters run through `results.ordered`, rows are bucketed with the same `bucketise` the grouping code uses (so date buckets and option order match the board), and each bucket is measured by the rollup aggregator. That keeps access rules, template-row hiding and formula values identical to the table. Presentation fields (colours, smoothing, labels) ride in the spec so the client draws from one object, and the result carries the snapshot epoch so a live event can skip a refetch that would change nothing.
+
+### internal/automation/runner.go · events, debounce and the loop guard
+- refers-to: internal/automation/runner.go :: `OnEvent`, `fire`, `Loop`, `RunButton`, `RunProperty`
+- kind: warning-context
+- logged: v0.9.0 · 2026-10-09
+
+Triggers read committed audit entries through the hooks pump, never service calls, so a rolled-back write never fires anything. Entries whose actor is an agent (automations run with an agent name) are dropped, which is the whole loop guard: an automation's own edits cannot fire automations. Property edits wait 1.5 s per row and automation so a burst of typing fires once; new rows wait 300 ms so the initial values set right after creation are in the row when the filter is checked. The schedule loop ticks every 15 s and claims a due automation with a compare-and-set on `next_run_at`, so two ticks never run it twice. Buttons run as the presser without an agent name, so their edits are the person's edits and may fire automations.
+
+### internal/automation/exec.go · actions and failures
+- refers-to: internal/automation/exec.go :: `execute`, `reason`, `failure`; internal/automation/automation.go :: `signingKey`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+Actions run in order and the first failure stops the rest, recorded with a sentence a person can act on (`reason` maps API errors, the fetch guard and network errors). Mail goes only to workspace members, never to typed addresses. Webhooks go through `webhook.Send` and the fetch guard, signed with a per-workspace key in `automation_keys` sealed by the instance secret box, so a stolen database alone cannot forge signatures. Runs keep the last 50 outcomes per automation.
+
+### internal/doc/button.go · the button node in Markdown and HTML
+- refers-to: internal/doc/button.go :: `buttonEncode`, `buttonNode`; internal/doc/html.go and markdown.go :: the `button` cases
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+Markdown has no button, so the node is written as `<!-- button:<base64url JSON> -->`, which renders as nothing elsewhere and round-trips exactly. Published HTML shows only the label: actions can name webhooks and people, which a public reader must not see.
+
+### internal/collection/templates.go · template rows
+- refers-to: internal/collection/templates.go :: `templates`, `CreateTemplate`, `SetDefaultTemplate`, `fromTemplate`; internal/collection/cache.go :: `Row.Template`; internal/collection/results.go
+- kind: warning-context
+- logged: v0.9.0 · 2026-10-09
+
+Row templates are rows with `pages.is_template = 1`. They stay in the snapshot (so the template list is free) and every consumer skips them: `ordered`, the row count, `SearchRows`, the relation check and automation filters. Any new consumer of the snapshot must skip them too. A row from a template is made by `pages.Duplicate` (body and children), then a `row.create` audit entry so automations and webhooks see a new row, then `UpdateRow` for the values.
+
+### internal/templates · starters
+- refers-to: internal/templates/starters.go; internal/templates/templates.go :: `GET /api/templates`, `POST /api/templates/use`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+Starters are Go values written for this project, not data from any other product. Row dates are offsets (`+3d`) and `@me` is the person using the starter, resolved at use time so samples always look current. Markdown in starters avoids `> [!NOTE]` alerts, which the importer does not yet turn into callouts.
+
+### internal/doc/service.go · copying a page nobody has edited
+- refers-to: internal/doc/service.go :: `Copy`
+- kind: warning-context
+- logged: v0.9.0 · 2026-10-09
+
+A page created from Markdown may have its body only in an open room, with no stored `doc_state` row yet. `Copy` now encodes the live state in that case; before, duplicating such a page (every template use does) gave an empty body.
+
+### internal/comment/pagereact.go and internal/feed · page reactions
+- refers-to: internal/comment/pagereact.go :: `ReactPage`, `PageReactions`, `CommentCounts`; internal/feed/feed.go :: `Feed`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+Feed posts react with the comment reaction icons, stored in their own table keyed by page, and the feed reads reactions and comment counts for a whole window in two queries. The feed is a view query with grouping off, so its order and filters are the view's.
+
+### internal/collection/ics.go · calendar feeds
+- refers-to: internal/collection/ics.go :: `CalendarFeed`, `FeedOwner`, `ICS`; internal/collection/module.go :: `GET /api/public/calendar/{file}`
+- kind: warning-context
+- logged: v0.9.0 · 2026-10-09
+
+The token is 160 random bits, stored as given (like form links) so the owner can see the address again. The public route rebuilds the owner's principal with `PrincipalFor` and forces a session-kind, read-scope principal: the view and page checks refuse anything else as "not visible". A deactivated owner's feeds stop because `PrincipalFor` refuses them. All-day events use `VALUE=DATE` with an exclusive end, as RFC 5545 requires.
+
+### internal/collection/tree.go · sub-items order
+- refers-to: internal/collection/tree.go :: `treeOrder`, `reachable`; internal/collection/service.go :: `Query` (`in.Tree`)
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+With a self relation named in `tree`, rows come back parent first, children only under expanded parents, with depth and child counts. A row whose parent is filtered out becomes a root, depth stops at 32, and rows caught in a parent cycle are shown as roots once. Grouping turns the tree off.
+
+### internal/graph · the link graph
+- refers-to: internal/graph/graph.go :: `GET /api/workspaces/{id}/graph`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+Nodes come from the page tree the caller can read, so the graph inherits every access rule; edges are parent links plus `doc_refs` between readable pages. Large workspaces are cut at 3,000 nodes with `truncated` set.

@@ -198,6 +198,7 @@ web/
 - [Phase 6: search and editor completion](#p6)
 - [Phase 7: collaboration, sharing and identity](#p7)
 - [Phase 8: agents and AI](#p8)
+- [Phase 9: automations, charts, buttons, templates, views](#p9)
 
 ---
 
@@ -1348,3 +1349,89 @@ The microphone and, when chosen, the shared tab or system audio are mixed in an 
 - logged: v0.8.0 · 2026-10-09
 
 "Ask AI" is listed first when the query reads as a question and after the pages otherwise, so Enter keeps opening the best page for ordinary searches. Each palette part has an explicit grid row because the answer section is hidden most of the time.
+
+## Phase 9: automations, charts, buttons, templates, views {#p9}
+
+### src/extensions/database/views/chartdraw.ts · keyed SVG and export
+- refers-to: src/extensions/database/views/chartdraw.ts :: `drawChart`, `keyed`, `layer`, `standalone`, `exportChart`
+- kind: warning-context
+- logged: v0.9.0 · 2026-10-09
+
+Marks are reconciled by key inside fixed layers (grid, marks, labels), so a live update moves a bar's attributes instead of replacing the chart, and the frame keeps its size. The export copies computed fill, stroke and font values into presentation attributes, never a `style` attribute: the CSP forbids inline styles and the file must look right outside the app. PNG export draws that SVG onto a canvas at twice the size.
+
+### src/extensions/database/views/chart.ts and dashboard.ts · settings and widgets
+- refers-to: src/extensions/database/views/chart.ts :: `chartView`, `chartSettings`, `defaultSpec`; src/extensions/database/views/dashboard.ts :: `dashboardView`, `defaultWidgets`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+The chart spec lives in `layout.chart` of the view config and a dashboard's cards in `layout.widgets`; both save through `saveConfig` with a short debounce. Each card asks the server for its own figures and redraws on the session's `watch` callback, which fires on live events without running the table query.
+
+### src/engine/collections.ts · pending view edits
+- refers-to: src/engine/collections.ts :: `viewEdits`, `withEdits`, `SessionOptions.watch`, `SessionOptions.tree`
+- kind: warning-context
+- logged: v0.9.0 · 2026-10-09
+
+A view change is overlaid on every collection reload until the server confirms it (by sequence number), because on a slow link a reload triggered by an unrelated event could otherwise land first and put the old config back for a moment. `tree` and `expanded` pass the sub-items state to the query.
+
+### src/extensions/database/automations.ts and src/extensions/automation · the dialog
+- refers-to: src/extensions/database/automations.ts :: `openAutomations`; src/extensions/automation/actions.ts :: `actionEditor`; src/extensions/automation/api.ts :: `automationApi`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+The dialog and the action editor load on first use; the action editor is shared with buttons so both offer the same actions. The API client is a thin wrapper over `engine.api.http` in the lazy chunk rather than methods on the engine client, which keeps the up-front script under budget.
+
+### src/extensions/blocks/button.ts and buttonrun.ts · buttons
+- refers-to: src/extensions/blocks/button.ts :: `ButtonView`, `buttonRunner`, `newButton`; src/extensions/blocks/buttonrun.ts :: `runButton`, `insert`, `editButton`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+The node view is tiny and always loaded; running and editing load `buttonrun.ts` on first press. Confirm runs first, insert and open happen in the editor, and the remaining actions go to `POST /api/buttons/run` in one request. Inserted Markdown goes through the editor's Markdown parser with variables filled, in one transaction.
+
+### src/extensions/database/views/map.ts · fitting
+- refers-to: src/extensions/database/views/map.ts :: `mapView`, `fit`, `project`
+- kind: warning-context
+- logged: v0.9.0 · 2026-10-09
+
+The basemap is Web Mercator paths precomputed into `public/maps/world-110m.json` and fetched once. `fit` needs the frame's size; when the view is built before layout it sets `needFit` and the ResizeObserver fits on the first real size. Until then the SVG has no `data-ready` and its layers are hidden, so pins never show at the wrong scale.
+
+### src/extensions/database/views/feed.ts · posts
+- refers-to: src/extensions/database/views/feed.ts :: `feedView`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+The body excerpt has a fixed collapsed height and the Show more button is absolutely placed inside its wrapper, so measuring whether it is needed (with a ResizeObserver) never moves the post.
+
+### src/ui/page-actions.ts · lazy page dialogs
+- refers-to: src/ui/page-actions.ts :: `openShareDialog`, `prefetchPageDialogs`, `pageMenu` ("Save as template")
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+The share, publish and history dialogs load on first use and are prefetched at idle from the top bar, so the first click is not slower in practice and the up-front script lost about 5 KB.
+
+### src/ui/templates-dialog.ts · the gallery
+- refers-to: src/ui/templates-dialog.ts :: `openTemplates`, `useTemplate`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+One dialog serves the sidebar (new page) and the page view (into a parent). Starters and the workspace's templates come from one request; using one opens the new page.
+
+### src/extensions/database/views/table.ts · sub-items and fitting columns
+- refers-to: src/extensions/database/views/table.ts :: `paintRow`, `applyTree`, `autoFit`, `lastGrip`
+- kind: warning-context
+- logged: v0.9.0 · 2026-10-09
+
+The chevron is prepended to the title cell, so the value span is found by class, not as the first child (painting the first child overwrote the chevron). Open branches live in localStorage per view and are sent with each query; the first-paint seed is skipped in tree mode because the seeded window is in flat order. The resize handle calls `preventDefault` on pointerdown, which suppresses `dblclick`, so a double press is detected by hand: two presses on the same handle within 400 ms.
+
+### src/ui/graph-view.ts · the link graph
+- refers-to: src/ui/graph-view.ts :: `openGraph`, `layout`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+The force layout runs a fixed number of ticks before the first draw (fewer above 1,500 nodes) with repulsion limited to neighbouring grid cells, so it settles in one pass instead of animating. Drawing is on a canvas at device pixel ratio; every interaction schedules one frame.
+
+### src/ui/tree.ts · Databases section
+- refers-to: src/ui/tree.ts :: `renderDatabases`
+- kind: explainer
+- logged: v0.9.0 · 2026-10-09
+
+Recomputed only when a page event touches a database page (created, renamed, moved, trashed) and reconciled with `reconcileFlat`, so existing rows are kept and only changed ones are patched. Templates and databases that are themselves rows of another database are left out.
