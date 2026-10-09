@@ -324,6 +324,36 @@ export interface ViewConfig {
   form?: FormConfig;
 }
 
+export type ChartKind = "bar" | "hbar" | "line" | "donut" | "number";
+
+export interface ChartSpec {
+  kind: ChartKind;
+  x?: Grouping;
+  series?: Grouping;
+  fn?: string;
+  prop?: string;
+  sort?: "" | "value_desc" | "value_asc";
+  cumulative?: boolean;
+  hide_empty?: boolean;
+  limit?: number;
+  filter?: Filter;
+  title?: string;
+  labels?: boolean;
+  legend?: boolean;
+  smooth?: boolean;
+  stacked?: boolean;
+}
+
+export interface ChartResult {
+  kind: ChartKind;
+  x: { key: string; label: string; color?: string }[];
+  series: { key: string; label: string; color?: string; values: number[] }[];
+  value: number;
+  rows: number;
+  truncated?: boolean;
+  epoch: number;
+}
+
 export type ViewType = "table" | "board" | "list" | "gallery" | "calendar" | "timeline" | "form" | "chart" | "map" | "feed" | "dashboard";
 
 export interface CollectionView {

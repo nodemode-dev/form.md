@@ -32,7 +32,7 @@ function sampleOf(ctx: DbCtx, p: Property): ComputedValue | null {
   return null;
 }
 
-function propSelect(ctx: DbCtx, value: string, onChange: (id: string) => void, filter: (p: Property) => boolean = () => true): HTMLButtonElement {
+export function propSelect(ctx: DbCtx, value: string, onChange: (id: string) => void, filter: (p: Property) => boolean = () => true): HTMLButtonElement {
   const b = h("button", { class: "select-btn select-btn--sm", attrs: { type: "button", "aria-haspopup": "menu" } });
   const paint = (id: string) => {
     const p = ctx.col().schema.find((x) => x.id === id);

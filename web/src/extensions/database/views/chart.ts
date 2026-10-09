@@ -1,0 +1,301 @@
+import { locale } from "../../../engine/format";
+import { t } from "../../../engine/i18n";
+import type { ChartKind, ChartResult, ChartSpec, Collection, Grouping, Property } from "../../../engine/types";
+import { h, setAttr, setText } from "../../../ui/dom";
+import { type IconName, iconNode } from "../../../ui/icons";
+import { toast } from "../../../ui/toast";
+import type { DbCtx } from "../cells";
+import { openPanel } from "../panel";
+import { formatNumber } from "../props";
+import type { ViewHost, ViewRenderer } from "../surface";
+import { groupable, propSelect, saveConfig } from "../toolbar";
+import { drawChart, exportChart } from "./chartdraw";
+
+const KINDS: [ChartKind, string, IconName][] = [
+  ["bar", "Vertical bar", "chart"],
+  ["hbar", "Horizontal bar", "chart-hbar"],
+  ["line", "Line", "chart-line"],
+  ["donut", "Donut", "chart-donut"],
+  ["number", "Number", "hash"],
+];
+
+const MEASURES: [string, string][] = [
+  ["count", "Count rows"],
+  ["sum", "Sum"],
+  ["average", "Average"],
+  ["median", "Median"],
+  ["min", "Min"],
+  ["max", "Max"],
+  ["range", "Range"],
+  ["count_values", "Count values"],
+  ["count_unique", "Count unique values"],
+  ["count_empty", "Count empty"],
+  ["percent_not_empty", "Percent not empty"],
+  ["checked", "Count checked"],
+  ["percent_checked", "Percent checked"],
+];
+
+const NUMERIC = ["sum", "average", "median", "min", "max", "range"];
+const DATEISH = ["date", "created_time", "last_edited_time", "formula", "rollup"];
+
+export function defaultSpec(col: Collection): ChartSpec {
+  const pick = (types: string[]) => col.schema.find((p) => types.includes(p.type));
+  const p = pick(["status"]) ?? pick(["select"]) ?? pick(["multi_select"]) ?? pick(["checkbox"]) ?? pick(["person"]) ?? pick(["date", "created_time"]);
+  if (!p) return { kind: "number", fn: "count" };
+  return { kind: "bar", x: { prop: p.id, ...(DATEISH.includes(p.type) ? { by: "month" } : {}) }, fn: "count" };
+}
+
+export function chartOf(col: Collection, layout: Record<string, unknown> | undefined): ChartSpec {
+  const c = layout?.chart as ChartSpec | undefined;
+  return c?.kind ? c : defaultSpec(col);
+}
+
+export function measureProp(col: Collection, spec: ChartSpec): Property | undefined {
+  if (!spec.fn || spec.fn === "count") return undefined;
+  return col.schema.find((p) => p.id === spec.prop);
+}
+
+export function chartCaption(col: Collection, spec: ChartSpec): string {
+  const m = MEASURES.find((x) => x[0] === (spec.fn || "count"));
+  const p = measureProp(col, spec);
+  return p ? t("{fn} of {prop}", { fn: t(m?.[1] ?? "Count rows"), prop: p.name }) : t(m?.[1] ?? "Count rows");
+}
+
+export function chartFormat(col: Collection, spec: ChartSpec): { fmt: (n: number) => string; axisFmt: (n: number) => string } {
+  const pct = (spec.fn ?? "").startsWith("percent_");
+  const p = measureProp(col, spec);
+  const numeric = !!p && p.type === "number" && NUMERIC.includes(spec.fn ?? "");
+  let compact: Intl.NumberFormat;
+  try {
+    compact = new Intl.NumberFormat(locale(), { notation: "compact", maximumFractionDigits: 1 });
+  } catch {
+    compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+  }
+  const plain = (n: number) => (Number.isInteger(n) ? n.toLocaleString(locale()) : (Math.round(n * 100) / 100).toLocaleString(locale()));
+  if (pct) {
+    const f = (n: number) => `${Math.round(n * 1000) / 10}%`;
+    return { fmt: f, axisFmt: f };
+  }
+  if (numeric && p) return { fmt: (n) => formatNumber(n, p), axisFmt: (n) => (p.format && p.format !== "number" && p.format !== "comma" && Math.abs(n) < 1e4 ? formatNumber(n, { format: p.format, precision: 0 }) : compact.format(n)) };
+  return { fmt: plain, axisFmt: (n) => compact.format(n) };
+}
+
+function field(label: string, control: HTMLElement): HTMLElement {
+  return h("label", { class: "field field--compact" }, h("span", { class: "field__label", text: label }), control);
+}
+
+function toggle(label: string, on: boolean, change: (on: boolean) => void): HTMLElement {
+  const row = h("label", { class: "dpick__toggle" }, h("span", { text: label }), h("input", { attrs: { type: "checkbox", role: "switch" } }));
+  const input = row.querySelector("input") as HTMLInputElement;
+  input.checked = on;
+  input.addEventListener("change", () => change(input.checked));
+  return row;
+}
+
+function select(label: string, options: [string, string][], value: string, change: (v: string) => void): HTMLSelectElement {
+  const s = h("select", { class: "input input--sm", attrs: { "aria-label": label } });
+  for (const [v, l] of options) s.append(h("option", { attrs: { value: v }, text: t(l) }));
+  s.value = value;
+  s.addEventListener("change", () => change(s.value));
+  return s;
+}
+
+export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, change: (spec: ChartSpec) => void, exporter?: (as: "svg" | "png") => void): void {
+  const spec: ChartSpec = structuredClone(start);
+  const emit = () => change(structuredClone(spec));
+  const schemaProp = (id: string | undefined) => ctx.col().schema.find((p) => p.id === id);
+
+  const kinds = h("div", { class: "segmented chartset__kinds", attrs: { role: "group", "aria-label": t("Chart type") } });
+  for (const [k, l, icon] of KINDS) {
+    const b = h("button", { class: "segmented__btn", attrs: { type: "button", "data-kind": k, "aria-label": t(l), title: t(l), "aria-pressed": "false" } }, iconNode(icon));
+    b.addEventListener("click", () => {
+      spec.kind = k;
+      emit();
+      sync();
+    });
+    kinds.append(b);
+  }
+
+  const xSel = propSelect(ctx, spec.x?.prop ?? "", (id) => {
+    const p = schemaProp(id);
+    spec.x = { prop: id, ...(p && DATEISH.includes(p.type) ? { by: "month" } : {}) };
+    by.value = spec.x.by ?? "relative";
+    emit();
+    sync();
+  }, groupable);
+  const by = select(t("Date by"), [["day", "Day"], ["week", "Week"], ["month", "Month"], ["year", "Year"], ["relative", "Relative"]], spec.x?.by ?? "month", (v) => {
+    if (spec.x) spec.x.by = v;
+    emit();
+  });
+  const step = h("input", { class: "input input--sm", attrs: { type: "number", min: "0", "aria-label": t("Range size") } });
+  step.value = String(spec.x?.step ?? 10);
+  step.addEventListener("change", () => {
+    if (spec.x) spec.x.step = Number(step.value) || 10;
+    emit();
+  });
+  const byRow = field(t("Date by"), by);
+  const stepRow = field(t("Range size"), step);
+
+  const fn = select(t("Measure"), MEASURES, spec.fn || "count", (v) => {
+    spec.fn = v;
+    if (v === "count") delete spec.prop;
+    emit();
+    sync();
+  });
+  const yProp = propSelect(ctx, spec.prop ?? "", (id) => {
+    spec.prop = id;
+    emit();
+  }, (p) => (NUMERIC.includes(spec.fn ?? "") ? ["number", "formula", "rollup"].includes(p.type) : p.type !== "title" || spec.fn !== "checked"));
+  const yRow = field(t("Property"), yProp);
+
+  const sSel = propSelect(ctx, spec.series?.prop ?? "", (id) => {
+    const p = schemaProp(id);
+    spec.series = { prop: id, ...(p && DATEISH.includes(p.type) ? { by: "month" } : {}) } as Grouping;
+    emit();
+    sync();
+  }, (p) => groupable(p) && p.type !== "title");
+  const sClear = h("button", { class: "link-btn", attrs: { type: "button" } }, iconNode("close"), h("span", { text: t("No grouping") }));
+  sClear.addEventListener("click", () => {
+    delete spec.series;
+    emit();
+    sync();
+  });
+  const seriesRow = h("div", { class: "chartset__series" }, field(t("Group by"), sSel), sClear);
+
+  const order = select(t("Sort"), [["", "Axis order"], ["value_desc", "Largest first"], ["value_asc", "Smallest first"]], spec.sort ?? "", (v) => {
+    spec.sort = v as NonNullable<ChartSpec["sort"]>;
+    emit();
+  });
+  const orderRow = field(t("Sort"), order);
+  const flag = (key: "labels" | "legend" | "smooth" | "cumulative" | "stacked" | "hide_empty", label: string, dflt = false) =>
+    toggle(label, spec[key] ?? dflt, (on) => {
+      spec[key] = on;
+      emit();
+    });
+  const labels = flag("labels", t("Data labels"));
+  const legend = flag("legend", t("Legend"), true);
+  const smooth = flag("smooth", t("Smooth line"));
+  const cumulative = flag("cumulative", t("Cumulative"));
+  const stacked = flag("stacked", t("Stack groups"));
+  const hideEmpty = flag("hide_empty", t("Omit empty groups"));
+  const axisHead = h("div", { class: "dbpanel__head", text: t("X axis") });
+  const xRow = field(t("Property"), xSel);
+  const valueHead = h("div", { class: "dbpanel__head", text: t("Value") });
+  const styleHead = h("div", { class: "dbpanel__head", text: t("Style") });
+  pad.append(kinds, axisHead, xRow, byRow, stepRow, seriesRow, valueHead, field(t("Measure"), fn), yRow, orderRow, styleHead, labels, legend, smooth, cumulative, stacked, hideEmpty);
+  if (exporter) {
+    const svgBtn = h("button", { class: "btn btn--sm", attrs: { type: "button" } }, iconNode("download"), h("span", { text: t("SVG") }));
+    const pngBtn = h("button", { class: "btn btn--sm", attrs: { type: "button" } }, iconNode("image"), h("span", { text: t("PNG") }));
+    svgBtn.addEventListener("click", () => exporter("svg"));
+    pngBtn.addEventListener("click", () => exporter("png"));
+    pad.append(h("div", { class: "dbpanel__head", text: t("Export") }), h("div", { class: "chartset__export" }, svgBtn, pngBtn));
+  }
+
+  const sync = () => {
+    for (const b of Array.from(kinds.children) as HTMLElement[]) setAttr(b, "aria-pressed", b.dataset.kind === spec.kind ? "true" : "false");
+    const number = spec.kind === "number";
+    const xp = schemaProp(spec.x?.prop);
+    for (const n of [axisHead, xRow, orderRow, labels, hideEmpty]) n.hidden = number;
+    byRow.hidden = number || !xp || !DATEISH.includes(xp.type);
+    stepRow.hidden = number || xp?.type !== "number";
+    seriesRow.hidden = number || spec.kind === "donut";
+    sClear.hidden = !spec.series;
+    legend.hidden = number;
+    smooth.hidden = cumulative.hidden = spec.kind !== "line";
+    stacked.hidden = !(spec.kind === "bar" || spec.kind === "hbar") || !spec.series;
+    yRow.hidden = !spec.fn || spec.fn === "count";
+  };
+  sync();
+}
+
+export function chartView(host: ViewHost): ViewRenderer {
+  const engine = host.engine;
+  let result: ChartResult | null = null;
+  let seq = 0;
+  let destroyed = false;
+  let abort: AbortController | null = null;
+  const session = host.makeSession({ watch: () => void fetch() });
+  const ctx = host.ctx(session);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "chart");
+  svg.setAttribute("role", "img");
+  const frame = h("div", { class: "chartv__frame" });
+  frame.append(svg);
+  const foot = h("div", { class: "chartv__foot" });
+  const el = h("div", { class: "chartv", attrs: { "data-inline": host.inline ? "true" : "false" } }, frame, foot);
+
+  const spec = () => chartOf(host.col(), host.view().config.layout);
+  const draw = () => {
+    if (destroyed) return;
+    const s = spec();
+    const f = chartFormat(host.col(), s);
+    const w = frame.clientWidth;
+    const hgt = frame.clientHeight;
+    if (!w || !hgt) return;
+    drawChart(svg, result, s, { width: w, height: hgt, fmt: f.fmt, axisFmt: f.axisFmt, empty: t("No rows to chart"), caption: chartCaption(host.col(), s) });
+    setAttr(svg, "aria-label", `${host.view().name}: ${chartCaption(host.col(), s)}`);
+    if (result) setText(foot, result.truncated ? t("{n} rows, showing the first groups", { n: result.rows }) : t("{n} rows", { n: result.rows }));
+  };
+  const fetch = async () => {
+    const mine = ++seq;
+    abort?.abort();
+    abort = new AbortController();
+    try {
+      const r = await engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: spec(), search: host.search() || undefined }, abort.signal);
+      if (mine !== seq || destroyed) return;
+      result = r;
+      setAttr(el, "data-error", null);
+      draw();
+    } catch (e) {
+      if (mine !== seq || destroyed || (e as Error).name === "AbortError") return;
+      setAttr(el, "data-error", "true");
+      setText(foot, (e as Error).message);
+    }
+  };
+  let raf = 0;
+  const ro = new ResizeObserver(() => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(draw);
+  });
+  ro.observe(frame);
+  const ready = fetch();
+
+  const doExport = (as: "svg" | "png") => {
+    exportChart(svg, host.view().name || t("Chart"), as).catch((e: Error) => toast({ id: "chart-export", tone: "danger", message: e.message }));
+  };
+
+  return {
+    el,
+    ready,
+    ctx,
+    configChanged(prev, next) {
+      const a = JSON.stringify([prev.config.filter ?? null, prev.config.layout?.chart ?? null]);
+      const b = JSON.stringify([next.config.filter ?? null, next.config.layout?.chart ?? null]);
+      if (a !== b) void fetch();
+      else draw();
+    },
+    schemaChanged: () => void fetch(),
+    setSearch: () => void fetch(),
+    settings(anchor) {
+      openPanel(
+        anchor,
+        (panel) => {
+          const pad = h("div", { class: "dbpanel__pad dbpanel__stack chartset" });
+          chartSettings(pad, ctx, spec(), (next) => {
+            saveConfig(ctx, host.viewId, (cfg) => ({ ...cfg, layout: { ...(cfg.layout ?? {}), chart: next } }), 150);
+          }, doExport);
+          panel.append(pad);
+        },
+        { label: t("Chart"), focus: false, align: "end" },
+      );
+    },
+    destroy() {
+      destroyed = true;
+      abort?.abort();
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+      session.close();
+      el.remove();
+    },
+  };
+}

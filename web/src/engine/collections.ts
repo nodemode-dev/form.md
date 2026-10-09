@@ -27,6 +27,7 @@ export interface SessionOptions {
   noGroups?: boolean;
   filter?: QueryInput["filter"];
   ids?: string[];
+  watch?: () => void;
 }
 
 const PAGE = 100;
@@ -231,6 +232,12 @@ export class QuerySession {
     else this.dirtyAll = true;
     clearTimeout(this.refreshTimer);
     this.refreshTimer = setTimeout(() => {
+      if (this.options.watch) {
+        this.dirty.clear();
+        this.dirtyAll = false;
+        this.options.watch();
+        return;
+      }
       const all = this.dirtyAll;
       const list = [...this.dirty];
       const mine = this.seq + 1;
@@ -368,8 +375,9 @@ export class CollectionStore {
       .get(id, force ? undefined : view)
       .then((r) => {
         if (r.first) this.seedQuery(r.first);
-        this.set(r.collection);
-        return r.collection;
+        const c = this.withEdits(r.collection);
+        this.set(c);
+        return c;
       })
       .finally(() => this.loading.delete(id));
     this.loading.set(id, job);
@@ -426,10 +434,17 @@ export class CollectionStore {
   }
 
   private viewTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private viewEdits = new Map<string, { change: Partial<CollectionView>; seq: number }>();
 
   updateView(colId: string, viewId: string, change: { name?: string; type?: ViewType; config?: ViewConfig }, debounce = 0): Promise<void> {
     this.localView(colId, viewId, change);
+    const prior = this.viewEdits.get(viewId);
+    const seq = (prior?.seq ?? 0) + 1;
+    this.viewEdits.set(viewId, { change: { ...prior?.change, ...change }, seq });
     clearTimeout(this.viewTimers.get(viewId));
+    const settle = () => {
+      if (this.viewEdits.get(viewId)?.seq === seq) this.viewEdits.delete(viewId);
+    };
     return new Promise((resolve) => {
       this.viewTimers.set(
         viewId,
@@ -441,8 +456,12 @@ export class CollectionStore {
           if (change.config !== undefined) body.config = v?.config ?? change.config;
           this.api.collections
             .updateView(viewId, body)
-            .then(() => resolve())
+            .then(() => {
+              settle();
+              resolve();
+            })
             .catch((e) => {
+              settle();
               this.onError(e);
               void this.load(colId, true).catch(() => undefined);
               resolve();
@@ -450,6 +469,11 @@ export class CollectionStore {
         }, debounce),
       );
     });
+  }
+
+  private withEdits(c: Collection): Collection {
+    if (!this.viewEdits.size || !c.views.some((v) => this.viewEdits.has(v.id))) return c;
+    return { ...c, views: c.views.map((v) => ({ ...v, ...this.viewEdits.get(v.id)?.change })) };
   }
 
   async createView(colId: string, type: ViewType, name = "", config: ViewConfig = {}, afterId = ""): Promise<CollectionView> {

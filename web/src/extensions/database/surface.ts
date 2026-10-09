@@ -13,6 +13,8 @@ import { openPanel } from "./panel";
 import { PHASE5_VIEWS, VIEW_INFO } from "./props";
 import { openFilterPanel, openGroupPanel, openPropsPanel, openSortPanel, viewOf } from "./toolbar";
 import { renderers } from "./views";
+import { defaultSpec } from "./views/chart";
+import { defaultWidgets } from "./views/dashboard";
 
 export interface ViewHost {
   engine: Engine;
@@ -179,7 +181,8 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     setAttr(groupBtn, "data-on", v?.config.group?.prop ? "true" : null);
     const type = v?.type ?? "table";
     groupBtn.hidden = !["table", "board", "list", "gallery"].includes(type);
-    sortBtn.hidden = type === "form";
+    sortBtn.hidden = ["form", "chart", "dashboard"].includes(type);
+    propsBtn.hidden = ["chart", "dashboard"].includes(type);
     filterBtn.hidden = type === "form";
     searchBtn.hidden = type === "form";
     layoutBtn.hidden = !current?.r.settings;
@@ -340,7 +343,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
         icon: VIEW_INFO[type].icon,
         run: () =>
           void store
-            .createView(colId, type, "", type === "board" ? defaultBoard() : {})
+            .createView(colId, type, "", type === "board" ? defaultBoard() : type === "dashboard" && col ? { layout: { widgets: defaultWidgets(col) } } : type === "chart" && col ? { layout: { chart: defaultSpec(col) } } : {})
             .then((v) => mountView(v.id))
             .catch(engine.reportError),
       })),

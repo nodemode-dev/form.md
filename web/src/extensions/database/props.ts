@@ -42,13 +42,13 @@ export const VIEW_INFO: Record<ViewType, { label: string; icon: IconName }> = {
   calendar: { label: "Calendar", icon: "calendar" },
   timeline: { label: "Timeline", icon: "timeline" },
   form: { label: "Form", icon: "form" },
-  chart: { label: "Chart", icon: "sigma" },
+  chart: { label: "Chart", icon: "chart" },
   map: { label: "Map", icon: "pin" },
-  feed: { label: "Feed", icon: "rows" },
-  dashboard: { label: "Dashboard", icon: "gallery" },
+  feed: { label: "Feed", icon: "feed" },
+  dashboard: { label: "Dashboard", icon: "dashboard" },
 };
 
-export const PHASE5_VIEWS: ViewType[] = ["table", "board", "list", "gallery", "calendar", "timeline", "form"];
+export const PHASE5_VIEWS: ViewType[] = ["table", "board", "list", "gallery", "calendar", "timeline", "form", "chart", "dashboard"];
 
 export const OPTION_COLORS = ["default", "gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red"] as const;
 
