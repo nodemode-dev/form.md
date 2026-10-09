@@ -57,6 +57,12 @@ func (s *Service) provider(id string) (providerConfig, bool) {
 
 func (s *Service) SSOProviders() []SSOProvider {
 	out := []SSOProvider{}
+	if s.samlConfigured() {
+		out = append(out, SSOProvider{ID: "saml", Name: s.samlName()})
+		if s.SAMLOnly() {
+			return out
+		}
+	}
 	for _, id := range []string{"google", "microsoft", "oidc"} {
 		if c, ok := s.provider(id); ok {
 			out = append(out, SSOProvider{ID: c.ID, Name: c.Name})
@@ -293,6 +299,10 @@ func (s *Service) handleSSOStart(w http.ResponseWriter, r *http.Request) error {
 	if !ok {
 		return httpx.ErrNotFound
 	}
+	if s.SAMLOnly() {
+		http.Redirect(w, r, "/login?sso_error=saml_only", http.StatusFound)
+		return nil
+	}
 	base := s.baseURL(r)
 	if !strings.EqualFold(base, httpx.RequestOrigin(r, s.TrustProxy())) {
 		http.Redirect(w, r, base+r.URL.RequestURI(), http.StatusFound)
@@ -338,6 +348,9 @@ func (s *Service) handleSSOCallback(w http.ResponseWriter, r *http.Request) erro
 	cfg, ok := s.provider(r.PathValue("provider"))
 	if !ok {
 		return httpx.ErrNotFound
+	}
+	if s.SAMLOnly() {
+		return s.ssoFail(w, r, "saml_only", nil)
 	}
 	q := r.URL.Query()
 	if q.Get("error") != "" {

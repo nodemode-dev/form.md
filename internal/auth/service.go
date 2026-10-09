@@ -311,7 +311,7 @@ func (s *Service) originOK(r *http.Request) bool {
 
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if httpx.IsUnsafe(r.Method) && bearer(r) == "" && !s.originOK(r) {
+		if httpx.IsUnsafe(r.Method) && bearer(r) == "" && r.URL.Path != "/api/auth/saml/acs" && !s.originOK(r) {
 			httpx.Problem(w, r, s.log, httpx.Fail(http.StatusForbidden, "bad_origin", "cross-site request refused"))
 			return
 		}

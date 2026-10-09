@@ -27,6 +27,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/netguard"
 	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/nodemode-ai/form.md/internal/policy"
+	"github.com/nodemode-ai/form.md/internal/scim"
 	"github.com/nodemode-ai/form.md/internal/search"
 	"github.com/nodemode-ai/form.md/internal/secrets"
 	"github.com/nodemode-ai/form.md/internal/settings"
@@ -105,6 +106,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	pages.OnVisit(views.FromVisit)
 	sites.OnView(views.Record)
 	hooks := webhook.New(st, gate, box, al, fetcher, cfg.FetchPrivate, log)
+	prov := scim.New(st, gate, authSvc, ws, al, log)
 	docs.OnRefs(func(ctx context.Context, pageID, actor string, _ []string, _ []doc.Reminder) {
 		var wsID string
 		if st.R.QueryRowContext(ctx, "SELECT workspace_id FROM pages WHERE id = ?", pageID).Scan(&wsID) == nil {
@@ -153,7 +155,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
-		Middleware: []httpx.Middleware{sites.Host, authSvc.Middleware},
+		Middleware: []httpx.Middleware{sites.Host, prov.Middleware, authSvc.Middleware},
 	}
 	s.Modules = []app.Module{
 		app.Health(),
@@ -174,6 +176,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		views.Module(authSvc),
 		hooks.Module(authSvc),
 		auditapi.Module(al, gate, authSvc, set),
+		prov.Module(),
 		static.Module(s.renderDocument),
 	}
 	return s, nil
@@ -233,10 +236,14 @@ func (s *Server) authAttrs() map[string]string {
 		sso = append(sso, p.ID)
 	}
 	signup := "closed"
-	if s.Settings.Get("auth.signup") != "invite" {
+	if s.Settings.Get("auth.signup") != "invite" && !s.Auth.SAMLOnly() {
 		signup = "open"
 	}
-	return map[string]string{"sso": strings.Join(sso, " "), "signup": signup}
+	out := map[string]string{"sso": strings.Join(sso, " "), "signup": signup}
+	if s.Auth.SAMLOnly() {
+		out["saml-only"] = "true"
+	}
+	return out
 }
 
 func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
@@ -263,7 +270,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		"instance_name": s.Settings.Get("instance.name"),
 	}
 	userLang := ""
-	slots := map[string]string{"instance-name": s.Settings.Get("instance.name")}
+	slots := map[string]string{"instance-name": s.Settings.Get("instance.name"), "saml-name": s.Auth.SAMLName()}
 	htmlSlots := map[string]string{}
 	if signedIn {
 		me, err := s.Auth.Me(ctx, p)

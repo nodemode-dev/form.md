@@ -237,12 +237,15 @@ func (s *Service) checkSecondFactor(ctx context.Context, userID, code, recovery 
 
 func (s *Service) VerifyLogin(ctx context.Context, r *http.Request, email, password, code, recovery string) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
-	var id, hash string
+	var id, hash, role string
 	var disabled, totp int
-	err := s.st.R.QueryRowContext(ctx, "SELECT id, password_hash, disabled, totp_enabled FROM users WHERE email = ?", email).
-		Scan(&id, &hash, &disabled, &totp)
+	err := s.st.R.QueryRowContext(ctx, "SELECT id, password_hash, disabled, totp_enabled, role FROM users WHERE email = ?", email).
+		Scan(&id, &hash, &disabled, &totp, &role)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return "", err
+	}
+	if s.SAMLOnly() && role != "owner" {
+		return "", errSAMLOnly
 	}
 	if strings.HasPrefix(hash, "!") {
 		hash = ""
@@ -320,6 +323,9 @@ func (s *Service) handleSignup(w http.ResponseWriter, r *http.Request) error {
 	if !s.loginLimit.Allow(s.ClientIP(r)) {
 		return httpx.Fail(http.StatusTooManyRequests, "rate_limited", "too many attempts, wait a minute")
 	}
+	if s.SAMLOnly() {
+		return errSAMLOnly
+	}
 	var in credentials
 	if err := httpx.Decode(r, &in); err != nil {
 		return err
@@ -366,6 +372,7 @@ func (s *Service) handlePolicy(w http.ResponseWriter, r *http.Request) error {
 		"setup_required": need,
 		"signup":         map[bool]string{true: "open", false: "invite"}[s.settings.Get("auth.signup") != "invite"],
 		"sso":            s.SSOProviders(),
+		"saml_only":      s.SAMLOnly(),
 		"instance_name":  s.settings.Get("instance.name"),
 	})
 	return nil

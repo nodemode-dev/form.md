@@ -21,6 +21,9 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	r.HandleFunc("POST /api/auth/login", s.Public(s.handleLogin))
 	r.HandleFunc("POST /api/auth/logout", s.Public(s.handleLogout))
 	r.HandleFunc("POST /api/auth/signup", s.Public(s.handleSignup))
+	r.HandleFunc("GET /api/auth/sso/saml/start", s.Public(s.handleSAMLStart))
+	r.HandleFunc("GET /api/auth/saml/metadata", s.Public(s.handleSAMLMetadata))
+	r.HandleFunc("POST /api/auth/saml/acs", s.Public(s.handleSAMLACS))
 	r.HandleFunc("GET /api/auth/sso/{provider}/start", s.Public(s.handleSSOStart))
 	r.HandleFunc("GET /api/auth/sso/{provider}/callback", s.Public(s.handleSSOCallback))
 
