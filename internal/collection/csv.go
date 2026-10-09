@@ -40,6 +40,7 @@ type stashed struct {
 	rows    [][]string
 	at      time.Time
 	name    string
+	ids     *[]string
 }
 
 type stash struct {
@@ -165,6 +166,25 @@ func readCSV(r io.Reader) ([]string, [][]string, error) {
 	return headers, rows, nil
 }
 
+func parseDateCell(v string) (DateVal, bool) {
+	v = strings.TrimSpace(v)
+	if t, has, ok := formula.ParseDate(v, time.UTC); ok {
+		return DateVal{Start: dateString(t, has)}, true
+	}
+	for _, sep := range []string{" → ", " -> ", " - ", " – "} {
+		a, b, found := strings.Cut(v, sep)
+		if !found {
+			continue
+		}
+		t1, h1, ok1 := formula.ParseDate(a, time.UTC)
+		t2, h2, ok2 := formula.ParseDate(b, time.UTC)
+		if ok1 && ok2 {
+			return DateVal{Start: dateString(t1, h1), End: dateString(t2, h2)}, true
+		}
+	}
+	return DateVal{}, false
+}
+
 type ColumnGuess struct {
 	Name    string   `json:"name"`
 	Type    string   `json:"type"`
@@ -207,7 +227,7 @@ func guessType(values []string, first bool) string {
 		if _, ok := truthyWord(v); ok {
 			bools++
 		}
-		if _, _, ok := formula.ParseDate(v, time.UTC); ok {
+		if _, ok := parseDateCell(v); ok {
 			dates++
 		}
 		if strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://") {
@@ -237,20 +257,29 @@ func guessType(values []string, first bool) string {
 	case emails == n:
 		return TEmail
 	}
-	if commas > 0 && commas*2 >= n {
+	longest := 0
+	for v := range distinct {
+		longest = max(longest, utf8.RuneCountInString(v))
+	}
+	if commas > 0 {
 		tokens := map[string]int{}
+		short, uses := true, 0
 		for _, v := range values {
 			for _, part := range strings.Split(v, ",") {
 				if t := strings.ToLower(strings.TrimSpace(part)); t != "" {
 					tokens[t]++
+					uses++
+					if utf8.RuneCountInString(t) > 24 || len(strings.Fields(t)) > 3 {
+						short = false
+					}
 				}
 			}
 		}
-		if len(tokens) <= 60 {
+		if len(tokens) <= 60 && short && (commas*2 >= n || uses > len(tokens)) {
 			return TMulti
 		}
 	}
-	if len(distinct) <= 20 && n >= 4 && len(distinct)*2 <= n {
+	if len(distinct) <= 20 && n >= 2 && (len(distinct)*2 <= n || (len(distinct) < n && longest <= 30)) {
 		return TSelect
 	}
 	return TText
@@ -463,11 +492,11 @@ func (s *Service) ImportCSV(ctx context.Context, p *policy.Principal, in ImportI
 					}
 					in = mustJSON(items)
 				case TDate:
-					t, has, ok := formula.ParseDate(cell, time.UTC)
+					d, ok := parseDateCell(cell)
 					if !ok {
 						continue
 					}
-					in = mustJSON(DateVal{Start: dateString(t, has)})
+					in = mustJSON(d)
 				case TCheckbox:
 					b, _ := truthyWord(cell)
 					in = mustJSON(b)
@@ -506,6 +535,9 @@ func (s *Service) ImportCSV(ctx context.Context, p *policy.Principal, in ImportI
 			}
 			next++
 			count++
+			if x.ids != nil {
+				*x.ids = append(*x.ids, id)
+			}
 		}
 		if _, err := tx.ExecContext(ctx, "UPDATE collections SET next_number = ? WHERE page_id = ?", next, collectionID); err != nil {
 			return err
