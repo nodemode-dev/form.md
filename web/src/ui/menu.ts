@@ -41,6 +41,7 @@ export function openMenu(anchor: HTMLElement, entries: MenuEntry[], options: Men
     if (entry.danger) btn.dataset.danger = "true";
     btn.addEventListener("click", () => {
       close();
+      delete anchor.dataset.menuClosedAt;
       entry.run();
     });
     items.push(btn);
