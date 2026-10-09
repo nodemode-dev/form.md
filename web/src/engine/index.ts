@@ -153,9 +153,14 @@ export function createEngine(deps: EngineDeps): Engine {
   if (deps.boot.me) setFormatPrefs(deps.boot.me.user.prefs);
   const api = createClient(deps.fetch);
   const setMe = (me: Me | null) => {
+    const before = new Map((state.get("me")?.workspaces ?? []).map((w) => [w.id, w.role]));
     state.set("me", me);
     if (me) setFormatPrefs(me.user.prefs);
     state.set("workspaceId", pickWorkspace(me, state.get("workspaceId")));
+    const moved = (me?.workspaces ?? []).filter((w) => before.has(w.id) && before.get(w.id) !== w.role).map((w) => w.id);
+    for (const ws of moved) if (pages.isLoaded(ws)) void pages.load(ws, true).catch(reportError);
+    const d = state.get("detail");
+    if (d && moved.includes(d.workspace_id)) void loadDetail(d.id);
   };
 
   const commands = new Commands();
