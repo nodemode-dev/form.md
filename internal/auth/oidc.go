@@ -294,6 +294,18 @@ func (s *Service) baseURL(r *http.Request) string {
 	return httpx.RequestOrigin(r, s.TrustProxy())
 }
 
+func (s *Service) BaseURL(r *http.Request) string { return strings.TrimRight(s.baseURL(r), "/") }
+
+func (s *Service) OriginAllowed(r *http.Request) bool { return s.originOK(r) }
+
+func (s *Service) MCPChallenge(r *http.Request, extra string) string {
+	h := `Bearer resource_metadata="` + s.BaseURL(r) + `/.well-known/oauth-protected-resource/mcp"`
+	if extra != "" {
+		h += ", " + extra
+	}
+	return h
+}
+
 func (s *Service) handleSSOStart(w http.ResponseWriter, r *http.Request) error {
 	cfg, ok := s.provider(r.PathValue("provider"))
 	if !ok {

@@ -162,6 +162,10 @@ func (s *Service) SweepSessions(ctx context.Context) {
 	_, _ = s.st.W.ExecContext(ctx, "DELETE FROM sessions WHERE expires_at < ?", store.NowMS())
 }
 
+func (s *Service) PrincipalFor(ctx context.Context, userID string) (*policy.Principal, error) {
+	return s.principalForUser(ctx, userID)
+}
+
 func (s *Service) principalForUser(ctx context.Context, userID string) (*policy.Principal, error) {
 	p := &policy.Principal{UserID: userID}
 	var disabled int
@@ -309,9 +313,11 @@ func (s *Service) originOK(r *http.Request) bool {
 	return false
 }
 
+var originExempt = map[string]bool{"/api/auth/saml/acs": true, "/oauth/token": true, "/oauth/register": true, "/oauth/revoke": true}
+
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if httpx.IsUnsafe(r.Method) && bearer(r) == "" && r.URL.Path != "/api/auth/saml/acs" && !s.originOK(r) {
+		if httpx.IsUnsafe(r.Method) && bearer(r) == "" && !originExempt[r.URL.Path] && !s.originOK(r) {
 			httpx.Problem(w, r, s.log, httpx.Fail(http.StatusForbidden, "bad_origin", "cross-site request refused"))
 			return
 		}
@@ -322,12 +328,21 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 		}
 		if apiErr != nil {
 			if apiErr.Status == http.StatusUnauthorized {
-				w.Header().Set("WWW-Authenticate", `Bearer realm="form-md"`)
+				if r.URL.Path == "/mcp" {
+					w.Header().Set("WWW-Authenticate", s.MCPChallenge(r, `error="invalid_token"`))
+				} else {
+					w.Header().Set("WWW-Authenticate", `Bearer realm="form-md"`)
+				}
 			}
 			httpx.Problem(w, r, s.log, apiErr)
 			return
 		}
 		if p != nil {
+			if p.Kind == policy.KindOAuth && r.URL.Path != "/mcp" {
+				w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token", error_description="this token is for the MCP endpoint only"`)
+				httpx.Problem(w, r, s.log, httpx.Fail(http.StatusUnauthorized, "wrong_audience", "this token was issued for the MCP endpoint only"))
+				return
+			}
 			if httpx.IsUnsafe(r.Method) && !p.CanWrite() && !strings.HasPrefix(r.URL.Path, "/mcp") {
 				httpx.Problem(w, r, s.log, httpx.ErrReadOnly)
 				return
