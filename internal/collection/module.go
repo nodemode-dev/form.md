@@ -166,6 +166,17 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		}
 		return okz(w, r, res)
 	})
+	route("POST /api/collections/{id}/chart", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		var in ChartInput
+		if err := httpx.Decode(r, &in); err != nil {
+			return err
+		}
+		res, err := s.Chart(r.Context(), p, r.PathValue("id"), in)
+		if err != nil {
+			return err
+		}
+		return okz(w, r, res)
+	})
 	route("GET /api/collections/{id}/search", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 		hits, err := s.SearchRows(r.Context(), p, r.PathValue("id"), r.URL.Query().Get("q"), limit)
