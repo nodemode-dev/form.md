@@ -1,7 +1,8 @@
 import { defineConfig, type Plugin } from "vite";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { iconSvg, isIconName } from "./src/ui/icons.ts";
+import { GLYPH_NAMES, glyphSvg } from "./src/ui/glyphs.ts";
+import { ICON_NAMES, iconSvg, isIconName } from "./src/ui/icons.ts";
 
 const FRONTEND_PORT = 5750;
 const BACKEND = "http://127.0.0.1:8750";
@@ -24,10 +25,20 @@ const inlineIcons: Plugin = {
   },
 };
 
+const iconTable: Plugin = {
+  name: "form-md-icon-table",
+  apply: "build",
+  generateBundle() {
+    const glyphs = Object.fromEntries(GLYPH_NAMES.map((n) => [n, glyphSvg(n)]));
+    const icons = Object.fromEntries(ICON_NAMES.map((n) => [n, iconSvg(n)]));
+    this.emitFile({ type: "asset", fileName: ".vite/icons.json", source: JSON.stringify({ glyphs, icons }) });
+  },
+};
+
 export default defineConfig({
   root: ".",
   publicDir: "public",
-  plugins: [inlineIcons, keepDistPlaceholder],
+  plugins: [inlineIcons, iconTable, keepDistPlaceholder],
 
   server: {
     port: FRONTEND_PORT,
@@ -67,6 +78,7 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, "index.html"),
         sandbox: resolve(import.meta.dirname, "sandbox.html"),
+        site: resolve(import.meta.dirname, "src/site/main.ts"),
       },
     },
   },

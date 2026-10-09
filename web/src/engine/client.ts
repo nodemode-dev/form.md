@@ -27,6 +27,9 @@ import type {
   LinkPreview,
   NotifyPrefs,
   PageVersion,
+  Site,
+  SiteInput,
+  SiteStatus,
   FilePurpose,
   Invite,
   InviteInfo,
@@ -187,6 +190,13 @@ export function createClient(f: FetchFn) {
       get: (id: string) => get<{ version: PageVersion; state: string }>(`/api/versions/${enc(id)}`),
       save: (pageId: string, beforeRestore = false) => post<{ id: string }>(`/api/pages/${enc(pageId)}/versions${beforeRestore ? "?kind=restore" : ""}`),
       restored: (id: string) => post<void>(`/api/versions/${enc(id)}/restored`),
+    },
+    sites: {
+      status: (pageId: string) => get<SiteStatus>(`/api/pages/${enc(pageId)}/site`),
+      publish: (pageId: string, input: SiteInput) => put<{ site: Site }>(`/api/pages/${enc(pageId)}/site`, input),
+      unpublish: (pageId: string) => del(`/api/pages/${enc(pageId)}/site`),
+      list: (workspaceId: string) => get<{ sites: Site[]; publishing: boolean; can_manage: boolean }>(`/api/workspaces/${enc(workspaceId)}/sites`),
+      setPublishing: (workspaceId: string, enabled: boolean) => put<void>(`/api/workspaces/${enc(workspaceId)}/publishing`, { enabled }),
     },
     inbox: {
       list: (filter: "all" | "unread" | "archived", before = 0) => get<{ items: InboxItem[]; unread: number }>(`/api/inbox?filter=${filter}${before ? `&before=${before}` : ""}`),

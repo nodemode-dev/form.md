@@ -511,7 +511,49 @@ export interface PageVersion {
   size: number;
 }
 
-export type NotificationKind = "mention" | "comment" | "reply" | "suggestion" | "decision" | "share" | "assign" | "reminder";
+export interface Site {
+  id: string;
+  workspace_id: string;
+  page_id: string;
+  page_title: string;
+  slug: string;
+  hostname: string;
+  title: string;
+  description: string;
+  image: string;
+  theme: "auto" | "light" | "dark";
+  font: "sans" | "serif" | "mono";
+  password: boolean;
+  indexing: boolean;
+  subpages: boolean;
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+  path: string;
+}
+
+export interface SiteStatus {
+  site: Site | null;
+  can_publish: boolean;
+  allowed: boolean;
+  can_host: boolean;
+  suggested_slug: string;
+}
+
+export interface SiteInput {
+  slug?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  theme?: Site["theme"];
+  font?: Site["font"];
+  password?: string | null;
+  indexing?: boolean;
+  subpages?: boolean;
+  hostname?: string;
+}
+
+export type NotificationKind ="mention" | "comment" | "reply" | "suggestion" | "decision" | "share" | "assign" | "reminder";
 
 export interface InboxItem {
   id: string;

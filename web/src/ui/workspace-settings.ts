@@ -9,6 +9,7 @@ import { actions, busy, button, copyText, field, iconButton, input, optionCards,
 import { iconNode } from "./icons";
 import { reconcile } from "./list";
 import { toast } from "./toast";
+import { sitesTab } from "./workspace-sites";
 
 const MAX_RULES = 16000;
 
@@ -20,11 +21,11 @@ export const roleOptions = (): readonly (readonly [WorkspaceRole, string])[] => 
 
 const roleName = (r: string): string => (r === "admin" ? t("Admin") : r === "viewer" ? t("Viewer") : t("Member"));
 
-function isAdmin(w: Workspace): boolean {
+export function isAdmin(w: Workspace): boolean {
   return w.role === "admin" && !w.break_glass;
 }
 
-function boundTab(engine: Engine, id: string, label: string, icon: Tab["icon"], build: (panel: HTMLElement, w: Workspace) => (() => void) | void, visible?: () => boolean): Tab {
+export function boundTab(engine: Engine, id: string, label: string, icon: Tab["icon"], build: (panel: HTMLElement, w: Workspace) => (() => void) | void, visible?: () => boolean): Tab {
   const tab: Tab = {
     id,
     label,
@@ -674,7 +675,7 @@ function agentsTab(engine: Engine): Tab {
 }
 
 export function mountWorkspaceSettings(engine: Engine): void {
-  const dlg = overlayDialog(engine, "workspace", t("Workspace settings"), [generalTab(engine), membersTab(engine), groupsTab(engine), agentsTab(engine)]);
+  const dlg = overlayDialog(engine, "workspace", t("Workspace settings"), [generalTab(engine), membersTab(engine), groupsTab(engine), sitesTab(engine), agentsTab(engine)]);
   engine.state.watch("overlay", (v) => {
     if (v === "workspace") dlg.title(t("{name} settings", { name: engine.workspace()?.name ?? "" }));
   });

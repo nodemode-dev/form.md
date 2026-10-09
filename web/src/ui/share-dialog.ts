@@ -7,6 +7,7 @@ import { h, setAttr, setText } from "./dom";
 import { actions, busy, button, copyText, iconButton, input, section, select, status } from "./form";
 import { iconNode } from "./icons";
 import { reconcile } from "./list";
+import { openPublishDialog } from "./publish-dialog";
 import { toast } from "./toast";
 
 const DAY = 86_400_000;
@@ -220,6 +221,7 @@ export function openShareDialog(engine: Engine, pageId: string): void {
         );
         form.hidden = !s.can_share;
         linkSection.hidden = !s.can_share;
+        publishSection.hidden = !s.can_share;
         reconcile(links, s.links, (l) => l.id, linkRow, updateLink);
       };
 
@@ -301,9 +303,17 @@ export function openShareDialog(engine: Engine, pageId: string): void {
         }
       });
 
-      body.append(form, access, linkSection);
+      const publish = button(t("Publish to the web"), "default", "globe");
+      publish.addEventListener("click", () => {
+        close();
+        void openPublishDialog(engine, pageId);
+      });
+      const publishSection = section(t("Publish"), t("Turn this page into a website anyone can read, with its own address, theme and optional password."));
+      publishSection.append(h("div", {}, publish));
+      body.append(form, access, linkSection, publishSection);
       form.hidden = true;
       linkSection.hidden = true;
+      publishSection.hidden = true;
       void refresh();
       if (member && engine.canWrite(ws)) {
         void Promise.all([engine.api.workspaces.members(ws), engine.api.workspaces.groups(ws)])

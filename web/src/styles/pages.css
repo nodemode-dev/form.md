@@ -913,54 +913,6 @@
   block-size: 14px;
 }
 
-[data-cover="dawn"] {
-  background: linear-gradient(120deg, #f9a8a8 0%, #fbc59a 45%, #f7e2a3 100%);
-}
-
-[data-cover="lagoon"] {
-  background: linear-gradient(135deg, #0f766e 0%, #22d3ee 55%, #a5f3fc 100%);
-}
-
-[data-cover="meadow"] {
-  background: linear-gradient(120deg, #3f6212 0%, #84cc16 50%, #d9f99d 100%);
-}
-
-[data-cover="ember"] {
-  background: linear-gradient(135deg, #7c2d12 0%, #ea580c 50%, #fbbf24 100%);
-}
-
-[data-cover="dusk"] {
-  background: linear-gradient(160deg, #1e1b4b 0%, #6d28d9 55%, #f472b6 100%);
-}
-
-[data-cover="glacier"] {
-  background: linear-gradient(135deg, #e0f2fe 0%, #93c5fd 50%, #6366f1 100%);
-}
-
-[data-cover="orchard"] {
-  background: linear-gradient(120deg, #fecdd3 0%, #fda4af 40%, #84cc16 100%);
-}
-
-[data-cover="slate"] {
-  background: linear-gradient(135deg, #0f172a 0%, #334155 55%, #64748b 100%);
-}
-
-[data-cover="aurora"] {
-  background: linear-gradient(120deg, #052e16 0%, #14b8a6 40%, #a78bfa 80%, #f0abfc 100%);
-}
-
-[data-cover="sand"] {
-  background: linear-gradient(135deg, #fef3c7 0%, #e7c9a0 55%, #b08968 100%);
-}
-
-[data-cover="tide"] {
-  background: linear-gradient(160deg, #082f49 0%, #0369a1 50%, #38bdf8 100%);
-}
-
-[data-cover="plum"] {
-  background: linear-gradient(135deg, #3b0764 0%, #86198f 50%, #fb7185 100%);
-}
-
 .page {
   display: grid;
   row-gap: var(--space-8);

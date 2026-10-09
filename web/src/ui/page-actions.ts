@@ -3,6 +3,7 @@ import { t } from "../engine/i18n";
 import { errorMessage } from "./errors";
 import { copyText } from "./form";
 import { openHistory } from "./history-dialog";
+import { openPublishDialog } from "./publish-dialog";
 import type { MenuEntry } from "./menu";
 import { tile } from "./avatar";
 import { openShareDialog } from "./share-dialog";
@@ -55,6 +56,7 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
     { label: fav ? t("Remove from favorites") : t("Add to favorites"), icon: fav ? "star-fill" : "star", hint: engine.keymap.chordFor("page.favorite")?.join(" ") ?? "", run: () => void engine.pages.toggleFavorite(id).catch(engine.reportError) },
   ];
   if (!personal) entries.push({ label: t("Share"), icon: "users", run: () => openShareDialog(engine, id) });
+  if (engine.can(id, "full")) entries.push({ label: t("Publish to the web"), icon: "globe", run: () => void openPublishDialog(engine, id) });
   if (engine.can(id, "content")) entries.push({ label: t("Add a page inside"), icon: "plus", run: handlers.addInside });
   const parent = p.parent_id && !p.detached ? p.parent_id : "";
   if (parent ? engine.can(parent, "content") : member) entries.push({ label: t("Duplicate"), icon: "copy", run: () => void duplicatePage(engine, id) });
