@@ -1,0 +1,53 @@
+# form.md Wiki
+
+form.md is a self-hosted workspace where people and AI agents write documents, run databases and edit together in realtime. It ships as one static Go binary (`form-md`) with the TypeScript web client embedded, and it keeps everything in one data directory: a SQLite database (`form-md.db`), the uploaded files and a few small key files. There is no separate database server, cache or object store. The server holds the collaborative document itself, so an agent writing through MCP or the REST API merges with what a person is typing. This wiki is for the people who install and run an instance and for the people who change its code.
+
+**Current version:** v0.10.1 released; `main` carries the 0.11.0 work (encryption, ACME, operations commands, offline start, installer) · **Stack:** Go 1.26, pure-Go SQLite, vanilla TypeScript and Vite, ProseMirror and Yjs · **Team:** one owner (nodemode-ai)
+
+## Status at a glance
+
+| Area | State |
+|---|---|
+| Server, storage, accounts, workspaces, editor, databases, search, sharing | Stable, built through Phases 1 to 10 |
+| REST API with `/api/docs` and OAuth, MCP endpoint | Stable · see [[API-and-agents]] |
+| At-rest encryption, `form-md encrypt` | Working, **in testing**, not yet in a tagged release · see [[Encryption]] |
+| Built-in ACME certificates | Working, **in testing**: checked against a test CA (Pebble), not yet against Let's Encrypt production · see [[TLS-and-ACME]] |
+| `backup`, `restore`, `doctor`, `admin reset-owner` | Working, **in testing**, not yet in a tagged release · see [[Backup-and-restore]] and [[Operations]] |
+| Offline start from the service worker | Working, **in testing** · see [[Offline]] |
+| `install.sh`, systemd unit, container image, release workflow | Written, **not yet exercised by a release**: no tag has been pushed since they landed · see [[Install]] |
+| SAML and SCIM | Tested against a local identity provider only, not yet against Okta, Entra or Google Workspace |
+| AI providers | Verified against a local stand-in, not yet against live provider keys |
+| Windows scripts (`*.bat`) | Written, **not yet run** on a Windows host |
+| Automated tests | None in the tree by design; CI runs format, vet, type check, a build and a smoke run · see [[Development]] |
+
+## Where to go
+
+- Put an instance on a server: [[Install]]
+- Every environment variable and the settings they seed: [[Configuration]]
+- Encrypt the data directory at rest: [[Encryption]]
+- HTTPS with your own certificate, built-in ACME, or a reverse proxy: [[TLS-and-ACME]]
+- Back up and restore: [[Backup-and-restore]]
+- Health checks, the data directory, logs and upgrades: [[Operations]]
+- What works without a connection: [[Offline]]
+- REST API, tokens, OAuth, rate limits and connecting agents: [[API-and-agents]]
+- Repo layout, dev loop and conventions: [[Development]]
+- Branches, commits and releases: `BRANCHING.md` at the repo root
+
+## Editing this wiki
+
+The source of truth for this wiki is the `.docs/wiki/` folder in the main repository. Edit pages there on a `docs/*` branch, merge the pull request into `main`, then publish:
+
+```sh
+git clone https://github.com/nodemode-ai/form.md.wiki.git
+cp form.md/.docs/wiki/*.md form.md.wiki/
+cd form.md.wiki
+git add -A
+git commit -m "docs: sync wiki from .docs/wiki"
+git push
+```
+
+Direct edits in the GitHub wiki interface are overwritten by the next sync, so keep every change in the repository.
+
+Changing a subsystem's behaviour (a command, an environment variable, a route, a file in the data directory) means updating its page in the same pull request. A page that lags the code is worse than no page, because it is trusted.
+
+Formatting rules for all pages: no emojis anywhere, no em dashes (use an interpunct `·` or restructure the sentence), plain markdown, real paths and real commands rather than abstract descriptions.

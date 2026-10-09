@@ -30,6 +30,7 @@ release: web notices
 check:
 	gofmt -l . | (! grep .)
 	go vet ./...
+	go run ./tools/wikicheck
 	cd web && npm run typecheck
 
 clean:
