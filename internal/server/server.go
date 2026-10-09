@@ -5,11 +5,13 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/nodemode-ai/form.md/internal/admin"
+	"github.com/nodemode-ai/form.md/internal/agentrun"
 	"github.com/nodemode-ai/form.md/internal/analytics"
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/audit"
@@ -24,7 +26,9 @@ import (
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/inbox"
 	"github.com/nodemode-ai/form.md/internal/mail"
+	"github.com/nodemode-ai/form.md/internal/mcp"
 	"github.com/nodemode-ai/form.md/internal/netguard"
+	"github.com/nodemode-ai/form.md/internal/oauth"
 	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/scim"
@@ -58,6 +62,8 @@ type Server struct {
 	Inbox    *inbox.Service
 	Views    *analytics.Service
 	Hooks    *webhook.Service
+	Runs     *agentrun.Service
+	OAuth    *oauth.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -107,6 +113,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	sites.OnView(views.Record)
 	hooks := webhook.New(st, gate, box, al, fetcher, cfg.FetchPrivate, log)
 	prov := scim.New(st, gate, authSvc, ws, al, log)
+	runs := agentrun.New(st, authSvc, log)
+	grants := oauth.New(st, authSvc, gate, al, fetcher, cfg.FetchPrivate, log)
+	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Version: app.Version, Log: log})
 	docs.OnRefs(func(ctx context.Context, pageID, actor string, _ []string, _ []doc.Reminder) {
 		var wsID string
 		if st.R.QueryRowContext(ctx, "SELECT workspace_id FROM pages WHERE id = ?", pageID).Scan(&wsID) == nil {
@@ -149,7 +158,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks, Runs: runs, OAuth: grants}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{sites.Host, prov.Middleware, authSvc.Middleware},
@@ -174,6 +183,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		hooks.Module(authSvc),
 		auditapi.Module(al, gate, authSvc, set),
 		prov.Module(),
+		runs.Module(),
+		grants.Module(),
+		agents.Module(),
 		static.Module(s.renderDocument),
 	}
 	return s, nil
@@ -202,6 +214,8 @@ func (s *Server) housekeeping(ctx context.Context) {
 			s.Deps.Log.Warn("history purge failed", "err", err)
 		}
 		s.Views.Purge(ctx)
+		s.Runs.Purge(ctx, 90)
+		s.OAuth.Purge(ctx)
 		if _, err := s.Audit.Purge(ctx, s.Settings.Int("audit.retention_days")); err != nil {
 			s.Deps.Log.Warn("audit purge failed", "err", err)
 		}
@@ -349,6 +363,19 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		}
 	case strings.HasPrefix(path, "/invite/"):
 		attrs["auth"] = "invite"
+	case path == "/oauth/consent":
+		if !signedIn {
+			return static.Document{Redirect: "/login?next=" + url.QueryEscape(path+"?"+r.URL.RawQuery)}, nil
+		}
+		attrs["auth"] = "consent"
+		view, err := s.OAuth.ConsentView(ctx, p, r.URL.Query().Get("request"))
+		if err != nil {
+			attrs["consent"] = "expired"
+			break
+		}
+		slots["oauth-client"], slots["oauth-host"] = view.Client, view.Host
+		htmlSlots["oauth-scope"], htmlSlots["oauth-workspaces"] = consentChoices(view)
+		boot["oauth"] = map[string]string{"request": view.Request}
 	case !signedIn && path == "/signup" && attrs["signup"] == "open":
 		attrs["auth"] = "signup"
 	case !signedIn:
