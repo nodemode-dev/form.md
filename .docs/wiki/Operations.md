@@ -57,7 +57,7 @@ fm admin set https.auto false
 fm admin set net.trust_proxy true
 ```
 
-It prints `KEY = VALUE; a running server picks this up at its next start`, so restart the server afterwards (it keeps settings in memory). The key must be one of the instance settings in `internal/settings/settings.go` and the value is checked the same way as in Instance settings (`expected true or false`, a number range, or one of the allowed values). Secret settings are sealed as usual. For keys whose name contains `secret`, `password` or `token`, the value is printed as `(saved)`. Use it as the way out when a setting keeps the server from starting or from being reached, for example automatic HTTPS ([[TLS-and-ACME]]) or `net.trust_proxy` before the first set-up.
+It prints `KEY = VALUE; a running server picks this up at its next start`, so restart the server afterwards (it keeps settings in memory). The key must be one of the instance settings in `internal/settings/settings.go` and the value is checked the same way as in Instance settings (`expected true or false`, a number range, or one of the allowed values). Secret settings are sealed as usual. For every secret setting (those of the Secret kind in `internal/settings/settings.go`), the value is printed as `(saved)`. Use it as the way out when a setting keeps the server from starting or from being reached, for example automatic HTTPS ([[TLS-and-ACME]]) or `net.trust_proxy` before the first set-up.
 
 ## form-md admin reset-owner
 
