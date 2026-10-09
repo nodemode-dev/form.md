@@ -304,11 +304,18 @@ func (s *Service) Copy(ctx context.Context, tx *sql.Tx, from, to string) error {
 		d.Destroy()
 	}
 	now := store.NowMS()
-	if _, err := tx.ExecContext(ctx, `INSERT INTO doc_state (page_id, generation, snapshot, snapshot_seq, next_seq, markdown, text_size, materialised_at, updated_at)
-		SELECT ?, 1, ?, 0, 1, markdown, text_size, materialised_at, ? FROM doc_state WHERE page_id = ?`, to, state, now, from); err != nil {
+	res, err := tx.ExecContext(ctx, `INSERT INTO doc_state (page_id, generation, snapshot, snapshot_seq, next_seq, markdown, text_size, materialised_at, updated_at)
+		SELECT ?, 1, ?, 0, 1, markdown, text_size, materialised_at, ? FROM doc_state WHERE page_id = ?`, to, state, now, from)
+	if err != nil {
 		return err
 	}
-	_, err := tx.ExecContext(ctx, "INSERT OR IGNORE INTO doc_refs (page_id, kind, target) SELECT ?, kind, target FROM doc_refs WHERE page_id = ? AND NOT (kind = 'page' AND target = ?)", to, from, to)
+	if n, _ := res.RowsAffected(); n == 0 && r != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO doc_state (page_id, generation, snapshot, snapshot_seq, next_seq, markdown, text_size, materialised_at, updated_at)
+			VALUES (?, 1, ?, 0, 1, '', 0, 0, ?)`, to, state, now); err != nil {
+			return err
+		}
+	}
+	_, err = tx.ExecContext(ctx, "INSERT OR IGNORE INTO doc_refs (page_id, kind, target) SELECT ?, kind, target FROM doc_refs WHERE page_id = ? AND NOT (kind = 'page' AND target = ?)", to, from, to)
 	return err
 }
 
