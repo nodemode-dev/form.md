@@ -1532,3 +1532,10 @@ Whole `200` responses for `/files/<id>` are kept network-first, so pictures on k
 - logged: v0.11.0 · 2026-10-09
 
 The server renders `/offline-shell` for the workspace in the remembered-workspace cookie. That cookie was only written on a switch, so after a deep link into another workspace the cached shell showed the wrong tree. The workspace the app boots into is now remembered at start.
+
+### src/ui/offline.ts, public/sw.js · row pages and pictures offline
+- refers-to: src/ui/offline.ts :: `keep`, `keepRows`, `fileRefs`, `postFiles`, `startOffline` (boot row); public/sw.js :: `API_READS` (`pages/<id>`), `offline-files`
+- kind: explainer
+- logged: v0.11.1 · 2026-10-09
+
+A row page is not in the tree, so offline it can only be drawn from the cached page detail (`GET /api/pages/<id>`, which the engine's `loadDetail` reads on every page route) and the cached row read (`GET /api/rows/<id>`). Keeping a database caches both for every row in its first window and syncs each row's body into IndexedDB, four at a time. A row page opened from a server-rendered boot never fetches `/api/rows/<id>` (the boot carries it), so the worker is asked to fetch it once at start. After a kept page syncs, every `f:` attribute in its document, its cover and its icon are sent to the worker, which fetches the files it does not hold yet into `formmd-files`.

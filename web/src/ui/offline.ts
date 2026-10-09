@@ -1,3 +1,4 @@
+import * as Y from "yjs";
 import type { Engine } from "../engine";
 import { plural, t } from "../engine/i18n";
 import { offlineIds, setOfflineIds } from "./offline-list";
@@ -29,6 +30,8 @@ export function startOffline(engine: Engine): Promise<ServiceWorkerRegistration 
       if (navigator.onLine && engine.state.get("me")) post(reg, { type: "offline-shell" });
     };
     shell();
+    const bootRow = engine.boot.row?.row?.id;
+    if (bootRow && navigator.onLine) post(reg, { type: "offline-api", urls: [`/api/rows/${encodeURIComponent(bootRow)}`] } as { type: string });
     let timer: ReturnType<typeof setTimeout> | undefined;
     engine.pages.subscribe(() => {
       clearTimeout(timer);
@@ -39,6 +42,29 @@ export function startOffline(engine: Engine): Promise<ServiceWorkerRegistration 
     idle(() => void refreshKept(engine), 30_000);
     return reg;
   }));
+}
+
+function fileRefs(el: Y.XmlFragment | Y.XmlElement, out: Set<string>): Set<string> {
+  for (const c of el.toArray()) {
+    if (!(c instanceof Y.XmlElement)) continue;
+    for (const v of Object.values(c.getAttributes())) if (typeof v === "string" && v.startsWith("f:")) out.add(`/files/${v.slice(2)}`);
+    fileRefs(c, out);
+  }
+  return out;
+}
+
+function postFiles(urls: Iterable<string>): void {
+  const list = [...urls];
+  if (list.length) void started?.then((reg) => reg && post(reg, { type: "offline-files", urls: list } as { type: string }));
+}
+
+function postApi(urls: string[]): void {
+  if (urls.length) void started?.then((reg) => reg && post(reg, { type: "offline-api", urls } as { type: string }));
+}
+
+function pageFiles(engine: Engine, id: string, out: Set<string>): void {
+  const p = engine.pages.get(id);
+  for (const ref of [p?.cover ?? "", p?.icon ?? ""]) if (ref.startsWith("f:")) out.add(`/files/${ref.slice(2)}`);
 }
 
 function syncDoc(engine: Engine, id: string, ms = 20_000): Promise<boolean> {
@@ -52,6 +78,11 @@ function syncDoc(engine: Engine, id: string, ms = 20_000): Promise<boolean> {
       done = true;
       off();
       clearTimeout(timer);
+      if (ok) {
+        const files = fileRefs(s.fragment, new Set());
+        pageFiles(engine, id, files);
+        postFiles(files);
+      }
       engine.docs.release(s);
       resolve(ok);
     }
@@ -69,11 +100,24 @@ function keptPages(engine: Engine, roots: string[]): string[] {
   return [...seen];
 }
 
+async function keepRows(engine: Engine, rows: string[]): Promise<void> {
+  postApi(rows.flatMap((r) => [`/api/pages/${encodeURIComponent(r)}`, `/api/rows/${encodeURIComponent(r)}`]));
+  let next = 0;
+  const worker = async () => {
+    while (next < rows.length && navigator.onLine) await syncDoc(engine, rows[next++] as string);
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+}
+
 function keep(engine: Engine, id: string): Promise<boolean> {
+  postApi([`/api/pages/${encodeURIComponent(id)}`]);
   if (engine.pages.get(id)?.kind === "collection") {
-    void started?.then((reg) => reg && post(reg, { type: "offline-api", urls: [`/api/collections/${encodeURIComponent(id)}?view=`] } as { type: string }));
+    postApi([`/api/collections/${encodeURIComponent(id)}?view=`]);
     return engine.api.collections.get(id, "").then(
-      () => true,
+      async (r) => {
+        await keepRows(engine, r.first?.result.order ?? []);
+        return true;
+      },
       () => false,
     );
   }

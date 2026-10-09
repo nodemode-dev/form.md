@@ -2,7 +2,7 @@ const ASSETS = "formmd-assets";
 const SHELL = "formmd-shell";
 const SHELL_URL = "/offline-shell";
 const API = "formmd-api";
-const API_READS = /^\/api\/(collections\/[^/]+|rows\/[^/]+)$/;
+const API_READS = /^\/api\/(collections\/[^/]+|rows\/[^/]+|pages\/[^/]+)$/;
 const FILES = "formmd-files";
 const FILE_READS = /^\/files\/[a-z0-9]+$/;
 
@@ -110,6 +110,20 @@ self.addEventListener("message", (event) => {
         event.data.urls
           .filter((u) => typeof u === "string" && API_READS.test(new URL(u, self.location.origin).pathname))
           .map((u) => apiRead(new Request(new URL(u, self.location.origin).href, { credentials: "same-origin" })).catch(() => undefined)),
+      ),
+    );
+  else if (type === "offline-files" && Array.isArray(event.data.urls))
+    event.waitUntil(
+      caches.open(FILES).then((cache) =>
+        Promise.all(
+          event.data.urls
+            .filter((u) => typeof u === "string" && FILE_READS.test(new URL(u, self.location.origin).pathname))
+            .map(async (u) => {
+              const req = new Request(new URL(u, self.location.origin).href, { credentials: "same-origin" });
+              if (await cache.match(req, { ignoreVary: true, ignoreSearch: true })) return;
+              await fileRead(req).catch(() => undefined);
+            }),
+        ),
       ),
     );
   else if (type === "offline-clear") event.waitUntil(Promise.all([caches.delete(SHELL), caches.delete(API), caches.delete(FILES)]));
