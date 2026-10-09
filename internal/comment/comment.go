@@ -64,9 +64,11 @@ type Thread struct {
 }
 
 type Listing struct {
-	Threads     []*Thread `json:"threads"`
-	CanComment  bool      `json:"can_comment"`
-	CanModerate bool      `json:"can_moderate"`
+	Threads     []*Thread    `json:"threads"`
+	Suggestions []Suggestion `json:"suggestions"`
+	CanComment  bool         `json:"can_comment"`
+	CanModerate bool         `json:"can_moderate"`
+	CanDecide   bool         `json:"can_decide"`
 }
 
 type Mention struct {
@@ -75,12 +77,13 @@ type Mention struct {
 }
 
 type Event struct {
-	Kind     string
-	Page     *page.Meta
-	Thread   *Thread
-	Comment  *Comment
-	Actor    *policy.Principal
-	Mentions []Mention
+	Kind       string
+	Page       *page.Meta
+	Thread     *Thread
+	Comment    *Comment
+	Suggestion *Suggestion
+	Actor      *policy.Principal
+	Mentions   []Mention
 }
 
 type Service struct {
@@ -163,8 +166,12 @@ func (s *Service) List(ctx context.Context, p *policy.Principal, pageID string) 
 	if err != nil {
 		return nil, err
 	}
+	sugg, err := s.suggestions(ctx, pageID)
+	if err != nil {
+		return nil, err
+	}
 	write := p.CanWrite()
-	return &Listing{Threads: threads, CanComment: write && level >= page.LevelComment, CanModerate: write && level >= page.LevelEdit}, nil
+	return &Listing{Threads: threads, Suggestions: sugg, CanComment: write && level >= page.LevelComment, CanModerate: write && level >= page.LevelEdit, CanDecide: write && level >= page.LevelContent}, nil
 }
 
 func (s *Service) threads(ctx context.Context, p *policy.Principal, where string, args ...any) ([]*Thread, error) {

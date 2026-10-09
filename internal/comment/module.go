@@ -103,6 +103,40 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		}
 		return done(w)
 	})
+	route("POST /api/pages/{id}/suggestions", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		var in SuggestInput
+		if err := httpx.Decode(r, &in); err != nil {
+			return err
+		}
+		x, err := s.Suggest(r.Context(), p, r.PathValue("id"), in)
+		if err != nil {
+			return err
+		}
+		httpx.JSON(w, http.StatusCreated, map[string]any{"suggestion": x})
+		return nil
+	})
+	route("PATCH /api/suggestions/{id}", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		var in SuggestInput
+		if err := httpx.Decode(r, &in); err != nil {
+			return err
+		}
+		if err := s.Revise(r.Context(), p, r.PathValue("id"), in); err != nil {
+			return err
+		}
+		return done(w)
+	})
+	route("PUT /api/suggestions/{id}/decision", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		var in struct {
+			Accept bool `json:"accept"`
+		}
+		if err := httpx.Decode(r, &in); err != nil {
+			return err
+		}
+		if err := s.Decide(r.Context(), p, r.PathValue("id"), in.Accept); err != nil {
+			return err
+		}
+		return done(w)
+	})
 	route("DELETE /api/comments/{id}/reactions/{icon}", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 		if err := s.React(r.Context(), p, r.PathValue("id"), r.PathValue("icon"), false); err != nil {
 			return err
