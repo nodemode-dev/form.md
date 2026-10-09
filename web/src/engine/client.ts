@@ -26,6 +26,7 @@ import type {
   InboxItem,
   LinkPreview,
   NotifyPrefs,
+  PageVersion,
   FilePurpose,
   Invite,
   InviteInfo,
@@ -180,6 +181,12 @@ export function createClient(f: FetchFn) {
       suggest: (pageId: string, body: { start: string; end: string; original: string; text: string }) => post<{ suggestion: Suggestion }>(`/api/pages/${enc(pageId)}/suggestions`, body),
       revise: (id: string, body: { start: string; end: string; original: string; text: string }) => patch<void>(`/api/suggestions/${enc(id)}`, body),
       decide: (id: string, accept: boolean) => put<void>(`/api/suggestions/${enc(id)}/decision`, { accept }),
+    },
+    history: {
+      list: (pageId: string) => get<{ versions: PageVersion[] }>(`/api/pages/${enc(pageId)}/versions`),
+      get: (id: string) => get<{ version: PageVersion; state: string }>(`/api/versions/${enc(id)}`),
+      save: (pageId: string, beforeRestore = false) => post<{ id: string }>(`/api/pages/${enc(pageId)}/versions${beforeRestore ? "?kind=restore" : ""}`),
+      restored: (id: string) => post<void>(`/api/versions/${enc(id)}/restored`),
     },
     inbox: {
       list: (filter: "all" | "unread" | "archived", before = 0) => get<{ items: InboxItem[]; unread: number }>(`/api/inbox?filter=${filter}${before ? `&before=${before}` : ""}`),

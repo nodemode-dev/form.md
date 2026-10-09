@@ -499,6 +499,18 @@ export interface CommentListing {
   can_decide: boolean;
 }
 
+export interface PageVersion {
+  id: string;
+  page_id: string;
+  created_at: number;
+  kind: "auto" | "manual" | "restore";
+  title: string;
+  editors: string[];
+  names: string[];
+  words: number;
+  size: number;
+}
+
 export type NotificationKind = "mention" | "comment" | "reply" | "suggestion" | "decision" | "share" | "assign" | "reminder";
 
 export interface InboxItem {

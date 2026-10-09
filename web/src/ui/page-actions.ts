@@ -2,6 +2,7 @@ import type { Engine } from "../engine";
 import { t } from "../engine/i18n";
 import { errorMessage } from "./errors";
 import { copyText } from "./form";
+import { openHistory } from "./history-dialog";
 import type { MenuEntry } from "./menu";
 import { tile } from "./avatar";
 import { openShareDialog } from "./share-dialog";
@@ -72,6 +73,7 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
     }
   }
   entries.push({ kind: "separator" });
+  if (engine.can(id, "view") && p.kind === "doc") entries.push({ label: t("Page history"), icon: "clock", run: () => openHistory(engine, id) });
   entries.push({
     label: t("Copy link"),
     icon: "link",

@@ -1,7 +1,7 @@
-import type { Node as PMNode, ResolvedPos, Slice } from "prosemirror-model";
+import { Fragment, type Node as PMNode, type ResolvedPos, type Slice } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { initProseMirrorDoc, yCursorPlugin, ySyncPlugin, yUndoPlugin } from "y-prosemirror";
+import { initProseMirrorDoc, relativePositionToAbsolutePosition, yCursorPlugin, ySyncPlugin, ySyncPluginKey, yUndoPlugin } from "y-prosemirror";
 import * as Y from "yjs";
 import type { Engine } from "../../engine";
 import type { DocSession } from "../../engine/doc/docs";
@@ -17,7 +17,7 @@ import { nodeViews } from "./nodeviews";
 import { highlightPlugin, idsPlugin, keysPlugin, livePlugin, placeholderPlugin, structurePlugins, uploadsPlugin } from "./plugins";
 import { columnsPlugins } from "./columns";
 import { commentsPlugin } from "./comments";
-import { suggestPlugin, suggestUI } from "./suggest";
+import { suggestKey, suggestPlugin, suggestUI } from "./suggest";
 import { linksPlugin, offerLinkChoice } from "./links";
 import { mathKeys } from "./math";
 import { rulesPlugin } from "./rules";
@@ -131,6 +131,57 @@ export class EditorHost implements EditorCtx {
     this.mode = mode;
     this.ed?.setProps({});
     for (const fn of this.modeListeners) fn(mode);
+  }
+
+  restoreDoc(doc: PMNode): { kept: number } | null {
+    const v = this.ed;
+    const s = this.session;
+    if (!v || !s || !this.canEdit() || s.phase !== "ready") return null;
+    const busy = this.remoteBlocks(v, s);
+    const live = new Map<string, PMNode>();
+    v.state.doc.forEach((n) => {
+      const id = String(n.attrs.id ?? "");
+      if (id) live.set(id, n);
+    });
+    const out: PMNode[] = [];
+    const placed = new Set<string>();
+    doc.forEach((n) => {
+      const id = String(n.attrs.id ?? "");
+      if (id) placed.add(id);
+      out.push((id && busy.has(id) && live.get(id)) || n);
+    });
+    let prev = "";
+    v.state.doc.forEach((n) => {
+      const id = String(n.attrs.id ?? "");
+      if (id && busy.has(id) && !placed.has(id)) {
+        const at = prev ? out.findIndex((x) => String(x.attrs.id ?? "") === prev) + 1 : 0;
+        out.splice(at, 0, n);
+        placed.add(id);
+      }
+      if (id && placed.has(id)) prev = id;
+    });
+    const tr = v.state.tr.replaceWith(0, v.state.doc.content.size, Fragment.from(out));
+    v.dispatch(tr.setMeta(suggestKey, { apply: true }));
+    return { kept: [...busy].filter((id) => live.has(id)).length };
+  }
+
+  private remoteBlocks(v: EditorView, s: DocSession): Set<string> {
+    const out = new Set<string>();
+    const binding = ySyncPluginKey.getState(v.state)?.binding;
+    if (!binding || s.phase !== "ready") return out;
+    s.awareness.getStates().forEach((st, client) => {
+      const cur = (st as { cursor?: { anchor?: unknown; head?: unknown } }).cursor;
+      if (client === s.awareness.clientID || !cur) return;
+      for (const rel of [cur.anchor, cur.head]) {
+        if (!rel) continue;
+        const pos = relativePositionToAbsolutePosition(s.doc, s.fragment, Y.createRelativePositionFromJSON(rel), binding.mapping);
+        if (pos === null || pos < 0 || pos > v.state.doc.content.size) continue;
+        const block = v.state.doc.maybeChild(v.state.doc.resolve(pos).index(0));
+        const id = block ? String(block.attrs.id ?? "") : "";
+        if (id) out.add(id);
+      }
+    });
+    return out;
   }
 
   onMode(fn: (m: EditMode) => void): () => void {
