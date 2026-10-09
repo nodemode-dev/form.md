@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"html"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -31,6 +32,7 @@ type Service struct {
 	ws       *workspace.Service
 	settings *settings.Service
 	mail     *mail.Mailer
+	mailAuth *mail.OAuth
 	audit    *audit.Log
 	log      *slog.Logger
 	deleting []func(ctx context.Context, tx *sql.Tx, userID string) error
@@ -38,6 +40,38 @@ type Service struct {
 
 func New(st *store.Store, a *auth.Service, ws *workspace.Service, set *settings.Service, m *mail.Mailer, al *audit.Log, log *slog.Logger) *Service {
 	return &Service{st: st, auth: a, ws: ws, settings: set, mail: m, audit: al, log: log}
+}
+
+func (s *Service) UseMailOAuth(o *mail.OAuth) { s.mailAuth = o }
+
+func (s *Service) mailConnect(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+	if !p.IsSession() {
+		return httpx.Fail(http.StatusForbidden, "session_only", "connect a mail account from a signed-in browser")
+	}
+	to, err := s.mailAuth.Start(r.URL.Query().Get("mode"), s.auth.BaseURL(r)+"/api/admin/mail/callback")
+	if err != nil {
+		return httpx.Fail(http.StatusBadRequest, "mail_connect", err.Error())
+	}
+	http.Redirect(w, r, to, http.StatusFound)
+	return nil
+}
+
+func (s *Service) mailCallback(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+	q := r.URL.Query()
+	msg := ""
+	if e := q.Get("error"); e != "" {
+		msg = "The provider answered: " + e + ". Nothing was changed."
+	} else if account, err := s.mailAuth.Finish(r.Context(), q.Get("state"), q.Get("code")); err != nil {
+		msg = "The mail account was not connected: " + err.Error()
+	} else {
+		msg = "Mail is now sent as " + account + ". You can close this tab and send a test mail from Instance settings."
+		s.log.Info("mail account connected", "by", p.UserID, "account", account, "mode", s.settings.Get("mail.mode"))
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
+	_, err := fmt.Fprintf(w, `<!doctype html><meta charset="utf-8"><title>form.md</title><body style="font:16px system-ui;background:#111;color:#eee;padding:48px"><p>%s</p></body>`, html.EscapeString(msg))
+	return err
 }
 
 func (s *Service) OnUserDelete(fn func(ctx context.Context, tx *sql.Tx, userID string) error) {
@@ -749,5 +783,9 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	r.HandleFunc("GET /api/admin/settings", a.RequireAdmin(s.getSettings))
 	r.HandleFunc("PUT /api/admin/settings", a.RequireAdmin(s.putSettings))
 	r.HandleFunc("POST /api/admin/mail/test", a.RequireAdmin(s.testMail))
+	if s.mailAuth != nil {
+		r.HandleFunc("GET /api/admin/mail/connect", a.RequireAdmin(s.mailConnect))
+		r.HandleFunc("GET /api/admin/mail/callback", a.RequireAdmin(s.mailCallback))
+	}
 	return nil
 }

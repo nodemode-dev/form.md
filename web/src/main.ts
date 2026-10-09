@@ -129,6 +129,7 @@ async function start(): Promise<void> {
     mountHome(engine);
     const app = engine;
     setTimeout(() => void import("./ui/offline").then((m) => m.startOffline(app)).catch(() => undefined), 2500);
+    if (matchMedia("(display-mode: standalone)").matches && "ontouchstart" in window) void import("./ui/pull").then((m) => m.mountPullToRefresh(app));
     const settingsOverlays = new Set<string | null>(["account", "workspace", "new-workspace", "admin"]);
     let settingsJob: Promise<void> | null = null;
     const ensureSettings = () =>

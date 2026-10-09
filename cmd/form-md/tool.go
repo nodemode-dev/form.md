@@ -34,7 +34,7 @@ func tool(cmd string, args []string) int {
 			fmt.Fprintln(os.Stderr, "usage: form-md backup FILE")
 			return 2
 		}
-		m, err := ops.Backup(ctx, cfg.DataDir, cfg.KeyFile, args[0])
+		m, err := ops.Backup(ctx, cfg.DataDir, cfg.KeyFile, args[0], func() bool { return ops.RequestFlush(cfg.DataDir) })
 		if err != nil {
 			return fail(err)
 		}

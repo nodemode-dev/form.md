@@ -1,5 +1,5 @@
 import { ApiError } from "../engine/api";
-import type { AccessWorkspace, AdminUser, BreakGlassGrant, DeletionPlan, Engine, SettingsMap, StrandedWorkspace, WorkspaceRole } from "../engine";
+import type { AccessWorkspace, AdminUser, BreakGlassGrant, DeletionPlan, Engine, SettingsMap, StrandedWorkspace, TunnelStatus, WorkspaceRole } from "../engine";
 import { formatDate, formatDateTime, formatRelative } from "../engine/format";
 import { plural, t } from "../engine/i18n";
 import { aiTab } from "./admin-ai";
@@ -208,13 +208,15 @@ function settingsTab(store: SettingsStore, id: string, label: string, icon: Tab[
   return tab;
 }
 
-function generalTab(store: SettingsStore): Tab {
+function generalTab(engine: Engine, store: SettingsStore): Tab {
   return settingsTab(store, "general", t("General"), "settings", (f, panel) => {
     const s1 = section(t("Instance"));
     s1.append(
       f.text("instance.name", t("Instance name"), t("Shown on the sign-in page and in the browser title.")),
       f.text("instance.public_url", t("Public address"), t("The address people use, for links in mail, invitations and sign-in callbacks."), "url", "https://notes.example.com"),
       f.bool("net.trust_proxy", t("Behind a reverse proxy"), t("Trust the X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers. Turn on only when a proxy you run sets them.")),
+      f.text("https.domain", t("Domain for automatic HTTPS"), t("The host name people reach this server at, for example notes.example.com."), "text", "notes.example.com"),
+      f.bool("https.auto", t("Automatic HTTPS"), t("Takes effect at the next start: the server gets a certificate from Let's Encrypt and listens on ports 443 and 80 itself. Ignored when TLS is set in the environment.")),
       f.bool("workspaces.member_create", t("Members may create workspaces"), t("When off, only admins create shared workspaces. Everyone keeps a personal space.")),
     );
     const s2 = section(t("Housekeeping"));
@@ -236,9 +238,41 @@ function generalTab(store: SettingsStore): Tab {
       ),
       f.bool("update.check", t("Check for new versions"), t("Once a day, and only the version number is fetched.")),
     );
-    f.el.append(s1, s2);
+    const tokenRow = f.secret("tunnel.token", t("Tunnel token"));
+    const s3 = section(t("Public tunnel"), t("Reach this server from the internet through Cloudflare without opening a port. Needs cloudflared on the server."));
+    s3.append(
+      f.choice(
+        "tunnel.mode",
+        t("Tunnel"),
+        [
+          ["off", t("Off")],
+          ["quick", t("Quick tunnel (a random trycloudflare.com address)")],
+          ["token", t("Named tunnel (a token from the Cloudflare dashboard)")],
+        ] as const,
+        (v) => {
+          tokenRow.hidden = v !== "token";
+        },
+      ),
+      tokenRow,
+      f.bool("tunnel.autostart", t("Start with the server"), t("Otherwise start it here when you need it.")),
+    );
+    f.el.append(s1, s2, s3);
     f.finish();
-    panel.append(f.el);
+    const state = h("p", { class: "section__lead" });
+    const start = button(t("Start the tunnel"), "default", "globe");
+    const stop = button(t("Stop the tunnel"), "default", "close");
+    const paintTunnel = (st: TunnelStatus | null) => {
+      if (!st) return;
+      start.hidden = st.running;
+      stop.hidden = !st.running;
+      setText(state, !st.binary ? t("cloudflared is not installed on this server.") : st.running ? (st.url ? t("Running at {url}", { url: st.url }) : st.error ? t("Starting; last error: {error}", { error: st.error }) : t("Running.")) : st.error ? t("Stopped: {error}", { error: st.error }) : t("Stopped."));
+    };
+    start.addEventListener("click", () => void busy(start, () => engine.api.admin.tunnelStart().then(paintTunnel)).catch(engine.reportError));
+    stop.addEventListener("click", () => void busy(stop, () => engine.api.admin.tunnelStop().then(paintTunnel)).catch(engine.reportError));
+    void engine.api.admin.tunnel().then(paintTunnel, () => undefined);
+    const s4 = section(t("Tunnel status"), t("Save the settings above first."));
+    s4.append(state, h("div", { class: "form-actions form-actions--start" }, start, stop));
+    panel.append(f.el, s4);
   });
 }
 
@@ -315,6 +349,14 @@ function signInTab(store: SettingsStore): Tab {
 function emailTab(engine: Engine, store: SettingsStore): Tab {
   return settingsTab(store, "email", t("Email"), "mail", (f, panel) => {
     const smtp = h("div", { class: "form-grid" });
+    const oauth = h("div", { class: "form-grid" });
+    const callback = `${(store.get("instance.public_url") || location.origin).replace(/\/+$/, "")}/api/admin/mail/callback`;
+    const account = h("p", { class: "section__lead" });
+    const connect = h("a", { class: "btn", attrs: { target: "_blank", rel: "noopener", href: "/api/admin/mail/connect?mode=gmail" } }, iconNode("external"), h("span", { text: t("Connect the account") }));
+    const paintAccount = () => {
+      const who = store.get("mail.oauth.account");
+      setText(account, who ? t("Sending as {account}.", { account: who }) : t("No account connected yet. Save the client ID and secret, then connect."));
+    };
     const s1 = section(t("Sending mail"), t("Used for invitations and emergency access notices. Without it, invitation links are copied for you to pass on."));
     s1.append(
       f.choice(
@@ -323,13 +365,25 @@ function emailTab(engine: Engine, store: SettingsStore): Tab {
         [
           ["off", t("Off")],
           ["smtp", t("SMTP server")],
+          ["gmail", t("Gmail (Google Workspace)")],
+          ["graph", t("Microsoft 365 (Graph)")],
         ] as const,
         (v) => {
           smtp.hidden = v !== "smtp";
+          oauth.hidden = v !== "gmail" && v !== "graph";
+          setAttr(connect, "href", `/api/admin/mail/connect?mode=${v}`);
+          paintAccount();
         },
       ),
       f.text("mail.from", t("Sender address"), t("For example form.md <notes@example.com>."), "text"),
       smtp,
+      oauth,
+    );
+    oauth.append(
+      h("p", { class: "section__lead", text: t("Register an OAuth app with the provider, allow sending mail, and add this redirect address: {url}", { url: callback }) }),
+      h("div", { class: "form-row" }, f.text("mail.oauth.client_id", t("Client ID")), f.secret("mail.oauth.client_secret", t("Client secret"))),
+      account,
+      h("div", { class: "form-actions form-actions--start" }, connect),
     );
     smtp.append(
       h("div", { class: "form-row" }, f.text("mail.smtp.host", t("Host")), f.number("mail.smtp.port", t("Port"))),
@@ -978,6 +1032,12 @@ function aboutTab(engine: Engine): Tab {
         h("div", { class: "form-actions form-actions--start" }, licences),
       );
       panel.append(s);
+      if (engine.state.get("me")?.user.role === "owner") {
+        const download = h("a", { class: "btn", attrs: { href: "/api/admin/backup", download: "" } }, iconNode("download"), h("span", { text: t("Download a backup") }));
+        const b = section(t("Backup"), t("The database and every uploaded file in one archive, taken while people keep working. An encrypted instance gives an encrypted archive that only its key restores. Restore it with form-md restore."));
+        b.append(h("div", { class: "form-actions form-actions--start" }, download));
+        panel.append(b);
+      }
       return paint;
     },
   };
@@ -986,7 +1046,7 @@ function aboutTab(engine: Engine): Tab {
 export function mountAdmin(engine: Engine): void {
   const store = new SettingsStore(engine);
   overlayDialog(engine, "admin", t("Instance settings"), [
-    generalTab(store),
+    generalTab(engine, store),
     signInTab(store),
     emailTab(engine, store),
     usersTab(engine),

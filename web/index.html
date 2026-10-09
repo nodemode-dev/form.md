@@ -7,6 +7,8 @@
     <meta name="description" content="form.md: one workspace for people and agents." />
     <title>form.md</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#08080a" />
     <script>(function(){var d=document.documentElement,p="dark";try{var s=localStorage.getItem("formmd.theme");if(s==="light"||s==="dark"||s==="auto")p=s;if(localStorage.getItem("formmd.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed");var h=history.state,n=h&&h.tabs&&h.tabs.length,m=/^\/p\/([^/]+)\/?$/.exec(location.pathname);if(!n){var l=JSON.parse(localStorage.getItem("formmd.tabs")||"[]");n=Array.isArray(l)?l.length+(m&&l.indexOf(m[1])<0?1:0):0}if(n>1)d.setAttribute("data-tabbar","open")}catch(e){}var t=p==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):p;d.setAttribute("data-theme",t);d.setAttribute("data-theme-pref",p)})()</script>
     <link rel="preload" href="/src/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/src/styles/main.css" />
@@ -68,6 +70,7 @@
               <button class="icon-btn" type="button" data-ref="act-more" aria-haspopup="menu" aria-expanded="false" aria-label="More actions" data-tip="More actions"><i data-icon="more"></i></button>
             </span>
             <button class="icon-btn" type="button" data-ref="act-agent" aria-pressed="false" data-tip="Agent" aria-label="Agent"><i data-icon="bot"></i></button>
+            <button class="icon-btn topbar__sync" type="button" data-command="shell.sync" data-tip="Sync now" aria-label="Sync now"><i data-icon="refresh"></i></button>
             <button class="icon-btn" type="button" data-command="shell.showShortcuts" data-tip="Keyboard shortcuts" aria-label="Keyboard shortcuts">
               <i data-icon="keyboard"></i>
             </button>

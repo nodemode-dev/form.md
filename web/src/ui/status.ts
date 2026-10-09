@@ -37,6 +37,10 @@ export function mountStatus(engine: Engine): void {
     setText(label, t(LABEL[health.phase]));
     setText(version, health.version ?? "");
     if (health.version) setText(sidebarVersion, health.version);
+    const role = engine.state.get("me")?.user.role;
+    const update = health.latest && (role === "owner" || role === "admin") ? health.latest : "";
+    setAttr(sidebarVersion, "data-update", update ? "true" : null);
+    setAttr(sidebarVersion, "title", update ? t("{latest} is available", { latest: update }) : null);
     setText(storage, health.storage === null ? "" : health.storage === "ok" ? "OK" : "Error");
     setText(latency, health.latencyMs === null ? (health.phase === "down" ? "n/a" : "") : `${health.latencyMs} ms`);
 

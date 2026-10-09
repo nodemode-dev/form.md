@@ -44,6 +44,7 @@ var Vars = []Var{
 	{"ACME_EMAIL", "", "contact address given to the certificate authority"},
 	{"ACME_DIRECTORY", "https://acme-v02.api.letsencrypt.org/directory", "ACME directory URL; point it at a staging or private CA to test"},
 	{"HTTP_ADDR", ":80", "with ACME on, the plain HTTP listener that answers challenges and redirects to HTTPS"},
+	{"CLOUDFLARED", "", "path to cloudflared for the public tunnel (looked up on PATH when unset)"},
 	{"UPDATE_URL", "", "where the daily update check reads the latest release (GitHub's API when unset); point it at a mirror on a closed network"},
 	{"FETCH_PRIVATE", "", "set to 1 to let link previews and media imports reach private network addresses such as intranet sites; off by default"},
 }

@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.8.0
-Last updated: 2026-10-09 · Phase 8: consent and connected apps, AI admin, Ask AI, AI blocks, autofill, agent pane, custom agents, meeting notes, AI answers
+Current build version: v0.11.0
+Last updated: 2026-10-09 · Phase 11: offline start, Available offline, German catalog, dev proxy origin, first-paint fixes
 
 ---
 
@@ -21,7 +21,8 @@ web/
 ├── oc_install, oc_install.bat       npm ci (or npm install without a lockfile)
 ├── boot_frontend, boot_frontend.bat npm run dev
 ├── public/
-│   └── favicon.svg                  brand mark on dark tile
+│   ├── favicon.svg                  brand mark on dark tile
+│   └── sw.js                        service worker: push, asset cache, offline shell for app navigations
 ├── dist/                            build output, embedded into the Go binary (only .gitkeep is tracked)
 └── src/
     ├── main.ts                      read boot and auth, set language, create engine, mount, start
@@ -573,7 +574,7 @@ One namespace per server area (auth, me, workspaces, admin), every path in one p
 - kind: explainer
 - logged: v0.2.0 · 2026-10-07
 
-Source strings are English and double as keys; catalogs in `src/i18n/<lang>.json` load lazily through `import.meta.glob`, so English costs nothing. `plural` keys are `"one|other"` with the translation in the same form. Supported languages are English and German; the German catalog arrives in Phase 10, until then German falls back to English.
+Source strings are English and double as keys; catalogs live in `src/i18n/<lang>/*.json` (several parts per language, merged on load) and load lazily through `import.meta.glob`, so English costs nothing. `plural` keys are `"one|other"` with the translation in the same form. Supported languages are English and German (since v0.11.0). The server embeds the same files to translate index.html, so a string shown before the client starts must be a catalog key too.
 
 ### src/engine/format.ts · canonical
 - refers-to: src/engine/format.ts :: `canonical`, `locale`
@@ -1452,3 +1453,61 @@ The upload uses XMLHttpRequest for upload progress (fetch has none); the job is 
 - logged: v0.10.0 · 2026-10-09
 
 `menuClosedAt` stops the press that closed a menu from reopening it; choosing an item now clears it, since that close did not come from the anchor.
+
+## Phase 11: offline and German {#p11}
+
+### public/sw.js · offline start
+- refers-to: public/sw.js :: `precache`, `refreshShell`, `fromCache`, `navigate`, the message handler
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+Install caches the core assets from `/offline.json` (they come from the HTTP cache, already loaded); `offline-precache` caches the rest and drops assets no longer built. `/assets/*` is cache-first with `ignoreVary` (assets vary on Accept-Encoding). App navigations (`/`, `/p/<id>`, `/library`, `/trash`, `/inbox`) are network-first; on failure the cached `/offline-shell` is returned with `data-route` injected for the requested path, which keeps the first paint still. The shell is cached only when it is a signed-in document; sign-out deletes it (`DocStore.clearLocal`).
+
+### src/ui/offline.ts and offline-list.ts · Available offline
+- refers-to: src/ui/offline.ts :: `startOffline`, `toggleOffline`, `syncDoc`, `refreshKept`; src/ui/offline-list.ts; src/ui/page-actions.ts :: the Available offline entry
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+Loaded 2.5 s after start. It registers the worker, refreshes the shell after start and 4 s after tree changes, asks for the full precache after 20 s idle (not with Save-Data) and re-syncs kept pages after 30 s. A kept page and its subpages are opened one by one until the server's step 2 arrives, which writes them to the per-account IndexedDB store. The list of kept roots is per account in localStorage; the menu reads it synchronously, so that part stays in the main chunk.
+
+### src/ui/page-view.ts · first paint without a server body
+- refers-to: src/ui/page-view.ts :: `paint` (the pending branch), `data-ready`; src/styles/pages.css :: `:root[data-shell="offline"] .view--page:not([data-ready]) > *`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+The first paint used to be immediate because the server always rendered the body. When it did not (the offline shell), the page painted empty and jumped when the document loaded. Now a first paint whose page is not the server-rendered one waits for the document like a navigation, up to 1.6 s, behind a hidden view.
+
+### src/ui/topbar.ts · tabs offline, and the reserved tab bar
+- refers-to: src/ui/topbar.ts :: `tabPage`, `paintTabs`; index.html :: the pre-paint script (`data-tabbar`); src/styles/pages.css :: `:root[data-tabbar="open"] .tabbar`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+`tabPage` fetches a page missing from the tree; it closed the tab on any failure, so offline every tab not yet seeded was closed and the route fell back to home. It now closes only on 404 or 403. The pre-paint script reserves the tab bar from history state or the saved tabs plus the current page, removing a 34 px push on every reload with more than one tab; `paintTabs` clears the attribute.
+
+### src/main.ts and src/ui/status.ts · network errors
+- refers-to: src/main.ts :: the `onError` handler; src/ui/status.ts
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+An `ApiError` with code `network` no longer raises its own toast; it asks the health check, whose single connection notice (a warning) says saved pages stay open and text edits sync later. The sidebar version keeps its last value while the server is unreachable.
+
+### vite.config.ts · dev proxy Origin
+- refers-to: vite.config.ts :: `toBackend`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+The string shorthand proxies with changeOrigin, so the backend saw Host 127.0.0.1:8750 and Origin localhost:5750 and refused every POST as cross-site (setup and sign-in included). Every HTTP proxy entry now rewrites Origin to the backend when one is present, as the sync socket already did.
+
+### public/manifest.webmanifest, src/ui/pull.ts, shell.sync · installed app
+- refers-to: public/manifest.webmanifest; index.html :: `.topbar__sync`; src/extensions/shell/index.ts :: `syncNow`, `shell.sync`; src/ui/pull.ts :: `mountPullToRefresh`; src/styles/shell.css :: `.topbar__sync`, `.pull`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+The manifest makes the app installable (standalone, dark background, the SVG mark). An installed window has no reload button, so a Sync button appears through `(display-mode: standalone)` in CSS, decided at first paint so nothing moves; it reconnects the live stream and the sync socket, checks health and reloads the tree. On touch devices in standalone mode, pulling the top of the page down past 72 px runs the same sync; the marker lives in the overlay root and moves by transform only.
+
+### src/ui/admin.ts · tunnel, mail accounts, HTTPS, backup and updates
+- refers-to: src/ui/admin.ts :: `generalTab` (tunnel status and buttons, `https.domain`, `https.auto`, `net.trust_proxy`), `emailTab` (Gmail and Graph connect), `aboutTab` (backup download, latest version); src/ui/status.ts :: `data-update`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+Tunnel start and stop call `/api/admin/tunnel/*` and paint the returned status in place. Connecting a mail account opens the provider in a new tab after the settings are saved; the redirect address shown is built from the public address. The backup button is a plain download link, owner only. When `/healthz` reports a newer release, About says so and, for owners and admins, the sidebar version turns accent-coloured with the version in its title.

@@ -1147,6 +1147,16 @@ export interface Rules {
   can_edit: boolean;
 }
 
+export interface TunnelStatus {
+  mode: "off" | "quick" | "token";
+  running: boolean;
+  url: string;
+  error: string;
+  binary: string;
+  restarts: number;
+  started_at: number;
+}
+
 export interface AdminUser {
   id: string;
   email: string;

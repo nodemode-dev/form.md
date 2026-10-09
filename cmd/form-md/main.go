@@ -60,6 +60,9 @@ func serve() int {
 		log.Error("catalogs", "err", err)
 		return 1
 	}
+	if limit := ops.SizeMemory(); limit > 0 {
+		log.Info("memory limit set from the container", "soft_limit_mb", limit>>20)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

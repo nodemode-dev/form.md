@@ -12,7 +12,7 @@ import (
 
 var (
 	textNode  = regexp.MustCompile(`>([^<>]+)<`)
-	attrText  = regexp.MustCompile(`(aria-label|placeholder|title)="([^"]+)"`)
+	attrText  = regexp.MustCompile(`(aria-label|placeholder|title|data-tip)="([^"]+)"`)
 	rawBlock  = regexp.MustCompile(`(?s)<(script|style)\b.*?</(script|style)>`)
 	localized sync.Map
 )

@@ -12,5 +12,13 @@
  "Connected": "Verbunden",
  "Degraded": "Eingeschränkt",
  "Unreachable": "Nicht erreichbar",
- "{version}, and {latest} is available": "{version}, und {latest} ist verfügbar"
+ "{version}, and {latest} is available": "{version}, und {latest} ist verfügbar",
+ "{latest} is available": "{latest} ist verfügbar",
+ "Download a backup": "Sicherung herunterladen",
+ "Domain for automatic HTTPS": "Domain für automatisches HTTPS",
+ "The host name people reach this server at, for example notes.example.com.": "Der Hostname, unter dem dieser Server erreichbar ist, zum Beispiel notes.example.com.",
+ "Automatic HTTPS": "Automatisches HTTPS",
+ "Takes effect at the next start: the server gets a certificate from Let's Encrypt and listens on ports 443 and 80 itself. Ignored when TLS is set in the environment.": "Gilt ab dem nächsten Start: Der Server holt ein Zertifikat von Let's Encrypt und lauscht selbst auf den Ports 443 und 80. Wird ignoriert, wenn TLS in der Umgebung gesetzt ist.",
+ "Backup": "Sicherung",
+ "The database and every uploaded file in one archive, taken while people keep working. An encrypted instance gives an encrypted archive that only its key restores. Restore it with form-md restore.": "Die Datenbank und alle hochgeladenen Dateien in einem Archiv, erstellt während alle weiterarbeiten. Eine verschlüsselte Instanz liefert ein verschlüsseltes Archiv, das nur ihr Schlüssel wiederherstellt. Wiederherstellen mit form-md restore."
 }

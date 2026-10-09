@@ -1,0 +1,8 @@
+[form-md]
+enabled = true
+backend = systemd
+filter = form-md
+port = http,https,8750
+maxretry = 8
+findtime = 10m
+bantime = 1h

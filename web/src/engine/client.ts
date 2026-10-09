@@ -1,5 +1,6 @@
 import { type FetchFn, request, stream, upload } from "./api";
 import type {
+  TunnelStatus,
   AccessWorkspace,
   AdminUser,
   AIAdmin,
@@ -401,6 +402,9 @@ export function createClient(f: FetchFn) {
       unfurl: (url: string, pageId: string) => request<LinkPreview>(f, "GET", `/api/unfurl?url=${enc(url)}&page_id=${enc(pageId)}`, undefined, 30000),
     },
     admin: {
+      tunnel: () => get<TunnelStatus>("/api/admin/tunnel"),
+      tunnelStart: () => post<TunnelStatus>("/api/admin/tunnel/start"),
+      tunnelStop: () => post<TunnelStatus>("/api/admin/tunnel/stop"),
       users: () => get<{ users: AdminUser[] }>("/api/admin/users"),
       createUser: (body: { name: string; email: string; password: string; admin: boolean }) => post<{ id: string }>("/api/admin/users", body),
       setAccess: (userId: string, workspaceId: string, role: WorkspaceRole | "") =>

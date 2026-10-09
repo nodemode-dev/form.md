@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.8.0
-Last updated: 2026-10-09 · Phase 8: MCP, OAuth for agents, AI providers, writing help, AI blocks, autofill, the workspace agent and custom agents, meeting notes, AI answers
+Current build version: v0.11.0
+Last updated: 2026-10-09 · Phase 11: at-rest encryption, ACME, backup and restore, doctor, offline shell, server i18n, update check
 
 ---
 
@@ -68,7 +68,12 @@ form.md/
 │   ├── collection/                  databases: schema, rows, query stages, formula language, views, forms, CSV, public tables
 │   ├── comment/                     threads, replies, reactions, resolve, mentions, suggested edits
 │   ├── config/
-│   │   └── config.go                FORMMD_* env vars (incl. FETCH_PRIVATE), defaults, validation
+│   │   └── config.go                FORMMD_* env vars (incl. FETCH_PRIVATE, KEY_FILE, ACME_*, UPDATE_URL), defaults, validation
+│   ├── crypt/
+│   │   ├── key.go                   operator key: parse, KeyPath (env or systemd credential), Load with key check, HKDF subkeys
+│   │   └── stream.go                sealed files: chunked AES-256-GCM writer, seekable reader, Seal/Unseal, ReadFile/WriteFile
+│   ├── cryptvfs/
+│   │   └── vfs.go                   SQLite shim VFS: XTS-AES-256 pages for the database, WAL and journals; temp files with a random key
 │   ├── doc/
 │   │   ├── schema.go                root fragment name, mark order, block ids, attribute readers
 │   │   ├── room.go                  a page's CRDT: load, apply, persist, compact, awareness relay
@@ -91,6 +96,9 @@ form.md/
 │   │   └── fetch.go                 POST /api/files/import: a linked file brought in with its size
 │   ├── icon/
 │   │   └── icon.go                  the one rule for icon values: a name from the shared set or an uploaded file
+│   ├── i18n/
+│   │   ├── i18n.go                  T(lang, msg, args), UserLang, LoadFS (merges the client catalogs embedded by embed.go)
+│   │   └── de.go                    German for server-built mail and push text
 │   ├── inbox/                       notifications, web push (VAPID), email fallback, reminders
 │   ├── httpx/
 │   │   ├── router.go                ServeMux wrapper, middleware chain, /api/ 404 catch-all
@@ -142,8 +150,19 @@ form.md/
 │   ├── settings/
 │   │   └── settings.go              typed instance settings table, validation, env fallback, snapshots
 │   ├── site/                        published sites, custom domains, share-link pages, public files
+│   ├── tunnel/
+│   │   └── tunnel.go                supervised cloudflared (quick or token), status routes, tunnel-aware middleware
+│   ├── ops/
+│   │   ├── backup.go                Backup (VACUUM INTO plus files, tar.gz) and Restore (staged, checked, swapped beside or in place)
+│   │   ├── encrypt.go               Encrypt (plain to encrypted, or seal leftovers), ResetOwner
+│   │   ├── doctor.go                Doctor checks and Print
+│   │   ├── lock_unix.go, lock_other.go     the data-directory lock (flock with pid; a plain file elsewhere)
+│   │   ├── flush_unix.go, flush_other.go   SIGUSR1 flush request from backup to a running server
+│   │   └── owner_unix.go, owner_other.go   give files back to the data directory's owner; mount-point test
 │   ├── static/
-│   │   └── static.go                embedded client: rendered document, cache headers, gzip, ETag, CSP
+│   │   ├── static.go                embedded client: rendered document, cache headers, gzip, ETag, CSP
+│   │   ├── offline.go               /offline.json: core and all built assets for the service worker
+│   │   └── localize.go              index.html text and labels translated once per language
 │   ├── store/
 │   │   ├── store.go                 SQLite writer connection plus reader pool, close with checkpoint
 │   │   ├── tx.go                    Tx, Querier, ErrNotFound, NoRows, Bool
@@ -174,8 +193,10 @@ form.md/
 └── tools/
     ├── oc_install (+ .bat)          Go side install: go mod download
     ├── boot_backend (+ .bat)        Go side dev boot: go run on 127.0.0.1:8750
-    └── notices/
-        └── main.go                  generates NOTICES.md from go list and web/node_modules
+    ├── notices/
+    │   └── main.go                  generates NOTICES.md from go list and web/node_modules
+    └── wikicheck/
+        └── main.go                  fails when the wiki names a variable, command, route or page that does not exist
 ```
 
 ---
@@ -1585,3 +1606,117 @@ Tokens (personal or OAuth) are limited per credential in the auth middleware; se
 - logged: v0.10.0 · 2026-10-09
 
 Cursors are base64url JSON with an offset or a time and id. Page lists use keyset order (created time, then id), so new pages do not shift a running walk; rows and search wrap offsets, the audit log wraps its `before` time. Clients must treat cursors as opaque.
+
+## Phase 11: offline, encryption and ship {#p11}
+
+### internal/crypt/key.go · the operator key
+- refers-to: internal/crypt/key.go :: `Parse`, `KeyPath`, `Load`, `WriteMeta`, `check`, `Sub`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+The key is 32 bytes as hex or base64 in a file outside the data directory (`FORMMD_KEY_FILE`, or a systemd credential named `form-md.key`). `encryption.json` in the data directory holds an HMAC key-check value, never the key: a missing key with the file present refuses to start, a wrong key fails the check, and a key with a plain database refuses so nobody encrypts half a directory by accident (use `form-md encrypt`). Every cipher key is an HKDF-SHA256 subkey with the label `form.md/<purpose>` (`db`, `wal`, `journal`, `files`, `check`); changing a label makes existing data unreadable.
+
+### internal/crypt/stream.go · sealed files
+- refers-to: internal/crypt/stream.go :: `Writer`, `Reader`, `file.chunk`, `Open`, `IsSealed`, `Seal`, `Unseal`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+Format: `FMDENC1\n`, a 16-byte salt, then 64 KiB plaintext chunks each sealed with AES-256-GCM under a per-file key (HMAC of the files subkey and the salt), nonce = chunk index, additional data = index plus a last-chunk flag so truncation and reordering fail. The plaintext size is derived from the file size, so `http.ServeContent` can seek and serve ranges. Every method is nil-safe: a nil key writes and reads plain bytes, and readers accept unsealed files so a directory being converted keeps working.
+
+### internal/cryptvfs/vfs.go · the encrypting SQLite VFS
+- refers-to: internal/cryptvfs/vfs.go :: `Register`, `xOpen`, `xRead`, `xWrite`, `encrypted`, `ctr`, `ptr`, `fp`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+A shim over SQLite's default VFS, registered once per process through modernc's libc bindings: our file struct is the method pointer, a handle into a Go map, then the underlying file. Only reads and writes are intercepted; locking, sync and shared memory go to the default VFS untouched. Database pages (4096 bytes, the default page size, assumed throughout) use XTS-AES-256 with the byte offset as tweak; partial reads and writes of the database are done a page at a time. WAL and journal page writes are recognised by size (exactly one page; journals only at offsets 4 mod 8, where record bodies sit), WAL full-frame reads during recovery decrypt their body. Frame headers stay plain, so WAL checksums of plaintext are visible. Temporary files use AES-CTR with a random per-open key; the store also sets temp_store to memory. The io methods report version 2 so SQLite never memory-maps, and SQLITE_FCNTL_MMAP_SIZE is answered with 0. `ptr` converts through `unsafe.Add` because `go vet` flags direct uintptr conversions; a 24-byte frame-header `copy` in `xWrite` is a loop because Go 1.26.0's compiler crashed lowering that memmove (`disjointTypes`).
+
+### internal/store/store.go · opening through the VFS
+- refers-to: internal/store/store.go :: `Register`, `Open`, `dsn`, `VFSName`, `HasData`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+`Open` takes the key; with one, both pools open with `vfs=formmd-crypt`. `VACUUM INTO` a plain path inherits the source's VFS; ops still names the VFS in a URI target to be explicit.
+
+### internal/app/acme.go · built-in ACME
+- refers-to: internal/app/acme.go :: `acmeManager`, `sealedCache`, `serveChallenges`; internal/app/app.go :: `Run`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+autocert answers TLS-ALPN on the main listener and HTTP-01 plus an HTTPS redirect on `FORMMD_HTTP_ADDR`. Host names must have a dot (autocert refuses `localhost`). The cache lives in `acme/` and is sealed when encryption is on. Verified with Pebble 2.8.0 using `SSL_CERT_FILE` for its root; there is deliberately no insecure switch.
+
+### internal/ops · backup, restore, encrypt, doctor, reset-owner
+- refers-to: internal/ops/backup.go :: `Backup`, `Restore`, `swapInPlace`, `unpack`; internal/ops/encrypt.go :: `Encrypt`, `sealAll`, `sealFile`, `ResetOwner`; internal/ops/doctor.go :: `Doctor`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+Backup is online: it asks a running server to save open documents (SIGUSR1, see flush_unix.go), then `VACUUM INTO` a snapshot next to the output and tars it with `files/`, `acme/`, `secret.key` and `encryption.json`, never the key. Restore refuses while the data-directory lock is held, unpacks into a stage, checks integrity with the archive's key check, then swaps: beside the directory normally, inside it on a mount point or when the parent is not writable. Every command that opens the database as root ends with `matchOwner`, because SQLite creates the WAL and shm files as the caller and the service user could then not open them. `Encrypt` on an encrypted directory only seals leftovers.
+
+### internal/ops/lock_unix.go and flush_unix.go · lock and flush request
+- refers-to: internal/ops/lock_unix.go :: `Lock`; internal/ops/flush_unix.go :: `OnFlushRequest`, `RequestFlush`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+The server holds an exclusive flock on `form-md.lock` and writes its pid there. `RequestFlush` reads the pid, sends SIGUSR1 and waits for `form-md.flushed` to carry a newer timestamp (20 s at most). Outside Unix the lock is an exclusive-create file that a crash leaves behind and there is no flush request.
+
+### internal/doc/recover.go · stale stored text after an unclean stop
+- refers-to: internal/doc/recover.go :: `Recover`, `FlushAll`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+Updates are flushed 300 ms after an edit but Markdown, refs and search text are materialised after 1.5 s; a stop in between left `doc_state.markdown` stale until the next edit. At start the server re-materialises every page whose `updated_at` is newer than `materialised_at`.
+
+### internal/static/offline.go and the offline shell
+- refers-to: internal/static/offline.go :: `offline`, `serveOffline`; internal/server/server.go :: `renderDocument` (`/offline-shell`); internal/static/static.go :: the `/sw.js` CSP
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+`/offline.json` lists the built assets (core = what index.html references plus the preload lists). `/offline-shell` renders the signed-in document with `data-shell="offline"` and no route or page. `/sw.js` needs its own CSP with `connect-src 'self'`; under the default `default-src 'none'` every fetch from the worker failed.
+
+### internal/static/localize.go and internal/i18n · German on the server
+- refers-to: internal/static/localize.go :: `localize`, `translate`; internal/i18n/i18n.go :: `T`, `Has`, `LoadFS`, `UserLang`; embed.go :: `Catalogs`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+The client catalogs (web/src/i18n/<lang>/*.json) are embedded and merged after the Go-only mail strings. index.html text nodes and aria-label, placeholder and title values are translated once per language when their trimmed text is a catalog key; script and style blocks are skipped so the CSP hashes stay valid. Mail and push use the recipient's language, invitations the inviter's.
+
+### internal/app/update.go · update check
+- refers-to: internal/app/update.go :: `CheckUpdates`, `LatestRelease`, `Newer`; internal/app/health.go
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+Five seconds after start and then daily, while `update.check` is on, the server reads the latest release tag (or `FORMMD_UPDATE_URL`); `/healthz` reports `latest` only when it is newer than the running version.
+
+### internal/tunnel · the Cloudflare tunnel
+- refers-to: internal/tunnel/tunnel.go :: `Service.Start`, `Stop`, `supervise`, `watch`, `Middleware`, `binary`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+A supervised `cloudflared` child (PATH or `FORMMD_CLOUDFLARED`): quick mode points it at the local listener and reads the trycloudflare.com address from its log; token mode passes the token as `TUNNEL_TOKEN` so it never shows in the process list. Exits restart with backoff up to a minute; shutdown stops it (the module is a Stopper). While it runs, a request from loopback that carries `Cf-Connecting-Ip` is treated as arriving over TLS from that address (`r.TLS` set, `RemoteAddr` replaced), so the origin check, secure cookies and rate limits see the public side. Once stopped the header is ignored.
+
+### internal/mail/oauth.go · Gmail and Microsoft Graph sending
+- refers-to: internal/mail/oauth.go :: `Providers`, `OAuth.Start`, `Finish`, `accessToken`, `send`; internal/admin/admin.go :: `mailConnect`, `mailCallback`
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+`mail.mode` gmail and graph had settings but no sender. An admin saves a client ID and secret, then opens `/api/admin/mail/connect` (session only), which redirects to the provider with PKCE and a 15-minute single-use state; the callback stores the refresh token sealed and the account from the ID token. Access tokens are cached until a minute before expiry; a rotated refresh token is saved. Gmail takes the MIME message base64url in JSON, Graph takes it base64 as text/plain. Verified against a stub provider, not against Google or Microsoft.
+
+### internal/ops/module.go, memory.go · browser backup and memory sizing
+- refers-to: internal/ops/module.go :: `Module.Mount` (`GET /api/admin/backup`); internal/ops/memory.go :: `SizeMemory`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+The owner downloads the same archive `form-md backup` writes, from a browser session only (tokens are refused); open documents are flushed in-process first and the temporary folder in the data directory is removed after streaming. Without `GOMEMLIMIT`, a cgroup memory limit sets Go's soft limit to 90 percent of it.
+
+### internal/server/server.go · automatic HTTPS from Instance settings
+- refers-to: internal/server/server.go :: `Build` (`https.auto`, `https.domain`)
+- kind: warning-context
+- logged: v0.11.0 · 2026-10-09
+
+With no TLS in the environment, `https.auto` plus `https.domain` turn on ACME at the next start and move the default loopback listener to `:443`. A non-default `FORMMD_ADDR` is kept as given.
+
+### deploy/fail2ban · the shipped filter
+- refers-to: deploy/fail2ban/form-md.conf, form-md.local; internal/auth/service.go :: `authFailure`
+- kind: explainer
+- logged: v0.11.0 · 2026-10-09
+
+The filter matches the `form-md auth failure` log line (password, second factor and bad token) from the systemd journal; the address is the client address as the server sees it, so behind a proxy turn on `net.trust_proxy`.

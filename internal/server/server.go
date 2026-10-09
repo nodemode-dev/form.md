@@ -37,6 +37,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/mcp"
 	"github.com/nodemode-ai/form.md/internal/netguard"
 	"github.com/nodemode-ai/form.md/internal/oauth"
+	"github.com/nodemode-ai/form.md/internal/ops"
 	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/scim"
@@ -48,6 +49,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/store"
 	"github.com/nodemode-ai/form.md/internal/templates"
 	"github.com/nodemode-ai/form.md/internal/transfer"
+	"github.com/nodemode-ai/form.md/internal/tunnel"
 	"github.com/nodemode-ai/form.md/internal/unfurl"
 	"github.com/nodemode-ai/form.md/internal/webhook"
 	"github.com/nodemode-ai/form.md/internal/workspace"
@@ -77,6 +79,7 @@ type Server struct {
 	AI       *ai.Service
 	Crew     *agent.Service
 	Flows    *automation.Service
+	Tunnel   *tunnel.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -94,6 +97,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	authSvc := auth.New(st, box, set, gate, log)
 	ws := workspace.New(st, gate, al, log)
 	adm := admin.New(st, authSvc, ws, set, mailer, al, log)
+	mailAuth := mail.NewOAuth(set)
+	mailAuth.Attach(mailer)
+	adm.UseMailOAuth(mailAuth)
 	hub := events.New(st, log, app.Version)
 	pages := page.New(st, gate, al, hub, set, log)
 	fsvc, err := files.New(st, gate, pages, set, al, log, cfg.DataDir)
@@ -191,9 +197,17 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	})
 
 	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks, Runs: runs, OAuth: grants, AI: brain, Crew: crew, Flows: flows}
+	if domain := strings.ToLower(strings.TrimSpace(set.Get("https.domain"))); !cfg.TLS() && set.Bool("https.auto") && domain != "" {
+		cfg.ACMEDomains = []string{domain}
+		if cfg.Addr == "127.0.0.1:8750" {
+			cfg.Addr = ":443"
+		}
+		log.Info("automatic HTTPS from Instance settings", "domain", domain, "addr", cfg.Addr)
+	}
+	s.Tunnel = tunnel.New(set, log, cfg.Addr, cfg.TLS())
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
-		Middleware: []httpx.Middleware{sites.Host, prov.Middleware, authSvc.Middleware},
+		Middleware: []httpx.Middleware{s.Tunnel.Middleware, sites.Host, prov.Middleware, authSvc.Middleware},
 	}
 	s.Modules = []app.Module{
 		app.Health(),
@@ -228,6 +242,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		apidoc.New(authSvc.BaseURL).Module(),
 		graph.New(st, authSvc, pages).Module(),
 		answer.New(st, authSvc, finder, brain).Module(),
+		ops.Module{Auth: authSvc, Flush: docs.FlushAll},
+		s.Tunnel.Module(authSvc),
 		static.Module(s.renderDocument),
 	}
 	return s, nil
@@ -241,6 +257,7 @@ func (s *Server) Run(ctx context.Context) error {
 	go s.Hooks.Run(ctx)
 	go s.Crew.Loop(ctx)
 	go s.Flows.Loop(ctx)
+	go s.Tunnel.Autostart(ctx)
 	return app.Run(ctx, s.Deps, s.Modules)
 }
 

@@ -70,7 +70,7 @@ func sqlString(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
 }
 
-func Backup(ctx context.Context, dataDir, keyFile, out string) (*Manifest, error) {
+func Backup(ctx context.Context, dataDir, keyFile, out string, flush func() bool) (*Manifest, error) {
 	key, err := OpenKey(dataDir, keyFile)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func Backup(ctx context.Context, dataDir, keyFile, out string) (*Manifest, error
 	if !store.HasData(dataDir) {
 		return nil, fmt.Errorf("no database at %s", src)
 	}
-	live := RequestFlush(dataDir)
+	live := flush()
 	out, err = filepath.Abs(out)
 	if err != nil {
 		return nil, err

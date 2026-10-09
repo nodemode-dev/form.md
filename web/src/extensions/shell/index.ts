@@ -8,6 +8,13 @@ const APPEARANCE = () => t("Appearance");
 
 let teardown: Unsubscribe[] = [];
 
+export async function syncNow(engine: Engine): Promise<void> {
+  engine.reconnect();
+  await engine.health.check();
+  const ws = engine.state.get("workspaceId");
+  if (ws && engine.state.get("health").phase === "ok") await engine.pages.load(ws, true).catch(() => undefined);
+}
+
 function setup(engine: Engine): void {
   const { state, commands, keymap, platform } = engine;
 
@@ -34,6 +41,12 @@ function setup(engine: Engine): void {
       label: () => t("Keyboard shortcuts"),
       group: GENERAL,
       run: () => state.set("overlay", "shortcuts"),
+    }),
+    commands.register({
+      id: "shell.sync",
+      label: () => t("Sync now"),
+      group: GENERAL,
+      run: () => void syncNow(engine),
     }),
     commands.register({
       id: "shell.checkConnection",
