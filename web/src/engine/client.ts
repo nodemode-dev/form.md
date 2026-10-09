@@ -5,7 +5,10 @@ import type {
   BreakGlassGrant,
   Collection,
   CollectionView,
+  CommentListing,
+  CommentThread,
   CSVPreview,
+  PageComment,
   FormDef,
   Property,
   QueryInput,
@@ -161,6 +164,16 @@ export function createClient(f: FetchFn) {
       members: (id: string) => get<{ members: TeamMember[] }>(`/api/groups/${enc(id)}/members`),
       addMember: (id: string, user: string) => put<void>(`/api/groups/${enc(id)}/members/${enc(user)}`, {}),
       removeMember: (id: string, user: string) => del(`/api/groups/${enc(id)}/members/${enc(user)}`),
+    },
+    comments: {
+      list: (pageId: string) => get<CommentListing>(`/api/pages/${enc(pageId)}/comments`),
+      create: (pageId: string, body: { anchor: "page" | "text" | "block"; start?: string; end?: string; quote?: string; body: string }) =>
+        post<{ thread: CommentThread }>(`/api/pages/${enc(pageId)}/comments`, body),
+      reply: (threadId: string, body: string) => post<{ comment: PageComment }>(`/api/threads/${enc(threadId)}/comments`, { body }),
+      resolve: (threadId: string, resolved: boolean) => put<void>(`/api/threads/${enc(threadId)}/resolved`, { resolved }),
+      edit: (id: string, body: string) => patch<void>(`/api/comments/${enc(id)}`, { body }),
+      remove: (id: string) => del(`/api/comments/${enc(id)}`),
+      react: (id: string, icon: string, on: boolean) => (on ? put<void>(`/api/comments/${enc(id)}/reactions/${enc(icon)}`, {}) : del(`/api/comments/${enc(id)}/reactions/${enc(icon)}`)),
     },
     sharing: {
       get: (pageId: string) => get<Sharing>(`/api/pages/${enc(pageId)}/shares`),

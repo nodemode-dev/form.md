@@ -655,8 +655,36 @@
   display: none;
 }
 
-.topbar__page-actions [aria-pressed="true"] {
+.topbar__page-actions [data-ref="act-favorite"][aria-pressed="true"] {
   color: var(--warning);
+}
+
+.topbar__comments {
+  position: relative;
+}
+
+.topbar__comments[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.topbar__count {
+  position: absolute;
+  inset-block-start: 1px;
+  inset-inline-end: 0;
+  min-inline-size: 14px;
+  padding: 0 3px;
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  line-height: 14px;
+  color: var(--on-accent);
+  background: var(--accent);
+  border-radius: 7px;
+  pointer-events: none;
+}
+
+.topbar__count:empty {
+  display: none;
 }
 
 .topbar__share {

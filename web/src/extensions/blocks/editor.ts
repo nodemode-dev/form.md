@@ -16,6 +16,7 @@ import { pickFiles, uploadFiles } from "./media";
 import { nodeViews } from "./nodeviews";
 import { highlightPlugin, idsPlugin, keysPlugin, livePlugin, placeholderPlugin, structurePlugins, uploadsPlugin } from "./plugins";
 import { columnsPlugins } from "./columns";
+import { commentsPlugin } from "./comments";
 import { linksPlugin, offerLinkChoice } from "./links";
 import { mathKeys } from "./math";
 import { rulesPlugin } from "./rules";
@@ -214,6 +215,7 @@ export class EditorHost implements EditorCtx {
       uploadsPlugin(),
       livePlugin(this),
       linksPlugin(this),
+      commentsPlugin(this),
       ...columnsPlugins(() => this.wrap),
       ...structurePlugins(),
       new Plugin({

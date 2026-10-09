@@ -5,6 +5,7 @@ import type { Unsubscribe } from "../../engine/state";
 import { toast } from "../../ui/toast";
 import type { Extension } from "../registry";
 import { type BlockKind, duplicateBlock, markCommand, moveBlock, toggleCheck, turnInto } from "./commands";
+import { commentUI } from "./comments";
 import { EditorHost } from "./editor";
 import { MarkdownWriter } from "./markdown";
 import { insertInlineMath } from "./math";
@@ -91,6 +92,17 @@ function setup(engine: Engine): void {
       },
     }),
     keymap.register({ id: "editor.link", command: "editor.link", chords: ["mod+k"], scope: "editor", whileTyping: true }),
+    commands.register({
+      id: "editor.comment",
+      label: () => t("Comment on the selection"),
+      group: EDITING,
+      enabled: () => {
+        const v = host?.view();
+        return !!v && v.hasFocus() && !v.state.selection.empty && engine.comments.get(host?.current() ?? "").can_comment;
+      },
+      run: withView((v) => commentUI(v)?.startThread(v.state.selection.from, v.state.selection.to, "text")),
+    }),
+    keymap.register({ id: "editor.comment", command: "editor.comment", chords: ["mod+shift+m"], scope: "editor", whileTyping: true }),
     commands.register({ id: "editor.inlineMath", label: () => t("Inline equation"), group: EDITING, enabled: editing, run: withView((v) => void insertInlineMath(v)) }),
     keymap.register({ id: "editor.inlineMath", command: "editor.inlineMath", chords: ["mod+shift+e"], scope: "editor", whileTyping: true }),
     commands.register({ id: "editor.undo", label: () => t("Undo"), group: EDITING, enabled: editing, run: withView((v) => void undo(v.state)) }),

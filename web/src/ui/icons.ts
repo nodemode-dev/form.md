@@ -126,6 +126,14 @@ const PATHS = {
   "chevron-up": '<path d="m6 14.5 6-6 6 6"/>',
   sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9M15 4.5v5M9 14.5v5"/>',
   dot: '<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>',
+  comment: '<path d="M5.5 5h13a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3.5V17h-1.5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/>',
+  "comment-plus": '<path d="M5.5 5h13a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3.5V17h-1.5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M12 8.25v5.5M9.25 11h5.5"/>',
+  pencil: '<path d="M15 5.5l3.5 3.5L9 18.5H5.5V15Z"/><path d="M12.75 7.75l3.5 3.5"/>',
+  smile: '<circle cx="12" cy="12" r="8.5"/><path d="M8.75 14a4 4 0 0 0 6.5 0M9.25 9.75h.01M14.75 9.75h.01"/>',
+  heart: '<path d="M12 19.5s-7.25-4.35-7.25-9.5A4 4 0 0 1 12 7.6a4 4 0 0 1 7.25 2.4c0 5.15-7.25 9.5-7.25 9.5Z"/>',
+  sparkle: '<path d="M12 4.5l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4-4.4-1.6 4.4-1.6Z"/><path d="M18.5 15.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6Z"/>',
+  rocket: '<path d="M13.5 4.5c3.25 0 6 2.75 6 6l-6.5 6.5-6-6Z"/><path d="m7 11-2.5.5L3.5 14l3 .5M13 17l-.5 2.5L10 20.5l-.5-3"/><path d="M14.75 9.25h.01"/>',
+  lightbulb: '<path d="M9.25 17.5h5.5M10 20.5h4"/><path d="M12 3.5a5.5 5.5 0 0 0-3.25 9.9c.6.45.95 1.15.95 1.9v.7h4.6v-.7c0-.75.35-1.45.95-1.9A5.5 5.5 0 0 0 12 3.5Z"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

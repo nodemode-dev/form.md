@@ -10,6 +10,7 @@ import { fallbackGlyph, fileUrl, pageIcon, paintIcon } from "./pageicon";
 import { openCoverPicker, openIconPicker } from "./pickers";
 import { tagColorFor, focusTitleSoon } from "./tree";
 import { mountEditor } from "../extensions/blocks";
+import { mountDiscussion } from "./discussion";
 import { type DatabaseViews, databaseViews, loadDatabase } from "../extensions/database/load";
 import type { RowPropsHandle } from "../extensions/database/rowprops";
 import type { DatabaseHandle } from "../extensions/database/surface";
@@ -79,7 +80,8 @@ export function mountPageView(engine: Engine): void {
   const addIcon = h("button", { class: "adder", attrs: { type: "button", "data-action": "icon" } }, iconNode("shape"), h("span", { text: t("Add icon") }));
   const addCover = h("button", { class: "adder", attrs: { type: "button", "data-action": "cover" } }, iconNode("image"), h("span", { text: t("Add cover") }));
   const addDesc = h("button", { class: "adder", attrs: { type: "button", "data-action": "describe" } }, iconNode("align-left"), h("span", { text: t("Add description") }));
-  const adders = h("div", { class: "page-head__adders" }, addIcon, addCover, addDesc);
+  const addComment = h("button", { class: "adder", attrs: { type: "button", "data-action": "comment" } }, iconNode("comment"), h("span", { text: t("Add comment") }));
+  const adders = h("div", { class: "page-head__adders" }, addIcon, addCover, addDesc, addComment);
   const title = h("textarea", { class: "page-title", attrs: { rows: "1", placeholder: t("Untitled"), "aria-label": t("Title"), spellcheck: "true", maxlength: "500" } });
   const desc = h("textarea", { class: "page-desc", attrs: { rows: "1", placeholder: t("Say what this page is for"), "aria-label": t("Description"), maxlength: "2000" } });
   const chips = h("span", { class: "page-tags__chips" });
@@ -96,7 +98,8 @@ export function mountPageView(engine: Engine): void {
   const dbHost = h("div", { class: "page-db" });
   const propsHost = h("div", { class: "page-props" });
   const body = h("div", { class: "page-body" }, dbHost, editorWrap, subTitle, subList, addSub, backTitle, backList);
-  const inner = h("div", { class: "page" }, head, propsHost, body);
+  const discussion = mountDiscussion(engine, () => paint());
+  const inner = h("div", { class: "page" }, head, propsHost, discussion.el, body);
   view.append(cover, inner);
   const editor = mountEditor(engine, docBody, editorWrap);
   let rowProps: RowPropsHandle | null = null;
@@ -163,11 +166,13 @@ export function mountPageView(engine: Engine): void {
     dbHost.hidden = false;
   };
   const preparePage = (p: Page): Promise<unknown> => {
-    if (p.kind === "collection") return prepareDb(p.id);
-    if (p.row) return Promise.all([editor.prepare(p.id), rowDetail(p.id).then((d) => rowResolved.set(p.id, d)), loadDatabase()]);
-    return editor.prepare(p.id);
+    const notes = engine.comments.load(p.id).catch(() => undefined);
+    if (p.kind === "collection") return Promise.all([prepareDb(p.id), notes]);
+    if (p.row) return Promise.all([editor.prepare(p.id), rowDetail(p.id).then((d) => rowResolved.set(p.id, d)), loadDatabase(), notes]);
+    return Promise.all([editor.prepare(p.id), notes]);
   };
   const pageReady = (p: Page): boolean => {
+    if (!engine.comments.has(p.id)) return false;
     if (p.kind === "collection") return db?.id === p.id;
     if (p.row && (!rowResolved.has(p.id) || !databaseViews())) return false;
     return editor.isReady(p.id);
@@ -353,6 +358,7 @@ export function mountPageView(engine: Engine): void {
         }, engine.reportError);
       } else rowProps?.hide();
       void loadBacklinks(p.id);
+      discussion.show(p.id);
     }
     const w = writable(p);
     setAttr(view, "data-readonly", w ? null : "true");
@@ -368,7 +374,8 @@ export function mountPageView(engine: Engine): void {
     addCover.hidden = !w || !!p.cover;
     const showDesc = !!p.description || descOpen;
     addDesc.hidden = !w || showDesc;
-    adders.hidden = addIcon.hidden && addCover.hidden && addDesc.hidden;
+    addComment.hidden = !engine.comments.get(p.id).can_comment || !discussion.el.hidden;
+    adders.hidden = addIcon.hidden && addCover.hidden && addDesc.hidden && addComment.hidden;
     desc.hidden = !showDesc;
     coverActions.hidden = !w;
     paintTags(p, w);
@@ -456,6 +463,8 @@ export function mountPageView(engine: Engine): void {
       descOpen = true;
       paint();
       desc.focus();
+    } else if (action === "comment") {
+      discussion.openComposer();
     } else if (action === "subpage") {
       void pages
         .create(p.workspace_id, p.id)

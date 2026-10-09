@@ -8,6 +8,7 @@ import { type IconName, iconNode } from "../../ui/icons";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { CATALOG } from "./catalog";
 import { markActive, markCommand, setMark, turnInto } from "./commands";
+import { commentUI } from "./comments";
 import type { EditorCtx } from "./context";
 import { openPrompt } from "./popover";
 
@@ -84,6 +85,16 @@ export class FormatBar {
         label: () => t("Link"),
         mark: "link",
         run: (view) => this.editLink(view),
+      },
+      {
+        id: "comment",
+        icon: "comment-plus",
+        label: () => t("Comment"),
+        run: (view) => {
+          const { from, to } = view.state.selection;
+          this.hide();
+          commentUI(view)?.startThread(from, to, "text");
+        },
       },
       {
         id: "color",

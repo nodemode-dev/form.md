@@ -9,6 +9,7 @@ import { type MenuEntry, openMenu } from "../../ui/menu";
 import { toast } from "../../ui/toast";
 import { CATALOG } from "./catalog";
 import { addColumn, removeLastColumn, resetWidths } from "./columns";
+import { commentUI } from "./comments";
 import { type BlockRef, blockAt, blockFromPos, deleteBlock, duplicateBlock, moveBlock, tableAddColumn, tableAddRow, tableRemoveColumn, tableRemoveRow, turnInto } from "./commands";
 import { blockRect, type EditorCtx } from "./context";
 import { openPrompt } from "./popover";
@@ -185,6 +186,7 @@ export class BlockHandle {
         ? []
         : [{ label: t("Turn into a synced block"), icon: "refresh" as const, run: () => this.makeSynced(view, ref) }]),
       { label: t("Copy link to block"), icon: "link", run: () => this.copyLink(ref) },
+      { label: t("Comment"), icon: "comment-plus", run:() => commentUI(view)?.startThread(ref.pos, ref.pos + ref.node.nodeSize, "block") },
       { kind: "separator" },
       { label: t("Delete"), icon: "trash", danger: true, run: () => deleteBlock(view, ref) },
     );

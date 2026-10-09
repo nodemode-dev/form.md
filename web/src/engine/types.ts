@@ -72,6 +72,7 @@ export interface Boot {
   favorites?: Favorite[];
   tags?: TagInfo[];
   teamspaces?: Teamspace[];
+  comments?: CommentListing;
   page?: PageDetail;
   collection?: Collection;
   query?: { view_id: string; result: QueryResult };
@@ -434,6 +435,49 @@ export interface SharedPage extends Page {
   level: AccessLevel;
 }
 
+export type ReactionIcon = "heart" | "star" | "sparkle" | "eye" | "rocket" | "lightbulb";
+
+export interface CommentReaction {
+  icon: ReactionIcon;
+  count: number;
+  mine: boolean;
+  names: string[];
+}
+
+export interface PageComment {
+  id: string;
+  thread_id: string;
+  body: string;
+  author_id: string;
+  author_name: string;
+  author_color: string;
+  author_avatar: string;
+  created_at: number;
+  edited_at: number;
+  reactions: CommentReaction[];
+}
+
+export interface CommentThread {
+  id: string;
+  page_id: string;
+  anchor: "page" | "text" | "block";
+  start: string;
+  end: string;
+  quote: string;
+  resolved_at: number;
+  resolved_by: string;
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+  comments: PageComment[];
+}
+
+export interface CommentListing {
+  threads: CommentThread[];
+  can_comment: boolean;
+  can_moderate: boolean;
+}
+
 export interface Crumb {
   id: string;
   title: string;
@@ -544,6 +588,7 @@ export type LiveEvent =
   | { type: "page_removed"; seq: number; workspace_id: string; ids: string[] }
   | { type: "workspace"; seq: number; workspace_id: string; what: string }
   | { type: "user"; seq: number; what: string }
+  | { type: "comments"; seq: number; workspace_id: string; page_id: string }
   | { type: "collection"; seq: number; workspace_id: string; collection_id: string; what: "rows" | "schema" | "views"; ids?: string[]; epoch: number };
 
 export interface Member {
