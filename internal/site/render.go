@@ -22,11 +22,12 @@ import (
 )
 
 type assets struct {
-	css    string
-	js     string
-	font   string
-	glyphs map[string]string
-	icons  map[string]string
+	css     string
+	js      string
+	font    string
+	glyphs  map[string]string
+	icons   map[string]string
+	cssText string
 }
 
 func loadAssets(dist fs.FS) *assets {
@@ -44,6 +45,9 @@ func loadAssets(dist fs.FS) *assets {
 			a.js = "/" + e.File
 			if len(e.CSS) > 0 {
 				a.css = "/" + e.CSS[0]
+				if raw, err := fs.ReadFile(dist, e.CSS[0]); err == nil {
+					a.cssText = string(raw)
+				}
 			}
 			for _, f := range e.Assets {
 				if strings.Contains(f, "inter-latin-wght-normal") {
@@ -108,6 +112,9 @@ type scope struct {
 	font     string
 	pages    map[string]*node
 	kids     map[string][]*node
+	hrefFn   func(id string) string
+	fileFn   func(id string) string
+	export   bool
 }
 
 func (s *Service) load(ctx context.Context, sc *scope, subpages bool) error {
@@ -151,6 +158,9 @@ func (sc *scope) href(id string) string {
 	if _, ok := sc.pages[id]; !ok {
 		return ""
 	}
+	if sc.hrefFn != nil {
+		return sc.hrefFn(id)
+	}
 	if id == sc.root {
 		if sc.base == "" {
 			return "/"
@@ -160,7 +170,12 @@ func (sc *scope) href(id string) string {
 	return sc.base + "/" + id
 }
 
-func (sc *scope) fileHref(id string) string { return sc.base + "/files/" + id }
+func (sc *scope) fileHref(id string) string {
+	if sc.fileFn != nil {
+		return sc.fileFn(id)
+	}
+	return sc.base + "/files/" + id
+}
 
 func esc(v string) string { return html.EscapeString(v) }
 
@@ -312,6 +327,10 @@ func (s *Service) head(b *strings.Builder, sc *scope, title, desc, canonical, im
 		b.WriteString(`<meta name="twitter:card" content="summary">`)
 	}
 	b.WriteString(`<script>` + themeScript + `</script>`)
+	if sc.export {
+		b.WriteString(`<style>` + strings.ReplaceAll(s.assets.cssText, "</style", "<\\/style") + `</style></head>`)
+		return
+	}
 	if s.assets.font != "" {
 		b.WriteString(`<link rel="preload" href="` + esc(s.assets.font) + `" as="font" type="font/woff2" crossorigin>`)
 	}

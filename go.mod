@@ -4,11 +4,14 @@ go 1.26.0
 
 require (
 	github.com/coder/websocket v1.8.15
+	github.com/go-pdf/fpdf v0.9.0
+	github.com/ledongthuc/pdf v0.0.0-20260907135840-6c8c28e0e8a0
 	github.com/reearth/ygo v1.51.0
 	github.com/russellhaering/gosaml2 v0.12.0
 	github.com/russellhaering/goxmldsig v1.6.1
 	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.57.0
+	golang.org/x/image v0.46.0
 	golang.org/x/net v0.59.0
 	modernc.org/sqlite v1.60.1
 	rsc.io/qr v0.2.0
