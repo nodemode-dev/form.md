@@ -267,7 +267,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		"instance_name": s.Settings.Get("instance.name"),
 	}
 	userLang := ""
-	slots := map[string]string{"instance-name": s.Settings.Get("instance.name"), "saml-name": s.Auth.SAMLName()}
+	slots := map[string]string{"instance-name": s.Settings.Get("instance.name"), "saml-name": s.Auth.SAMLName(), "version": app.Version}
 	htmlSlots := map[string]string{}
 	if signedIn {
 		me, err := s.Auth.Me(ctx, p)
@@ -365,6 +365,8 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 			attrs["route"] = "library"
 		case path == "/trash" || path == "/trash/":
 			attrs["route"] = "trash"
+		case path == "/inbox" || path == "/inbox/":
+			attrs["route"] = "inbox"
 		}
 	}
 	var preload []string

@@ -665,7 +665,8 @@
   column-gap: var(--space-1);
 }
 
-.topbar__page-actions[data-hidden="true"] {
+.topbar__page-actions[data-hidden="true"],
+:root:not([data-route="page"]) .topbar__page-actions {
   display: none;
 }
 
