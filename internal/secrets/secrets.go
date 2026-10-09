@@ -13,6 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/nodemode-ai/form.md/internal/crypt"
 )
 
 const keyFile = "secret.key"
@@ -22,15 +24,15 @@ type Box struct {
 	aead cipher.AEAD
 }
 
-func Open(dataDir string) (*Box, error) {
+func Open(dataDir string, sealer *crypt.Key) (*Box, error) {
 	path := filepath.Join(dataDir, keyFile)
-	raw, err := os.ReadFile(path)
+	raw, err := sealer.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		key := make([]byte, 32)
 		if _, err := rand.Read(key); err != nil {
 			return nil, err
 		}
-		if err := os.WriteFile(path, []byte(hex.EncodeToString(key)+"\n"), 0o600); err != nil {
+		if err := sealer.WriteFile(path, []byte(hex.EncodeToString(key)+"\n"), 0o600); err != nil {
 			return nil, fmt.Errorf("write %s: %w", path, err)
 		}
 		raw = []byte(hex.EncodeToString(key))

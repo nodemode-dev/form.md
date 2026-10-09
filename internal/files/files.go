@@ -238,7 +238,9 @@ func (s *Service) store(ctx context.Context, p *policy.Principal, part io.Reader
 		}
 	}()
 	h := sha256.New()
-	n, err := io.Copy(io.MultiWriter(tmp, h), io.LimitReader(part, limit+1))
+	head := &headBuf{}
+	enc := s.st.Key.Writer(tmp)
+	n, err := io.Copy(io.MultiWriter(enc, h, head), io.LimitReader(part, limit+1))
 	if err != nil {
 		return nil, uploadError(err, limit)
 	}
@@ -248,9 +250,10 @@ func (s *Service) store(ctx context.Context, p *policy.Principal, part io.Reader
 	if n == 0 {
 		return nil, httpx.Fail(http.StatusBadRequest, "empty_file", "the file is empty")
 	}
-	head := make([]byte, 512)
-	m, _ := tmp.ReadAt(head, 0)
-	ctype := sniff(head[:m], ext)
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+	ctype := sniff(head.b, ext)
 	if purpose != "attachment" {
 		if e, ok := imageTypes[ctype]; ok {
 			ext = e
@@ -297,12 +300,23 @@ func (s *Service) Open(ctx context.Context, p *policy.Principal, id string) (*Fi
 	if err := s.canRead(ctx, p, f); err != nil {
 		return nil, nil, err
 	}
-	fh, err := os.Open(s.path(f.ID, f.ext))
+	fh, err := s.st.Key.Open(s.path(f.ID, f.ext))
 	if err != nil {
 		return nil, nil, err
 	}
 	f.Ext = f.ext
 	return f, fh, nil
+}
+
+type headBuf struct {
+	b []byte
+}
+
+func (h *headBuf) Write(p []byte) (int, error) {
+	if room := 512 - len(h.b); room > 0 {
+		h.b = append(h.b, p[:min(room, len(p))]...)
+	}
+	return len(p), nil
 }
 
 func nullable(v string) any {
@@ -365,7 +379,7 @@ func (s *Service) ServePublic(w http.ResponseWriter, r *http.Request, id string,
 }
 
 func (s *Service) send(w http.ResponseWriter, r *http.Request, f *File, cache string) error {
-	fh, err := os.Open(s.path(f.ID, f.ext))
+	fh, err := s.st.Key.Open(s.path(f.ID, f.ext))
 	if errors.Is(err, os.ErrNotExist) {
 		return httpx.ErrNotFound
 	}

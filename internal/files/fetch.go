@@ -10,7 +10,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 
@@ -102,7 +101,7 @@ func remoteName(resp *http.Response, ctype string) string {
 }
 
 func (s *Service) dims(f *File) (int, int) {
-	fh, err := os.Open(s.path(f.ID, f.ext))
+	fh, err := s.st.Key.Open(s.path(f.ID, f.ext))
 	if err != nil {
 		return 0, 0
 	}

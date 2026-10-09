@@ -254,7 +254,11 @@ func (s *Service) save(part *multipart.Part, room int64) (upload, int64, error) 
 	if err != nil {
 		return upload{}, 0, err
 	}
-	n, err := io.Copy(tmp, io.LimitReader(part, room+1))
+	enc := s.st.Key.Writer(tmp)
+	n, err := io.Copy(enc, io.LimitReader(part, room+1))
+	if cerr := enc.Close(); err == nil {
+		err = cerr
+	}
 	tmp.Close()
 	if err != nil {
 		os.Remove(tmp.Name())
@@ -268,7 +272,7 @@ func (s *Service) save(part *multipart.Part, room int64) (upload, int64, error) 
 }
 
 func (s *Service) run(ctx context.Context, p *policy.Principal, job *Job, ups []upload) {
-	v := newVFS(s.dir)
+	v := newVFS(s.dir, s.st.Key)
 	defer func() {
 		v.close()
 		for _, u := range ups {

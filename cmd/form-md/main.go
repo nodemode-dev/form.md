@@ -13,6 +13,8 @@ import (
 	formmd "github.com/nodemode-ai/form.md"
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/config"
+	"github.com/nodemode-ai/form.md/internal/crypt"
+	"github.com/nodemode-ai/form.md/internal/ops"
 	"github.com/nodemode-ai/form.md/internal/server"
 	"github.com/nodemode-ai/form.md/internal/settings"
 	"github.com/nodemode-ai/form.md/internal/store"
@@ -33,6 +35,8 @@ func run(args []string) int {
 	case "version", "--version", "-v":
 		fmt.Println(app.Version)
 		return 0
+	case "keygen", "encrypt", "backup", "restore", "doctor", "admin":
+		return tool(cmd, args[1:])
 	case "help", "--help", "-h":
 		usage(os.Stdout)
 		return 0
@@ -55,10 +59,24 @@ func serve() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	st, err := store.Open(ctx, cfg.DataDir)
+	key, err := crypt.Load(cfg.DataDir, crypt.KeyPath(cfg.KeyFile), store.HasData(cfg.DataDir))
+	if err != nil {
+		log.Error("encryption", "err", err)
+		return 2
+	}
+	unlock, err := ops.Lock(cfg.DataDir)
+	if err != nil {
+		log.Error("data directory", "err", err)
+		return 1
+	}
+	defer unlock()
+	st, err := store.Open(ctx, cfg.DataDir, key)
 	if err != nil {
 		log.Error("storage", "err", err)
 		return 1
+	}
+	if key != nil {
+		log.Info("at-rest encryption on", "database", "xts-aes-256", "files", "aes-256-gcm")
 	}
 	defer func() {
 		if err := st.Close(); err != nil {
@@ -77,6 +95,7 @@ func serve() int {
 		log.Error("startup", "err", err)
 		return 1
 	}
+	ops.OnFlushRequest(ctx, cfg.DataDir, srv.Docs.FlushAll)
 	if err := srv.Run(ctx); err != nil {
 		log.Error("server", "err", err)
 		return 1
@@ -87,9 +106,15 @@ func serve() int {
 
 func usage(w io.Writer) {
 	fmt.Fprintf(w, "%s %s\n\nUsage: form-md [command]\n\nCommands:\n", app.Product, app.Version)
-	fmt.Fprintln(w, "  serve     run the server (default)")
-	fmt.Fprintln(w, "  version   print the version")
-	fmt.Fprintln(w, "  help      show this help")
+	fmt.Fprintln(w, "  serve                 run the server (default)")
+	fmt.Fprintln(w, "  backup FILE           write a consistent backup archive while the server runs")
+	fmt.Fprintln(w, "  restore FILE          replace the data directory with a backup (server stopped)")
+	fmt.Fprintln(w, "  doctor                check the data directory, database, files and settings")
+	fmt.Fprintln(w, "  admin reset-owner     set a new password for the instance owner and print it")
+	fmt.Fprintln(w, "  keygen                print a new at-rest encryption key")
+	fmt.Fprintln(w, "  encrypt               encrypt a plain data directory with FORMMD_KEY_FILE (server stopped)")
+	fmt.Fprintln(w, "  version               print the version")
+	fmt.Fprintln(w, "  help                  show this help")
 	fmt.Fprintln(w, "\nEnvironment:")
 	for _, v := range config.Vars {
 		def := v.Default

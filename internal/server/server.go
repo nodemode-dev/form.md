@@ -80,7 +80,7 @@ type Server struct {
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
-	box, err := secrets.Open(cfg.DataDir)
+	box, err := secrets.Open(cfg.DataDir, st.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -235,6 +235,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 
 func (s *Server) Run(ctx context.Context) error {
 	go s.housekeeping(ctx)
+	go s.Docs.Recover(ctx)
 	go s.Inbox.Run(ctx)
 	go s.Hooks.Run(ctx)
 	go s.Crew.Loop(ctx)

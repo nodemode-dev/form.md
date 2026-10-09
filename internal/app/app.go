@@ -39,8 +39,9 @@ type Drainer interface {
 }
 
 const (
-	shutdownGrace = 15 * time.Second
-	drainGrace    = 4 * time.Second
+	shutdownGrace     = 15 * time.Second
+	drainGrace        = 4 * time.Second
+	readHeaderTimeout = 10 * time.Second
 )
 
 func Run(ctx context.Context, d *Deps, modules []Module) error {
@@ -59,7 +60,7 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 
 	srv := &http.Server{
 		Handler:           r.Handler(),
-		ReadHeaderTimeout: 10 * time.Second,
+		ReadHeaderTimeout: readHeaderTimeout,
 		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 		ErrorLog:          slog.NewLogLogger(d.Log.Handler(), slog.LevelWarn),
@@ -78,6 +79,15 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 	scheme := "http"
 	if d.Config.TLS() {
 		scheme = "https"
+	}
+	var challenges *http.Server
+	if d.Config.ACME() {
+		m := acmeManager(d)
+		srv.TLSConfig = m.TLSConfig()
+		if challenges, err = serveChallenges(d, m); err != nil {
+			ln.Close()
+			return err
+		}
 	}
 	served := make(chan error, 1)
 	go func() {
@@ -105,6 +115,9 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 	sctx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
 	defer cancel()
 	err = srv.Shutdown(sctx)
+	if challenges != nil {
+		challenges.Shutdown(sctx)
+	}
 	dctx, dcancel := context.WithTimeout(context.Background(), drainGrace)
 	defer dcancel()
 	for _, m := range modules {

@@ -19,6 +19,14 @@ type migration struct {
 	sql     string
 }
 
+func LatestMigration() int {
+	all, err := loadMigrations()
+	if err != nil || len(all) == 0 {
+		return 0
+	}
+	return all[len(all)-1].version
+}
+
 func loadMigrations() ([]migration, error) {
 	entries, err := fs.ReadDir(migrationFS, "migrations")
 	if err != nil {

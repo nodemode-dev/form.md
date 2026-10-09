@@ -8,6 +8,8 @@ import (
 	"path"
 	"sort"
 	"strings"
+
+	"github.com/nodemode-ai/form.md/internal/crypt"
 )
 
 const (
@@ -32,10 +34,11 @@ type vfs struct {
 	closers []io.Closer
 	temps   []string
 	dir     string
+	key     *crypt.Key
 }
 
-func newVFS(dir string) *vfs {
-	return &vfs{byPath: map[string]*vfile{}, byLower: map[string]*vfile{}, dir: dir}
+func newVFS(dir string, key *crypt.Key) *vfs {
+	return &vfs{byPath: map[string]*vfile{}, byLower: map[string]*vfile{}, dir: dir, key: key}
 }
 
 func (v *vfs) close() {
@@ -75,15 +78,19 @@ func (v *vfs) addFile(name, diskPath string, size int64) error {
 	if strings.EqualFold(path.Ext(name), ".zip") {
 		return v.addZip(diskPath, "", 0)
 	}
-	return v.add(&vfile{path: cleanPath(path.Base(name)), size: size, open: func() (io.ReadCloser, error) { return os.Open(diskPath) }})
+	return v.add(&vfile{path: cleanPath(path.Base(name)), size: size, open: func() (io.ReadCloser, error) { return v.key.Open(diskPath) }})
 }
 
 func (v *vfs) addZip(diskPath, prefix string, depth int) error {
-	zr, err := zip.OpenReader(diskPath)
+	fh, err := v.key.Open(diskPath)
 	if err != nil {
 		return errors.New("the zip file could not be read")
 	}
-	v.closers = append(v.closers, zr)
+	v.closers = append(v.closers, fh)
+	zr, err := zip.NewReader(fh, fh.Size())
+	if err != nil {
+		return errors.New("the zip file could not be read")
+	}
 	var declared uint64
 	for _, e := range zr.File {
 		if e.FileInfo().IsDir() {
@@ -115,7 +122,11 @@ func (v *vfs) addZip(diskPath, prefix string, depth int) error {
 				tmp.Close()
 				continue
 			}
-			_, err = io.Copy(tmp, io.LimitReader(rc, maxEntryBytes))
+			enc := v.key.Writer(tmp)
+			_, err = io.Copy(enc, io.LimitReader(rc, maxEntryBytes))
+			if cerr := enc.Close(); err == nil {
+				err = cerr
+			}
 			rc.Close()
 			tmp.Close()
 			if err != nil {

@@ -9,8 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"time"
 
+	"github.com/nodemode-ai/form.md/internal/crypt"
+	"github.com/nodemode-ai/form.md/internal/cryptvfs"
 	_ "modernc.org/sqlite"
 )
 
@@ -20,15 +23,41 @@ type Store struct {
 	W    *sql.DB
 	R    *sql.DB
 	Path string
+	Key  *crypt.Key
+	vfs  string
 }
 
-func Open(ctx context.Context, dataDir string) (*Store, error) {
+const VFSName = "formmd-crypt"
+
+var registered sync.Once
+
+func Register(key *crypt.Key) error {
+	var err error
+	registered.Do(func() {
+		err = cryptvfs.Register(VFSName, cryptvfs.Keys{DB: key.Sub("db", 64), WAL: key.Sub("wal", 64), Journal: key.Sub("journal", 64)})
+	})
+	return err
+}
+
+func HasData(dataDir string) bool {
+	st, err := os.Stat(filepath.Join(dataDir, FileName))
+	return err == nil && st.Size() > 0
+}
+
+func Open(ctx context.Context, dataDir string, key *crypt.Key) (*Store, error) {
 	if err := os.MkdirAll(dataDir, 0o700); err != nil {
 		return nil, fmt.Errorf("data directory: %w", err)
 	}
 	path := filepath.Join(dataDir, FileName)
+	s := &Store{Path: path, Key: key}
+	if key != nil {
+		if err := Register(key); err != nil {
+			return nil, err
+		}
+		s.vfs = VFSName
+	}
 
-	w, err := sql.Open("sqlite", dsn(path, true))
+	w, err := sql.Open("sqlite", s.dsn(true))
 	if err != nil {
 		return nil, err
 	}
@@ -40,13 +69,13 @@ func Open(ctx context.Context, dataDir string) (*Store, error) {
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 
-	s := &Store{W: w, Path: path}
+	s.W = w
 	if err := s.migrate(ctx); err != nil {
 		w.Close()
 		return nil, err
 	}
 
-	r, err := sql.Open("sqlite", dsn(path, false))
+	r, err := sql.Open("sqlite", s.dsn(false))
 	if err != nil {
 		w.Close()
 		return nil, err
@@ -63,8 +92,12 @@ func Open(ctx context.Context, dataDir string) (*Store, error) {
 	return s, nil
 }
 
-func dsn(path string, writer bool) string {
+func (s *Store) dsn(writer bool) string {
 	q := url.Values{}
+	if s.vfs != "" {
+		q.Set("vfs", s.vfs)
+		q.Add("_pragma", "temp_store(MEMORY)")
+	}
 	q.Add("_pragma", "busy_timeout(5000)")
 	q.Add("_pragma", "foreign_keys(1)")
 	q.Add("_pragma", "synchronous(NORMAL)")
@@ -74,7 +107,11 @@ func dsn(path string, writer bool) string {
 	} else {
 		q.Add("_pragma", "query_only(1)")
 	}
-	return path + "?" + q.Encode()
+	return s.Path + "?" + q.Encode()
+}
+
+func (s *Store) VFS() string {
+	return s.vfs
 }
 
 func (s *Store) Ping(ctx context.Context) error {
