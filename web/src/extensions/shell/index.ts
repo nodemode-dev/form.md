@@ -1,9 +1,10 @@
 import type { Engine, ThemePref } from "../../engine";
+import { t } from "../../engine/i18n";
 import type { Unsubscribe } from "../../engine/state";
 import type { Extension } from "../registry";
 
-const GENERAL = () => "General";
-const APPEARANCE = () => "Appearance";
+const GENERAL = () => t("General");
+const APPEARANCE = () => t("Appearance");
 
 let teardown: Unsubscribe[] = [];
 
@@ -13,7 +14,7 @@ function setup(engine: Engine): void {
   const themeCommand = (pref: ThemePref, label: string) =>
     commands.register({
       id: `shell.theme.${pref}`,
-      label: () => label,
+      label: () => t(label),
       group: APPEARANCE,
       run: () => state.set("themePref", pref),
     });
@@ -21,7 +22,7 @@ function setup(engine: Engine): void {
   teardown = [
     commands.register({
       id: "shell.toggleSidebar",
-      label: () => "Show or hide the sidebar",
+      label: () => t("Show or hide the sidebar"),
       group: GENERAL,
       run: () => {
         if (platform.isNarrow()) state.set("drawer", !state.get("drawer"));
@@ -30,19 +31,19 @@ function setup(engine: Engine): void {
     }),
     commands.register({
       id: "shell.showShortcuts",
-      label: () => "Keyboard shortcuts",
+      label: () => t("Keyboard shortcuts"),
       group: GENERAL,
       run: () => state.set("overlay", "shortcuts"),
     }),
     commands.register({
       id: "shell.checkConnection",
-      label: () => "Check the server connection",
+      label: () => t("Check the server connection"),
       group: GENERAL,
       run: () => engine.health.check(),
     }),
     commands.register({
       id: "shell.toggleTheme",
-      label: () => "Switch between light and dark",
+      label: () => t("Switch between light and dark"),
       group: APPEARANCE,
       run: () => state.set("themePref", engine.resolvedTheme() === "dark" ? "light" : "dark"),
     }),

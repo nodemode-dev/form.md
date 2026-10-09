@@ -1,0 +1,15 @@
+{
+ "Show or hide the sidebar": "Seitenleiste ein- oder ausblenden",
+ "Check the server connection": "Serververbindung prüfen",
+ "Switch between light and dark": "Zwischen hell und dunkel wechseln",
+ "Behind a reverse proxy": "Hinter einem Reverse Proxy",
+ "Trust the X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers. Turn on only when a proxy you run sets them.": "Den Headern X-Forwarded-Proto, X-Forwarded-Host und X-Forwarded-For vertrauen. Nur einschalten, wenn ein Proxy, den du betreibst, sie setzt.",
+ "Close the open panel or dialog": "Offenes Panel oder offenen Dialog schließen",
+ "Live updates on": "Live-Aktualisierung an",
+ "Live updates paused, reconnecting": "Live-Aktualisierung pausiert, verbinde neu",
+ "Connecting live updates": "Live-Aktualisierung wird verbunden",
+ "Match the system theme": "Wie das System",
+ "Connected": "Verbunden",
+ "Degraded": "Eingeschränkt",
+ "Unreachable": "Nicht erreichbar"
+}

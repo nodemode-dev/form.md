@@ -1,0 +1,25 @@
+package i18n
+
+var de = map[string]string{
+	"Someone":                             "Jemand",
+	"Untitled":                            "Ohne Titel",
+	"%s mentioned you in %s":              "%s hat dich in %s erwähnt",
+	"%s commented on %s":                  "%s hat %s kommentiert",
+	"%s replied in %s":                    "%s hat in %s geantwortet",
+	"%s suggested an edit to %s":          "%s hat eine Änderung an %s vorgeschlagen",
+	"%s decided on your suggestion in %s": "%s hat über deinen Vorschlag in %s entschieden",
+	"%s shared %s with you":               "%s hat %s mit dir geteilt",
+	"%s assigned you to %s":               "%s hat dich %s zugewiesen",
+	"Reminder in %s":                      "Erinnerung in %s",
+	"%s ran on %s":                        "%s wurde auf %s ausgeführt",
+	"%d new notifications":                "%d neue Benachrichtigungen",
+	"Open your inbox: %s":                 "Zum Posteingang: %s",
+	"Emergency access to %s":              "Notfallzugriff auf %s",
+	"%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s hat den Notfall-Lesezugriff auf den Arbeitsbereich %q auf %s für zwei Stunden genutzt.\n\nAngegebener Grund:\n%s\n",
+	"Test message": "Testnachricht",
+	"This is a test message from %s. Mail sending works.\n": "Dies ist eine Testnachricht von %s. Der Mailversand funktioniert.\n",
+	"You are invited to %s":                                 "Du bist zu %s eingeladen",
+	"%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s hat dich zum Arbeitsbereich %q auf %s eingeladen.\n\nEinladung annehmen:\n%s\n\nDer Link ist 14 Tage gültig.\n",
+	"%s shared a page with you": "%s hat eine Seite mit dir geteilt",
+	"%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s hat %q auf %s mit dir geteilt.\n\nÖffnen:\n%s%s\n\nDer Link ist 14 Tage gültig.\n",
+}

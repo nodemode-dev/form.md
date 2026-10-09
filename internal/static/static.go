@@ -259,7 +259,7 @@ func (h *Handler) serveDocument(w http.ResponseWriter, r *http.Request) {
 		}
 		doc.HTML["preload"] = links.String()
 	}
-	body, err := RenderIndex(h.index.body, doc)
+	body, err := RenderIndex(localize(h.index.body, doc.Lang), doc)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

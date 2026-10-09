@@ -344,7 +344,7 @@ func (s *Service) inviteGuest(ctx context.Context, p *policy.Principal, m *Meta,
 		return nil, err
 	}
 	url := "/invite/" + token
-	emailed := s.auth.SendInviteMail(ctx, email, p.Name, m.Title, url)
+	emailed := s.auth.SendInviteMail(ctx, email, p.UserID, p.Name, m.Title, url)
 	return &ShareResult{InviteURL: url, Emailed: emailed}, nil
 }
 

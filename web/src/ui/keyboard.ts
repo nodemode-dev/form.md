@@ -1,4 +1,5 @@
 import type { Engine, Scope } from "../engine";
+import { t } from "../engine/i18n";
 import { isTypingTarget } from "./dom";
 import { closeTop, hasLayers, hasModal } from "./layers";
 
@@ -17,7 +18,7 @@ export function mountKeyboard(engine: Engine): void {
 
   commands.register({
     id: "layers.closeTop",
-    label: () => "Close the open panel or dialog",
+    label: () => t("Close the open panel or dialog"),
     group: () => "General",
     enabled: () => hasLayers(),
     run: () => {

@@ -14,6 +14,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/i18n"
 	"github.com/nodemode-ai/form.md/internal/ids"
 	"github.com/nodemode-ai/form.md/internal/mail"
 	"github.com/nodemode-ai/form.md/internal/policy"
@@ -479,20 +480,20 @@ func (s *Service) createBreakGlass(w http.ResponseWriter, r *http.Request, p *po
 	}
 	s.ws.Changed("", "break_glass", p.UserID)
 	if s.mail.Enabled() {
-		rows, err := s.st.R.QueryContext(ctx, `SELECT u.email FROM workspace_members m JOIN users u ON u.id = m.user_id
+		rows, err := s.st.R.QueryContext(ctx, `SELECT u.email, u.lang FROM workspace_members m JOIN users u ON u.id = m.user_id
 			WHERE m.workspace_id = ? AND m.role = 'admin' AND u.disabled = 0`, in.WorkspaceID)
 		if err == nil {
-			var to []string
+			var to, langs []string
 			for rows.Next() {
-				var e string
-				if rows.Scan(&e) == nil {
-					to = append(to, e)
+				var e, l string
+				if rows.Scan(&e, &l) == nil {
+					to, langs = append(to, e), append(langs, l)
 				}
 			}
 			rows.Close()
-			body := fmt.Sprintf("%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n", p.Name, name, s.settings.Get("instance.name"), reason)
-			for _, e := range to {
-				if err := s.mail.Send(ctx, e, "Emergency access to "+name, body); err != nil {
+			for i, e := range to {
+				body := i18n.T(langs[i], "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n", p.Name, name, s.settings.Get("instance.name"), reason)
+				if err := s.mail.Send(ctx, e, i18n.T(langs[i], "Emergency access to %s", name), body); err != nil {
 					s.log.Warn("break-glass notice failed", "err", err)
 				}
 			}
@@ -712,8 +713,9 @@ func (s *Service) testMail(w http.ResponseWriter, r *http.Request, p *policy.Pri
 	if to == "" {
 		to = p.Email
 	}
-	body := "This is a test message from " + s.settings.Get("instance.name") + ". Mail sending works.\n"
-	if err := s.mail.Send(r.Context(), to, "Test message", body); err != nil {
+	lang := i18n.UserLang(r.Context(), s.st.R, p.UserID)
+	body := i18n.T(lang, "This is a test message from %s. Mail sending works.\n", s.settings.Get("instance.name"))
+	if err := s.mail.Send(r.Context(), to, i18n.T(lang, "Test message"), body); err != nil {
 		return httpx.Fail(http.StatusBadGateway, "mail_failed", err.Error())
 	}
 	w.WriteHeader(http.StatusNoContent)

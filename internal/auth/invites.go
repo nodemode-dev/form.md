@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/i18n"
 	"github.com/nodemode-ai/form.md/internal/ids"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/secrets"
@@ -85,9 +85,10 @@ func (s *Service) handleCreateInvite(w http.ResponseWriter, r *http.Request, p *
 	link := s.baseURL(r) + "/invite/" + token
 	emailed := false
 	if email != "" && s.mailer != nil && s.mailer.Enabled() {
-		body := fmt.Sprintf("%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n",
+		lang := i18n.UserLang(r.Context(), s.st.R, p.UserID)
+		body := i18n.T(lang, "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n",
 			p.Name, wsName, s.settings.Get("instance.name"), link)
-		if err := s.mailer.Send(r.Context(), email, "You are invited to "+wsName, body); err != nil {
+		if err := s.mailer.Send(r.Context(), email, i18n.T(lang, "You are invited to %s", wsName), body); err != nil {
 			s.log.Warn("invite email failed", "err", err)
 		} else {
 			emailed = true
@@ -149,13 +150,14 @@ type GuestAccept func(ctx context.Context, tx *sql.Tx, userID, pageID, level str
 
 func (s *Service) SetGuestAccept(fn GuestAccept) { s.guestAccept = fn }
 
-func (s *Service) SendInviteMail(ctx context.Context, email, inviter, title, path string) bool {
+func (s *Service) SendInviteMail(ctx context.Context, email, inviterID, inviter, title, path string) bool {
 	if email == "" || s.mailer == nil || !s.mailer.Enabled() {
 		return false
 	}
+	lang := i18n.UserLang(ctx, s.st.R, inviterID)
 	base := strings.TrimRight(s.settings.Get("instance.public_url"), "/")
-	body := fmt.Sprintf("%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n", inviter, title, s.settings.Get("instance.name"), base, path)
-	if err := s.mailer.Send(ctx, email, inviter+" shared a page with you", body); err != nil {
+	body := i18n.T(lang, "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n", inviter, title, s.settings.Get("instance.name"), base, path)
+	if err := s.mailer.Send(ctx, email, i18n.T(lang, "%s shared a page with you", inviter), body); err != nil {
 		s.log.Warn("guest invite email failed", "err", err)
 		return false
 	}

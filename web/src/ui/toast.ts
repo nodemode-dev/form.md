@@ -1,3 +1,4 @@
+import { t as translate } from "../engine/i18n";
 import { byId, h, setText } from "./dom";
 import { iconNode } from "./icons";
 
@@ -70,7 +71,7 @@ export function toast(options: ToastOptions): ToastHandle {
   }
 
   const msg = h("p", { class: "toast__msg", text: options.message });
-  const close = h("button", { class: "icon-btn toast__close", attrs: { type: "button", "aria-label": "Dismiss" } }, iconNode("close"));
+  const close = h("button", { class: "icon-btn toast__close", attrs: { type: "button", "aria-label": translate("Dismiss") } }, iconNode("close"));
   const iconWrap = h("span", { class: "toast__icon" }, iconNode(tone));
   const inner = h("div", { class: "toast__inner" }, iconWrap, msg);
   if (options.action) {

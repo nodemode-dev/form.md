@@ -15,6 +15,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/events"
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/i18n"
 	"github.com/nodemode-ai/form.md/internal/ids"
 	"github.com/nodemode-ai/form.md/internal/mail"
 	"github.com/nodemode-ai/form.md/internal/page"
@@ -512,34 +513,34 @@ func (s *Service) TestPush(ctx context.Context, p *policy.Principal) (int, error
 	return n, nil
 }
 
-func headline(n Notification) string {
+func headline(lang string, n Notification) string {
 	who := n.ActorName
 	if who == "" {
-		who = "Someone"
+		who = i18n.T(lang, "Someone")
 	}
 	title := n.Title
 	if title == "" {
-		title = "Untitled"
+		title = i18n.T(lang, "Untitled")
 	}
 	switch n.Kind {
 	case "mention":
-		return fmt.Sprintf("%s mentioned you in %s", who, title)
+		return i18n.T(lang, "%s mentioned you in %s", who, title)
 	case "comment":
-		return fmt.Sprintf("%s commented on %s", who, title)
+		return i18n.T(lang, "%s commented on %s", who, title)
 	case "reply":
-		return fmt.Sprintf("%s replied in %s", who, title)
+		return i18n.T(lang, "%s replied in %s", who, title)
 	case "suggestion":
-		return fmt.Sprintf("%s suggested an edit to %s", who, title)
+		return i18n.T(lang, "%s suggested an edit to %s", who, title)
 	case "decision":
-		return fmt.Sprintf("%s decided on your suggestion in %s", who, title)
+		return i18n.T(lang, "%s decided on your suggestion in %s", who, title)
 	case "share":
-		return fmt.Sprintf("%s shared %s with you", who, title)
+		return i18n.T(lang, "%s shared %s with you", who, title)
 	case "assign":
-		return fmt.Sprintf("%s assigned you to %s", who, title)
+		return i18n.T(lang, "%s assigned you to %s", who, title)
 	case "reminder":
-		return fmt.Sprintf("Reminder in %s", title)
+		return i18n.T(lang, "Reminder in %s", title)
 	case "automation":
-		return fmt.Sprintf("%s ran on %s", who, title)
+		return i18n.T(lang, "%s ran on %s", who, title)
 	}
 	return title
 }
@@ -589,7 +590,7 @@ func (s *Service) sendPushes(ctx context.Context) {
 	}
 	for _, x := range list {
 		_, _ = s.st.W.ExecContext(ctx, "UPDATE notifications SET pushed_at = ? WHERE id = ?", now, x.n.ID)
-		s.pushTo(ctx, x.user, pushPayload{Title: headline(x.n), Body: x.n.Body, URL: link(x.n), Tag: x.n.ID})
+		s.pushTo(ctx, x.user, pushPayload{Title: headline(i18n.UserLang(ctx, s.st.R, x.user), x.n), Body: x.n.Body, URL: link(x.n), Tag: x.n.ID})
 	}
 }
 
@@ -629,12 +630,13 @@ func (s *Service) sendMail(ctx context.Context) {
 			mark()
 			continue
 		}
+		lang := i18n.UserLang(ctx, s.st.R, user)
 		var lines []string
 		for _, n := range items {
 			if pref == "mentions" && n.Kind != "mention" && n.Kind != "reminder" && n.Kind != "assign" {
 				continue
 			}
-			line := "- " + headline(n)
+			line := "- " + headline(lang, n)
 			if n.Body != "" {
 				line += "\n  " + n.Body
 			}
@@ -644,11 +646,11 @@ func (s *Service) sendMail(ctx context.Context) {
 		if len(lines) == 0 {
 			continue
 		}
-		subject := headline(items[0])
+		subject := headline(lang, items[0])
 		if len(lines) > 1 {
-			subject = fmt.Sprintf("%d new notifications", len(lines))
+			subject = i18n.T(lang, "%d new notifications", len(lines))
 		}
-		body := strings.Join(lines, "\n\n") + "\n\nOpen your inbox: " + base + "/inbox\n"
+		body := strings.Join(lines, "\n\n") + "\n\n" + i18n.T(lang, "Open your inbox: %s", base+"/inbox") + "\n"
 		if err := s.mailer.Send(ctx, email, subject, body); err != nil {
 			s.log.Warn("inbox: email", "err", err)
 		}

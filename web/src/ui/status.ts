@@ -25,7 +25,7 @@ export function mountStatus(engine: Engine): void {
     "live",
     (s) => {
       setAttr(liveDot, "data-state", s);
-      setAttr(liveDot.parentElement as HTMLElement, "title", s === "live" ? "Live updates on" : s === "offline" ? "Live updates paused, reconnecting" : "Connecting live updates");
+      setAttr(liveDot.parentElement as HTMLElement, "title", s === "live" ? t("Live updates on") : s === "offline" ? t("Live updates paused, reconnecting") : t("Connecting live updates"));
     },
     { immediate: true },
   );
@@ -34,7 +34,7 @@ export function mountStatus(engine: Engine): void {
 
   engine.state.watch("health", (health, previous) => {
     setAttr(card, "data-state", health.phase);
-    setText(label, LABEL[health.phase]);
+    setText(label, t(LABEL[health.phase]));
     setText(version, health.version ?? "");
     if (health.version) setText(sidebarVersion, health.version);
     setText(storage, health.storage === null ? "" : health.storage === "ok" ? "OK" : "Error");

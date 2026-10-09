@@ -14,6 +14,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/config"
 	"github.com/nodemode-ai/form.md/internal/crypt"
+	"github.com/nodemode-ai/form.md/internal/i18n"
 	"github.com/nodemode-ai/form.md/internal/ops"
 	"github.com/nodemode-ai/form.md/internal/server"
 	"github.com/nodemode-ai/form.md/internal/settings"
@@ -54,6 +55,10 @@ func serve() int {
 	if err != nil {
 		log.Error("config", "err", err)
 		return 2
+	}
+	if err := i18n.LoadFS(formmd.Catalogs()); err != nil {
+		log.Error("catalogs", "err", err)
+		return 1
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

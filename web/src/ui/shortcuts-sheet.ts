@@ -1,4 +1,5 @@
 import type { Engine, Scope } from "../engine";
+import { t } from "../engine/i18n";
 import { byId, h } from "./dom";
 import { iconNode } from "./icons";
 import { openLayer } from "./layers";
@@ -19,10 +20,10 @@ export function mountShortcutsSheet(engine: Engine): void {
   const build = (): Parts => {
     const close = h(
       "button",
-      { class: "icon-btn", attrs: { type: "button", "aria-label": "Close", "data-tip": "Close", "data-command": "layers.closeTop" } },
+      { class: "icon-btn", attrs: { type: "button", "aria-label": t("Close"), "data-tip": t("Close"), "data-command": "layers.closeTop" } },
       iconNode("close"),
     );
-    const head = h("header", { class: "dialog__head" }, h("h2", { class: "dialog__title", attrs: { id: "shortcuts-title" }, text: "Keyboard shortcuts" }), close);
+    const head = h("header", { class: "dialog__head" }, h("h2", { class: "dialog__title", attrs: { id: "shortcuts-title" }, text: t("Keyboard shortcuts") }), close);
     const body = h("div", { class: "dialog__body" });
     const dialog = h("div", { class: "dialog", attrs: { role: "dialog", "aria-modal": "true", "aria-labelledby": "shortcuts-title", tabindex: "-1" } }, head, body);
     const scrim = h("div", { class: "scrim", attrs: { "aria-hidden": "true" } });
@@ -44,7 +45,7 @@ export function mountShortcutsSheet(engine: Engine): void {
       }
       const chords = h("span", { class: "keys-row__chords" });
       item.chords.forEach((chord, i) => {
-        if (i > 0) chords.append("or");
+        if (i > 0) chords.append(t("or"));
         chords.append(h("span", { class: "keys-row__chord" }, ...chord.map((k) => h("kbd", { text: k }))));
       });
       list.append(h("div", { class: "keys-row" }, h("span", { text: item.label }), chords));
