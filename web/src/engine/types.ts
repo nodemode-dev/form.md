@@ -324,6 +324,68 @@ export interface ViewConfig {
   form?: FormConfig;
 }
 
+export type ActionKind = "edit" | "add" | "notify" | "mail" | "webhook" | "insert" | "open" | "confirm";
+
+export interface AutomationAction {
+  kind: ActionKind;
+  collection?: string;
+  target?: "trigger" | "all";
+  filter?: Filter;
+  title?: string;
+  values?: Record<string, unknown>;
+  people?: string[];
+  subject?: string;
+  message?: string;
+  url?: string;
+  markdown?: string;
+  where?: "above" | "below";
+  page?: string;
+}
+
+export type AutomationTriggerKind = "row_added" | "prop_edited" | "schedule";
+
+export interface AutomationTrigger {
+  props?: string[];
+  filter?: Filter;
+  every?: "hours" | "day" | "week";
+  n?: number;
+  at?: string;
+  weekday?: number;
+  tz?: string;
+}
+
+export interface Automation {
+  id: string;
+  workspace_id: string;
+  collection_id: string;
+  created_by: string;
+  name: string;
+  enabled: boolean;
+  trigger_kind: AutomationTriggerKind;
+  trigger: AutomationTrigger;
+  actions: AutomationAction[];
+  next_run_at: number;
+  last_run_at: number;
+  last_status: "" | "ok" | "partial" | "failed" | "skipped";
+  runs: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AutomationRun {
+  id: string;
+  at: number;
+  row_id: string;
+  status: "ok" | "partial" | "failed" | "skipped";
+  detail: string;
+}
+
+export interface ActionOutcome {
+  done: string[] | null;
+  failed: string[] | null;
+  created?: string[];
+}
+
 export type ChartKind = "bar" | "hbar" | "line" | "donut" | "number";
 
 export interface ChartSpec {

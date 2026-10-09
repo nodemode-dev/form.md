@@ -7,6 +7,7 @@ import { h, setAttr, setText } from "../../ui/dom";
 import { iconNode } from "../../ui/icons";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { toast } from "../../ui/toast";
+import { openAutomations } from "./automations";
 import type { DbCtx } from "./cells";
 import { openCSVImport } from "./csv";
 import { openPanel } from "./panel";
@@ -105,8 +106,9 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   const propsBtn = btn("sliders", t("Properties"));
   const layoutBtn = btn("settings", t("Layout"));
   const moreBtn = btn("more", t("More"));
+  const autoBtn = btn("bolt", t("Automations"));
   const newBtn = h("button", { class: "btn btn--primary btn--sm db__new", attrs: { type: "button" } }, iconNode("plus"), h("span", { text: t("New") }));
-  tools.append(filterBtn, sortBtn, groupBtn, searchBtn, searchIn, propsBtn, layoutBtn, moreBtn, newBtn);
+  tools.append(filterBtn, sortBtn, groupBtn, searchBtn, searchIn, propsBtn, layoutBtn, autoBtn, moreBtn, newBtn);
   const bar = h("div", { class: "db__bar" }, tabs, tools);
   const head = h("div", { class: "db__head" });
   if (o.inline) head.append(title);
@@ -186,6 +188,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     filterBtn.hidden = type === "form";
     searchBtn.hidden = type === "form";
     layoutBtn.hidden = !current?.r.settings;
+    autoBtn.hidden = !canWrite();
     newBtn.hidden = !canWrite() || type === "form";
     if (o.inline) {
       const name = col?.title ?? "";
@@ -369,6 +372,9 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     }),
   );
   layoutBtn.addEventListener("click", () => current?.r.settings?.(layoutBtn));
+  autoBtn.addEventListener("click", () => {
+    if (col) openAutomations(engine, store.get(colId) ?? col);
+  });
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   searchBtn.addEventListener("click", () => {
     searchIn.hidden = !searchIn.hidden;

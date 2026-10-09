@@ -122,6 +122,7 @@ const PATHS = {
   "eye-off": '<path d="M4 4l16 16M10.6 6a9.6 9.6 0 0 1 1.4-.1C18 5.9 21.5 12 21.5 12a17 17 0 0 1-2.7 3.4M6.2 7.6A16 16 0 0 0 2.5 12S6 18.1 12 18.1a9 9 0 0 0 4-.9"/>',
   sigma: '<path d="M17.5 5.5h-11l6 6.5-6 6.5h11"/>',
   chart: '<path d="M4.5 20h15M7 20v-6M12 20V7M17 20v-9.5"/>',
+  bolt: '<path d="M13 3.5 5.5 13.5h6l-1 7 7.5-10h-6Z"/>',
   "chart-hbar": '<path d="M4 4.5v15M4 7h6M4 12h13M4 17h9.5"/>',
   "chart-line": '<path d="M4.5 20h15"/><path d="m4.5 15.5 4.5-5 4 3 6-7.5"/>',
   "chart-donut": '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 4.5v4M19.5 12h-4"/>',
