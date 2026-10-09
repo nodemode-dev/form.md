@@ -31,6 +31,7 @@ check:
 	gofmt -l . | (! grep .)
 	go vet ./...
 	go run ./tools/wikicheck
+	go run ./tools/skillcheck
 	cd web && npm run typecheck
 
 clean:

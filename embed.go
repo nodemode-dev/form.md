@@ -14,6 +14,17 @@ var notices string
 //go:embed web/src/i18n
 var catalogs embed.FS
 
+//go:embed all:.claude/skills/contextual-compression
+var contextSkill embed.FS
+
+func ContextSkill() fs.FS {
+	sub, err := fs.Sub(contextSkill, ".claude/skills/contextual-compression")
+	if err != nil {
+		panic(err)
+	}
+	return sub
+}
+
 func Catalogs() fs.FS {
 	sub, err := fs.Sub(catalogs, "web/src/i18n")
 	if err != nil {

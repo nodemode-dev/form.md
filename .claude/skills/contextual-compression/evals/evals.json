@@ -1,0 +1,69 @@
+{
+  "skill_name": "contextual-compression",
+  "notes": "Run against a form.md workspace with a page 'Billing rewrite' (headings Goals, Invoice numbering, Open questions), a database 'Tasks' and two knowledge items: decision 'Invoices are numbered per workspace starting at 1000' sourced to the Invoice numbering block, and fact 'Billing runs nightly at 02:00 UTC' with no source, last confirmed 200 days ago.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "pack-before-editing",
+      "prompt": "Update the Billing rewrite page so the invoice numbering section says numbers restart every January. Check what we already decided first.",
+      "files": [],
+      "expected_behavior": [
+        "The first form.md call is context_pack with task_type edit and the Billing rewrite page as focus, before any get_page call",
+        "The answer cites the recorded decision about numbering starting at 1000 and asks or notes how the yearly restart relates to it before editing",
+        "After the edit, knowledge_confirm is called on the numbering decision with verdict supersede and the new text, rather than recording a second, conflicting item"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "resume-from-handoff-with-delta",
+      "prompt": "Pick up the billing work Codex left yesterday; its note says pack id pk_example. Carry on with the next step.",
+      "files": [],
+      "expected_behavior": [
+        "context_pack is called with format delta and since set to the given pack id",
+        "The agent states the next step from the note and any change the delta shows that the note does not mention, before acting",
+        "Decisions the agent relies on are confirmed with knowledge_confirm; nothing is re-recorded that already has an id"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "hygiene-on-stale-fact",
+      "prompt": "Tidy up what form.md remembers about billing.",
+      "files": [],
+      "expected_behavior": [
+        "knowledge_review is called for the workspace",
+        "The 200-day-old unsourced nightly-run fact is not confirmed from memory: the agent reads a source first or retires or contradicts it, and says which",
+        "No verdict is applied to an item without a source read in the same session"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "no-overreach-on-plain-edit",
+      "prompt": "Rename the page Q3 plan to Q4 plan.",
+      "files": [],
+      "expected_behavior": [
+        "The rename is done with update_page without first building a context pack or recording knowledge",
+        "No knowledge item is created for a rename"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    { "query": "start this task but first figure out what context you need from the workspace", "should_trigger": true },
+    { "query": "i'm picking up where the other agent left off on the billing rewrite", "should_trigger": true },
+    { "query": "we're running out of context window, compress what you know", "should_trigger": true },
+    { "query": "remember that we decided invoices start at 1000", "should_trigger": true },
+    { "query": "what did we decide about the export fonts last week", "should_trigger": true },
+    { "query": "give me a context pack for fixing the board totals", "should_trigger": true },
+    { "query": "hand this off to codex with everything it needs", "should_trigger": true },
+    { "query": "the knowledge bank has two contradicting facts about the release date, clean it up", "should_trigger": true },
+    { "query": "load the relevant background before you edit the onboarding page", "should_trigger": true },
+    { "query": "record this as a decision in form.md", "should_trigger": true },
+    { "query": "summarize this pdf i just pasted", "should_trigger": false },
+    { "query": "search the web for the latest postgres release notes", "should_trigger": false },
+    { "query": "rename the page called Q3 plan to Q4 plan", "should_trigger": false },
+    { "query": "compress these png images for the website", "should_trigger": false },
+    { "query": "add a row to the tasks database with status done", "should_trigger": false },
+    { "query": "explain how gzip compression works", "should_trigger": false },
+    { "query": "draw a context diagram for the payments service", "should_trigger": false },
+    { "query": "remember to buy milk", "should_trigger": false }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "tokens": {
+    "chars_per_token": 4
+  },
+  "budgets": {
+    "default_task": "edit",
+    "min": 400,
+    "max": 32000,
+    "tasks": {
+      "answer": 2500,
+      "edit": 6000,
+      "build": 12000,
+      "review": 8000,
+      "plan": 8000,
+      "handoff": 4000
+    }
+  },
+  "sections": [
+    { "kind": "rules", "share": 0.08, "required": true },
+    { "kind": "knowledge", "share": 0.2, "required": true },
+    { "kind": "focus", "share": 0.32, "required": false },
+    { "kind": "passages", "share": 0.3, "required": false },
+    { "kind": "links", "share": 0.1, "required": false }
+  ],
+  "ranking": {
+    "weights": {
+      "text": 1.0,
+      "title": 0.6,
+      "link": 0.45,
+      "recency": 0.35,
+      "knowledge": 0.8,
+      "focus": 0.5
+    },
+    "recency_half_life_days": 30,
+    "max_candidates": 120,
+    "min_score": 0.08,
+    "per_page": 3,
+    "stopwords": ["a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "for", "from", "how", "i", "in", "is", "it", "me", "my", "of", "on", "or", "our", "please", "should", "so", "that", "the", "this", "to", "we", "what", "when", "where", "which", "who", "why", "will", "with", "you"]
+  },
+  "knowledge": {
+    "kinds": ["fact", "decision", "glossary", "constraint", "preference"],
+    "max_text_chars": 600,
+    "max_subject_chars": 120,
+    "max_items_per_workspace": 5000,
+    "confidence": {
+      "initial": 0.6,
+      "agent_initial": 0.5,
+      "confirm_step": 0.15,
+      "contradict_step": 0.3,
+      "max": 0.98,
+      "floor": 0.05
+    },
+    "half_life_days": {
+      "fact": 90,
+      "decision": 180,
+      "glossary": 365,
+      "constraint": 180,
+      "preference": 120
+    },
+    "pack_limit": 12,
+    "search_limit": 20
+  },
+  "compression": {
+    "formats": ["digest", "outline", "delta"],
+    "default_format": "digest",
+    "digest": { "sentences_per_passage": 2, "max_passage_chars": 480 },
+    "outline": { "max_depth": 3, "max_headings_per_page": 24 },
+    "delta": { "default_hours": 24, "max_hours": 720 }
+  },
+  "handoff": {
+    "fields": ["goal", "state", "done", "open", "decisions", "sources", "next"],
+    "max_open_items": 12,
+    "max_chars": 6000
+  },
+  "hygiene": {
+    "duplicate_similarity": 0.85,
+    "conflict_similarity": 0.5,
+    "stale_after_days": 120,
+    "prune_below": 0.2,
+    "review_batch": 25
+  }
+}
