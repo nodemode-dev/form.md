@@ -1,0 +1,196 @@
+.chartset__kinds {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(7, var(--control));
+}
+
+.chart {
+  --heat: var(--accent);
+  --heat-0: color-mix(in srgb, var(--text) 7%, var(--surface));
+}
+
+.chart [data-x],
+.chart [data-row] {
+  cursor: pointer;
+}
+
+.chart__track {
+  fill: color-mix(in srgb, var(--text) 8%, var(--surface));
+}
+
+.chart__ring,
+.chart__gauge {
+  fill: var(--oc, var(--accent));
+}
+
+.chart__gauge[data-state="met"] {
+  fill: var(--c-green);
+}
+
+.chart__target {
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.chart__area--solid {
+  fill-opacity: 0.22;
+}
+
+.chart__line--prev {
+  stroke-dasharray: 4 4;
+  stroke-opacity: 0.75;
+}
+
+.chart__swatch--prev {
+  fill-opacity: 0.6;
+}
+
+.chart__line--alt {
+  stroke-width: 1.75;
+}
+
+.chart__bee {
+  stroke: var(--sheet);
+  stroke-width: 0.75;
+}
+
+.chart__bee[data-sign="pos"] {
+  fill: var(--c-teal);
+}
+
+.chart__bee[data-sign="neg"] {
+  fill: var(--c-rose);
+}
+
+.chart__cell {
+  fill: var(--heat-0);
+  transition: fill-opacity var(--dur-fast) var(--ease);
+}
+
+.chart__cell[data-level="1"] { fill: color-mix(in srgb, var(--heat) 22%, var(--heat-0)); }
+.chart__cell[data-level="2"] { fill: color-mix(in srgb, var(--heat) 40%, var(--heat-0)); }
+.chart__cell[data-level="3"] { fill: color-mix(in srgb, var(--heat) 60%, var(--heat-0)); }
+.chart__cell[data-level="4"] { fill: color-mix(in srgb, var(--heat) 80%, var(--heat-0)); }
+.chart__cell[data-level="5"] { fill: var(--heat); }
+
+.chart__cell:hover {
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.chart__value--cell {
+  fill: var(--text);
+  pointer-events: none;
+}
+
+.chart__value--cell[data-level="4"],
+.chart__value--cell[data-level="5"] {
+  fill: var(--sheet);
+}
+
+.chart[data-heat="green"] { --heat: var(--c-green); }
+.chart[data-heat="amber"] { --heat: var(--c-amber); }
+.chart[data-heat="rose"] { --heat: var(--c-rose); }
+.chart[data-heat="violet"] { --heat: var(--c-violet); }
+.chart[data-heat="teal"] { --heat: var(--c-teal); }
+
+.picklist {
+  display: grid;
+  row-gap: var(--space-1);
+  inline-size: 280px;
+  padding: var(--space-2);
+}
+
+.picklist__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-block-size: 24px;
+  padding-inline: var(--space-1);
+}
+
+.picklist__title {
+  flex: 1;
+  min-inline-size: 0;
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picklist__count {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.picklist__list {
+  display: grid;
+  max-block-size: 300px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.picklist__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  min-block-size: 30px;
+  padding-inline: var(--space-1);
+  font: inherit;
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.picklist__row:hover {
+  background: var(--hover);
+}
+
+.picklist__row .icon {
+  flex: none;
+  inline-size: 14px;
+  block-size: 14px;
+  color: var(--text-faint);
+}
+
+.picklist__row--ph {
+  block-size: 30px;
+  margin-block: 0;
+  background: linear-gradient(90deg, var(--hover), transparent);
+  border-radius: var(--radius-sm);
+  opacity: 0.5;
+}
+
+.picklist__name {
+  flex: 1;
+  min-inline-size: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picklist__add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  min-block-size: 28px;
+  padding-inline: var(--space-2);
+  font: inherit;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.picklist__add:hover {
+  color: var(--text);
+  background: var(--hover);
+}

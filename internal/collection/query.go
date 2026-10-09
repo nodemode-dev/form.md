@@ -746,6 +746,15 @@ func (ev *evaluator) groupKeys(sn *snap, r *Row, g *Grouping) []groupKey {
 		case "month":
 			s := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, ev.loc)
 			return []groupKey{{key: s.Format("2006-01"), label: s.Format("January 2006"), rank: float64(s.Unix())}}
+		case "weekday":
+			wd := int(t.Weekday())
+			rank := wd
+			if ev.s.mondayFirst(ev.ctx, ev.p) {
+				rank = (wd + 6) % 7
+			}
+			return []groupKey{{key: "d" + strconv.Itoa(wd), label: t.Weekday().String(), rank: float64(rank)}}
+		case "hour":
+			return []groupKey{{key: fmt.Sprintf("h%02d", t.Hour()), label: fmt.Sprintf("%02d:00", t.Hour()), rank: float64(t.Hour())}}
 		case "week":
 			s := weekStart(t, ev.s.mondayFirst(ev.ctx, ev.p))
 			return []groupKey{{key: s.Format("2006-01-02") + "w", label: "Week of " + s.Format("Jan 2, 2006"), rank: float64(s.Unix())}}

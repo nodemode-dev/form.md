@@ -10,11 +10,20 @@ import { formatNumber } from "../props";
 import type { ViewHost, ViewRenderer } from "../surface";
 import { groupable, propSelect, saveConfig } from "../toolbar";
 import { drawChart, exportChart } from "./chartdraw";
+import { openPickList } from "./picklist";
 
 const KIND_PATHS: Record<string, string> = {
   hbar: '<path d="M4 4.5v15M4 7h6M4 12h13M4 17h9.5"/>',
   line: '<path d="M4.5 20h15"/><path d="m4.5 15.5 4.5-5 4 3 6-7.5"/>',
   donut: '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 4.5v4M19.5 12h-4"/>',
+  area: '<path d="M4.5 19.5h15"/><path d="M4.5 17 9 11l4 3 6.5-8v13.5h-15Z" fill="currentColor" fill-opacity=".25"/>',
+  radial: '<path d="M12 4.5a7.5 7.5 0 1 1-7.5 7.5"/><path d="M12 8.5a3.5 3.5 0 1 1-3.5 3.5"/>',
+  gauge: '<path d="M4.5 16.5a7.5 7.5 0 0 1 15 0"/><path d="m12 16.5 3.5-4.5"/>',
+  histogram: '<path d="M4.5 19.5h15"/><path d="M6 19.5v-5h3v5M9 19.5V9h3v10.5M12 19.5v-7h3v7M15 19.5v-3h3v3"/>',
+  dots: '<circle cx="7" cy="9" r="1.5"/><circle cx="11" cy="12" r="1.5"/><circle cx="15.5" cy="8.5" r="1.5"/><circle cx="12" cy="16.5" r="1.5"/><circle cx="17" cy="14" r="1.5"/>',
+  compare: '<path d="M4.5 20h15"/><path d="m4.5 15.5 4.5-5 4 3 6-7.5"/><path d="m4.5 17.5 5-3 4 1.5 6-4" stroke-dasharray="1.5 2"/>',
+  heatmap: '<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><path d="M4.5 9.5h15M4.5 14.5h15M9.5 4.5v15M14.5 4.5v15"/>',
+  calendar: '<rect x="4.5" y="5.5" width="15" height="14" rx="2"/><path d="M8 3.5v4M16 3.5v4M4.5 10h15M8 13.5h.01M12 13.5h.01M16 13.5h.01M8 16.5h.01M12 16.5h.01"/>',
 };
 
 function kindIcon(kind: ChartKind, fallback: IconName): Element {
@@ -31,7 +40,18 @@ const KINDS: [ChartKind, string, IconName][] = [
   ["line", "Line", "chart"],
   ["donut", "Donut", "chart"],
   ["number", "Number", "hash"],
+  ["area", "Area", "chart"],
+  ["radial", "Radial bar", "chart"],
+  ["gauge", "Gauge", "chart"],
+  ["histogram", "Histogram", "chart"],
+  ["dots", "Dot plot", "chart"],
+  ["compare", "Compare periods", "chart"],
+  ["heatmap", "Heatmap", "chart"],
+  ["calendar", "Calendar heatmap", "calendar"],
 ];
+
+const NO_AXIS = new Set<ChartKind>(["number", "gauge"]);
+const ONE_SERIES = new Set<ChartKind>(["donut", "radial", "histogram", "calendar", "compare", "dots"]);
 
 const MEASURES: [string, string][] = [
   ["count", "Count rows"],
@@ -118,12 +138,32 @@ export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, ch
   const spec: ChartSpec = structuredClone(start);
   const emit = () => change(structuredClone(spec));
   const schemaProp = (id: string | undefined) => ctx.col().schema.find((p) => p.id === id);
+  const firstOf = (types: string[]) => ctx.col().schema.find((p) => types.includes(p.type));
+  const adapt = (k: ChartKind) => {
+    const xp = schemaProp(spec.x?.prop);
+    if (k === "calendar" || k === "compare") {
+      const d = xp && DATEISH.includes(xp.type) ? xp : firstOf(["date", "created_time", "last_edited_time"]);
+      if (d) spec.x = { prop: d.id, by: k === "calendar" ? "day" : (spec.x?.by ?? "month") };
+    }
+    if (k === "histogram" && xp?.type !== "number") {
+      const n = firstOf(["number"]);
+      if (n) spec.x = { prop: n.id, step: 10 };
+    }
+    if (k === "dots" && schemaProp(spec.prop)?.type !== "number") {
+      const n = firstOf(["number"]);
+      if (n) spec.prop = n.id;
+    }
+  };
 
   const kinds = h("div", { class: "segmented chartset__kinds", attrs: { role: "group", "aria-label": t("Chart type") } });
   for (const [k, l, icon] of KINDS) {
     const b = h("button", { class: "segmented__btn", attrs: { type: "button", "data-kind": k, "aria-label": t(l), title: t(l), "aria-pressed": "false" } }, kindIcon(k, icon));
     b.addEventListener("click", () => {
       spec.kind = k;
+      adapt(k);
+      xSel.value = spec.x?.prop ?? "";
+      by.value = spec.x?.by ?? "month";
+      yProp.value = spec.prop ?? "";
       emit();
       sync();
     });
@@ -137,7 +177,7 @@ export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, ch
     emit();
     sync();
   }, groupable);
-  const by = select(t("Date by"), [["day", "Day"], ["week", "Week"], ["month", "Month"], ["year", "Year"], ["relative", "Relative"]], spec.x?.by ?? "month", (v) => {
+  const by = select(t("Date by"), [["day", "Day"], ["week", "Week"], ["month", "Month"], ["year", "Year"], ["relative", "Relative"], ["weekday", "Day of the week"], ["hour", "Hour of the day"]], spec.x?.by ?? "month", (v) => {
     if (spec.x) spec.x.by = v;
     emit();
   });
@@ -159,8 +199,29 @@ export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, ch
   const yProp = propSelect(ctx, spec.prop ?? "", (id) => {
     spec.prop = id;
     emit();
-  }, (p) => (NUMERIC.includes(spec.fn ?? "") ? ["number", "formula", "rollup"].includes(p.type) : p.type !== "title" || spec.fn !== "checked"));
+  }, (p) => (spec.kind === "dots" || NUMERIC.includes(spec.fn ?? "") ? ["number", "formula", "rollup"].includes(p.type) : p.type !== "title" || spec.fn !== "checked"));
   const yRow = field(t("Property"), yProp);
+  const fnRow = field(t("Measure"), fn);
+  const num = (label: string, key: "target" | "window", min: string) => {
+    const i = h("input", { class: "input input--sm", attrs: { type: "number", min, step: "any", "aria-label": label } });
+    i.value = spec[key] ? String(spec[key]) : "";
+    i.addEventListener("change", () => {
+      const n = Number(i.value);
+      if (Number.isFinite(n) && n > 0) spec[key] = n;
+      else delete spec[key];
+      emit();
+    });
+    return field(label, i);
+  };
+  const targetRow = num(t("Target"), "target", "0");
+  const windowRow = num(t("Buckets per period"), "window", "1");
+  const scaleRow = field(
+    t("Colour scale"),
+    select(t("Colour scale"), [["", "Linear"], ["quantile", "Quantiles"]], spec.scale ?? "", (v) => {
+      spec.scale = v as NonNullable<ChartSpec["scale"]>;
+      emit();
+    }),
+  );
 
   const sSel = propSelect(ctx, spec.series?.prop ?? "", (id) => {
     const p = schemaProp(id);
@@ -196,7 +257,7 @@ export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, ch
   const xRow = field(t("Property"), xSel);
   const valueHead = h("div", { class: "dbpanel__head", text: t("Value") });
   const styleHead = h("div", { class: "dbpanel__head", text: t("Style") });
-  pad.append(kinds, axisHead, xRow, byRow, stepRow, seriesRow, valueHead, field(t("Measure"), fn), yRow, orderRow, styleHead, labels, legend, smooth, cumulative, stacked, hideEmpty);
+  pad.append(kinds, axisHead, xRow, byRow, stepRow, seriesRow, valueHead, fnRow, yRow, targetRow, windowRow, orderRow, styleHead, scaleRow, labels, legend, smooth, cumulative, stacked, hideEmpty);
   if (exporter) {
     const svgBtn = h("button", { class: "btn btn--sm", attrs: { type: "button" } }, iconNode("download"), h("span", { text: t("SVG") }));
     const pngBtn = h("button", { class: "btn btn--sm", attrs: { type: "button" } }, iconNode("image"), h("span", { text: t("PNG") }));
@@ -207,19 +268,46 @@ export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, ch
 
   const sync = () => {
     for (const b of Array.from(kinds.children) as HTMLElement[]) setAttr(b, "aria-pressed", b.dataset.kind === spec.kind ? "true" : "false");
-    const number = spec.kind === "number";
+    const k = spec.kind;
+    const number = NO_AXIS.has(k);
     const xp = schemaProp(spec.x?.prop);
     for (const n of [axisHead, xRow, orderRow, labels, hideEmpty]) n.hidden = number;
-    byRow.hidden = number || !xp || !DATEISH.includes(xp.type);
+    orderRow.hidden = number || k === "calendar" || k === "compare" || k === "histogram";
+    byRow.hidden = number || k === "calendar" || !xp || !DATEISH.includes(xp.type);
     stepRow.hidden = number || xp?.type !== "number";
-    seriesRow.hidden = number || spec.kind === "donut";
+    seriesRow.hidden = number || ONE_SERIES.has(k);
     sClear.hidden = !spec.series;
-    legend.hidden = number;
-    smooth.hidden = cumulative.hidden = spec.kind !== "line";
-    stacked.hidden = !(spec.kind === "bar" || spec.kind === "hbar") || !spec.series;
-    yRow.hidden = !spec.fn || spec.fn === "count";
+    legend.hidden = number || k === "heatmap" || k === "calendar" || k === "histogram" || k === "dots";
+    smooth.hidden = !(k === "line" || k === "area" || k === "compare" || k === "histogram");
+    cumulative.hidden = !(k === "line" || k === "area");
+    stacked.hidden = !(((k === "bar" || k === "hbar") && spec.series) || (k === "area" && spec.series));
+    fnRow.hidden = k === "dots";
+    yRow.hidden = k !== "dots" && (!spec.fn || spec.fn === "count");
+    targetRow.hidden = k !== "gauge";
+    windowRow.hidden = k !== "compare";
+    scaleRow.hidden = !(k === "heatmap" || k === "calendar");
   };
   sync();
+}
+
+export function chartClicks(svg: SVGSVGElement, o: { engine: ViewHost["engine"]; colId: string; viewId: () => string; spec: () => ChartSpec; search: () => string; openRow: ViewHost["openRow"] }): void {
+  svg.addEventListener("click", (e) => {
+    const target = e.target as Element;
+    const row = target.closest("[data-row]");
+    if (row) {
+      o.openRow(row.getAttribute("data-row") ?? "", e);
+      return;
+    }
+    const mark = target.closest("[data-x]");
+    if (!mark) return;
+    const x = mark.getAttribute("data-x") ?? "";
+    const s = mark.getAttribute("data-s") ?? "";
+    const title = (mark.querySelector("title")?.textContent ?? "").replace(/:[^:]*$/, "") || t("Rows");
+    void o.engine.api.collections
+      .chart(o.colId, { view_id: o.viewId(), chart: o.spec(), search: o.search() || undefined, pick: s ? { x, series: s } : { x } })
+      .then((r) => openPickList({ engine: o.engine, colId: o.colId, anchor: mark, title, ids: r.picked ?? [], truncated: r.truncated, openRow: o.openRow }))
+      .catch(o.engine.reportError);
+  });
 }
 
 export function chartView(host: ViewHost): ViewRenderer {
@@ -239,6 +327,7 @@ export function chartView(host: ViewHost): ViewRenderer {
   const el = h("div", { class: "chartv", attrs: { "data-inline": host.inline ? "true" : "false" } }, frame, foot);
 
   const spec = () => chartOf(host.col(), host.view().config.layout);
+  chartClicks(svg, { engine, colId: host.colId, viewId: () => host.viewId, spec, search: host.search, openRow: host.openRow });
   const draw = () => {
     if (destroyed) return;
     const s = spec();

@@ -386,7 +386,7 @@ export interface ActionOutcome {
   created?: string[];
 }
 
-export type ChartKind = "bar" | "hbar" | "line" | "donut" | "number";
+export type ChartKind = "bar" | "hbar" | "line" | "donut" | "number" | "area" | "radial" | "gauge" | "histogram" | "dots" | "compare" | "heatmap" | "calendar";
 
 export interface ChartSpec {
   kind: ChartKind;
@@ -404,6 +404,17 @@ export interface ChartSpec {
   legend?: boolean;
   smooth?: boolean;
   stacked?: boolean;
+  target?: number;
+  window?: number;
+  scale?: "" | "linear" | "quantile";
+  size?: "" | "wide" | "tall";
+}
+
+export interface ChartDot {
+  id: string;
+  title: string;
+  group: string;
+  value: number;
 }
 
 export interface ChartResult {
@@ -414,6 +425,8 @@ export interface ChartResult {
   rows: number;
   truncated?: boolean;
   epoch: number;
+  points?: ChartDot[];
+  picked?: string[];
 }
 
 export type ViewType = "table" | "board" | "list" | "gallery" | "calendar" | "timeline" | "form" | "chart" | "map" | "feed" | "dashboard";

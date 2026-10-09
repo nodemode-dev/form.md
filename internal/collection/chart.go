@@ -27,12 +27,29 @@ type ChartSpec struct {
 	Legend     bool      `json:"legend,omitempty"`
 	Smooth     bool      `json:"smooth,omitempty"`
 	Stacked    bool      `json:"stacked,omitempty"`
+	Target     float64   `json:"target,omitempty"`
+	Window     int       `json:"window,omitempty"`
+	Scale      string    `json:"scale,omitempty"`
+	Size       string    `json:"size,omitempty"`
+}
+
+type ChartPick struct {
+	X      string `json:"x"`
+	Series string `json:"series,omitempty"`
 }
 
 type ChartInput struct {
-	ViewID string    `json:"view_id"`
-	Chart  ChartSpec `json:"chart"`
-	Search string    `json:"search,omitempty"`
+	ViewID string     `json:"view_id"`
+	Chart  ChartSpec  `json:"chart"`
+	Search string     `json:"search,omitempty"`
+	Pick   *ChartPick `json:"pick,omitempty"`
+}
+
+type ChartDot struct {
+	ID    string  `json:"id"`
+	Title string  `json:"title"`
+	Group string  `json:"group"`
+	Value float64 `json:"value"`
 }
 
 type ChartPoint struct {
@@ -56,16 +73,24 @@ type ChartResult struct {
 	Rows      int           `json:"rows"`
 	Truncated bool          `json:"truncated,omitempty"`
 	Epoch     int64         `json:"epoch"`
+	Points    []ChartDot    `json:"points,omitempty"`
+	Picked    []string      `json:"picked,omitempty"`
 }
 
-var chartKinds = map[string]bool{"bar": true, "hbar": true, "line": true, "donut": true, "number": true}
+var chartKinds = map[string]bool{"bar": true, "hbar": true, "line": true, "donut": true, "number": true, "area": true, "radial": true, "gauge": true, "histogram": true, "dots": true, "compare": true, "heatmap": true, "calendar": true}
+
+const maxDots = 2000
+
+func singleSeries(kind string) bool {
+	return kind == "donut" || kind == "radial" || kind == "histogram" || kind == "calendar" || kind == "compare"
+}
 
 func badChart(msg string) error { return httpx.Fail(http.StatusBadRequest, "bad_chart", msg) }
 
 func (s *Service) Chart(ctx context.Context, p *policy.Principal, collectionID string, in ChartInput) (*ChartResult, error) {
 	spec := in.Chart
 	if !chartKinds[spec.Kind] {
-		return nil, badChart("a chart is bar, hbar, line, donut or number")
+		return nil, badChart("unknown chart kind " + spec.Kind)
 	}
 	if spec.Fn != "" && spec.Fn != "count" && !calcFns[spec.Fn] {
 		return nil, badChart("unknown measure " + spec.Fn)
@@ -103,6 +128,9 @@ func (s *Service) Chart(ctx context.Context, p *policy.Principal, collectionID s
 	all := s.results.ordered(ev, sn, cfg, QueryInput{Search: in.Search})
 	res := &ChartResult{Kind: spec.Kind, X: []ChartPoint{}, Series: []ChartSeries{}, Rows: len(all), Epoch: s.epoch.Load()}
 	var yp *Property
+	if spec.Kind == "dots" {
+		return s.chartDots(ev, sn, all, spec, res)
+	}
 	if spec.Fn != "" && spec.Fn != "count" && spec.Fn != "count_all" {
 		if yp = sn.schema.ByID(spec.Prop); yp == nil {
 			return nil, badChart("pick a property to measure")
@@ -114,7 +142,7 @@ func (s *Service) Chart(ctx context.Context, p *policy.Principal, collectionID s
 		}
 		return ev.measure(sn, rows, yp, spec.Fn)
 	}
-	if spec.Kind == "number" {
+	if spec.Kind == "number" || spec.Kind == "gauge" {
 		res.Value = measure(all)
 		return res, nil
 	}
@@ -134,7 +162,7 @@ func (s *Service) Chart(ctx context.Context, p *policy.Principal, collectionID s
 		member map[*Row]bool
 	}
 	var lanes []*lane
-	if spec.Series != nil && spec.Kind != "donut" && sn.schema.ByID(spec.Series.Prop) != nil {
+	if spec.Series != nil && !singleSeries(spec.Kind) && sn.schema.ByID(spec.Series.Prop) != nil {
 		sh := hiddenSet(spec.Series.Hidden)
 		for _, b := range ev.bucketise(sn, all, spec.Series) {
 			if sh[b.key] || len(b.rows) == 0 {
@@ -153,6 +181,33 @@ func (s *Service) Chart(ctx context.Context, p *policy.Principal, collectionID s
 	}
 	if len(lanes) == 0 {
 		lanes = []*lane{{ChartSeries: ChartSeries{Key: "", Label: ""}}}
+	}
+	if in.Pick != nil {
+		res.Picked = []string{}
+		for _, b := range xs {
+			if b.key != in.Pick.X {
+				continue
+			}
+			for _, r := range b.rows {
+				if in.Pick.Series != "" {
+					member := false
+					for _, l := range lanes {
+						if l.Key == in.Pick.Series && l.member[r] {
+							member = true
+						}
+					}
+					if !member {
+						continue
+					}
+				}
+				res.Picked = append(res.Picked, r.ID)
+				if len(res.Picked) == 500 {
+					res.Truncated = true
+					return res, nil
+				}
+			}
+		}
+		return res, nil
 	}
 	totals := make([]float64, len(xs))
 	for _, l := range lanes {
@@ -181,11 +236,17 @@ func (s *Service) Chart(ctx context.Context, p *policy.Principal, collectionID s
 	case "value_asc":
 		sort.SliceStable(order, func(a, b int) bool { return totals[order[a]] < totals[order[b]] })
 	}
-	limit := spec.Limit
+	limit, ceiling := spec.Limit, 500
+	if spec.Kind == "calendar" {
+		ceiling = 1100
+	}
 	if limit <= 0 {
 		limit = 100
+		if spec.Kind == "calendar" {
+			limit = ceiling
+		}
 	}
-	limit = min(limit, 500)
+	limit = min(limit, ceiling)
 	if len(order) > limit {
 		order = order[:limit]
 		res.Truncated = true
@@ -199,12 +260,51 @@ func (s *Service) Chart(ctx context.Context, p *policy.Principal, collectionID s
 		run := 0.0
 		for j, i := range order {
 			vals[j] = l.Values[i]
-			if spec.Cumulative && spec.Kind == "line" {
+			if spec.Cumulative && (spec.Kind == "line" || spec.Kind == "area") {
 				run += vals[j]
 				vals[j] = run
 			}
 		}
 		res.Series = append(res.Series, ChartSeries{Key: l.Key, Label: l.Label, Color: l.Color, Values: vals})
+	}
+	return res, nil
+}
+
+func (s *Service) chartDots(ev *evaluator, sn *snap, all []*Row, spec ChartSpec, res *ChartResult) (*ChartResult, error) {
+	vp := sn.schema.ByID(spec.Prop)
+	if vp == nil {
+		return nil, badChart("pick a number property for the dots")
+	}
+	group := map[*Row]string{}
+	if spec.X != nil && sn.schema.ByID(spec.X.Prop) != nil {
+		hidden := hiddenSet(spec.X.Hidden)
+		for _, b := range ev.bucketise(sn, all, spec.X) {
+			if hidden[b.key] || len(b.rows) == 0 {
+				continue
+			}
+			res.X = append(res.X, ChartPoint{Key: b.key, Label: b.label, Color: b.color})
+			for _, r := range b.rows {
+				if _, ok := group[r]; !ok {
+					group[r] = b.key
+				}
+			}
+		}
+	}
+	res.Points = []ChartDot{}
+	for _, r := range all {
+		v := ev.value(sn, r, vp)
+		if v.K != formula.KNumber {
+			continue
+		}
+		g, ok := group[r]
+		if spec.X != nil && !ok && len(res.X) > 0 {
+			continue
+		}
+		res.Points = append(res.Points, ChartDot{ID: r.ID, Title: r.Title, Group: g, Value: v.N})
+		if len(res.Points) == maxDots {
+			res.Truncated = true
+			break
+		}
 	}
 	return res, nil
 }

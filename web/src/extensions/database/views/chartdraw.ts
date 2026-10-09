@@ -1,4 +1,5 @@
 import type { ChartResult, ChartSpec } from "../../../engine/types";
+import { drawExtra, EXTRA_KINDS } from "./chartkinds";
 
 const NS = "http://www.w3.org/2000/svg";
 const LAYERS = ["grid", "axis", "marks", "labels", "legend", "center"] as const;
@@ -194,6 +195,10 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
     clear(grid, axis, marks, labels, legend, center);
     return;
   }
+  if (EXTRA_KINDS.has(spec.kind)) {
+    drawExtra(svg, res, spec, o, W, H);
+    return;
+  }
   if (spec.kind === "number") {
     clear(grid, axis, marks, labels, legend);
     centerText([
@@ -254,7 +259,7 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
       return s;
     });
     keyed(marks, slices.filter((s) => s.v > 0), (s) => `d:${s.x.key}`, "path", (e, s) => {
-      set(e, { d: arc(cx, cy, r, ir, s.a0, s.a1), class: "chart__mark chart__slice" });
+      set(e, { d: arc(cx, cy, r, ir, s.a0, s.a1), class: "chart__mark chart__slice", "data-x": s.x.key });
       paintSwatch(e, { key: s.x.key, label: s.x.label, color: s.x.color, pal: s.i });
       tip(e, `${s.x.label || "—"}: ${o.fmt(s.v)} (${total ? Math.round((s.v / total) * 100) : 0}%)`);
     });
@@ -340,7 +345,7 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
       if (g.firstElementChild?.tagName !== want) g.replaceChildren(el(want as "circle"));
       const c = g.firstElementChild as SVGElement;
       if (d.kind === "dot") {
-        set(c, { cx: d.p[0], cy: d.p[1], r: 3.5, class: "chart__dot" });
+        set(c, { cx: d.p[0], cy: d.p[1], r: 3.5, class: "chart__dot", "data-x": d.x.key, "data-s": multi ? d.l.s.key : null });
         paintSwatch(c, { key: d.l.s.key, label: "", color: multi ? d.l.s.color : undefined, pal: d.l.si });
         tip(c, tipFor(d.x, d.l.s, d.v));
       } else {
@@ -380,8 +385,8 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
     });
   });
   keyed(marks, bars, (b) => `b:${b.key}`, "rect", (e, b) => {
-    set(e, { x: b.x, y: b.y, width: Math.max(0, b.w), height: Math.max(0, b.h), rx: Math.min(3, b.w / 2, b.h / 2), class: "chart__mark chart__bar" });
     const x = xs[b.xi] ?? NONE;
+    set(e, { x: b.x, y: b.y, width: Math.max(0, b.w), height: Math.max(0, b.h), rx: Math.min(3, b.w / 2, b.h / 2), class: "chart__mark chart__bar", "data-x": x.key, "data-s": multi ? b.s.key : null });
     paintSwatch(e, color(b.s, b.si, x, b.xi));
     tip(e, tipFor(x, b.s, b.v));
   });
@@ -400,6 +405,9 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
     text(e, o.fmt(v.v));
   });
 }
+
+export { arc, clip, el, keyed, layer, linear, monotone, paintSwatch, set, text, tip, width };
+export type { Swatch };
 
 function size(svg: SVGSVGElement): [number, number] {
   const vb = (svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
@@ -424,6 +432,7 @@ export function standalone(svg: SVGSVGElement, title: string): string {
     d.removeAttribute("data-color");
     d.removeAttribute("data-pal");
     d.removeAttribute("data-layer");
+    for (const a of ["data-x", "data-s", "data-row", "data-level", "data-sign"]) d.removeAttribute(a);
   });
   clone.setAttribute("xmlns", NS);
   const [w, hgt] = size(svg);

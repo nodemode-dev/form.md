@@ -125,6 +125,8 @@ const PATHS = {
   bolt: '<path d="M13 3.5 5.5 13.5h6l-1 7 7.5-10h-6Z"/>',
   dashboard: '<rect x="4" y="4" width="7" height="9" rx="1.5"/><rect x="13" y="4" width="7" height="5" rx="1.5"/><rect x="13" y="11" width="7" height="9" rx="1.5"/><rect x="4" y="15" width="7" height="5" rx="1.5"/>',
   feed: '<rect x="4.5" y="4" width="15" height="7" rx="1.5"/><rect x="4.5" y="13" width="15" height="7" rx="1.5"/><path d="M7.5 7.5h6M7.5 16.5h4"/>',
+  graph: '<circle cx="6" cy="7" r="2.25"/><circle cx="17.5" cy="6" r="2.25"/><circle cx="12" cy="17.5" r="2.25"/><circle cx="18.5" cy="15" r="1.5"/><path d="M8.1 7.9l7.2-1.4M7.1 9l3.8 6.6M16.6 8.1l-3.6 7.3M14.2 17l2.9-1.4"/>',
+  heatmap: '<rect x="4" y="4" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="4" width="4.5" height="4.5" rx="1" fill="currentColor" fill-opacity=".45"/><rect x="15.5" y="4" width="4.5" height="4.5" rx="1"/><rect x="4" y="9.75" width="4.5" height="4.5" rx="1" fill="currentColor"/><rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="15.5" y="9.75" width="4.5" height="4.5" rx="1" fill="currentColor" fill-opacity=".45"/><rect x="4" y="15.5" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="15.5" width="4.5" height="4.5" rx="1" fill="currentColor"/><rect x="15.5" y="15.5" width="4.5" height="4.5" rx="1"/>',
   expand: '<path d="M14 4.5h5.5V10M19.5 4.5 13 11M10 19.5H4.5V14M4.5 19.5 11 13"/>',
   "chevron-left": '<path d="m14.5 6-6 6 6 6"/>',
   "chevron-up": '<path d="m6 14.5 6-6 6 6"/>',
