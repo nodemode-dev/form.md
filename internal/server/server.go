@@ -80,6 +80,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	docs := doc.New(st, pages, authSvc, log)
 	pages.OnDuplicate(docs.Copy)
 	pages.OnDuplicated(docs.Remap)
+	docs.SetAudit(al)
 	cols := collection.New(st, pages, al, hub, log)
 	comments := comment.New(st, pages, al, hub, log)
 	notes, err := inbox.New(ctx, st, pages, hub, mailer, set, fetcher, log)
@@ -161,6 +162,9 @@ func (s *Server) housekeeping(ctx context.Context) {
 			s.Deps.Log.Info("trash purged", "pages", n)
 		}
 		s.Files.Sweep(ctx)
+		if _, err := s.Docs.PurgeVersions(ctx, s.Settings.Int("history.days")); err != nil {
+			s.Deps.Log.Warn("history purge failed", "err", err)
+		}
 		select {
 		case <-ctx.Done():
 			return

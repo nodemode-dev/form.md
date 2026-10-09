@@ -77,10 +77,15 @@ type room struct {
 	lastEditor string
 	matTimer   *time.Timer
 	idleTimer  *time.Timer
+
+	editors             map[string]bool
+	changedSinceVersion bool
+	lastVersion         int64
+	lastVersionID       string
 }
 
 func (s *Service) loadRoom(ctx context.Context, id string) (*room, error) {
-	r := &room{s: s, id: id, doc: crdt.New(), gen: 1, nextSeq: 1, subs: map[*conn]*sub{}, aware: map[uint64]*awareEntry{}}
+	r := &room{s: s, id: id, doc: crdt.New(), gen: 1, nextSeq: 1, subs: map[*conn]*sub{}, aware: map[uint64]*awareEntry{}, editors: map[string]bool{}, lastVersion: s.lastVersionAt(ctx, id)}
 	var snap []byte
 	var snapSeq int64
 	err := s.st.R.QueryRowContext(ctx, "SELECT generation, snapshot, snapshot_seq, next_seq FROM doc_state WHERE page_id = ?", id).Scan(&r.gen, &snap, &snapSeq, &r.nextSeq)
@@ -131,6 +136,7 @@ func (s *Service) loadRoom(ctx context.Context, id string) (*room, error) {
 			writeNodes(txn, frag, 0, []*pmNode{newNode("paragraph")})
 		}, &origin{})
 		r.dirty = false
+		r.changedSinceVersion = false
 		if r.matTimer != nil {
 			r.matTimer.Stop()
 			r.matTimer = nil
@@ -157,6 +163,10 @@ func (r *room) onUpdate(update []byte, o any) {
 		user = or.user
 	}
 	r.pending = append(r.pending, pendingUpdate{data: update, user: user, at: store.NowMS()})
+	r.changedSinceVersion = true
+	if user != "" {
+		r.editors[user] = true
+	}
 	r.bytesSince += len(update)
 	r.size += len(update)
 	if r.flushTimer == nil {

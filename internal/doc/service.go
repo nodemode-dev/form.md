@@ -13,6 +13,7 @@ import (
 	"github.com/reearth/ygo/crdt"
 
 	"github.com/nodemode-ai/form.md/internal/app"
+	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/page"
@@ -31,6 +32,7 @@ type Service struct {
 	conns    map[*conn]struct{}
 	stopped  bool
 	refHooks []func(ctx context.Context, pageID, actor string, mentioned []string, reminders []Reminder)
+	audit    *audit.Log
 }
 
 func New(st *store.Store, pages *page.Service, a *auth.Service, log *slog.Logger) *Service {
@@ -95,6 +97,9 @@ func (s *Service) unload(r *room) {
 		return
 	}
 	s.materialise(context.Background(), r)
+	if _, err := s.saveVersion(context.Background(), r, "auto", true); err != nil {
+		s.log.Warn("doc: version", "page", r.id, "err", err)
+	}
 	r.mu.Lock()
 	if r.refs > 0 {
 		r.mu.Unlock()
@@ -154,6 +159,9 @@ func (s *Service) materialise(ctx context.Context, r *room) {
 	}
 	for _, fn := range s.refHooks {
 		fn(ctx, r.id, user, added, sum.Reminders)
+	}
+	if _, err := s.saveVersion(ctx, r, "auto", false); err != nil {
+		s.log.Warn("doc: version", "page", r.id, "err", err)
 	}
 }
 
@@ -524,6 +532,9 @@ func (m module) Drain(ctx context.Context) { m.s.Drain(ctx) }
 func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	s, a := m.s, m.auth
 	r.HandleFunc("GET /sync", a.RequireSession(s.serveSync))
+	m.mountVersions(func(pattern string, h func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error) {
+		r.HandleFunc(pattern, a.Require(h))
+	})
 	r.HandleFunc("GET /api/pages/{id}/markdown", a.Require(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 		md, err := s.Markdown(r.Context(), p, r.PathValue("id"))
 		if err != nil {
