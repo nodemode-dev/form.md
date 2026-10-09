@@ -56,6 +56,7 @@ type File struct {
 	Ref         string `json:"ref"`
 	W           int    `json:"w,omitempty"`
 	H           int    `json:"h,omitempty"`
+	Ext         string `json:"-"`
 	ext         string
 }
 
@@ -281,6 +282,27 @@ func (s *Service) store(ctx context.Context, p *policy.Principal, part io.Reader
 		return nil, err
 	}
 	return &File{ID: id, WorkspaceID: t.workspaceID, PageID: t.pageID, OwnerID: p.UserID, Purpose: purpose, Name: name, Mime: ctype, Size: n, CreatedAt: now, URL: "/files/" + id, Ref: "f:" + id, ext: ext}, nil
+}
+
+func (s *Service) StoreBytes(ctx context.Context, p *policy.Principal, workspaceID, pageID, name string, r io.Reader) (*File, error) {
+	limit := int64(s.settings.Int("files.max_upload_mb")) << 20
+	return s.store(ctx, p, r, map[string]string{"purpose": "attachment", "workspace_id": workspaceID, "page_id": pageID, "name": name}, limit)
+}
+
+func (s *Service) Open(ctx context.Context, p *policy.Principal, id string) (*File, io.ReadCloser, error) {
+	f, err := s.lookup(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := s.canRead(ctx, p, f); err != nil {
+		return nil, nil, err
+	}
+	fh, err := os.Open(s.path(f.ID, f.ext))
+	if err != nil {
+		return nil, nil, err
+	}
+	f.Ext = f.ext
+	return f, fh, nil
 }
 
 func nullable(v string) any {
