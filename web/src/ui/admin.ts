@@ -214,6 +214,7 @@ function generalTab(store: SettingsStore): Tab {
     s1.append(
       f.text("instance.name", t("Instance name"), t("Shown on the sign-in page and in the browser title.")),
       f.text("instance.public_url", t("Public address"), t("The address people use, for links in mail, invitations and sign-in callbacks."), "url", "https://notes.example.com"),
+      f.bool("net.trust_proxy", t("Behind a reverse proxy"), t("Trust the X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers. Turn on only when a proxy you run sets them.")),
       f.bool("workspaces.member_create", t("Members may create workspaces"), t("When off, only admins create shared workspaces. Everyone keeps a personal space.")),
     );
     const s2 = section(t("Housekeeping"));

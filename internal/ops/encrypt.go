@@ -30,7 +30,19 @@ func Encrypt(ctx context.Context, dataDir, keyFile string) (*EncryptReport, erro
 		return nil, err
 	}
 	if crypt.Encrypted(dataDir) {
-		return nil, errors.New("this data directory is already encrypted")
+		if _, err := crypt.Load(dataDir, path, true); err != nil {
+			return nil, err
+		}
+		unlock, err := Lock(dataDir)
+		if err != nil {
+			return nil, err
+		}
+		defer unlock()
+		rep, err := sealAll(key, dataDir)
+		if err == nil {
+			err = matchOwner(dataDir)
+		}
+		return rep, err
 	}
 	if !store.HasData(dataDir) {
 		return nil, errors.New("there is no database to encrypt; start the server with FORMMD_KEY_FILE set and it is encrypted from the first write")
@@ -74,6 +86,23 @@ func Encrypt(ctx context.Context, dataDir, keyFile string) (*EncryptReport, erro
 		return nil, fmt.Errorf("the encrypted copy failed its check: %v %s", err, check)
 	}
 
+	rep, err := sealAll(key, dataDir)
+	if err != nil {
+		return rep, err
+	}
+	if err := os.Rename(encPath, dbPath); err != nil {
+		return rep, err
+	}
+	for _, suffix := range []string{"-wal", "-shm"} {
+		os.Remove(dbPath + suffix)
+	}
+	if err := key.WriteMeta(dataDir); err != nil {
+		return rep, err
+	}
+	return rep, matchOwner(dataDir)
+}
+
+func sealAll(key *crypt.Key, dataDir string) (*EncryptReport, error) {
 	rep := &EncryptReport{}
 	for _, dir := range carriedDirs {
 		err := filepath.WalkDir(filepath.Join(dataDir, dir), func(p string, d fs.DirEntry, err error) error {
@@ -101,13 +130,7 @@ func Encrypt(ctx context.Context, dataDir, keyFile string) (*EncryptReport, erro
 	if _, err := sealFile(key, filepath.Join(dataDir, "secret.key")); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return rep, err
 	}
-	if err := os.Rename(encPath, dbPath); err != nil {
-		return rep, err
-	}
-	for _, suffix := range []string{"-wal", "-shm"} {
-		os.Remove(dbPath + suffix)
-	}
-	return rep, key.WriteMeta(dataDir)
+	return rep, nil
 }
 
 func sealFile(key *crypt.Key, path string) (bool, error) {
@@ -158,6 +181,7 @@ func ResetOwner(ctx context.Context, dataDir, keyFile string) (string, string, e
 	if err != nil {
 		return "", "", err
 	}
+	defer matchOwner(dataDir)
 	defer db.Close()
 	var id, email string
 	if err := db.QueryRowContext(ctx, "SELECT id, email FROM users WHERE role = 'owner'").Scan(&id, &email); err != nil {

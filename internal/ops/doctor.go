@@ -72,6 +72,7 @@ func Doctor(ctx context.Context, cfg config.Config) []Check {
 		add("fail", "database", "%v", err)
 		return out
 	}
+	defer matchOwner(cfg.DataDir)
 	defer db.Close()
 	var check string
 	if err := db.QueryRowContext(ctx, "PRAGMA quick_check").Scan(&check); err != nil || check != "ok" {
@@ -104,12 +105,16 @@ func Doctor(ctx context.Context, cfg config.Config) []Check {
 		add("ok", "secret key", "readable")
 	}
 
-	var host string
+	var mode, host string
+	_ = db.QueryRowContext(ctx, "SELECT value FROM settings WHERE key = 'mail.mode'").Scan(&mode)
 	_ = db.QueryRowContext(ctx, "SELECT value FROM settings WHERE key = 'mail.smtp.host'").Scan(&host)
-	if host == "" {
-		add("warn", "mail", "no SMTP server set: invitations, password resets and inbox mail are not sent")
-	} else {
-		add("ok", "mail", "SMTP configured")
+	switch {
+	case mode == "" || mode == "off":
+		add("warn", "mail", "mail is off: invitations and inbox notices are not sent by mail")
+	case mode == "smtp" && host == "":
+		add("warn", "mail", "mail mode is SMTP but no SMTP server is set")
+	default:
+		add("ok", "mail", "mail mode %s", mode)
 	}
 
 	switch {

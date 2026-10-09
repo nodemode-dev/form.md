@@ -37,7 +37,7 @@ type Def struct {
 var Defs = []Def{
 	{Key: "instance.name", Kind: Text, Default: "form.md"},
 	{Key: "instance.public_url", Kind: Text},
-	{Key: "net.trust_proxy", Kind: Bool, Default: "false"},
+	{Key: "net.trust_proxy", Kind: Bool, Default: "false", Env: "FORMMD_TRUST_PROXY"},
 	{Key: "auth.session_days", Kind: Int, Default: "90", Min: 1, Max: 365},
 	{Key: "auth.signup", Kind: Enum, Default: "invite", Options: []string{"invite", "domain", "open"}},
 	{Key: "auth.signup_domains", Kind: Text},

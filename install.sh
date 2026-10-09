@@ -102,7 +102,11 @@ if [ ! -f "$CONF_DIR/env" ]; then
   printf 'FORMMD_ADDR=127.0.0.1:8750\n' | $SUDO tee "$CONF_DIR/env" >/dev/null
   $SUDO chmod 0640 "$CONF_DIR/env"
 fi
-fetch "$BASE/form-md.service" "$tmp/form-md.service" 2>/dev/null || cat > "$tmp/form-md.service" <<UNIT
+if fetch "$BASE/form-md.service" "$tmp/form-md.service" 2>/dev/null; then
+  sed -e "s#/usr/local/bin/form-md#$BIN_DIR/form-md#g" -e "s#/var/lib/form-md#$DATA_DIR#g" -e "s#/etc/form-md#$CONF_DIR#g" "$tmp/form-md.service" > "$tmp/form-md.service.new"
+  mv "$tmp/form-md.service.new" "$tmp/form-md.service"
+else
+  cat > "$tmp/form-md.service" <<UNIT
 [Unit]
 Description=form.md
 After=network-online.target
@@ -121,9 +125,11 @@ RestartSec=2
 [Install]
 WantedBy=multi-user.target
 UNIT
+fi
 $SUDO install -m 0644 "$tmp/form-md.service" /etc/systemd/system/form-md.service
 $SUDO systemctl daemon-reload
-$SUDO systemctl enable --now form-md.service
+$SUDO systemctl enable form-md.service
+$SUDO systemctl restart form-md.service
 sleep 1
 if $SUDO systemctl is-active --quiet form-md.service; then
   say "form-md is running; it starts again after a reboot"

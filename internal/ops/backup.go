@@ -103,6 +103,9 @@ func Backup(ctx context.Context, dataDir, keyFile, out string) (*Manifest, error
 	}
 	_, err = db.ExecContext(ctx, "VACUUM INTO "+sqlString(target))
 	db.Close()
+	if oerr := matchOwner(dataDir); err == nil {
+		err = oerr
+	}
 	if err != nil {
 		return nil, fmt.Errorf("snapshot: %w", err)
 	}
@@ -216,7 +219,20 @@ func Restore(ctx context.Context, dataDir, keyFile, archive string) (string, *Ma
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return "", nil, err
 	}
-	stage, err := os.MkdirTemp(parent, ".form-md-restore-*")
+	refPath := parent
+	if _, err := os.Stat(dataDir); err == nil {
+		refPath = dataDir
+	}
+	uid, gid, owned := ownerOf(refPath)
+	inPlace := isMount(dataDir)
+	var stage string
+	if !inPlace {
+		stage, err = os.MkdirTemp(parent, ".form-md-restore-*")
+		inPlace = err != nil && os.MkdirAll(dataDir, 0o700) == nil
+	}
+	if inPlace {
+		stage, err = os.MkdirTemp(dataDir, ".form-md-restore-*")
+	}
 	if err != nil {
 		return "", nil, err
 	}
@@ -256,21 +272,64 @@ func Restore(ctx context.Context, dataDir, keyFile, archive string) (string, *Ma
 	for _, suffix := range []string{"-wal", "-shm"} {
 		os.Remove(filepath.Join(stage, store.FileName+suffix))
 	}
+	stamp := time.Now().Format("20060102-150405")
 	old := ""
-	if _, err := os.Stat(dataDir); err == nil {
-		old = dataDir + ".before-restore-" + time.Now().Format("20060102-150405")
-		if err := os.Rename(dataDir, old); err != nil {
+	if inPlace {
+		old, err = swapInPlace(dataDir, stage, stamp)
+		if err != nil {
+			return "", nil, err
+		}
+	} else {
+		if _, err := os.Stat(dataDir); err == nil {
+			old = dataDir + ".before-restore-" + stamp
+			if err := os.Rename(dataDir, old); err != nil {
+				return "", nil, err
+			}
+		}
+		if err := os.Rename(stage, dataDir); err != nil {
+			if old != "" {
+				os.Rename(old, dataDir)
+			}
 			return "", nil, err
 		}
 	}
-	if err := os.Rename(stage, dataDir); err != nil {
-		if old != "" {
-			os.Rename(old, dataDir)
-		}
-		return "", nil, err
-	}
 	done = true
+	if owned {
+		if err := chownTree(dataDir, uid, gid); err != nil {
+			return old, m, err
+		}
+	}
 	return old, m, nil
+}
+
+func swapInPlace(dataDir, stage, stamp string) (string, error) {
+	old, err := os.MkdirTemp(dataDir, ".before-restore-"+stamp+"-")
+	if err != nil {
+		return "", err
+	}
+	entries, err := os.ReadDir(dataDir)
+	if err != nil {
+		return "", err
+	}
+	for _, e := range entries {
+		p := filepath.Join(dataDir, e.Name())
+		if p == stage || p == old || e.Name() == LockFile || strings.HasPrefix(e.Name(), ".before-restore-") {
+			continue
+		}
+		if err := os.Rename(p, filepath.Join(old, e.Name())); err != nil {
+			return "", err
+		}
+	}
+	staged, err := os.ReadDir(stage)
+	if err != nil {
+		return "", err
+	}
+	for _, e := range staged {
+		if err := os.Rename(filepath.Join(stage, e.Name()), filepath.Join(dataDir, e.Name())); err != nil {
+			return "", err
+		}
+	}
+	return old, os.Remove(stage)
 }
 
 func unpack(archive, dst string) (*Manifest, error) {
