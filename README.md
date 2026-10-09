@@ -48,6 +48,12 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 - **Take everything out** · a page, a tree or the whole workspace as Markdown w/ databases as CSV (it imports back), as HTML styled like a published site, or as one PDF w/ bookmarks & pictures
 - **A documented API** · an OpenAPI 3.1 document generated from the live router & a reference page at `/api/docs`; personal tokens or OAuth 2.1 tokens for the REST API; opaque cursors on long lists; per-token rate limits w/ standard headers
 - **Enterprise identity** · SAML 2.0 w/ a SAML-only switch beside OIDC, SCIM 2.0 users & groups, signed webhooks w/ retries & auto-pause, an audit log w/ filters, CSV export, retention & a SIEM stream (Splunk HEC or JSON)
+- **Opens without the server** · a service worker caches the app & a signed-in shell, visited pages live in the browser, & "Available offline" keeps a page & its subpages ready before you need them; a reload with the server down shows the tree & the text
+- **Encrypted at rest w/ a key you hold** · every database page & WAL frame through an XTS-AES-256 SQLite VFS, uploads as chunked AES-256-GCM that still serve ranges, sealed secrets & certificates; the key lives outside the data directory, a wrong or missing key refuses to start, & `form-md encrypt` converts an existing instance
+- **Run it yourself w/o a manual** · a checksum-verifying one-line installer w/ a hardened systemd unit, a distroless multi-arch image, built-in Let's Encrypt or a Cloudflare tunnel, `form-md backup` while people work, an atomic `restore`, `doctor`, an owner reset, a browser backup download, a daily update check & a fail2ban filter
+- **Deutsch** · every screen, the sign-in page rendered by the server & the mail in German, per person
+- **Mail through Gmail or Microsoft 365** · connect the sending account w/ OAuth instead of an SMTP password
+- **Installable** · a web app manifest, a Sync button in the installed window & pull to refresh on phones
 - **One static binary** built w/ `CGO_ENABLED=0`: client, migrations & license notices embedded; five release targets (linux & darwin on amd64/arm64, windows amd64)
 - **Reads never queue behind writes** · one SQLite writer connection plus a query-only reader pool, numbered migrations in one transaction each, WAL checkpointed on clean shutdown
 - **Zero first-paint flash** · the server renders the sign-in state, the account & the current workspace into the page, & an inline boot script applies theme & sidebar before CSS paints; Inter & JetBrains Mono are preloaded w/ metric-matched fallbacks, so text never reflows when a font arrives; verified frame by frame under 4x CPU & 500 kbps throttling, dark & light, signed out & signed in
@@ -93,6 +99,14 @@ form-md_oc_install.bat
 form-md.bat
 ```
 
+### Servers
+
+```shell
+curl -fsSL https://github.com/nodemode-ai/form.md/releases/latest/download/install.sh | sh
+```
+
+The installer verifies the download against `SHA256SUMS`, installs `/usr/local/bin/form-md` & on systemd hosts a hardened `form-md` service w/ its data in `/var/lib/form-md`. With Docker: `docker run -p 8750:8750 -v form-md:/data ghcr.io/nodemode-ai/form.md`. Both are published by the release workflow from the first tag after v0.10.1; the wiki in `.docs/wiki` covers install, encryption, TLS, backups & operations.
+
 ### Ports
 
 | Service | URL | Notes |
@@ -111,15 +125,22 @@ Start-up settings come from environment variables; there is no config file. `for
 | `FORMMD_DATA` | Data directory for the database & uploads, default `./data` |
 | `FORMMD_TLS_CERT` | TLS certificate path; set together w/ `FORMMD_TLS_KEY` |
 | `FORMMD_TLS_KEY` | TLS private key path; set together w/ `FORMMD_TLS_CERT` |
+| `FORMMD_KEY_FILE` | At-rest encryption key (`form-md keygen` makes one), kept outside the data directory; a systemd credential named `form-md.key` works too |
+| `FORMMD_ACME_DOMAINS` | Host names to get Let's Encrypt certificates for; w/ `FORMMD_ACME_EMAIL`, `FORMMD_ACME_DIRECTORY` & `FORMMD_HTTP_ADDR` |
+| `FORMMD_CLOUDFLARED` | Path to `cloudflared` for the public tunnel when it is not on `PATH` |
+| `FORMMD_UPDATE_URL` | Where the update check reads the latest release (a mirror on closed networks) |
 | `FORMMD_FETCH_PRIVATE` | Set to `1` to let link previews & media imports reach private network addresses (intranet sites); off by default |
+| `FORMMD_TRUST_PROXY` | Default for trusting `X-Forwarded-*` headers behind a reverse proxy; a value saved in Instance settings wins |
 | `FORMMD_TRASH_DAYS` | Default for emptying the trash automatically, in days (0 disables); a value saved in Instance settings wins |
 | `FORMMD_UPDATE_CHECK` | Default for the daily version check; a value saved in Instance settings wins |
+
+Commands: `form-md serve` (default), `backup FILE`, `restore FILE`, `doctor`, `encrypt`, `keygen`, `admin reset-owner`, `admin set KEY VALUE`, `version`.
 
 ## Architecture
 
 ```
 form.md/
-├── cmd/form-md/        entry point & subcommands (serve, version, help)
+├── cmd/form-md/        entry point & subcommands (serve, backup, restore, doctor, encrypt, keygen, admin, version)
 ├── embed.go            embeds web/dist & NOTICES.md into the binary
 ├── internal/
 │   ├── app/            module registry, server lifecycle, /healthz, /notices
@@ -157,8 +178,13 @@ form.md/
 │   ├── admin/          users, ownership, emergency access, instance settings
 │   ├── settings/       typed instance settings w/ sealed secrets
 │   ├── secrets/        AES-GCM sealing & token minting
+│   ├── crypt/          the operator key, key check & sealed files
+│   ├── cryptvfs/       the encrypting SQLite VFS (XTS-AES-256 pages)
+│   ├── ops/            backup, restore, doctor, encrypt, owner reset, the data-directory lock, memory sizing
+│   ├── tunnel/         the supervised Cloudflare tunnel on a private socket
+│   ├── i18n/           server-side catalogs for mail, push & the rendered page
 │   ├── audit/          the activity record, its queries & retention
-│   ├── mail/           SMTP sending
+│   ├── mail/           SMTP, Gmail & Microsoft Graph sending
 │   ├── config/         FORMMD_* environment variables
 │   ├── httpx/          router, middleware chain, JSON errors, rate limits
 │   ├── static/         embedded client: rendered document, caching, gzip, ETag, CSP
@@ -172,7 +198,11 @@ form.md/
 │       ├── extensions/ feature modules registered w/ the engine, incl. the block editor & the database views
 │       ├── ui/         DOM layer: sidebar tree, top bar, page header, library, trash, pickers, dialogs, settings, tokens
 │       └── styles/     component styles on the token system
-├── tools/              Go side install & boot scripts, NOTICES generator
+├── tools/              Go side install & boot scripts, NOTICES generator, the wiki check
+├── deploy/             systemd unit, fail2ban filter & jail
+├── install.sh          the one-line installer
+├── Dockerfile          multi-arch distroless image
+├── .docs/wiki/         operator & developer wiki, checked against the code by make check
 ├── assets/             repo-level art for this README, not part of the build
 ├── Makefile            build, release, check
 └── form-md             dev boot for both sides
@@ -182,9 +212,12 @@ form.md/
 
 ## Status of subsystems
 
-- **Accounts & sign-in:** built. Put HTTPS in front before exposing an instance (built-in certificates arrive in Phase 11).
-- **Mail:** SMTP only; Gmail & Microsoft Graph sending arrive in Phase 11.
-- **German:** the language setting exists; the German translation arrives in Phase 11.
+- **Accounts & sign-in:** built. HTTPS from built-in ACME (checked against a local Pebble), operator certificates, a reverse proxy or the Cloudflare tunnel.
+- **Mail:** SMTP, Gmail & Microsoft Graph. Gmail & Graph were checked against a stand-in provider, not yet against Google or Microsoft.
+- **German:** built: every client string, the server-rendered page & mail.
+- **Offline start:** built. Databases & other server data still need the server; text edits made offline sync when it is back.
+- **Encryption at rest:** built. File sizes & WAL frame headers (w/ their checksums) stay visible; there is no key rotation yet.
+- **Operations & packaging:** built. The systemd branch of the installer, the arm64 image & the workflows were not run in this sandbox; the tunnel was checked w/ a stand-in for cloudflared.
 - **Pages & the shell:** built: tree, tabs, favorites, tags, notes mode, library, trash, covers, icons, uploads, live updates.
 - **Editor & realtime co-editing:** built, incl. equations, a breadcrumb block, columns made by dragging, link cards filled by the server, media from links & pasted pages, embeds, Mermaid diagrams drawn in a sandbox & synced blocks across pages. Table cells cannot be merged, & a synced block has no slash menu inside it yet.
 - **Search:** built: titles, bodies w/ heading paths & database properties, filters & sorts, from a palette (Ctrl or Cmd+K). The text of uploaded PDFs is not indexed yet; imported PDFs become pages whose text is.
@@ -193,7 +226,7 @@ form.md/
 - **Import & export:** built. Readers were checked against sample files made for this project, not yet against large real exports; scanned PDFs have no text to import. Imports run one or two at a time & a restart cancels a running one.
 - **REST API:** built & documented at `/api/docs`. OAuth clients ask for the resource `<origin>/api`; MCP keeps its own tokens.
 - **Sharing, comments, suggestions, inbox & history:** built. A restore keeps blocks someone is typing in as they are & says how many.
-- **Publishing:** built. Custom domains need TLS from a reverse proxy until built-in certificates (Phase 11); databases publish as a table of their first view.
+- **Publishing:** built. Custom domains need TLS from a reverse proxy (built-in ACME covers the instance's own names); databases publish as a table of their first view.
 - **Analytics, webhooks, audit log, SCIM & SAML:** built. SAML & SCIM are tested against a local identity provider & provider-shaped requests, not yet against Okta, Entra or Google Workspace.
 - **Agents (MCP) & AI:** built. Verified against a local provider stand-in, not yet against live Anthropic, OpenAI or Gemini keys. AI answers draw on the workspace only; web & connector sources are not built.
 - **Windows scripts:** written but not yet run on a Windows host.
@@ -227,13 +260,13 @@ On macOS, `Ctrl` reads as `Cmd`.
 
 ## Development
 
-- One `main` branch for now; a branch model arrives w/ the wiki in Phase 11
+- Branch model in `BRANCHING.md`: `main` only, releases are annotated `vX.Y.Z` tags that the release workflow builds
 - Conventions: surgical edits only, zero emojis anywhere incl. markdown, every colour & layer from the token files, no icon libraries, no UI framework, semver tags from `main`
-- `make check` runs gofmt, `go vet` & the client type check
+- `make check` runs gofmt, `go vet`, the wiki-versus-code check & the client type check
 
 ## Status
 
-Phases 1 to 10 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, search w/ the rest of the editor, collaboration, sharing & identity, agents & AI, automations, charts, buttons, templates, map & feed, & import, export & the documented API) are complete at this version. Phase 11, opening offline & encryption at rest, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
+Phases 1 to 10 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, search w/ the rest of the editor, collaboration, sharing & identity, agents & AI, automations, charts, buttons, templates, map & feed, & import, export & the documented API) & Phase 11 (offline start, encryption at rest, built-in HTTPS & the tunnel, backup & restore, packaging, German & the wiki) are complete at this version. Phase 12, node-link graphs, heatmaps, more charts & kanban editing, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
 
 ## Contributors
 
