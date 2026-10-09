@@ -77,7 +77,7 @@ export class PageStore {
     if (!list) {
       list = [...(this.byParent.get(k) ?? [])]
         .map((id) => this.pages.get(id))
-        .filter((p): p is Page => p !== undefined)
+        .filter((p): p is Page => p !== undefined && !p.is_template)
         .sort((a, b) => compareKeys(a.sort_key, b.sort_key) || compareKeys(a.id, b.id));
       this.sorted.set(k, list);
     }

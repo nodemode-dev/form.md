@@ -12,6 +12,7 @@ import { tagColorFor, focusTitleSoon } from "./tree";
 import { mountEditor } from "../extensions/blocks";
 import { mountDiscussion } from "./discussion";
 import { mountModeSwitch } from "./mode-switch";
+import { setTemplate } from "./page-actions";
 import { type DatabaseViews, databaseViews, loadDatabase } from "../extensions/database/load";
 import type { RowPropsHandle } from "../extensions/database/rowprops";
 import type { DatabaseHandle } from "../extensions/database/surface";
@@ -100,7 +101,25 @@ export function mountPageView(engine: Engine): void {
   const propsHost = h("div", { class: "page-props" });
   const body = h("div", { class: "page-body" }, dbHost, editorWrap, subTitle, subList, addSub, backTitle, backList);
   const discussion = mountDiscussion(engine, () => paint());
-  const inner = h("div", { class: "page" }, head, propsHost, discussion.el, body);
+  const tplText = h("span", { class: "tplbanner__text" });
+  const tplUse = h("button", { class: "btn btn--sm", attrs: { type: "button" } }, h("span", { text: t("Use this template") }));
+  const tplStop = h("button", { class: "link-btn", attrs: { type: "button" }, text: t("Stop using as a template") });
+  const tplBack = h("button", { class: "link-btn", attrs: { type: "button" }, text: t("Back to the database") });
+  const tplBanner = h("div", { class: "tplbanner", attrs: { role: "note" } }, iconNode("gallery"), tplText, tplUse, tplStop, tplBack);
+  tplBanner.hidden = true;
+  tplUse.addEventListener("click", () => {
+    const p = current();
+    if (p) void import("./templates-dialog").then((m) => m.useTemplate(engine, { page: p.id }).then((n) => engine.openPage(n.id))).catch(engine.reportError);
+  });
+  tplStop.addEventListener("click", () => {
+    const p = current();
+    if (p) void setTemplate(engine, p.id, false);
+  });
+  tplBack.addEventListener("click", () => {
+    const p = current();
+    if (p?.parent_id) engine.openPage(p.parent_id);
+  });
+  const inner = h("div", { class: "page" }, tplBanner, head, propsHost, discussion.el, body);
   view.append(cover, inner);
   const editor = mountEditor(engine, docBody, editorWrap);
   mountModeSwitch(engine, editor);
@@ -380,6 +399,13 @@ export function mountPageView(engine: Engine): void {
     adders.hidden = addIcon.hidden && addCover.hidden && addDesc.hidden && addComment.hidden;
     desc.hidden = !showDesc;
     coverActions.hidden = !w;
+    tplBanner.hidden = !p.is_template;
+    if (p.is_template) {
+      setText(tplText, p.row ? t("You are editing a database template. New pages made from it start with these properties and this content.") : t("This page is a template. Using it makes a copy with the same content."));
+      tplUse.hidden = !!p.row;
+      tplStop.hidden = !!p.row || !w;
+      tplBack.hidden = !p.row;
+    }
     paintTags(p, w);
     paintSubpages(p, w);
   };

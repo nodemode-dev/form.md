@@ -72,6 +72,9 @@ func (c *resultCache) ordered(ev *evaluator, sn *snap, cfg ViewConfig, in QueryI
 	out := make([]*Row, 0, len(base))
 	q := strings.ToLower(strings.TrimSpace(in.Search))
 	for _, r := range base {
+		if r.Template {
+			continue
+		}
 		if q != "" && !ev.search(sn, r, q) {
 			continue
 		}

@@ -442,6 +442,8 @@ export interface Collection {
   can_design: boolean;
   rows: number;
   epoch: number;
+  templates?: { id: string; title: string; icon: string }[];
+  default_template?: string;
 }
 
 export type CellValue = unknown;

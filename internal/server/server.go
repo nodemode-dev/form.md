@@ -44,6 +44,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/site"
 	"github.com/nodemode-ai/form.md/internal/static"
 	"github.com/nodemode-ai/form.md/internal/store"
+	"github.com/nodemode-ai/form.md/internal/templates"
 	"github.com/nodemode-ai/form.md/internal/unfurl"
 	"github.com/nodemode-ai/form.md/internal/webhook"
 	"github.com/nodemode-ai/form.md/internal/workspace"
@@ -219,6 +220,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		crew.Module(),
 		flows.Module(),
 		feed.New(st, authSvc, cols, docs, comments).Module(),
+		templates.New(st, authSvc, gate, pages, docs, cols).Module(),
 		answer.New(st, authSvc, finder, brain).Module(),
 		static.Module(s.renderDocument),
 	}

@@ -166,6 +166,35 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		}
 		return okz(w, r, res)
 	})
+	route("POST /api/collections/{id}/templates", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		var in struct {
+			Title string `json:"title"`
+		}
+		if r.ContentLength != 0 {
+			if err := httpx.Decode(r, &in); err != nil {
+				return err
+			}
+		}
+		t, err := s.CreateTemplate(r.Context(), p, r.PathValue("id"), in.Title)
+		if err != nil {
+			return err
+		}
+		httpx.JSON(w, http.StatusCreated, map[string]any{"template": t})
+		return nil
+	})
+	route("PUT /api/collections/{id}/default-template", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		var in struct {
+			TemplateID string `json:"template_id"`
+		}
+		if err := httpx.Decode(r, &in); err != nil {
+			return err
+		}
+		if err := s.SetDefaultTemplate(r.Context(), p, r.PathValue("id"), in.TemplateID); err != nil {
+			return err
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return nil
+	})
 	route("POST /api/collections/{id}/chart", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 		var in ChartInput
 		if err := httpx.Decode(r, &in); err != nil {

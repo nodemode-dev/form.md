@@ -45,6 +45,10 @@ func (s *Service) OnEvent(ctx context.Context, e webhook.Event) {
 	if err != nil || colID == "" {
 		return
 	}
+	var tpl int
+	if s.Store.R.QueryRowContext(ctx, "SELECT is_template FROM pages WHERE id = ?", e.PageID).Scan(&tpl) != nil || tpl == 1 {
+		return
+	}
 	rows, err := s.Store.R.QueryContext(ctx, "SELECT "+cols+" FROM automations WHERE collection_id = ? AND enabled = 1 AND trigger_kind = ?", colID, kind)
 	if err != nil {
 		return

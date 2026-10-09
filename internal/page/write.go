@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -179,6 +180,7 @@ type UpdateInput struct {
 	Description *string   `json:"description"`
 	Tags        *[]string `json:"tags"`
 	Visibility  *string   `json:"visibility"`
+	IsTemplate  *bool     `json:"is_template"`
 }
 
 func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in UpdateInput) (*Meta, error) {
@@ -242,6 +244,13 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 		sets, args = append(sets, "tags = ?"), append(args, string(b))
 		before, _ := json.Marshal(m.Tags)
 		changes = append(changes, audit.Change{Field: "tags", Before: string(before), After: string(b)})
+	}
+	if in.IsTemplate != nil && *in.IsTemplate != m.IsTemplate {
+		if a.level < LevelEdit || !a.viewer.member || m.Row {
+			return nil, httpx.ErrForbidden
+		}
+		sets, args = append(sets, "is_template = ?"), append(args, store.Bool(*in.IsTemplate))
+		changes = append(changes, audit.Change{Field: "is_template", Before: strconv.FormatBool(m.IsTemplate), After: strconv.FormatBool(*in.IsTemplate)})
 	}
 	movedPrivacy := false
 	if in.Visibility != nil {

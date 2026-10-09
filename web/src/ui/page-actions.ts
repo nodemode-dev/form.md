@@ -1,4 +1,4 @@
-import type { Engine } from "../engine";
+import type { Engine, Page } from "../engine";
 import { t } from "../engine/i18n";
 import { errorMessage } from "./errors";
 import { copyText } from "./form";
@@ -17,6 +17,16 @@ function openPublishDialog(engine: Engine, id: string): Promise<void> {
 
 function openHistory(engine: Engine, id: string): void {
   void import("./history-dialog").then((m) => m.openHistory(engine, id), engine.reportError);
+}
+
+export async function setTemplate(engine: Engine, id: string, on: boolean): Promise<void> {
+  try {
+    const r = await engine.api.http.patch<{ page: Page }>(`/api/pages/${encodeURIComponent(id)}`, { is_template: on });
+    if (r?.page) engine.pages.upsert(r.page);
+    toast({ id: "template", tone: "success", message: on ? t("Saved as a template. Find it under Templates in the sidebar.") : t("This page is a normal page again.") });
+  } catch (e) {
+    engine.reportError(e);
+  }
 }
 
 export function prefetchPageDialogs(): void {
@@ -76,6 +86,7 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
   if (engine.can(id, "content")) entries.push({ label: t("Add a page inside"), icon: "plus", run: handlers.addInside });
   const parent = p.parent_id && !p.detached ? p.parent_id : "";
   if (parent ? engine.can(parent, "content") : member) entries.push({ label: t("Duplicate"), icon: "copy", run: () => void duplicatePage(engine, id) });
+  if (member && engine.can(id, "edit") && !p.row) entries.push({ label: t("Save as template"), icon: "gallery", run: () => void setTemplate(engine, id, true) });
   if (writable && member) {
     if (!personal) {
       const priv = p.visibility === "private";

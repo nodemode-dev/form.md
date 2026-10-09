@@ -30,6 +30,7 @@ type Row struct {
 	CreatedBy string
 	UpdatedAt int64
 	UpdatedBy string
+	Template  bool
 }
 
 type snap struct {
@@ -117,14 +118,16 @@ type cache struct {
 	snaps map[string]*snap
 }
 
-const rowColumns = `p.id, p.title, p.icon, p.cover, p.thumb, p.snippet, p.sort_key, r.vals, r.number, r.version, p.created_at, p.created_by, p.updated_at, p.updated_by`
+const rowColumns = `p.id, p.title, p.icon, p.cover, p.thumb, p.snippet, p.sort_key, r.vals, r.number, r.version, p.created_at, p.created_by, p.updated_at, p.updated_by, p.is_template`
 
 func scanRow(sc interface{ Scan(...any) error }) (*Row, error) {
 	var r Row
 	var vals string
-	if err := sc.Scan(&r.ID, &r.Title, &r.Icon, &r.Cover, &r.Thumb, &r.Snippet, &r.SortKey, &vals, &r.Number, &r.Version, &r.CreatedAt, &r.CreatedBy, &r.UpdatedAt, &r.UpdatedBy); err != nil {
+	var tpl int
+	if err := sc.Scan(&r.ID, &r.Title, &r.Icon, &r.Cover, &r.Thumb, &r.Snippet, &r.SortKey, &vals, &r.Number, &r.Version, &r.CreatedAt, &r.CreatedBy, &r.UpdatedAt, &r.UpdatedBy, &tpl); err != nil {
 		return nil, err
 	}
+	r.Template = tpl == 1
 	r.Vals = map[string]json.RawMessage{}
 	if vals != "" && vals != "{}" {
 		if err := json.Unmarshal([]byte(vals), &r.Vals); err != nil {

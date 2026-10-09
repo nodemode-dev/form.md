@@ -98,6 +98,9 @@ type Out struct {
 	CanDesign   bool   `json:"can_design"`
 	Rows        int    `json:"rows"`
 	Epoch       int64  `json:"epoch"`
+
+	Templates       []TemplateRef `json:"templates"`
+	DefaultTemplate string        `json:"default_template"`
 }
 
 var viewTypes = map[string]bool{"table": true, "board": true, "list": true, "gallery": true, "calendar": true, "timeline": true, "form": true, "chart": true, "map": true, "feed": true, "dashboard": true}
@@ -547,7 +550,12 @@ func (s *Service) Get(ctx context.Context, p *policy.Principal, id string) (*Out
 	sn.mu.RLock()
 	schema := sn.schema.Clone()
 	inline := sn.inline
-	n := len(sn.rows)
+	n := 0
+	for _, r := range sn.rows {
+		if !r.Template {
+			n++
+		}
+	}
 	sn.mu.RUnlock()
 	if !canWrite {
 		for i := range views {
@@ -559,7 +567,8 @@ func (s *Service) Get(ctx context.Context, p *policy.Principal, id string) (*Out
 		_, err := s.pages.CanEdit(ctx, p, id)
 		design = err == nil
 	}
-	return &Out{ID: id, WorkspaceID: m.WorkspaceID, Title: m.Title, Icon: m.Icon, Inline: inline, Schema: schema, Views: views, CanWrite: canWrite, CanDesign: design, Rows: n, Epoch: s.epoch.Load()}, nil
+	tpls, def := s.templates(ctx, id)
+	return &Out{ID: id, WorkspaceID: m.WorkspaceID, Title: m.Title, Icon: m.Icon, Inline: inline, Schema: schema, Views: views, CanWrite: canWrite, CanDesign: design, Rows: n, Epoch: s.epoch.Load(), Templates: tpls, DefaultTemplate: def}, nil
 }
 
 func (s *Service) Query(ctx context.Context, p *policy.Principal, collectionID string, in QueryInput) (*QueryResult, error) {
@@ -698,7 +707,7 @@ func (s *Service) SearchRows(ctx context.Context, p *policy.Principal, collectio
 	defer sn.mu.RUnlock()
 	out := []SearchHit{}
 	for _, r := range sn.ordered() {
-		if q != "" && !strings.Contains(strings.ToLower(r.Title), q) {
+		if r.Template || (q != "" && !strings.Contains(strings.ToLower(r.Title), q)) {
 			continue
 		}
 		out = append(out, SearchHit{ID: r.ID, Title: r.Title, Icon: r.Icon})
@@ -742,7 +751,7 @@ func (s *Service) normCtx(ctx context.Context, workspaceID string) *normCtx {
 			for start := 0; start < len(list); start += 400 {
 				part := list[start:min(start+400, len(list))]
 				rows, err := s.st.R.QueryContext(ctx, `SELECT r.page_id FROM collection_rows r JOIN pages p ON p.id = r.page_id
-					WHERE r.collection_id = ? AND p.trashed_at = 0 AND r.page_id IN (`+placeholders(len(part))+`)`, anyArgs(part, collectionID)...)
+					WHERE r.collection_id = ? AND p.trashed_at = 0 AND p.is_template = 0 AND r.page_id IN (`+placeholders(len(part))+`)`, anyArgs(part, collectionID)...)
 				if err != nil {
 					return nil
 				}
@@ -772,6 +781,8 @@ type RowInput struct {
 	BeforeID string                     `json:"before_id"`
 	AfterID  string                     `json:"after_id"`
 	Top      bool                       `json:"top"`
+	Template string                     `json:"template_id"`
+	template bool
 }
 
 type RowPatch struct {
@@ -1074,6 +1085,9 @@ func (s *Service) CreateRow(ctx context.Context, p *policy.Principal, collection
 	if err != nil {
 		return nil, err
 	}
+	if in.Template != "" {
+		return s.fromTemplate(ctx, p, m, in)
+	}
 	id, err := s.createRow(ctx, p, m, in, p.UserID)
 	if err != nil {
 		return nil, err
@@ -1106,8 +1120,8 @@ func (s *Service) createRow(ctx context.Context, p *policy.Principal, m *page.Me
 			return err
 		}
 		now := store.NowMS()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO pages (id, workspace_id, parent_id, kind, sort_key, title, icon, owner_id, created_at, created_by, updated_at, updated_by, is_row)
-			VALUES (?, ?, ?, 'doc', ?, ?, '', ?, ?, ?, ?, ?, 1)`, id, m.WorkspaceID, collectionID, key, trimText(name, page.MaxTitle), nullable(author), now, author, now, author); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO pages (id, workspace_id, parent_id, kind, sort_key, title, icon, owner_id, created_at, created_by, updated_at, updated_by, is_row, is_template)
+			VALUES (?, ?, ?, 'doc', ?, ?, '', ?, ?, ?, ?, ?, 1, ?)`, id, m.WorkspaceID, collectionID, key, trimText(name, page.MaxTitle), nullable(author), now, author, now, author, store.Bool(in.template)); err != nil {
 			return err
 		}
 		var number int64
@@ -1128,6 +1142,9 @@ func (s *Service) createRow(ctx context.Context, p *policy.Principal, m *page.Me
 			}
 		}
 		entry := audit.Entry{Action: "row.create", WorkspaceID: m.WorkspaceID, PageID: id, Detail: collectionID}
+		if in.template {
+			entry.Action = "row.template"
+		}
 		if p == nil {
 			entry.ActorKind, entry.ActorLabel = "form", "Public form"
 		}

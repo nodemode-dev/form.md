@@ -222,6 +222,123 @@
   opacity: 0.7;
 }
 
+.db__newgroup {
+  display: inline-flex;
+  align-items: stretch;
+  margin-inline-start: var(--space-1);
+}
+
+.db__newgroup > .db__new {
+  margin-inline-start: 0;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.db__newmenu {
+  min-inline-size: 0;
+  padding-inline: var(--space-1);
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-inline-start: 1px solid color-mix(in srgb, var(--on-accent, #fff) 25%, transparent);
+}
+
+.db__newmenu .icon {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+.sb-templates {
+  inline-size: 100%;
+  font: inherit;
+  text-align: start;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tplbanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: var(--accent-wash);
+  border-radius: var(--radius);
+}
+
+.tplbanner__text {
+  flex: 1;
+  min-inline-size: 12em;
+}
+
+.tplgal {
+  display: grid;
+  row-gap: var(--space-4);
+}
+
+.tplgal__cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.tplgal__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2);
+}
+
+.tplcard {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-2);
+  row-gap: 2px;
+  padding: var(--space-3);
+  font: inherit;
+  text-align: start;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.tplcard:hover,
+.tplcard:focus-visible {
+  border-color: var(--border-strong);
+  background: var(--hover);
+}
+
+.tplcard[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.tplcard__icon {
+  grid-row: span 2;
+}
+
+.tplcard__name {
+  font-weight: var(--weight-semibold);
+}
+
+.tplcard__desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.tplgal__head {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
 .automation-key {
   display: flex;
   flex-wrap: wrap;

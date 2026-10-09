@@ -108,7 +108,9 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   const moreBtn = btn("more", t("More"));
   const autoBtn = btn("bolt", t("Automations"));
   const newBtn = h("button", { class: "btn btn--primary btn--sm db__new", attrs: { type: "button" } }, iconNode("plus"), h("span", { text: t("New") }));
-  tools.append(filterBtn, sortBtn, groupBtn, searchBtn, searchIn, propsBtn, layoutBtn, autoBtn, moreBtn, newBtn);
+  const newMenu = h("button", { class: "btn btn--primary btn--sm db__newmenu", attrs: { type: "button", "aria-label": t("New page from a template"), "aria-haspopup": "menu" } }, iconNode("chevron-down"));
+  const newGroup = h("span", { class: "db__newgroup" }, newBtn, newMenu);
+  tools.append(filterBtn, sortBtn, groupBtn, searchBtn, searchIn, propsBtn, layoutBtn, autoBtn, moreBtn, newGroup);
   const bar = h("div", { class: "db__bar" }, tabs, tools);
   const head = h("div", { class: "db__head" });
   if (o.inline) head.append(title);
@@ -189,7 +191,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     searchBtn.hidden = type === "form";
     layoutBtn.hidden = !current?.r.settings;
     autoBtn.hidden = !canWrite();
-    newBtn.hidden = !canWrite() || type === "form";
+    newGroup.hidden = !canWrite() || type === "form";
     if (o.inline) {
       const name = col?.title ?? "";
       if (document.activeElement !== title && title.value !== name) title.value = name;
@@ -401,12 +403,45 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
       searchBtn.focus();
     }
   });
+  const fromTemplate = (templateId: string) =>
+    void engine.api.http
+      .post<{ row: RowData }>(`/api/collections/${encodeURIComponent(colId)}/rows`, { template_id: templateId })
+      .then((r) => engine.openPage(r.row.id))
+      .catch(engine.reportError);
   newBtn.addEventListener("click", () => {
+    const def = col?.default_template;
+    if (def && col?.templates?.some((x) => x.id === def)) return fromTemplate(def);
     if (current?.r.addNew) return current.r.addNew();
     void store
       .createRow(colId, {})
       .then((row: RowData) => engine.openPage(row.id))
       .catch(engine.reportError);
+  });
+  newMenu.addEventListener("click", () => {
+    const list = col?.templates ?? [];
+    const def = col?.default_template ?? "";
+    const entries: MenuEntry[] = [{ kind: "heading", label: t("New page from") }, { label: t("Blank page"), icon: "page", run: () => void store.createRow(colId, {}).then((row: RowData) => engine.openPage(row.id)).catch(engine.reportError) }];
+    for (const x of list) entries.push({ label: x.title || t("Untitled"), icon: "gallery", hint: x.id === def ? t("Default") : "", run: () => fromTemplate(x.id) });
+    if (canDesign()) {
+      entries.push({ kind: "separator" }, {
+        label: t("New template"),
+        icon: "plus",
+        run: () =>
+          void engine.api.http
+            .post<{ template: { id: string } }>(`/api/collections/${encodeURIComponent(colId)}/templates`, {})
+            .then((r) => engine.openPage(r.template.id))
+            .catch(engine.reportError),
+      });
+      if (list.length) {
+        entries.push({ kind: "heading", label: t("Edit a template") });
+        for (const x of list) entries.push({ label: x.title || t("Untitled"), icon: "pencil", run: () => engine.openPage(x.id) });
+        entries.push({ kind: "heading", label: t("New uses") });
+        const setDef = (id: string) => void engine.api.http.put(`/api/collections/${encodeURIComponent(colId)}/default-template`, { template_id: id }).then(() => store.load(colId, true)).catch(engine.reportError);
+        entries.push({ label: t("Blank page"), checked: !def, run: () => setDef("") });
+        for (const x of list) entries.push({ label: x.title || t("Untitled"), checked: x.id === def, run: () => setDef(x.id) });
+      }
+    }
+    openMenu(newMenu, entries, { side: "bottom", align: "end", label: t("Templates") });
   });
   moreBtn.addEventListener("click", () => {
     const v = col?.views.find((x) => x.id === activeId);
