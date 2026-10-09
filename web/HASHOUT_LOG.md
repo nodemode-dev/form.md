@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.6.0
-Last updated: 2026-10-08 · Phase 6: lazy database chunk, search palette, equations, columns, link cards and embeds, the diagram sandbox, synced blocks
+Current build version: v0.7.0
+Last updated: 2026-10-09 · Phase 7: sharing, comments, suggest mode, inbox, history, publishing, analytics, webhooks, audit, provisioning, SAML
 
 ---
 
@@ -90,6 +90,23 @@ web/
     │   ├── topbar.ts                breadcrumb, page actions, tab strip, update notice
     │   ├── page-view.ts             page header: cover, icon, title, description, tags, pages inside
     │   ├── page-actions.ts          the shared page menu and its actions
+    │   ├── share-dialog.ts          people, groups, guests, links and the publish entry
+    │   ├── teamspace-dialog.ts      teamspace create and settings
+    │   ├── publish-dialog.ts        publish to the web: address, SEO, picture, theme, font, password, domain
+    │   ├── history-dialog.ts        page history: versions, preview, block diff, save, restore
+    │   ├── analytics-dialog.ts      page analytics: KPIs, chart, creator, editors, viewers
+    │   ├── bar-chart.ts             inline SVG bar chart updated in place
+    │   ├── comment-view.ts          thread, composer and suggestion views
+    │   ├── comments-pane.ts         the comments pane with filters
+    │   ├── discussion.ts            page-level discussion under the title
+    │   ├── mode-switch.ts           Editing, Suggesting and Viewing switch
+    │   ├── inbox-view.ts            inbox route
+    │   ├── push.ts                  web push subscription
+    │   ├── workspace-sites.ts       workspace settings: published pages and the publishing switch
+    │   ├── workspace-analytics.ts   workspace settings: activity, most viewed pages, view history switch
+    │   ├── workspace-webhooks.ts    workspace settings: webhooks and the shared destination list
+    │   ├── workspace-audit.ts       workspace settings: audit log and SIEM streams
+    │   ├── workspace-identity.ts    workspace settings: SCIM tokens
     │   ├── pickers.ts               icon picker, cover picker, picture upload
     │   ├── library-view.ts          library route
     │   ├── trash-view.ts            trash route
@@ -99,6 +116,7 @@ web/
     │   ├── account.ts               account settings: profile, security, tokens, language and time
     │   ├── workspace-settings.ts    workspace settings and the new-workspace dialog
     │   ├── admin.ts                 instance settings: general, sign-in, email, users, workspaces, about
+    │   ├── settings-entry.ts        the settings chunk: mounts the account, workspace and instance dialogs
     │   ├── dialog.ts                tabbed, simple, confirm and typed-confirm dialogs, overlay binding
     │   ├── menu.ts                  anchored menus and menu buttons
     │   ├── form.ts                  form controls, status line, busy state
@@ -130,7 +148,9 @@ web/
         ├── overlays.css             tooltip, scrim, dialog, shortcut rows, toasts
         ├── panels.css               menus, dialog sizes, tabbed dialog layout
         ├── settings.css             settings dialog parts: swatches, option cards, users pane
-        ├── pages.css                sidebar sections and rows, tabs, views, page header, covers, pickers, library, trash
+        ├── covers.css               cover gradients, shared with the site stylesheet
+        ├── comments.css             comments, threads, suggestions, inbox
+        ├── pages.css                sidebar sections and rows, tabs, views, page header, pickers, library, trash
         ├── editor.css               document typography, blocks, handle, format bar, menus, cursors, uploads, lightbox
         └── auth.css                 sign-in card and the data-auth visibility rules
 ```
@@ -169,6 +189,8 @@ web/
 - [Phase 3: engine](#p3-engine)
 - [Phase 3: shell](#p3-shell)
 - [Phase 4: documents and editor](#p4)
+- [Phase 6: search and editor completion](#p6)
+- [Phase 7: collaboration, sharing and identity](#p7)
 
 ---
 
@@ -1159,3 +1181,98 @@ One hidden iframe (`sandbox="allow-scripts"`, opaque origin) renders every diagr
 - logged: v0.6.0 · 2026-10-08
 
 A synced block is an atom whose view opens the original page's session and mounts a nested editor bound with `ySyncPlugin` to that document's `s:<key>` root, with its own undo manager. The nested editor's context is the host's with `pageId`, `view` and `writable` overridden, so uploads land on the original page. The global keymap only handles editor shortcuts when the main view has focus, so the nested editor binds undo, redo and the marks itself. The view rebinds after a session reset (a new Y.Doc). The first frame's synced HTML is captured before ProseMirror replaces it and shown until the source session is ready; page switches inside the app prefetch the source documents (up to six, 1.5 s at most) so they are usually ready. Unsync all sets `released` in the original document's `synced` map; copies convert themselves when a writer has them open.
+
+---
+
+## Phase 7: collaboration, sharing and identity {#p7}
+
+### src/engine/index.ts · can() and guests
+- refers-to: src/engine/index.ts :: `can`, `canWrite`; src/engine/pages.ts :: `teams`, `roots`, `shared`, `teamOf`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+Every page row carries its level from the server; `can(id, level)` compares against it, so menus, the editor and the share dialog never compute access themselves. Guests have no workspace role: their tree is the shared roots only, and pages detached from a hidden parent arrive with `detached` set.
+
+### src/extensions/blocks/comments.ts · anchors follow the text
+- refers-to: src/extensions/blocks/comments.ts :: `encodeRange`, `resolveAnchor`, `commentsPlugin`
+- kind: warning-context
+- logged: v0.7.0 · 2026-10-09
+
+Anchors are Yjs relative positions encoded as base64. Remote transactions (ySync origin) rebuild the highlight decorations from the anchors; local ones map them. Read-only bubbles set the range before placing the floating element, or they place off-screen.
+
+### src/extensions/blocks/suggest.ts · drafts as decorations
+- refers-to: src/extensions/blocks/suggest.ts :: `suggestPlugin`, `suggestKey`, `suggestUI`; src/extensions/blocks/editor.ts :: modes
+- kind: warning-context
+- logged: v0.7.0 · 2026-10-09
+
+In Suggesting, `filterTransaction` blocks document changes and typing, keys and paste build drafts drawn as decorations (deletions inline, insertions as widgets with `side: -1`). The draft takes the server id as soon as the POST returns and keeps the widget key `${id}:${text}`, so the stored suggestion does not render twice. Accepting dispatches with meta `{apply: true}`, the only way past the filter; `restoreDoc` uses the same meta.
+
+### src/extensions/blocks/editor.ts · restoreDoc keeps blocks being typed in
+- refers-to: src/extensions/blocks/editor.ts :: `restoreDoc`, `remoteBlocks`; src/ui/history-dialog.ts :: restore
+- kind: warning-context
+- logged: v0.7.0 · 2026-10-09
+
+A restore replaces the whole document in one transaction; y-prosemirror turns it into a minimal Yjs diff, so typing that has not reached this browser yet merges. Top-level blocks holding another collaborator's cursor (from awareness, mapped through the binding) are taken from the live document instead of the version; such a block absent from the version is inserted after its nearest kept neighbour. The history dialog saves a `restore` version first.
+
+### src/ui/history-dialog.ts · preview from the stored state
+- refers-to: src/ui/history-dialog.ts :: `versionDoc`, `compare`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+A version's base64 Yjs state is applied to a scratch Y.Doc and turned into a ProseMirror node with `yXmlFragmentToProseMirrorRootNode`, then serialised with the schema's DOM serializer into the preview. Blocks are compared by block id (by position when a block has none): `changed` when the content differs, `gone` when the live page no longer has it.
+
+### src/site · the published page script and stylesheet
+- refers-to: src/site/main.ts; src/site/site.css; vite.config.ts :: input `site`, `iconTable`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The server renders published pages; this entry only opens toggles and reveals anchors inside closed toggles. The stylesheet imports the tokens, base, covers and editor styles so published blocks look like the editor, and overrides `body` to scroll. The build also emits `.vite/icons.json` (every UI icon and page glyph as SVG) for the server to inline.
+
+### src/ui/publish-dialog.ts · partial updates
+- refers-to: src/ui/publish-dialog.ts :: submit; internal/site/site.go :: `Input`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+Every site field is optional on the server and omitted fields keep their value; `password: ""` removes the password and an omitted password keeps it. The status is fetched before the dialog opens so it never opens empty and then fills.
+
+### src/ui/form.ts and forms.css · switches that load
+- refers-to: src/styles/forms.css :: `.switch[data-loading]`; src/ui/workspace-sites.ts, workspace-analytics.ts, account.ts
+- kind: warning-context
+- logged: v0.7.0 · 2026-10-09
+
+A switch whose value comes from the server keeps its control invisible (`data-loading`) until the value arrives, so it never flips after paint. Lists that load start with their empty message hidden for the same reason.
+
+### src/ui/bar-chart.ts · in-place bars
+- refers-to: src/ui/bar-chart.ts :: `barChart`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The SVG and its bars are created once and reused; a new series only changes attributes, adding or removing bars when the number of days changes. Each bar has a `title` with the date, views and people.
+
+### src/ui/auth.ts and index.html · the SAML button and SAML-only
+- refers-to: index.html :: `data-sso-id="saml"`, `<!--slot:saml-name-->`, `.auth__alt--owner`; src/styles/auth.css :: `data-saml-only`; src/ui/auth.ts :: `owner-password`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The button's label is a server slot so it is right in the first frame. `data-saml-only="true"` hides the password step, the submit button, the divider and the sign-up line; the owner link sets it to `false` on the client to reveal the password form.
+
+### src/main.ts and src/ui/settings-entry.ts · the settings chunk
+- refers-to: src/main.ts :: `ensureSettings`; src/ui/settings-entry.ts :: `mountSettings`; src/ui/dialog.ts :: `overlayDialog`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The account, workspace and instance settings dialogs with all their tabs load as one chunk (23 KB gzipped), fetched when one of their overlays is asked for or at idle 2.5 s after start, like the search palette; this took the up-front script from 251 KB back to 229 KB. Because the chunk can arrive after the overlay was set, `overlayDialog` and the workspace dialog's overlay watchers run immediately on mount, so a dialog asked for early opens as soon as its code is there. A failed load clears the overlay so asking again retries.
+
+### src/engine/index.ts · a role change refreshes page levels
+- refers-to: src/engine/index.ts :: `setMe`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+Page levels come with the tree and the page detail, so a changed workspace role (for example member to viewer) would leave the old levels in place and the editor writable. `setMe` compares each workspace's role with the previous `me`; for each workspace whose role changed it reloads that tree if loaded and the open page's detail, and the editor's `detail` watcher then rechecks `editable`.
+
+### src/styles/pages.css and index.html · first-frame chrome
+- refers-to: src/styles/pages.css :: `:root:not([data-route="page"]) .topbar__page-actions`; index.html :: `<!--slot:version-->`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The page actions in the top bar are hidden by CSS on every route but a page, so a home or library load does not paint them and then remove them. The sidebar version text is a server slot, so the footer line has its height in the first frame instead of growing when health arrives.

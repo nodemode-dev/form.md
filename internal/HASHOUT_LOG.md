@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.6.0
-Last updated: 2026-10-08 · Phase 6: search, equations, guarded fetching, link previews, embeds, the diagram sandbox, synced blocks
+Current build version: v0.7.0
+Last updated: 2026-10-09 · Phase 7: access levels, comments, suggestions, inbox, history, sites, analytics, webhooks, audit, SCIM, SAML
 
 ---
 
@@ -29,8 +29,13 @@ form.md/
 │   │   ├── version.go               Version (set by -ldflags), Product name
 │   │   ├── health.go                GET /healthz
 │   │   └── notices.go               GET /notices
+│   ├── analytics/
+│   │   └── analytics.go             page views per viewer per day, page and workspace reports, view privacy
 │   ├── audit/
-│   │   └── audit.go                 audit_log writer: actor kind, action, workspace, page, field changes
+│   │   ├── audit.go                 audit_log writer: actor kind, action, workspace, page, field changes
+│   │   └── query.go                 filtered, cursor-paged reads, facets, retention purge
+│   ├── auditapi/
+│   │   └── auditapi.go              GET /api/workspaces/{id}/audit and audit.csv for admins
 │   ├── auth/
 │   │   ├── password.go              argon2id hash and verify, concurrency cap, dummy hash
 │   │   ├── totp.go                  TOTP check with replay step, otpauth URL, QR as SVG, recovery codes
@@ -38,9 +43,11 @@ form.md/
 │   │   ├── users.go                 setup, login, logout, signup, policy, /api/me, password, email, CreateAccount
 │   │   ├── account.go               TOTP enrolment, API tokens, signed-in sessions
 │   │   ├── oidc.go                  Google, Microsoft and generic OIDC sign-in, SSOProviders
+│   │   ├── saml.go                  SAML 2.0 service provider: metadata, start, ACS, account linking, SAML-only
 │   │   ├── invites.go               invitations: create, list, cancel, look up, accept
 │   │   └── module.go                route table for /api/auth, /api/setup, /api/me, invites
-│   ├── collection/                  databases: schema, rows, query stages, formula language, views, forms, CSV
+│   ├── collection/                  databases: schema, rows, query stages, formula language, views, forms, CSV, public tables
+│   ├── comment/                     threads, replies, reactions, resolve, mentions, suggested edits
 │   ├── config/
 │   │   └── config.go                FORMMD_* env vars (incl. FETCH_PRIVATE), defaults, validation
 │   ├── doc/
@@ -53,7 +60,9 @@ form.md/
 │   │   ├── html.go                  CRDT to the editor's HTML for the first frame
 │   │   ├── math.go                  $ and $$ in Markdown, MathML allow-list
 │   │   ├── embed.go                 embed providers and the generic https embed
-│   │   └── synced.go                synced roots, cross-page first-frame rendering
+│   │   ├── synced.go                synced roots, cross-page first-frame rendering
+│   │   ├── versions.go              page history: deflated Yjs states, list, read, save, restore record, purge
+│   │   └── public.go                the HTML writer's public mode for published pages
 │   ├── events/
 │   │   └── events.go                Hub: sequenced events, replay ring, audience filter, GET /api/events (SSE)
 │   ├── files/
@@ -61,6 +70,7 @@ form.md/
 │   │   └── fetch.go                 POST /api/files/import: a linked file brought in with its size
 │   ├── icon/
 │   │   └── icon.go                  the one rule for icon values: a name from the shared set or an uploaded file
+│   ├── inbox/                       notifications, web push (VAPID), email fallback, reminders
 │   ├── httpx/
 │   │   ├── router.go                ServeMux wrapper, middleware chain, /api/ 404 catch-all
 │   │   ├── middleware.go            request id, panic recovery, access log, security headers
@@ -76,6 +86,10 @@ form.md/
 │   ├── order/
 │   │   └── order.go                 fractional base62 sort keys: Between, After, Before, Valid
 │   ├── page/
+│   │   ├── access.go                levels, the chain walk, viewer, Reach
+│   │   ├── shares.go                shares, share links (resolve, grant, revoke), guest invitations, shared with me
+│   │   ├── teams.go                 teamspaces and groups
+│   │   ├── share_routes.go          routes for teamspaces, groups, shares and links
 │   │   ├── page.go                  Meta, Service, access check, private owner, title and tag cleaning, emit
 │   │   ├── tree.go                  Tree, Trash listing, Get with path, tags and tag colours
 │   │   ├── write.go                 create, update, move (in and across workspaces), duplicate, trash, restore, purge
@@ -89,12 +103,14 @@ form.md/
 │   │   ├── search.go                FTS5 index worker, tiered ranking, filters, GET /api/search
 │   │   ├── passages.go              Markdown split into passages with heading paths
 │   │   └── highlight.go             folding, stemming and snippet marks done in Go
+│   ├── scim/                        SCIM 2.0 Users and Groups for a workspace, token management
 │   ├── secrets/
 │   │   └── secrets.go               AES-GCM sealing with data/secret.key, token minting and hashing
 │   ├── server/
 │   │   └── server.go                Build (wiring), Run, housekeeping, renderDocument, tile colours
 │   ├── settings/
 │   │   └── settings.go              typed instance settings table, validation, env fallback, snapshots
+│   ├── site/                        published sites, custom domains, share-link pages, public files
 │   ├── static/
 │   │   └── static.go                embedded client: rendered document, cache headers, gzip, ETag, CSP
 │   ├── store/
@@ -108,9 +124,19 @@ form.md/
 │   │       ├── 0003_pages.sql       pages, favorites, page visits, tag colours, files
 │   │       ├── 0004_docs.sql        document state, update log, references
 │   │       ├── 0005_collections.sql databases, rows, views, form links
-│   │       └── 0006_search.sql      passages, the FTS5 table and its rank, index metadata
+│   │       ├── 0006_search.sql      passages, the FTS5 table and its rank, index metadata
+│   │       ├── 0007_sharing.sql     teamspaces, groups, page shares, share links, page invitations
+│   │       ├── 0008_comments.sql    threads, comments, reactions
+│   │       ├── 0009_suggestions.sql suggested edits
+│   │       ├── 0010_inbox.sql       notifications, push subscriptions, notification preferences, reminders
+│   │       ├── 0011_versions.sql    page history
+│   │       ├── 0012_sites.sql       published sites, workspace publishing switch
+│   │       ├── 0013_analytics.sql   page views, view privacy, workspace view history switch
+│   │       ├── 0014_webhooks.sql    webhooks, deliveries, event cursors
+│   │       └── 0015_scim.sql        SCIM tokens and provisioned users
 │   ├── unfurl/
 │   │   └── unfurl.go                GET /api/unfurl: page title, description, site, image and icon
+│   ├── webhook/                     signed webhooks and SIEM streams: audit cursor, deliveries, retries, management
 │   └── workspace/
 │       ├── workspace.go             workspaces, members, access, rules, proposals, emergency log
 │       └── module.go                route table for /api/workspaces
@@ -156,6 +182,8 @@ form.md/
 - [v0.2.1: icons, fonts and the system font](#v021)
 - [Phase 3: pages, files and live events](#p3)
 - [Phase 4: documents](#p4)
+- [Phase 6: search and editor completion](#p6)
+- [Phase 7: collaboration, sharing and identity](#p7)
 
 ---
 
@@ -1142,3 +1170,119 @@ The original writes `<!-- synced:<page>/<key> begin -->`, the content, then `<!-
 - logged: v0.6.0 · 2026-10-08
 
 Mermaid brought packages that ship `license.txt` or no license file at all. A package that declares MIT in package.json without a file gets the standard MIT text with the author as the holder, marked as such; any other license without a file still stops the build. Packages present in two versions are ordered by version so the file does not change between builds.
+
+---
+
+## Phase 7: collaboration, sharing and identity {#p7}
+
+### internal/page/access.go · the chain walk
+- refers-to: internal/page/access.go :: `Level`, `viewer`, `step`, `chainLevel`, `levels`, `Reach`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+A page's level is computed from the root down: the root takes the workspace role (or the teamspace rule for its teamspace), a private page resets to none unless the reader is its owner, and a share on any page in the chain raises the level from there down. `levels` memoises the same walk over a whole tree. Guests have no role, so only shares reach them; `viewer` returns hidden when a non-member has no share in the workspace at all.
+
+### internal/page/tree.go · Filter and the NOT IN trap
+- refers-to: internal/page/tree.go :: `Filter`, `marks`
+- kind: warning-context
+- logged: v0.7.0 · 2026-10-09
+
+Listing filters (search, library) exclude hidden subtrees for members and keep only shared subtrees for guests with recursive CTEs. `marks(0)` must return `SELECT NULL WHERE 0`, a list with no rows; `NOT IN (NULL)` matches nothing and once hid every page from a member's search.
+
+### internal/page/shares.go · links grant real shares
+- refers-to: internal/page/shares.go :: `ResolveLink`, `GrantLink`, `RevokeLink`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+A signed-in person who opens `/l/<token>` gets a page share at the link's level with `created_by = link:<link id>` and the link's expiry, unless they already reach that level. Revoking the link deletes those rows in the same transaction. Anonymous readers get the public renderer instead and never a share.
+
+### internal/comment · anchors and suggestions
+- refers-to: internal/comment/comment.go :: `Create`, `Event`; internal/comment/suggest.go :: `Suggest`, `Revise`, `Decide`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+Text anchors and suggestions store the editor's base64 Yjs relative positions, which the server treats as opaque strings. Accepting a suggestion needs edit access; rejecting needs edit access or authorship. Reactions, revisions and decisions are audited, so webhooks see them.
+
+### internal/inbox · push and mail timing
+- refers-to: internal/inbox/inbox.go :: `Run`, `FromComment`, `FromRefs`, `FromShare`, `FromAssign`; internal/inbox/webpush.go
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+A notification is pushed if still unseen after 10 seconds and mailed if still unread after `notify.email_delay_minutes` while the person has no live stream (`Hub.Online`). Web Push is RFC 8291 aes128gcm with a VAPID ES256 token built from the standard library; the VAPID key is a sealed setting created on first boot. Reminders come from date mentions with `remind` and `at`, collected by the materialiser.
+
+### internal/doc/versions.go · when a version is kept
+- refers-to: internal/doc/versions.go :: `saveVersion`; internal/doc/service.go :: `materialise`, unload; internal/doc/room.go :: `changedSinceVersion`, `editors`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+A version is the whole Yjs state, deflated. Materialising keeps one at most every ten minutes, unloading keeps one when anything changed, a hand save always keeps one (or returns the last if nothing changed), and `?kind=restore` keeps one before a restore. `editors` lists who changed the page since the previous version. The empty paragraph a new room creates does not count as a change. Restoring happens in the client; the server only records it.
+
+### internal/doc/room.go and conn.go · no-op syncs
+- refers-to: internal/doc/room.go :: `deleteSetBytes`, `expectDS`, `onUpdate`; internal/doc/conn.go :: `syncMessage`
+- kind: warning-context
+- logged: v0.7.0 · 2026-10-09
+
+ygo's update event carries the new structs and the document's whole delete set, so a client that reconnects with its cached state produces a non-empty update even when nothing changed. Before applying a step 2, or an update with no new structs, the room records its delete set; `onUpdate` drops an update that has no structs and the same delete set. Without this, opening a page recorded the reader as its last editor, broadcast a frame and counted toward history.
+
+### internal/doc/public.go and html.go · public mode
+- refers-to: internal/doc/public.go :: `Public`, `RenderPublic`; internal/doc/html.go :: every `w.pub` branch
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The first-frame writer gains a public mode: page links and mentions go through `Public.Page` (an unpublished target becomes a "Private page" span with no title), files through `Public.File`, callout, mention and crumb icons and the toggle chevron are inlined, task boxes are disabled, user ids and reminder attributes are left out, remote media becomes a link, database blocks become tables and code bars show the language. Synced content from another page is shown only when that page is published too.
+
+### internal/site · routes and scope
+- refers-to: internal/site/site.go; internal/site/render.go :: `load`, `renderPage`, `siteCSP`; internal/site/module.go :: `Host`, `serve`, `unlockPost`, `fileAllowed`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+`/s/<slug>[/<page>]` for sites, `/l/<token>[/<page>]` for share links, and any path on a site's custom domain. The published set is the root and its descendants that are not trashed or private, limited to rows and inline databases when sub-pages are off. Files are served only when a published page references them (`doc_refs`), owns them, uses them as cover or icon, or the site uses one as its preview picture. Passwords set an HMAC cookie keyed by `sites.key` and the password revision, so changing the password signs everyone out. The host middleware runs before sessions and passes `/assets/` through so the site stylesheet loads on custom domains. A hostname equal to the instance's own host, an IP or localhost is refused.
+
+### internal/site/render.go · the asset table
+- refers-to: internal/site/render.go :: `loadAssets`; web/vite.config.ts :: `iconTable`, input `site`
+- kind: warning-context
+- logged: v0.7.0 · 2026-10-09
+
+The renderer reads the site entry's script, stylesheet and Inter preload from `.vite/manifest.json` and the icon and glyph SVGs from `.vite/icons.json`, both emitted by the Vite build. Without a built client the pages still render, unstyled and without icons.
+
+### internal/analytics · counting views
+- refers-to: internal/analytics/analytics.go :: `Record`, `Page`, `Workspace`
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+One row per page, day and viewer; a repeat within ten minutes only moves `last_at`. Viewers are user ids, `h:<hash>` for someone who opted out or whose workspace turned view history off, and `v:<hash>` for web visitors (a daily hash of the site key, address and user agent, no cookie). Page reports need edit access; workspace reports are for admins and list only pages the admin can open.
+
+### internal/webhook · the audit cursor
+- refers-to: internal/webhook/webhook.go :: `pumpAudit`, `enqueue`, `deliverDue`, `sign`; internal/webhook/manage.go
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The dispatcher reads `audit_log` past the `audit` cursor every two seconds or when poked, turns each entry into an event named after its action, and queues a delivery for each active hook whose patterns match (a `siem` hook takes every audit event). Deliveries are signed `X-FormMD-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "t.body">`, never follow redirects, retry at 30 s, 2 min, 10 min, 30 min, 2 h, 6 h and 12 h, and a hook pauses itself after 100 consecutive failed deliveries. Secrets and authorization headers are sealed.
+
+### internal/audit/query.go and internal/auditapi · reading the log
+- refers-to: internal/audit/query.go :: `Filter`, `Query`, `Facets`, `Purge`; internal/auditapi/auditapi.go
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+An action ending in a dot filters by prefix (`page.`); otherwise it is exact. Paging is by id descending with `before`. The CSV prefixes cells that start with `=`, `+`, `-`, `@`, tab or carriage return with an apostrophe. `audit.retention_days` is enforced by housekeeping.
+
+### internal/scim · mapping
+- refers-to: internal/scim/scim.go :: `Middleware`, `serve`; internal/scim/users.go; internal/scim/groups.go; internal/scim/manage.go
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The endpoint runs as middleware ahead of the session middleware, which would otherwise reject a `scim_` bearer token. A token belongs to one shared workspace. Users in scope are the workspace's members plus anyone in `scim_users` for it; `active` is membership. Creating links an existing account by email or creates one with an unusable random password (people then sign in through SSO or reset it); deactivating and deleting remove the membership through `workspace.SetAccess`, which keeps the last-admin rule. Groups are workspace groups with `external_id`; members must already be workspace members. Every change is audited as `system` with the label `SCIM <token name>`.
+
+### internal/auth/saml.go · what the library leaves to us
+- refers-to: internal/auth/saml.go :: `samlSP`, `handleSAMLStart`, `handleSAMLACS`, `samlAccount`; internal/auth/service.go :: the ACS origin exemption
+- kind: warning-context
+- logged: v0.7.0 · 2026-10-09
+
+gosaml2 verifies the signature and reports audience and time problems as warnings, so the ACS refuses `InvalidTime` and `NotInAudience` itself. It also refuses a reused assertion id (kept in memory until the assertion's end), a response whose `InResponseTo` differs from the request id sealed in the RelayState, and, when the state cookie is present, one that belongs to another sign-in. The ACS is exempt from the cross-site origin check because the identity provider posts it. Accounts link by NameID first, then by email; new accounts follow the sign-up policy. SAML-only refuses password sign-in for everyone but the owner, sign-up, and the other providers.
+
+### internal/server/server.go · version slot and the inbox route
+- refers-to: internal/server/server.go :: `renderDocument` (`slots["version"]`, `attrs["route"] = "inbox"`)
+- kind: explainer
+- logged: v0.7.0 · 2026-10-09
+
+The sidebar's version text is filled from `app.Version` on the server, so the footer line is its final height in the first frame. `/inbox` sets `data-route="inbox"` so a reload there paints the inbox view, not the home view the client would then swap out.
