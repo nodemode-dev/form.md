@@ -724,7 +724,8 @@
   display: none;
 }
 
-.tabbar[data-open="true"] {
+.tabbar[data-open="true"],
+:root[data-tabbar="open"] .tabbar {
   display: flex;
   align-items: stretch;
   gap: var(--space-1);
@@ -833,6 +834,10 @@
 :root[data-route="trash"] .view--trash,
 :root[data-route="inbox"] .view--inbox {
   display: block;
+}
+
+:root[data-shell="offline"] .view--page:not([data-ready]) > * {
+  visibility: hidden;
 }
 
 :root[data-route="home"] .view.doc,

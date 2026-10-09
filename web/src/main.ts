@@ -1,4 +1,5 @@
 import { type AuthState, type Boot, createEngine, type Engine } from "./engine";
+import { ApiError } from "./engine/api";
 import { createClient } from "./engine/client";
 import { resolveLang, setLang, t } from "./engine/i18n";
 import account from "./extensions/account";
@@ -110,7 +111,11 @@ async function start(): Promise<void> {
   }
   mountAuth(engine);
   if (auth === "app") {
-    engine.onError((e) => toast({ id: "error", tone: "danger", message: errorMessage(e) }));
+    const live = engine;
+    engine.onError((e) => {
+      if (e instanceof ApiError && e.code === "network") void live.health.check();
+      else toast({ id: "error", tone: "danger", message: errorMessage(e) });
+    });
     mountRoutes(engine);
     mountSession(engine);
     mountTree(engine);
@@ -123,6 +128,7 @@ async function start(): Promise<void> {
     mountTrashView(engine);
     mountHome(engine);
     const app = engine;
+    setTimeout(() => void import("./ui/offline").then((m) => m.startOffline(app)).catch(() => undefined), 2500);
     const settingsOverlays = new Set<string | null>(["account", "workspace", "new-workspace", "admin"]);
     let settingsJob: Promise<void> | null = null;
     const ensureSettings = () =>

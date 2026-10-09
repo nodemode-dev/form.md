@@ -5,6 +5,7 @@ import { copyText } from "./form";
 import { openAnalytics } from "./analytics-dialog";
 import type { MenuEntry } from "./menu";
 import { tile } from "./avatar";
+import { offlineIds } from "./offline-list";
 import { toast } from "./toast";
 
 export function openShareDialog(engine: Engine, id: string): void {
@@ -105,6 +106,9 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
   if (engine.can(id, "view") && p.kind === "doc") entries.push({ label: t("Page history"), icon: "clock", run: () => openHistory(engine, id) });
   if (engine.can(id, "edit")) entries.push({ label: t("Analytics"), icon: "chart", run: () => void openAnalytics(engine, id) });
   if (engine.can(id, "view")) entries.push({ label: t("Export"), icon: "download", run: () => void import("./transfer-dialog").then((m) => m.openExport(engine, { pageId: id }), engine.reportError) });
+  if (engine.can(id, "view") && p.kind === "doc" && "serviceWorker" in navigator) {
+    entries.push({ label: t("Available offline"), icon: "offline", checked: offlineIds(engine).includes(id), run: () => void import("./offline").then((m) => m.toggleOffline(engine, id), engine.reportError) });
+  }
   if (engine.can(id, "content") && p.kind === "doc" && !p.row)
     entries.push({ label: t("Import into this page"), icon: "upload", run: () => void import("./transfer-dialog").then((m) => m.openImport(engine, { workspaceId: p.workspace_id, parentId: id }), engine.reportError) });
   entries.push({

@@ -427,6 +427,9 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 		attrs["auth"] = "signed-out"
 	case path == "/login" || path == "/signup":
 		return static.Document{Redirect: "/"}, nil
+	case path == "/offline-shell":
+		attrs["auth"] = "app"
+		attrs["shell"] = "offline"
 	default:
 		attrs["auth"] = "app"
 		attrs["route"] = "home"

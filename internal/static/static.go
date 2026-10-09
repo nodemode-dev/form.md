@@ -166,11 +166,17 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := path.Clean("/" + r.URL.Path)
+	if p == "/offline.json" {
+		h.serveOffline(w, r)
+		return
+	}
 	if a, ok := h.files[p]; ok && p != "/index.html" {
 		switch {
 		case p == "/sandbox.html":
 			w.Header().Set("Content-Security-Policy", sandboxCSP)
 			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		case p == "/sw.js":
+			w.Header().Set("Content-Security-Policy", "default-src 'none'; connect-src 'self'")
 		case strings.HasPrefix(p, "/assets/"):
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}

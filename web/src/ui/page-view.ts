@@ -335,7 +335,7 @@ export function mountPageView(engine: Engine): void {
   const paint = () => {
     const p = current();
     if (!p) return;
-    if (p.id !== shownId && releasedId !== p.id && onPage && !pageReady(p)) {
+    if (p.id !== shownId && releasedId !== p.id && (onPage || editor.ssrPage() !== p.id) && !pageReady(p)) {
       if (pendingId === p.id) return;
       pendingId = p.id;
       document.documentElement.dataset.navigating = "";
@@ -346,12 +346,13 @@ export function mountPageView(engine: Engine): void {
         paint();
       };
       void preparePage(p).then(release, release);
-      setTimeout(release, p.kind === "collection" ? HOLD_DB_MS : HOLD_MS);
+      setTimeout(release, p.kind === "collection" || !onPage ? HOLD_DB_MS : HOLD_MS);
       return;
     }
     pendingId = "";
     delete document.documentElement.dataset.navigating;
     onPage = true;
+    if (!view.hasAttribute("data-ready")) setAttr(view, "data-ready", "");
     const fresh = p.id !== shownId;
     if (fresh) {
       shownId = p.id;

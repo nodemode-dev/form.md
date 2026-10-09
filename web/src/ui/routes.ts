@@ -60,7 +60,8 @@ export function mountRoutes(engine: Engine): void {
   );
   state.watch("detail", paintTitle);
   engine.pages.subscribe((c) => {
-    if (c.kind === "upsert") {
+    if (c.kind === "loaded") paintTitle();
+    else if (c.kind === "upsert") {
       const r = state.get("route");
       if (r.name === "page" && r.id === c.page.id) paintTitle();
     }

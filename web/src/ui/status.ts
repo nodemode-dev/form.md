@@ -1,4 +1,5 @@
 import type { Engine, HealthPhase } from "../engine";
+import { t } from "../engine/i18n";
 import { delayedIndicator, ref, setAttr, setText } from "./dom";
 import { toast } from "./toast";
 
@@ -35,7 +36,7 @@ export function mountStatus(engine: Engine): void {
     setAttr(card, "data-state", health.phase);
     setText(label, LABEL[health.phase]);
     setText(version, health.version ?? "");
-    setText(sidebarVersion, health.version ?? "");
+    if (health.version) setText(sidebarVersion, health.version);
     setText(storage, health.storage === null ? "" : health.storage === "ok" ? "OK" : "Error");
     setText(latency, health.latencyMs === null ? (health.phase === "down" ? "n/a" : "") : `${health.latencyMs} ms`);
 
@@ -43,15 +44,15 @@ export function mountStatus(engine: Engine): void {
     if (health.phase === "down") {
       toast({
         id: CONNECTION_TOAST,
-        tone: "danger",
-        message: "Cannot reach the server. Retrying every few seconds.",
+        tone: "warning",
+        message: t("Cannot reach the server. Pages saved on this device stay open, and edits to their text sync when it is back."),
         durationMs: 0,
-        action: { label: "Retry", run: () => engine.commands.run("shell.checkConnection") },
+        action: { label: t("Retry"), run: () => engine.commands.run("shell.checkConnection") },
       });
     } else if (health.phase === "degraded") {
-      toast({ id: CONNECTION_TOAST, tone: "warning", message: "The server is up, but its storage reports an error.", durationMs: 0 });
+      toast({ id: CONNECTION_TOAST, tone: "warning", message: t("The server is up, but its storage reports an error."), durationMs: 0 });
     } else if (health.phase === "ok" && (previous.phase === "down" || previous.phase === "degraded")) {
-      toast({ id: CONNECTION_TOAST, tone: "success", message: "Connection restored." });
+      toast({ id: CONNECTION_TOAST, tone: "success", message: t("Connection restored.") });
     }
   });
 

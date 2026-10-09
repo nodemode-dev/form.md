@@ -1,4 +1,5 @@
 import type { Engine, Page } from "../engine";
+import { ApiError } from "../engine/api";
 import { t } from "../engine/i18n";
 import { tile, updateTile } from "./avatar";
 import { h, ref, setAttr, setText } from "./dom";
@@ -166,7 +167,9 @@ export function mountTopbar(engine: Engine): void {
       void engine.api.pages
         .get(id)
         .then((r) => pages.upsert(r.page))
-        .catch(() => engine.closeTab(id))
+        .catch((e: unknown) => {
+          if (e instanceof ApiError && (e.status === 404 || e.status === 403)) engine.closeTab(id);
+        })
         .finally(() => fetching.delete(id));
     }
     return undefined;
@@ -177,6 +180,7 @@ export function mountTopbar(engine: Engine): void {
     const r = state.get("route");
     const show = tabs.length > 1;
     setAttr(tabbar, "data-open", show ? "true" : null);
+    setAttr(document.documentElement, "data-tabbar", null);
     if (!show) {
       if (tabbar.firstElementChild) tabbar.replaceChildren();
       return;
