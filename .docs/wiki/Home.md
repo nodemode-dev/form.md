@@ -13,7 +13,10 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 | At-rest encryption, `form-md encrypt` | Working, **in testing**, not yet in a tagged release · see [[Encryption]] |
 | Built-in ACME certificates | Working, **in testing**: checked against a test CA (Pebble), not yet against Let's Encrypt production · see [[TLS-and-ACME]] |
 | `backup`, `restore`, `doctor`, `admin reset-owner` | Working, **in testing**, not yet in a tagged release · see [[Backup-and-restore]] and [[Operations]] |
-| Offline start from the service worker | Working, **in testing** · see [[Offline]] |
+| Offline start from the service worker, installable app | Working, **in testing**; the installed app not yet tried on a phone · see [[Offline]] |
+| Cloudflare tunnel | Working, **in testing** against a stand-in, not yet against real Cloudflare · see [[Tunnel]] |
+| Gmail and Microsoft 365 sending | Working, **in testing** against a stub provider, not yet against Google or Microsoft · see [[Mail]] |
+| Automatic HTTPS from Instance settings, browser backup download, update check | Working, **in testing**, not yet in a tagged release · see [[TLS-and-ACME]], [[Backup-and-restore]], [[Operations]] |
 | `install.sh`, systemd unit, container image, release workflow | Written, **not yet exercised by a release**: no tag has been pushed since they landed · see [[Install]] |
 | SAML and SCIM | Tested against a local identity provider only, not yet against Okta, Entra or Google Workspace |
 | AI providers | Verified against a local stand-in, not yet against live provider keys |
@@ -26,9 +29,11 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 - Every environment variable and the settings they seed: [[Configuration]]
 - Encrypt the data directory at rest: [[Encryption]]
 - HTTPS with your own certificate, built-in ACME, or a reverse proxy: [[TLS-and-ACME]]
+- Reach the server through Cloudflare without opening a port: [[Tunnel]]
+- Sending mail through SMTP, Gmail or Microsoft 365: [[Mail]]
 - Back up and restore: [[Backup-and-restore]]
-- Health checks, the data directory, logs and upgrades: [[Operations]]
-- What works without a connection: [[Offline]]
+- Health checks, the data directory, logs, updates, memory, fail2ban and upgrades: [[Operations]]
+- What works without a connection, and the installable app: [[Offline]]
 - REST API, tokens, OAuth, rate limits and connecting agents: [[API-and-agents]]
 - Repo layout, dev loop and conventions: [[Development]]
 - Branches, commits and releases: `BRANCHING.md` at the repo root

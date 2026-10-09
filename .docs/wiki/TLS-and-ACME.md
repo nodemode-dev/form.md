@@ -1,6 +1,6 @@
 # TLS and ACME
 
-form.md serves plain HTTP by default, on loopback only. For anything reachable from other machines, put HTTPS in front in one of three ways: give the server a certificate you manage, let it fetch and renew certificates itself over ACME (Let's Encrypt by default), or run it behind a reverse proxy that terminates TLS. Sign-in cookies are marked `Secure` only when the server sees the request as HTTPS, so pick one of the three before inviting people.
+form.md serves plain HTTP by default, on loopback only. For anything reachable from other machines, put HTTPS in front in one of these ways: give the server a certificate you manage, let it fetch and renew certificates itself over ACME (Let's Encrypt by default, set up from the environment or from Instance settings), run it behind a reverse proxy that terminates TLS, or use a Cloudflare tunnel ([[Tunnel]]). Sign-in cookies are marked `Secure` only when the server sees the request as HTTPS, so pick one before inviting people.
 
 ## Layout
 
@@ -9,6 +9,7 @@ form.md serves plain HTTP by default, on loopback only. For anything reachable f
 | `internal/config/config.go` | `FORMMD_TLS_CERT`, `FORMMD_TLS_KEY`, `FORMMD_ACME_DOMAINS`, `FORMMD_ACME_EMAIL`, `FORMMD_ACME_DIRECTORY`, `FORMMD_HTTP_ADDR` and their checks |
 | `internal/app/app.go` | `Run`: serves TLS when a certificate or ACME is configured, starts the challenge listener, shuts both down |
 | `internal/app/acme.go` | The ACME manager (`golang.org/x/crypto/acme/autocert`), its cache, and the HTTP challenge listener |
+| `internal/server/server.go` | `Build`: turns on ACME from the `https.auto` and `https.domain` instance settings |
 | `internal/httpx/request.go` | How the server works out the client address, scheme and origin, with or without a trusted proxy |
 | `DATADIR/acme/` | The certificate cache (account key and certificates) |
 
@@ -54,6 +55,33 @@ curl -fsS https://notes.example.com/healthz
 form-md doctor     # reports: ok tls ACME for notes.example.com via <directory>
 ```
 
+## Automatic HTTPS from Instance settings
+
+Without touching the environment, an admin can turn on the same ACME setup in **Instance settings, General**:
+
+| Field | Setting |
+|---|---|
+| Domain for automatic HTTPS | `https.domain`, the host name people reach the server at, for example `notes.example.com` |
+| Automatic HTTPS | `https.auto`, off by default |
+
+It takes effect at the next start (`sudo systemctl restart form-md`). At start, when neither `FORMMD_TLS_CERT` nor `FORMMD_ACME_DOMAINS` is set, `https.auto` is on and a domain is saved, the server:
+
+1. uses that one domain as if it were `FORMMD_ACME_DOMAINS`,
+2. moves the listener to `:443` if `FORMMD_ADDR` is the default `127.0.0.1:8750` (the installer writes exactly that value, so an installed server moves too); any other `FORMMD_ADDR` is kept as given,
+3. logs `automatic HTTPS from Instance settings domain=... addr=...`.
+
+`form-md doctor` reports this as `ok tls automatic HTTPS for <domain> from Instance settings (turn off with: form-md admin set https.auto false)`.
+
+Everything else is as described under Built-in ACME: the challenge listener on `FORMMD_HTTP_ADDR`, the redirect, and the cache in `DATADIR/acme/`. Settings in the environment always win: with `FORMMD_TLS_CERT` or `FORMMD_ACME_DOMAINS` set, `https.auto` is ignored.
+
+Before restarting, point the domain's DNS at the server and make sure ports 443 and 80 are reachable. If the server does not come back, `journalctl -u form-md -n 50` names the stage that failed (for example a port already in use). To turn automatic HTTPS off without a working server, write the setting directly and start again (on a systemd install use the `fm` function from [[Operations]]):
+
+```sh
+sudo systemctl stop form-md
+fm admin set https.auto false
+sudo systemctl start form-md
+```
+
 ## Behind a reverse proxy
 
 Leave the server on loopback (`FORMMD_ADDR=127.0.0.1:8750`, the default) and let the proxy terminate TLS. The proxy must:
@@ -73,6 +101,7 @@ The server only reads those headers when the instance setting `net.trust_proxy` 
   sudo systemctl restart form-md
   ```
 
+- **Or from the command line:** `fm admin set net.trust_proxy true` (see [[Operations]]), then restart the server. This saves the setting itself, so it works before anyone has signed in.
 - **Later:** Instance settings, General, **Behind a reverse proxy**. A value saved there wins over the variable.
 
 Also set **Public address** (Instance settings, General) to the `https://` address people use; it is used for links in mail, invitations and sign-in callbacks.
@@ -95,4 +124,4 @@ Why it matters: browser requests that change something (including sign-in and th
 
 ## Related
 
-[[Configuration]] · [[Encryption]] · [[Operations]]
+[[Configuration]] · [[Tunnel]] · [[Encryption]] · [[Operations]]

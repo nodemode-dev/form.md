@@ -7,6 +7,8 @@ form.md opens without a connection to the server. A service worker keeps the bui
 | Path | What lives there |
 |---|---|
 | `web/public/sw.js` | The service worker: asset cache, shell cache, offline navigation, push notifications |
+| `web/public/manifest.webmanifest` | The web app manifest that makes form.md installable |
+| `web/src/ui/pull.ts` | Pull to refresh in the installed app on touch devices |
 | `web/src/ui/offline.ts` | Registers the worker, asks it to refresh the shell and cache assets, the "Available offline" action |
 | `web/src/ui/offline-list.ts` | The per-account list of pages kept for offline use (in `localStorage`) |
 | `web/src/engine/doc/docs.ts` | Document sessions persisted to IndexedDB (`y-indexeddb`); `clearLocal` on sign-out |
@@ -16,7 +18,7 @@ form.md opens without a connection to the server. A service worker keeps the bui
 
 ## How it starts offline
 
-1. About 2.5 seconds after the app starts, it registers `/sw.js` with scope `/` (in browsers that support service workers).
+1. About 2.5 seconds after the app starts, it registers `/sw.js` with scope `/` (in browsers that support service workers). The worker does not take over the page that registered it; it controls pages from their next load.
 2. On install, the worker fetches `/offline.json` and caches the `core` assets (those the app document references or preloads) in the cache `formmd-assets`.
 3. About 20 seconds after start, when the browser is idle and not in data-saver mode, it caches every asset listed in `/offline.json` and drops cached assets the current build no longer lists.
 4. While online and signed in, the app asks the worker to fetch `/offline-shell` and keep it in the cache `formmd-shell`. The shell is the app document the server renders for you, with your account, the current workspace's page tree, tags, teamspaces and favorites. The app refreshes it after start and again 4 seconds after the page tree changes.
@@ -38,6 +40,12 @@ Every page you open is kept in IndexedDB on that device. To keep pages you have 
 
 A page that was neither opened nor kept on this device shows its title but no body. While the server is unreachable the app shows: "Cannot reach the server. Pages saved on this device stay open, and edits to their text sync when it is back." with a Retry button, and "Connection restored." when it is back.
 
+## The installed app
+
+`/manifest.webmanifest` (linked from the app document) names the app `form.md`, starts it at `/` and opens it in its own window (`"display": "standalone"`) with the form.md icon. Browsers that support installing web apps offer to install it; the installed app uses the same service worker and the same offline behaviour as a tab.
+
+In the installed window, a **Sync now** button appears in the top bar. It reconnects the live connections, checks the server, and reloads the page tree of the current workspace when the server answers. On touch devices, pulling down at the top of the page in the installed window does the same. In a browser tab the button is hidden; the same action is registered as the command "Sync now".
+
 ## Sign-out
 
 Signing out deletes the cached shell and every IndexedDB document database the app created (names starting `formmd-doc-`), so the next person on that browser starts clean. The asset cache holds only the public client build and is kept.
@@ -45,7 +53,7 @@ Signing out deletes the cached shell and every IndexedDB document database the a
 ## For operators
 
 - Browsers only run service workers in a secure context: a page served over HTTPS, or from `http://localhost` or `http://127.0.0.1`. An instance reached over plain HTTP by any other name gets no offline start; see [[TLS-and-ACME]]. (This is a browser rule, not a form.md setting.)
-- Nothing to configure on the server: `/sw.js`, `/offline.json` and `/offline-shell` are served by the binary. `/sw.js` gets its own Content-Security-Policy (`default-src 'none'; connect-src 'self'`).
+- Nothing to configure on the server: `/sw.js`, `/manifest.webmanifest`, `/offline.json` and `/offline-shell` are served by the binary. `/sw.js` gets its own Content-Security-Policy (`default-src 'none'; connect-src 'self'`).
 - Kept pages are plain copies in each browser's storage and are not covered by [[Encryption]]. Signing out removes them.
 - After an upgrade, the new build's `/offline.json` lists new asset names; the worker caches them and prunes the old ones on the next idle pass.
 

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/nodemode-ai/form.md/internal/config"
 	"github.com/nodemode-ai/form.md/internal/crypt"
 	"github.com/nodemode-ai/form.md/internal/ops"
+	"github.com/nodemode-ai/form.md/internal/settings"
 )
 
 func tool(cmd string, args []string) int {
@@ -76,7 +76,7 @@ func tool(cmd string, args []string) int {
 			if err != nil {
 				return fail(err)
 			}
-			if strings.Contains(args[1], "secret") || strings.Contains(args[1], "password") || strings.Contains(args[1], "token") {
+			if settings.IsSecret(args[1]) {
 				v = "(saved)"
 			}
 			fmt.Printf("%s = %s; a running server picks this up at its next start\n", args[1], v)

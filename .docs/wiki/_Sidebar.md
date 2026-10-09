@@ -8,6 +8,8 @@
 
 - [[Encryption]]
 - [[TLS-and-ACME]]
+- [[Tunnel]]
+- [[Mail]]
 - [[Backup-and-restore]]
 - [[Operations]]
 

@@ -1,6 +1,6 @@
 # Backup and restore
 
-`form-md backup FILE` writes one gzip-compressed tar archive with a consistent snapshot of the database and every file the instance needs, while the server keeps running. `form-md restore FILE` replaces the data directory with a backup, with the server stopped, and keeps the old directory aside until you delete it. Both read `FORMMD_DATA` (and the key, when encryption is on) exactly as the server does.
+`form-md backup FILE` writes one gzip-compressed tar archive with a consistent snapshot of the database and every file the instance needs, while the server keeps running; the instance owner can download the same archive from the browser. `form-md restore FILE` replaces the data directory with a backup, with the server stopped, and keeps the old directory aside until you delete it. Both read `FORMMD_DATA` (and the key, when encryption is on) exactly as the server does.
 
 ## Layout
 
@@ -9,6 +9,7 @@
 | `internal/ops/backup.go` | `Backup`, `Restore`, the archive manifest, what is carried |
 | `internal/ops/flush_unix.go` | `RequestFlush` (asks a running server to save open documents) and the SIGUSR1 handler |
 | `internal/ops/lock_unix.go`, `lock_other.go` | The data directory lock that keeps `restore` away from a running server |
+| `internal/ops/module.go` | `GET /api/admin/backup`: the browser download |
 
 ## Making a backup
 
@@ -46,6 +47,14 @@ backup written to /var/backups/form-md/form-md-2026-10-09.tgz: database and 214 
 Not included: `form-md.db-wal`, `form-md.db-shm`, `form-md.lock`, `form-md.flushed` and `tmp/` (unfinished import uploads).
 
 **The key is never in the archive.** Keep it somewhere else; see [[Encryption]].
+
+## Downloading a backup from the browser
+
+The instance owner sees a **Backup** section with **Download a backup** in Instance settings, About. It calls `GET /api/admin/backup`, which only answers the owner in a signed-in browser session; admins, API tokens and OAuth tokens are refused.
+
+The server saves every open document, builds the same archive as `form-md backup` in a temporary folder inside the data directory (`.download-*`, removed afterwards), and sends it as `form-md-backup-YYYY-MM-DD-HHMMSS.tgz`. On an encrypted instance the archive is encrypted and only the same key restores it. The log records `backup downloaded user=... bytes=...`.
+
+The archive is built on the server's disk before it is sent, so the data directory needs free space for one more copy while it downloads. Restore it with `form-md restore` as below.
 
 ## Restoring
 

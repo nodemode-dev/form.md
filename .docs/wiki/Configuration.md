@@ -27,6 +27,8 @@ An empty value counts as unset and gives the default.
 | `FORMMD_ACME_EMAIL` | unset | Contact address given to the certificate authority |
 | `FORMMD_ACME_DIRECTORY` | `https://acme-v02.api.letsencrypt.org/directory` | ACME directory URL; point it at a staging or private CA to test |
 | `FORMMD_HTTP_ADDR` | `:80` | With ACME on, the plain HTTP listener that answers challenges and redirects to HTTPS |
+| `FORMMD_CLOUDFLARED` | unset | Path to `cloudflared` for the public tunnel; looked up on `PATH` when unset. See [[Tunnel]] |
+| `FORMMD_UPDATE_URL` | unset | Where the daily update check reads the latest release; GitHub's releases API when unset. Point it at a mirror on a closed network. See [[Operations]] |
 | `FORMMD_FETCH_PRIVATE` | unset | Set to `1` (or `true`) to let link previews, media imports, webhooks and other outbound requests reach private network addresses such as intranet sites. Off by default |
 
 The server refuses to start (exit status 2, log line `config`) when:
@@ -41,15 +43,18 @@ The server refuses to start (exit status 2, log line `config`) when:
 |---|---|---|---|
 | `FORMMD_TRUST_PROXY` | `net.trust_proxy` | `false` | Instance settings, General: "Behind a reverse proxy". Trust the `X-Forwarded-Proto`, `X-Forwarded-Host` and `X-Forwarded-For` headers; turn on only when a proxy you run sets them. See [[TLS-and-ACME]] |
 | `FORMMD_TRASH_DAYS` | `trash.days` | `30` | Instance settings, General, Housekeeping: "Empty the trash after (days)". `0` keeps trashed pages until someone empties the trash by hand |
-| `FORMMD_UPDATE_CHECK` | `update.check` | `true` | Instance settings, General, Housekeeping: "Check for new versions" (once a day, only the version number is fetched) |
+| `FORMMD_UPDATE_CHECK` | `update.check` | `true` | Instance settings, General, Housekeeping: "Check for new versions" (once a day, only the version number is fetched; see [[Operations]]) |
 
-The order is: a value saved in Instance settings wins; otherwise the environment variable; otherwise the built-in default. So the variable seeds a fresh instance, and once an admin saves the field, the variable no longer has any effect.
+The order is: a value saved in Instance settings wins; otherwise the environment variable; otherwise the built-in default. So the variable seeds a fresh instance, and once an admin saves the field, the variable no longer has any effect. `form-md admin set KEY VALUE` saves any instance setting from the command line, the same as saving it in the app; it takes effect at the next start (see [[Operations]]).
 
 ## Instance settings without a variable
 
-Everything else is set in the app by an admin and stored in the `settings` table. Secrets saved in the app (SSO client secrets, the SMTP password, saved AI provider keys and others) are sealed with `secret.key` in the data directory, which is why a backup must carry the whole data directory and not only `form-md.db`. One of these matters to operators:
+Everything else is set in the app by an admin and stored in the `settings` table. Secrets saved in the app (SSO client secrets, the SMTP password, saved AI provider keys and others) are sealed with `secret.key` in the data directory, which is why a backup must carry the whole data directory and not only `form-md.db`. Those that matter to operators:
 
 - `instance.public_url` · Instance settings, General: "Public address". The address people use, for links in mail, invitations and sign-in callbacks.
+- `https.auto`, `https.domain` · Instance settings, General: automatic HTTPS at the next start; see [[TLS-and-ACME]].
+- `tunnel.mode`, `tunnel.token`, `tunnel.autostart` · Instance settings, General, Public tunnel; see [[Tunnel]].
+- `mail.*` · Instance settings, Email; see [[Mail]].
 
 ## Setting variables
 

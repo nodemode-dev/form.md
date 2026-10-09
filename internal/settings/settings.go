@@ -97,6 +97,8 @@ var byKey = func() map[string]Def {
 
 const SecretSet = "\x00set"
 
+func IsSecret(key string) bool { return byKey[key].Kind == Secret }
+
 type Service struct {
 	st    *store.Store
 	box   *secrets.Box
