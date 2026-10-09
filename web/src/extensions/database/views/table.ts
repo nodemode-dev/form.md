@@ -35,6 +35,28 @@ export function tableView(host: ViewHost): ViewRenderer {
   const groupLimit = host.inline ? 25 : 50;
   const session = host.makeSession({ limit: host.inline ? 25 : 100, groupLimit, search: host.search() });
   const ctx = host.ctx(session);
+  const subKey = `formmd.subitems.${host.viewId}`;
+  const expanded = new Set<string>();
+  try {
+    for (const id of JSON.parse(localStorage.getItem(subKey) ?? "[]") as string[]) expanded.add(id);
+  } catch {
+    expanded.clear();
+  }
+  const treeProp = (): string => {
+    const id = String(host.view().config.layout?.subitems ?? "");
+    return id && ctx.col().schema.some((p) => p.id === id && p.type === "relation") ? id : "";
+  };
+  const applyTree = () => {
+    const tp = treeProp();
+    if (tp) {
+      session.options.tree = tp;
+      session.options.expanded = [...expanded];
+    } else {
+      delete session.options.tree;
+      delete session.options.expanded;
+    }
+  };
+  applyTree();
   const el = h("div", { class: "tbl", attrs: { role: "grid", "aria-label": host.view().name } });
   const headWrap = h("div", { class: "tbl__headwrap" });
   const head = h("div", { class: "tbl__row tbl__row--head", attrs: { role: "row" } });
@@ -154,10 +176,27 @@ export function tableView(host: ViewHost): ViewRenderer {
     if (check) check.checked = selected.has(row.id);
     for (const c of cols) {
       const cell = rowEl.querySelector<HTMLElement>(`:scope > [data-prop="${c.p.id}"]`);
-      const value = cell?.firstElementChild as HTMLElement | null;
+      const value = cell?.querySelector<HTMLElement>(":scope > .cell-value") ?? null;
       if (cell && value) {
         paintCell(value, c.p, row, ctx, "table");
         setAttr(cell, "data-active", active && active.row === row.id && active.prop === c.p.id ? "true" : null);
+        if (c.p.type === "title") {
+          const tree = !!session.options.tree;
+          let tog = cell.querySelector<HTMLButtonElement>(":scope > .tbl__subtoggle");
+          if (tree && !tog) {
+            tog = h("button", { class: "tbl__subtoggle", attrs: { type: "button" } }, iconNode("chevron-right"));
+            cell.prepend(tog);
+          }
+          if (tog) {
+            const n = row.children ?? 0;
+            tog.hidden = !tree;
+            setAttr(tog, "data-empty", n ? null : "true");
+            setAttr(tog, "aria-expanded", n && expanded.has(row.id) ? "true" : "false");
+            setAttr(tog, "aria-label", n ? t("{n} sub-items", { n }) : t("No sub-items"));
+          }
+          cell.style.setProperty("--sub-depth", String(tree ? (row.depth ?? 0) : 0));
+          setAttr(cell, "data-tree", tree ? "true" : null);
+        }
       }
     }
   };
@@ -354,7 +393,7 @@ export function tableView(host: ViewHost): ViewRenderer {
   computeCols();
   const boot = host.engine.collections.takeBootQuery(host.viewId);
   let ready: Promise<void>;
-  if (boot && !host.search()) {
+  if (boot && !host.search() && !session.options.tree) {
     session.seed(boot);
     paint();
     ready = Promise.resolve();
@@ -384,6 +423,22 @@ export function tableView(host: ViewHost): ViewRenderer {
 
   body.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
+    const tog = target.closest<HTMLElement>(".tbl__subtoggle");
+    if (tog) {
+      e.stopPropagation();
+      const id = tog.closest<HTMLElement>("[data-row]")?.dataset.row ?? "";
+      if (!id || tog.dataset.empty === "true") return;
+      if (expanded.has(id)) expanded.delete(id);
+      else expanded.add(id);
+      try {
+        localStorage.setItem(subKey, JSON.stringify([...expanded].slice(-500)));
+      } catch {
+        session.options.expanded = [...expanded];
+      }
+      applyTree();
+      void session.load().catch(host.engine.reportError);
+      return;
+    }
     const moreBtn = target.closest<HTMLElement>(".tbl__more");
     if (moreBtn?.dataset.key2) {
       void session.moreInGroup(moreBtn.dataset.key2, moreBtn.dataset.lane).catch(host.engine.reportError);
@@ -571,6 +626,29 @@ export function tableView(host: ViewHost): ViewRenderer {
     openMenu(cell, entries, { side: "top", align: "start", label: t("Calculate") });
   });
 
+  let lastGrip: { id: string; at: number } | null = null;
+  const autoFit = (cell: HTMLElement, id: string) => {
+    const c = cols.find((x) => x.p.id === id);
+    if (!c) return;
+    const name = cell.querySelector<HTMLElement>(".tbl__hname");
+    let want = (name?.scrollWidth ?? 0) + 52;
+    for (const v of Array.from(body.querySelectorAll<HTMLElement>(`[data-prop="${CSS.escape(id)}"] .cell-value`))) want = Math.max(want, v.scrollWidth + 24);
+    c.width = Math.round(Math.max(60, Math.min(640, want)));
+    let left = GUTTER;
+    for (const x of cols) {
+      x.left = left;
+      left += x.width;
+    }
+    el.style.setProperty("--tbl-cols", `${GUTTER}px ${cols.map((x) => `${x.width}px`).join(" ")} 44px`);
+    el.style.setProperty("--tbl-w", `${left + 44}px`);
+    saveConfig(ctx, host.viewId, (cfg) => {
+      const ordered = orderedProps(ctx, cfg).map((x) => ({ ...x.vp }));
+      const me = ordered.find((x) => x.id === id);
+      if (me) me.width = c.width;
+      return { ...cfg, props: ordered };
+    }, 0);
+  };
+
   let dragged = false;
   head.addEventListener("pointerdown", (e) => {
     const handle = (e.target as Element).closest<HTMLElement>(".tbl__resize");
@@ -583,6 +661,13 @@ export function tableView(host: ViewHost): ViewRenderer {
     dragged = false;
     if (handle) {
       e.preventDefault();
+      const now = performance.now();
+      if (lastGrip && lastGrip.id === id && now - lastGrip.at < 400) {
+        lastGrip = null;
+        autoFit(cell, id);
+        return;
+      }
+      lastGrip = { id, at: now };
       handle.setPointerCapture(e.pointerId);
       const base = c.width;
       const moveH = (ev: PointerEvent) => {
@@ -699,7 +784,9 @@ export function tableView(host: ViewHost): ViewRenderer {
     ctx,
     configChanged(prev, next) {
       computeCols();
-      if (configKey(prev.config) !== configKey(next.config)) void session.load().catch(host.engine.reportError);
+      const treeMoved = String(prev.config.layout?.subitems ?? "") !== String(next.config.layout?.subitems ?? "");
+      if (treeMoved) applyTree();
+      if (treeMoved || configKey(prev.config) !== configKey(next.config)) void session.load().catch(host.engine.reportError);
       else paint();
     },
     schemaChanged() {

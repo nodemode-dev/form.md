@@ -72,6 +72,8 @@ type QueryInput struct {
 	Range      *RangeInput `json:"range,omitempty"`
 	IDs        []string    `json:"ids,omitempty"`
 	NoGroups   bool        `json:"no_groups,omitempty"`
+	Tree       string      `json:"tree,omitempty"`
+	Expanded   []string    `json:"expanded,omitempty"`
 }
 
 type RowOut struct {
@@ -89,6 +91,8 @@ type RowOut struct {
 	CreatedBy string         `json:"created_by"`
 	UpdatedAt int64          `json:"updated_at"`
 	UpdatedBy string         `json:"updated_by"`
+	Depth     int            `json:"depth,omitempty"`
+	Children  int            `json:"children,omitempty"`
 }
 
 type GroupOut struct {

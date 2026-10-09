@@ -610,10 +610,16 @@ func (s *Service) Query(ctx context.Context, p *policy.Principal, collectionID s
 		return res, nil
 	}
 	all := s.results.ordered(ev, sn, cfg, in)
-	res.Total = len(all)
 	if cfg.Calcs != nil {
 		res.Calcs = ev.calcs(sn, all, cfg.Calcs)
 	}
+	var depth, kids map[string]int
+	if in.Tree != "" && (cfg.Group == nil || cfg.Group.Prop == "" || in.NoGroups) {
+		if tp := sn.schema.ByID(in.Tree); tp != nil && tp.Type == TRelation && tp.Collection == collectionID {
+			all, depth, kids = treeOrder(all, tp.ID, hiddenSet(in.Expanded))
+		}
+	}
+	res.Total = len(all)
 	limit := in.Limit
 	if limit <= 0 {
 		limit = 100
@@ -679,6 +685,10 @@ func (s *Service) Query(ctx context.Context, p *policy.Principal, collectionID s
 		res.Offset = off
 		for i := off; i < len(all) && i < off+limit; i++ {
 			add(all[i])
+			if depth != nil && len(res.Rows) > 0 && res.Rows[len(res.Rows)-1].ID == all[i].ID {
+				res.Rows[len(res.Rows)-1].Depth = depth[all[i].ID]
+				res.Rows[len(res.Rows)-1].Children = kids[all[i].ID]
+			}
 			res.Order = append(res.Order, all[i].ID)
 		}
 	}

@@ -470,6 +470,8 @@ export interface RowData {
   created_by: string;
   updated_at: number;
   updated_by: string;
+  depth?: number;
+  children?: number;
 }
 
 export interface GroupResult {
@@ -522,6 +524,8 @@ export interface QueryInput {
   range?: { prop: string; end_prop?: string; from: string; to: string };
   ids?: string[];
   no_groups?: boolean;
+  tree?: string;
+  expanded?: string[];
 }
 
 export interface RowDetail {

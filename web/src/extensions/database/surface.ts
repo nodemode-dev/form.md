@@ -403,6 +403,25 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
       searchBtn.focus();
     }
   });
+  const toggleSubitems = async (viewId: string, on: boolean) => {
+    const v = col?.views.find((x) => x.id === viewId);
+    if (!v || !col) return;
+    let prop = "";
+    if (on) {
+      const existing = col.schema.find((p) => p.type === "relation" && p.collection === colId && p.limit === 1 && p.pair);
+      if (existing) prop = existing.id;
+      else {
+        const before = new Set(col.schema.map((p) => p.id));
+        await store.schema(colId, [{ op: "add", prop: { id: "", name: t("Parent item"), type: "relation", collection: colId, limit: 1 }, two_way: true, pair_name: t("Sub-items") }]);
+        const after = store.get(colId)?.schema ?? [];
+        prop = after.find((p) => !before.has(p.id) && p.type === "relation" && p.limit === 1)?.id ?? "";
+      }
+    }
+    const layout = { ...(v.config.layout ?? {}) } as Record<string, unknown>;
+    if (prop) layout.subitems = prop;
+    else delete layout.subitems;
+    await store.updateView(colId, viewId, { config: { ...v.config, layout } });
+  };
   const fromTemplate = (templateId: string) =>
     void engine.api.http
       .post<{ row: RowData }>(`/api/collections/${encodeURIComponent(colId)}/rows`, { template_id: templateId })
@@ -459,6 +478,14 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
       });
     }
     if (canWrite()) entries.push({ label: t("Import CSV into this database"), icon: "upload", run: () => openCSVImport(engine, moreBtn, { collectionId: colId, workspaceId: col?.workspace_id ?? "" }) });
+    if (canDesign() && v?.type === "table") {
+      const on = String(v.config.layout?.subitems ?? "");
+      entries.push({
+        label: on ? t("Turn off sub-items") : t("Turn on sub-items"),
+        icon: "list-tree",
+        run: () => void toggleSubitems(v.id, !on).catch(engine.reportError),
+      });
+    }
     entries.push({
       label: t("Copy link to view"),
       icon: "link",

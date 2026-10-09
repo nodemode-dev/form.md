@@ -260,6 +260,44 @@
   gap: var(--space-2);
 }
 
+.tbl__cell[data-tree="true"] {
+  padding-inline-start: calc(var(--space-1) + var(--sub-depth, 0) * 20px);
+  gap: 2px;
+}
+
+.tbl__subtoggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 20px;
+  block-size: 20px;
+  padding: 0;
+  color: var(--text-faint);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.tbl__subtoggle:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.tbl__subtoggle .icon {
+  inline-size: 12px;
+  block-size: 12px;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.tbl__subtoggle[aria-expanded="true"] .icon {
+  transform: rotate(90deg);
+}
+
+.tbl__subtoggle[data-empty="true"] {
+  visibility: hidden;
+}
+
 .mapv {
   display: grid;
   row-gap: var(--space-1);

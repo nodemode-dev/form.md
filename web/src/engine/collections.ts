@@ -28,6 +28,8 @@ export interface SessionOptions {
   filter?: QueryInput["filter"];
   ids?: string[];
   watch?: () => void;
+  tree?: string;
+  expanded?: string[];
 }
 
 const PAGE = 100;
@@ -88,6 +90,10 @@ export class QuerySession {
     if (o.noGroups) input.no_groups = true;
     if (o.filter) input.filter = o.filter;
     if (o.ids) input.ids = o.ids;
+    if (o.tree) {
+      input.tree = o.tree;
+      input.expanded = o.expanded ?? [];
+    }
     return input;
   }
 
