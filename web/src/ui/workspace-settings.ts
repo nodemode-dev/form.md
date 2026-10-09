@@ -596,6 +596,23 @@ function agentsTab(engine: Engine): Tab {
     const s1 = section(t("What agents may do here"), admin ? "" : t("Only an admin of this workspace can change this."));
     s1.append(access.el, accessStatus.el);
 
+    const aiOn = toggle(t("AI features in this workspace"), w.ai_enabled !== false, t("Writing help, AI blocks, autofill, the workspace agent, meeting notes and AI answers, when the instance has AI set up."));
+    aiOn.input.disabled = !admin;
+    const aiStatus = status();
+    aiOn.input.addEventListener("change", async () => {
+      aiStatus.clear();
+      try {
+        await engine.api.ai.setWorkspace(w.id, aiOn.input.checked);
+        await engine.refreshMe();
+        aiStatus.say(t("Saved."), "success");
+      } catch (err) {
+        aiOn.input.checked = engine.workspace()?.ai_enabled !== false;
+        aiStatus.error(err);
+      }
+    });
+    const sAI = section(t("AI"));
+    sAI.append(aiOn.el, aiStatus.el);
+
     const s2 = section(t("Workspace rules"), t("Conventions everyone, agents above all, follows in this workspace. Agents read them before they write and may only propose changes."));
     const proposal = h("div", { class: "proposal" });
     proposal.hidden = true;
@@ -623,7 +640,7 @@ function agentsTab(engine: Engine): Tab {
       }
     });
     s2.append(proposal, form);
-    panel.append(s1, s2);
+    panel.append(s1, sAI, s2);
 
     let dirty = false;
     box.addEventListener("input", () => {
@@ -673,6 +690,7 @@ function agentsTab(engine: Engine): Tab {
     load();
     return () => {
       access.set(engine.workspace()?.agent_access ?? w.agent_access);
+      aiOn.input.checked = (engine.workspace() ?? w).ai_enabled !== false;
       load();
     };
   });

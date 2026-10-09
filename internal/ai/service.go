@@ -415,6 +415,14 @@ func (s *Service) Run(ctx context.Context, p *policy.Principal, workspaceID, fea
 	if err := s.allowed(ctx, p, workspaceID); err != nil {
 		return nil, err
 	}
+	return s.Exec(ctx, p, workspaceID, feature, ref, req, onText)
+}
+
+func (s *Service) Allowed(ctx context.Context, p *policy.Principal, workspaceID string) error {
+	return s.allowed(ctx, p, workspaceID)
+}
+
+func (s *Service) Exec(ctx context.Context, p *policy.Principal, workspaceID, feature, ref string, req Request, onText func(string) error) (*Result, error) {
 	prov, pid, model, err := s.resolve(ctx, ref, false)
 	if err != nil {
 		return nil, err

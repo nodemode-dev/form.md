@@ -44,6 +44,7 @@ export interface Workspace {
   break_glass?: boolean;
   owner_id: string;
   rules_updated_at: number;
+  ai_enabled?: boolean;
 }
 
 export interface Me {
@@ -188,6 +189,7 @@ export interface Property {
   expr?: string;
   prefix?: string;
   actions?: ButtonAction[];
+  autofill?: { prompt: string; auto: boolean; by?: string } | null;
 }
 
 export interface Filter {

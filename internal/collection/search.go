@@ -42,6 +42,10 @@ func (s *Service) RowText(ctx context.Context, rowID string) (string, bool) {
 	return strings.Join(parts, "\n"), true
 }
 
+func (s *Service) SchemaOf(ctx context.Context, collectionID string) (Schema, error) {
+	return s.loadSchema(ctx, s.st.R, collectionID)
+}
+
 func (s *Service) RowIDs(ctx context.Context, collectionID string) []string {
 	rows, err := s.st.R.QueryContext(ctx, "SELECT page_id FROM collection_rows WHERE collection_id = ?", collectionID)
 	if err != nil {

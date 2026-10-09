@@ -128,6 +128,11 @@ func (s *Service) UpdateSchema(ctx context.Context, p *policy.Principal, collect
 	if len(ops) == 0 || len(ops) > 100 {
 		return nil, badSchema("send between 1 and 100 changes")
 	}
+	for _, op := range ops {
+		if op.Prop != nil && op.Prop.Autofill != nil && p != nil {
+			op.Prop.Autofill.By = p.UserID
+		}
+	}
 	nc := s.normCtx(ctx, m.WorkspaceID)
 	var result Schema
 	var touchedCols []string

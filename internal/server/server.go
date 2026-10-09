@@ -13,6 +13,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/admin"
 	"github.com/nodemode-ai/form.md/internal/agentrun"
 	"github.com/nodemode-ai/form.md/internal/ai"
+	"github.com/nodemode-ai/form.md/internal/aifill"
 	"github.com/nodemode-ai/form.md/internal/analytics"
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/audit"
@@ -118,6 +119,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	runs := agentrun.New(st, authSvc, log)
 	grants := oauth.New(st, authSvc, gate, al, fetcher, cfg.FetchPrivate, log)
 	brain := ai.New(st, box, set, gate, al, log)
+	filler := aifill.New(authSvc, cols, docs, brain, log)
+	cols.OnRows(filler.RowsChanged)
+	docs.OnRefs(filler.PageChanged)
 	pageText := func(ctx context.Context, p *policy.Principal, id string) (string, string, error) {
 		d, err := pages.Get(ctx, p, id)
 		if err != nil {
@@ -201,6 +205,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		grants.Module(),
 		agents.Module(),
 		brain.Module(authSvc, pageText),
+		filler.Module(),
 		static.Module(s.renderDocument),
 	}
 	return s, nil

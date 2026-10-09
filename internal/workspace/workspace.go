@@ -96,21 +96,22 @@ type Workspace struct {
 	BreakGlass     bool   `json:"break_glass,omitempty"`
 	OwnerID        string `json:"owner_id"`
 	RulesUpdatedAt int64  `json:"rules_updated_at"`
+	AIEnabled      bool   `json:"ai_enabled"`
 }
 
 const wsColumns = `w.id, w.name, w.icon, w.image, w.personal, w.auto_join, w.sidebar_mode, w.agent_access,
 	w.rules != '', w.rules_proposal != '', COALESCE(w.owner_id, ''), w.rules_updated_at,
-	(SELECT COUNT(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id)`
+	(SELECT COUNT(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id), w.ai_enabled`
 
 func scanWorkspace(row interface{ Scan(...any) error }, extra ...any) (*Workspace, error) {
 	w := &Workspace{}
-	var personal, autoJoin, hasRules, proposal int
+	var personal, autoJoin, hasRules, proposal, aiOn int
 	dest := append([]any{&w.ID, &w.Name, &w.Icon, &w.Image, &personal, &autoJoin, &w.SidebarMode, &w.AgentAccess,
-		&hasRules, &proposal, &w.OwnerID, &w.RulesUpdatedAt, &w.MemberCount}, extra...)
+		&hasRules, &proposal, &w.OwnerID, &w.RulesUpdatedAt, &w.MemberCount, &aiOn}, extra...)
 	if err := row.Scan(dest...); err != nil {
 		return nil, store.NoRows(err)
 	}
-	w.Personal, w.AutoJoin, w.HasRules, w.ProposalWaits = personal == 1, autoJoin == 1, hasRules == 1, proposal == 1
+	w.Personal, w.AutoJoin, w.HasRules, w.ProposalWaits, w.AIEnabled = personal == 1, autoJoin == 1, hasRules == 1, proposal == 1, aiOn == 1
 	return w, nil
 }
 

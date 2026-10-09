@@ -4,6 +4,7 @@ import { h, setText } from "../../ui/dom";
 import { iconNode } from "../../ui/icons";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { pageIcon } from "../../ui/pageicon";
+import { AUTOFILL_TYPES, autofillChanged, autofillEditor, runAutofill } from "./autofill";
 import type { DbCtx } from "./cells";
 import { openPanel } from "./panel";
 import { CREATABLE, DATE_FORMATS, NUMBER_FORMATS, OPTION_COLORS, ROLLUP_FNS, TYPE_INFO, typeLabel } from "./props";
@@ -305,6 +306,7 @@ export function openPropertyEditor(anchor: HTMLElement, p0: Property, ctx: DbCtx
             break;
           }
         }
+        if (AUTOFILL_TYPES.has(p.type)) pad.append(autofillEditor(p));
         if (pad.childElementCount) body.append(pad);
       };
       build();
@@ -319,9 +321,13 @@ export function openPropertyEditor(anchor: HTMLElement, p0: Property, ctx: DbCtx
           if (pairName) op.pair_name = pairName;
         }
         save.disabled = true;
+        if (!AUTOFILL_TYPES.has(p.type)) p.autofill = null;
         ctx.engine.collections
           .schema(ctx.colId, [op])
-          .then(close)
+          .then(() => {
+            close();
+            if (autofillChanged(p0, p)) runAutofill(ctx, p);
+          })
           .catch((e: unknown) => {
             save.disabled = false;
             setText(status, (e as Error).message);
@@ -341,6 +347,7 @@ export function propertyMenu(anchor: HTMLElement, p: Property, ctx: DbCtx, extra
     { label: t("Edit property"), icon: "settings", run: () => openPropertyEditor(anchor, p, ctx) },
     ...extra,
   ];
+  if (p.autofill && AUTOFILL_TYPES.has(p.type) && ctx.col().can_write) entries.push({ label: t("Fill all rows with AI"), icon: "sparkle", run: () => runAutofill(ctx, p) });
   if (p.type !== "title") {
     entries.push(
       { kind: "separator" },

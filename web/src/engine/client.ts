@@ -323,6 +323,8 @@ export function createClient(f: FetchFn) {
         get<{ collection: Collection; first?: { view_id: string; result: QueryResult } }>(`/api/collections/${enc(id)}${view !== undefined ? `?view=${enc(view)}` : ""}`),
       schema: (id: string, ops: SchemaOp[]) => post<{ schema: Property[]; epoch: number }>(`/api/collections/${enc(id)}/schema`, { ops }),
       formula: (id: string, expr: string) => post<{ ok: boolean; error?: string; pos: number; props?: string[] }>(`/api/collections/${enc(id)}/formula`, { expr }),
+      autofill: (id: string, property: string, rows: string[], onEvent: (event: string, data: { total?: number; row?: string; ok?: boolean; filled?: number }) => void, cancel?: AbortSignal) =>
+        stream(f, `/api/collections/${enc(id)}/autofill`, { property, rows }, (e) => onEvent(e.event, e.data as { total?: number; row?: string; ok?: boolean; filled?: number }), cancel),
       query: (id: string, input: QueryInput, cancel?: AbortSignal) => request<QueryResult>(f, "POST", `/api/collections/${enc(id)}/query`, input, 15000, cancel),
       search: (id: string, q: string, limit = 50) => get<{ rows: { id: string; title: string; icon: string }[] }>(`/api/collections/${enc(id)}/search?q=${enc(q)}&limit=${limit}`),
       createRow: (id: string, body: { title?: string; values?: Record<string, unknown>; before_id?: string; after_id?: string; top?: boolean }) =>

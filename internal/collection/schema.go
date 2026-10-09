@@ -91,27 +91,38 @@ type Action struct {
 }
 
 type Property struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Type        string   `json:"type"`
-	Description string   `json:"description,omitempty"`
-	Options     []Option `json:"options,omitempty"`
-	Format      string   `json:"format,omitempty"`
-	Display     string   `json:"display,omitempty"`
-	Precision   int      `json:"precision,omitempty"`
-	Max         float64  `json:"max,omitempty"`
-	Color       string   `json:"color,omitempty"`
-	TimeFormat  string   `json:"time_format,omitempty"`
-	Collection  string   `json:"collection,omitempty"`
-	Pair        string   `json:"pair,omitempty"`
-	Limit       int      `json:"limit,omitempty"`
-	Relation    string   `json:"relation,omitempty"`
-	Target      string   `json:"target,omitempty"`
-	Fn          string   `json:"fn,omitempty"`
-	Expr        string   `json:"expr,omitempty"`
-	Prefix      string   `json:"prefix,omitempty"`
-	Actions     []Action `json:"actions,omitempty"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`
+	Description string    `json:"description,omitempty"`
+	Options     []Option  `json:"options,omitempty"`
+	Format      string    `json:"format,omitempty"`
+	Display     string    `json:"display,omitempty"`
+	Precision   int       `json:"precision,omitempty"`
+	Max         float64   `json:"max,omitempty"`
+	Color       string    `json:"color,omitempty"`
+	TimeFormat  string    `json:"time_format,omitempty"`
+	Collection  string    `json:"collection,omitempty"`
+	Pair        string    `json:"pair,omitempty"`
+	Limit       int       `json:"limit,omitempty"`
+	Relation    string    `json:"relation,omitempty"`
+	Target      string    `json:"target,omitempty"`
+	Fn          string    `json:"fn,omitempty"`
+	Expr        string    `json:"expr,omitempty"`
+	Prefix      string    `json:"prefix,omitempty"`
+	Actions     []Action  `json:"actions,omitempty"`
+	Autofill    *Autofill `json:"autofill,omitempty"`
 }
+
+type Autofill struct {
+	Prompt string `json:"prompt"`
+	Auto   bool   `json:"auto"`
+	By     string `json:"by,omitempty"`
+}
+
+var autofillTypes = map[string]bool{TText: true, TNumber: true, TSelect: true, TMulti: true, TCheckbox: true, TURL: true, TDate: true}
+
+func AutofillType(t string) bool { return autofillTypes[t] }
 
 type Schema []*Property
 
@@ -313,6 +324,15 @@ func (p *Property) normalise() error {
 	}
 	if p.Type != TButton {
 		p.Actions = nil
+	}
+	if p.Autofill != nil {
+		if !autofillTypes[p.Type] {
+			p.Autofill = nil
+		} else if utf8.RuneCountInString(p.Autofill.Prompt) > 2000 {
+			return badSchema("an autofill instruction can be up to 2,000 characters")
+		} else {
+			p.Autofill.Prompt = strings.TrimSpace(p.Autofill.Prompt)
+		}
 	}
 	return nil
 }
