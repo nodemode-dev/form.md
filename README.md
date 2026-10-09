@@ -7,7 +7,7 @@
 <p align="center"><b>One workspace for people & agents: documents, databases & realtime editing in a single binary.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.11.0-9a8cff" alt="version v0.11.0" />
+  <img src="https://img.shields.io/badge/version-v0.11.1-9a8cff" alt="version v0.11.1" />
   <img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+" />
   <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
@@ -215,7 +215,7 @@ form.md/
 - **Accounts & sign-in:** built. HTTPS from built-in ACME (checked against a local Pebble), operator certificates, a reverse proxy or the Cloudflare tunnel.
 - **Mail:** SMTP, Gmail & Microsoft Graph. Gmail & Graph were checked against a stand-in provider, not yet against Google or Microsoft.
 - **German:** built: every client string, the server-rendered page & mail.
-- **Offline start:** built. Kept & visited databases open read-only w/ their first rows; editing them, search & other server data need the server; text edits made offline sync when it is back.
+- **Offline start:** built. Kept & visited databases open read-only w/ their first rows, & their row pages, pictures & files on kept pages open too; editing them, search & other server data need the server; text edits made offline sync when it is back.
 - **Encryption at rest:** built. File sizes & WAL frame headers (w/ their checksums) stay visible; there is no key rotation yet.
 - **Operations & packaging:** built. The systemd branch of the installer, the arm64 image & the workflows were not run in this sandbox; the tunnel was checked w/ a stand-in for cloudflared.
 - **Pages & the shell:** built: tree, tabs, favorites, tags, notes mode, library, trash, covers, icons, uploads, live updates.

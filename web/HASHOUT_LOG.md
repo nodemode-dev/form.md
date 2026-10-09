@@ -2,7 +2,7 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.11.0
+Current build version: v0.11.1
 Last updated: 2026-10-09 · Phase 11: offline start, Available offline, German catalog, dev proxy origin, first-paint fixes
 
 ---
