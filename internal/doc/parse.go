@@ -359,12 +359,29 @@ func plainText(n gast.Node, src []byte) string {
 
 func (c *converter) quote(n *gast.Blockquote) *pmNode {
 	kids := c.blocks(n)
-	if len(kids) > 0 && kids[0].name == "paragraph" && len(kids[0].runs) > 0 && kids[0].runs[0].atom == nil {
-		if m := alertRE.FindStringSubmatch(kids[0].runs[0].text); m != nil {
+	lead := ""
+	if len(kids) > 0 && kids[0].name == "paragraph" {
+		for _, r := range kids[0].runs {
+			if r.atom != nil || len(lead) > 24 {
+				break
+			}
+			lead += r.text
+		}
+	}
+	if lead != "" {
+		if m := alertRE.FindStringSubmatch(lead); m != nil {
 			callout := newNode("callout")
 			callout.attrs["tone"] = map[string]string{"NOTE": "", "TIP": "green", "IMPORTANT": "violet", "WARNING": "amber", "CAUTION": "rose"}[m[1]]
 			first := kids[0]
-			first.runs[0].text = first.runs[0].text[len(m[0]):]
+			for cut := len(m[0]); cut > 0 && len(first.runs) > 0 && first.runs[0].atom == nil; {
+				if len(first.runs[0].text) <= cut {
+					cut -= len(first.runs[0].text)
+					first.runs = first.runs[1:]
+				} else {
+					first.runs[0].text = first.runs[0].text[cut:]
+					cut = 0
+				}
+			}
 			for len(first.runs) > 0 && first.runs[0].atom == nil && strings.TrimSpace(first.runs[0].text) == "" {
 				first.runs = first.runs[1:]
 			}
