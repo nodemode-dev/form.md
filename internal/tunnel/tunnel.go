@@ -3,7 +3,9 @@ package tunnel
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"errors"
 	"io"
 	"log/slog"
@@ -11,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -26,6 +29,7 @@ import (
 var quickURL = regexp.MustCompile(`https://[a-z0-9-]+\.trycloudflare\.com`)
 
 type Status struct {
+	Socket    string `json:"socket"`
 	Mode      string `json:"mode"`
 	Running   bool   `json:"running"`
 	URL       string `json:"url"`
@@ -38,7 +42,7 @@ type Status struct {
 type Service struct {
 	set    *settings.Service
 	log    *slog.Logger
-	target string
+	socket string
 
 	mu      sync.Mutex
 	status  Status
@@ -47,16 +51,28 @@ type Service struct {
 	running bool
 }
 
-func New(set *settings.Service, log *slog.Logger, addr string, tlsOn bool) *Service {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil || host == "" || host == "0.0.0.0" || host == "::" {
-		host = "127.0.0.1"
+func New(set *settings.Service, log *slog.Logger, dataDir string) *Service {
+	socket := filepath.Join(dataDir, "tunnel.sock")
+	if len(socket) > 100 {
+		sum := sha256.Sum256([]byte(dataDir))
+		socket = filepath.Join(os.TempDir(), "form-md-"+hex.EncodeToString(sum[:6])+".sock")
 	}
-	scheme := "http"
-	if tlsOn {
-		scheme = "https"
+	return &Service{set: set, log: log, socket: socket}
+}
+
+func (s *Service) Socket() string { return s.socket }
+
+func (s *Service) Listen() (net.Listener, error) {
+	os.Remove(s.socket)
+	ln, err := net.Listen("unix", s.socket)
+	if err != nil {
+		return nil, err
 	}
-	return &Service{set: set, log: log, target: scheme + "://" + net.JoinHostPort(host, port)}
+	if err := os.Chmod(s.socket, 0o600); err != nil {
+		ln.Close()
+		return nil, err
+	}
+	return ln, nil
 }
 
 func binary() string {
@@ -74,6 +90,7 @@ func (s *Service) Status() Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	st := s.status
+	st.Socket = s.socket
 	st.Mode = s.set.Get("tunnel.mode")
 	st.Running = s.running
 	if st.Binary == "" {
@@ -140,10 +157,7 @@ func (s *Service) supervise(ctx context.Context, bin, mode string, done chan str
 			args = append(args, "run")
 			env = append(env, "TUNNEL_TOKEN="+s.set.Get("tunnel.token"))
 		} else {
-			args = append(args, "--url", s.target)
-			if strings.HasPrefix(s.target, "https") {
-				args = append(args, "--no-tls-verify")
-			}
+			args = append(args, "--url", "unix:"+s.socket)
 		}
 		cmd := exec.CommandContext(ctx, bin, args...)
 		cmd.Env = env
@@ -209,27 +223,28 @@ func (s *Service) fail(err error) {
 
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if ip := r.Header.Get("Cf-Connecting-Ip"); ip != "" && r.TLS == nil && s.active() && loopback(r.RemoteAddr) {
+		if local, ok := r.Context().Value(http.LocalAddrContextKey).(*net.UnixAddr); ok && local.Name == s.socket {
 			r.TLS = &tls.ConnectionState{}
-			r.RemoteAddr = net.JoinHostPort(ip, "0")
+			ip := net.ParseIP(strings.TrimSpace(r.Header.Get("Cf-Connecting-Ip")))
+			if ip == nil {
+				ip = net.IPv4(0, 0, 0, 0)
+			}
+			r.RemoteAddr = net.JoinHostPort(ip.String(), "0")
+			if u := s.publicHost(); u != "" {
+				r.Host = u
+			}
 		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (s *Service) active() bool {
+func (s *Service) publicHost() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.running
-}
-
-func loopback(addr string) bool {
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return false
+	if s.status.URL == "" || s.set.Get("tunnel.mode") != "quick" {
+		return ""
 	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
+	return strings.TrimPrefix(s.status.URL, "https://")
 }
 
 type module struct {
@@ -242,6 +257,8 @@ func (s *Service) Module(a *auth.Service) app.Module { return module{s, a} }
 func (module) ID() string { return "tunnel" }
 
 func (m module) Stop() { m.s.Stop() }
+
+func (m module) Listen() (net.Listener, error) { return m.s.Listen() }
 
 func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	r.HandleFunc("GET /api/admin/tunnel", m.auth.RequireAdmin(func(w http.ResponseWriter, r *http.Request, _ *policy.Principal) error {

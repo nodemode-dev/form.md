@@ -204,7 +204,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		}
 		log.Info("automatic HTTPS from Instance settings", "domain", domain, "addr", cfg.Addr)
 	}
-	s.Tunnel = tunnel.New(set, log, cfg.Addr, cfg.TLS())
+	s.Tunnel = tunnel.New(set, log, cfg.DataDir)
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{s.Tunnel.Middleware, sites.Host, prov.Middleware, authSvc.Middleware},

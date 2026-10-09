@@ -117,7 +117,12 @@ func Doctor(ctx context.Context, cfg config.Config) []Check {
 		add("ok", "mail", "mail mode %s", mode)
 	}
 
+	var auto, domain string
+	_ = db.QueryRowContext(ctx, "SELECT value FROM settings WHERE key = 'https.auto'").Scan(&auto)
+	_ = db.QueryRowContext(ctx, "SELECT value FROM settings WHERE key = 'https.domain'").Scan(&domain)
 	switch {
+	case !cfg.TLS() && auto == "true" && domain != "":
+		add("ok", "tls", "automatic HTTPS for %s from Instance settings (turn off with: form-md admin set https.auto false)", domain)
 	case cfg.ACME():
 		add("ok", "tls", "ACME for %s via %s", strings.Join(cfg.ACMEDomains, ", "), cfg.ACMEDirectory)
 	case cfg.TLSCert != "":

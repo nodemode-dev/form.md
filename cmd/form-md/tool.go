@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/nodemode-ai/form.md/internal/config"
@@ -70,8 +71,19 @@ func tool(cmd string, args []string) int {
 		}
 		fmt.Printf("encrypted the database and %d files (%d already encrypted); start the server with the same FORMMD_KEY_FILE\n", rep.Files, rep.Skipped)
 	case "admin":
+		if len(args) == 3 && args[0] == "set" {
+			v, err := ops.SetSetting(ctx, cfg.DataDir, cfg.KeyFile, args[1], args[2])
+			if err != nil {
+				return fail(err)
+			}
+			if strings.Contains(args[1], "secret") || strings.Contains(args[1], "password") || strings.Contains(args[1], "token") {
+				v = "(saved)"
+			}
+			fmt.Printf("%s = %s; a running server picks this up at its next start\n", args[1], v)
+			return 0
+		}
 		if len(args) != 1 || args[0] != "reset-owner" {
-			fmt.Fprintln(os.Stderr, "usage: form-md admin reset-owner")
+			fmt.Fprintln(os.Stderr, "usage: form-md admin reset-owner | form-md admin set KEY VALUE")
 			return 2
 		}
 		email, password, err := ops.ResetOwner(ctx, cfg.DataDir, cfg.KeyFile)

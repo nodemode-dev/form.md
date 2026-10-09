@@ -1,6 +1,7 @@
 {
  "Sync now": "Jetzt synchronisieren",
  "Tunnel token": "Tunnel-Token",
+ "For a named tunnel, point its public hostname at the service unix:{socket} in the Cloudflare dashboard.": "Richte für einen benannten Tunnel den öffentlichen Hostnamen im Cloudflare-Dashboard auf den Dienst unix:{socket} aus.",
  "Public tunnel": "Öffentlicher Tunnel",
  "Reach this server from the internet through Cloudflare without opening a port. Needs cloudflared on the server.": "Mach diesen Server über Cloudflare aus dem Internet erreichbar, ohne einen Port zu öffnen. Dafür muss cloudflared auf dem Server installiert sein.",
  "Tunnel": "Tunnel",

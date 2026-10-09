@@ -261,8 +261,10 @@ function generalTab(engine: Engine, store: SettingsStore): Tab {
     const state = h("p", { class: "section__lead" });
     const start = button(t("Start the tunnel"), "default", "globe");
     const stop = button(t("Stop the tunnel"), "default", "close");
+    const hint = h("p", { class: "section__lead" });
     const paintTunnel = (st: TunnelStatus | null) => {
       if (!st) return;
+      setText(hint, st.mode === "token" ? t("For a named tunnel, point its public hostname at the service unix:{socket} in the Cloudflare dashboard.", { socket: st.socket }) : "");
       start.hidden = st.running;
       stop.hidden = !st.running;
       setText(state, !st.binary ? t("cloudflared is not installed on this server.") : st.running ? (st.url ? t("Running at {url}", { url: st.url }) : st.error ? t("Starting; last error: {error}", { error: st.error }) : t("Running.")) : st.error ? t("Stopped: {error}", { error: st.error }) : t("Stopped."));
@@ -271,7 +273,7 @@ function generalTab(engine: Engine, store: SettingsStore): Tab {
     stop.addEventListener("click", () => void busy(stop, () => engine.api.admin.tunnelStop().then(paintTunnel)).catch(engine.reportError));
     void engine.api.admin.tunnel().then(paintTunnel, () => undefined);
     const s4 = section(t("Tunnel status"), t("Save the settings above first."));
-    s4.append(state, h("div", { class: "form-actions form-actions--start" }, start, stop));
+    s4.append(state, hint, h("div", { class: "form-actions form-actions--start" }, start, stop));
     panel.append(f.el, s4);
   });
 }

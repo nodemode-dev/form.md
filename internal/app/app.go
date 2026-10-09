@@ -34,6 +34,10 @@ type Stopper interface {
 	Stop()
 }
 
+type ExtraListener interface {
+	Listen() (net.Listener, error)
+}
+
 type Drainer interface {
 	Drain(ctx context.Context)
 }
@@ -87,6 +91,20 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 		if challenges, err = serveChallenges(d, m); err != nil {
 			ln.Close()
 			return err
+		}
+	}
+	for _, m := range modules {
+		if x, ok := m.(ExtraListener); ok {
+			extra, err := x.Listen()
+			if err != nil {
+				d.Log.Warn("extra listener", "module", m.ID(), "err", err)
+				continue
+			}
+			go func() {
+				if err := srv.Serve(extra); err != nil && !errors.Is(err, http.ErrServerClosed) {
+					d.Log.Warn("extra listener stopped", "module", m.ID(), "err", err)
+				}
+			}()
 		}
 	}
 	served := make(chan error, 1)

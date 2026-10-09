@@ -119,6 +119,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "  restore FILE          replace the data directory with a backup (server stopped)")
 	fmt.Fprintln(w, "  doctor                check the data directory, database, files and settings")
 	fmt.Fprintln(w, "  admin reset-owner     set a new password for the instance owner and print it")
+	fmt.Fprintln(w, "  admin set KEY VALUE   change an instance setting, for example https.auto false")
 	fmt.Fprintln(w, "  keygen                print a new at-rest encryption key")
 	fmt.Fprintln(w, "  encrypt               encrypt a plain data directory with FORMMD_KEY_FILE (server stopped)")
 	fmt.Fprintln(w, "  version               print the version")

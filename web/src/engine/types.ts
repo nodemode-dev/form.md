@@ -1148,6 +1148,7 @@ export interface Rules {
 }
 
 export interface TunnelStatus {
+  socket: string;
   mode: "off" | "quick" | "token";
   running: boolean;
   url: string;
