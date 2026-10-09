@@ -505,6 +505,11 @@ func (s *Service) React(ctx context.Context, p *policy.Principal, commentID, ico
 	if err != nil {
 		return err
 	}
+	detail := icon + " added"
+	if !on {
+		detail = icon + " removed"
+	}
+	_ = s.audit.Record(ctx, nil, p, audit.Entry{Action: "comment.react", WorkspaceID: m.WorkspaceID, PageID: m.ID, Detail: detail})
 	s.emit(ctx, m)
 	return nil
 }

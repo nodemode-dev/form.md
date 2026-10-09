@@ -211,7 +211,14 @@ func (s *Service) UpdateView(ctx context.Context, p *policy.Principal, viewID st
 		return nil, err
 	}
 	s.emitViews(ctx, v.CollectionID)
+	s.viewAudit(ctx, p, v, "view.update")
 	return s.view(ctx, viewID)
+}
+
+func (s *Service) viewAudit(ctx context.Context, p *policy.Principal, v *View, action string) {
+	var ws string
+	_ = s.st.R.QueryRowContext(ctx, "SELECT workspace_id FROM pages WHERE id = ?", v.CollectionID).Scan(&ws)
+	_ = s.audit.Record(ctx, nil, p, audit.Entry{Action: action, WorkspaceID: ws, PageID: v.CollectionID, Detail: v.Name})
 }
 
 func (s *Service) DeleteView(ctx context.Context, p *policy.Principal, viewID string) error {
@@ -230,6 +237,7 @@ func (s *Service) DeleteView(ctx context.Context, p *policy.Principal, viewID st
 		return err
 	}
 	s.emitViews(ctx, v.CollectionID)
+	s.viewAudit(ctx, p, v, "view.delete")
 	return nil
 }
 
@@ -254,6 +262,7 @@ func (s *Service) MoveView(ctx context.Context, p *policy.Principal, viewID, aft
 		return err
 	}
 	s.emitViews(ctx, v.CollectionID)
+	s.viewAudit(ctx, p, v, "view.move")
 	return nil
 }
 

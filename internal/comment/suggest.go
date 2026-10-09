@@ -131,6 +131,7 @@ func (s *Service) Revise(ctx context.Context, p *policy.Principal, id string, in
 		in.Start, in.End, in.Original, in.Text, store.NowMS(), id); err != nil {
 		return err
 	}
+	_ = s.audit.Record(ctx, nil, p, audit.Entry{Action: "suggestion.revise", WorkspaceID: m.WorkspaceID, PageID: m.ID, Detail: id})
 	s.emit(ctx, m)
 	return nil
 }

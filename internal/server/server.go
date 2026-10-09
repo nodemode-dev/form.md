@@ -114,15 +114,12 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		}
 	})
 	comments.OnComment(func(ctx context.Context, e comment.Event) {
-		kind := map[string]string{"edit": "comment.edit", "resolve": "comment.resolve", "decision": "suggestion.decide"}[e.Kind]
+		kind := map[string]string{"edit": "comment.edit", "resolve": "comment.resolve"}[e.Kind]
 		if kind == "" || e.Page == nil {
 			return
 		}
 		var data any
-		switch {
-		case e.Suggestion != nil:
-			data = map[string]any{"suggestion": e.Suggestion.ID, "status": e.Suggestion.Status}
-		case e.Thread != nil:
+		if e.Thread != nil {
 			data = map[string]any{"thread": e.Thread.ID, "resolved": e.Thread.ResolvedAt > 0}
 		}
 		hooks.Emit(ctx, e.Page.WorkspaceID, kind, e.Page.ID, e.Actor, data)
