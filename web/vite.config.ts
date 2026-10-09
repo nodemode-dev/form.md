@@ -7,6 +7,16 @@ import { ICON_NAMES, iconSvg, isIconName } from "./src/ui/icons.ts";
 const FRONTEND_PORT = 5750;
 const BACKEND = "http://127.0.0.1:8750";
 
+const toBackend = {
+  target: BACKEND,
+  changeOrigin: true,
+  configure: (proxy: { on(event: "proxyReq", fn: (req: { getHeader(name: string): unknown; setHeader(name: string, value: string): void }) => void): void }) => {
+    proxy.on("proxyReq", (req) => {
+      if (req.getHeader("origin")) req.setHeader("origin", BACKEND);
+    });
+  },
+};
+
 const keepDistPlaceholder: Plugin = {
   name: "form-md-keep-dist-placeholder",
   apply: "build",
@@ -45,12 +55,14 @@ export default defineConfig({
     host: false,
     strictPort: true,
     proxy: {
-      "/api": BACKEND,
-      "/healthz": BACKEND,
-      "/notices": BACKEND,
-      "/events": BACKEND,
-      "/mcp": BACKEND,
-      "/files": BACKEND,
+      "/api": toBackend,
+      "/healthz": toBackend,
+      "/notices": toBackend,
+      "/events": toBackend,
+      "/mcp": toBackend,
+      "/files": toBackend,
+      "/oauth": toBackend,
+      "/.well-known": toBackend,
       "/sync": {
         target: BACKEND,
         ws: true,
