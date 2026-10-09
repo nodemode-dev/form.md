@@ -7,7 +7,7 @@
 <p align="center"><b>One workspace for people & agents: documents, databases & realtime editing in a single binary.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.10.1-9a8cff" alt="version v0.10.1" />
+  <img src="https://img.shields.io/badge/version-v0.11.0-9a8cff" alt="version v0.11.0" />
   <img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+" />
   <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
@@ -105,7 +105,7 @@ form-md.bat
 curl -fsSL https://github.com/nodemode-ai/form.md/releases/latest/download/install.sh | sh
 ```
 
-The installer verifies the download against `SHA256SUMS`, installs `/usr/local/bin/form-md` & on systemd hosts a hardened `form-md` service w/ its data in `/var/lib/form-md`. With Docker: `docker run -p 8750:8750 -v form-md:/data ghcr.io/nodemode-ai/form.md`. Both are published by the release workflow from the first tag after v0.10.1; the wiki in `.docs/wiki` covers install, encryption, TLS, backups & operations.
+The installer verifies the download against `SHA256SUMS`, installs `/usr/local/bin/form-md` & on systemd hosts a hardened `form-md` service w/ its data in `/var/lib/form-md`. With Docker: `docker run -p 8750:8750 -v form-md:/data ghcr.io/nodemode-ai/form.md`. Both are published by the release workflow from v0.11.0 on; the wiki in `.docs/wiki` covers install, encryption, TLS, backups & operations.
 
 ### Ports
 
