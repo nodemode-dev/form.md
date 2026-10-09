@@ -10,14 +10,15 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 |---|---|
 | Server, storage, accounts, workspaces, editor, databases, search, sharing | Stable, built through Phases 1 to 10 |
 | REST API with `/api/docs` and OAuth, MCP endpoint | Stable · see [[API-and-agents]] |
-| At-rest encryption, `form-md encrypt` | Working, **in testing**, not yet in a tagged release · see [[Encryption]] |
+| Charts, heatmaps, the graph view, KPI dashboards and kanban upgrades | Working since v0.12.0 · see [[Data-views]] |
+| At-rest encryption, `form-md encrypt` | Working since v0.11.0, independently audited · see [[Encryption]] |
 | Built-in ACME certificates | Working, **in testing**: checked against a test CA (Pebble), not yet against Let's Encrypt production · see [[TLS-and-ACME]] |
-| `backup`, `restore`, `doctor`, `admin reset-owner` | Working, **in testing**, not yet in a tagged release · see [[Backup-and-restore]] and [[Operations]] |
+| `backup`, `restore`, `doctor`, `admin reset-owner` | Working since v0.11.0 · see [[Backup-and-restore]] and [[Operations]] |
 | Offline start from the service worker, installable app | Working, **in testing**; the installed app not yet tried on a phone · see [[Offline]] |
 | Cloudflare tunnel | Working, **in testing** against a stand-in, not yet against real Cloudflare · see [[Tunnel]] |
 | Gmail and Microsoft 365 sending | Working, **in testing** against a stub provider, not yet against Google or Microsoft · see [[Mail]] |
-| Automatic HTTPS from Instance settings, browser backup download, update check | Working, **in testing**, not yet in a tagged release · see [[TLS-and-ACME]], [[Backup-and-restore]], [[Operations]] |
-| `install.sh`, systemd unit, container image, release workflow | Written, **not yet exercised by a release**: no tag has been pushed since they landed · see [[Install]] |
+| Automatic HTTPS from Instance settings, browser backup download, update check | Working since v0.11.0 · see [[TLS-and-ACME]], [[Backup-and-restore]], [[Operations]] |
+| `install.sh`, systemd unit, container image, release workflow | Written and tried locally (the image built and answered `/healthz`), **not yet exercised by a pushed tag** · see [[Install]] |
 | SAML and SCIM | Tested against a local identity provider only, not yet against Okta, Entra or Google Workspace |
 | AI providers | Verified against a local stand-in, not yet against live provider keys |
 | Windows scripts (`*.bat`) | Written, **not yet run** on a Windows host |
@@ -33,6 +34,7 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 - Sending mail through SMTP, Gmail or Microsoft 365: [[Mail]]
 - Back up and restore: [[Backup-and-restore]]
 - Health checks, the data directory, logs, updates, memory, fail2ban and upgrades: [[Operations]]
+- Charts, heatmaps, the graph view, dashboards and boards: [[Data-views]]
 - What works without a connection, and the installable app: [[Offline]]
 - REST API, tokens, OAuth, rate limits and connecting agents: [[API-and-agents]]
 - Repo layout, dev loop and conventions: [[Development]]

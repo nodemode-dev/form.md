@@ -1741,3 +1741,26 @@ With a key, a reader refuses a plain file instead of passing it through, so a fi
 - logged: v0.11.0 · 2026-10-09
 
 `get` loads a snapshot outside the lock. A schema change or row refresh landing while that load ran used to find nothing to update (`setSchema` and `refresh` only touch a cached snapshot), and the load then cached what it had read before the change, so `GET /api/collections/{id}` kept serving the old schema until the next eviction. Every invalidation now bumps `gen`; a load that sees `gen` move retries (up to three times, then returns its result uncached).
+
+## Phase 12 · visual data views
+
+### internal/collection/chart.go · new kinds, dots and picks
+- refers-to: internal/collection/chart.go :: `chartKinds`, `singleSeries`, `ChartInput.Pick`, `chartDots`, the limit block
+- kind: explainer
+- logged: v0.12.0 · 2026-10-09
+
+Area, radial, histogram, compare, heatmap and calendar reuse the bucket and lane aggregation; only the drawing differs, and `singleSeries` drops the series grouping for the kinds that have one. Gauge is a number. A dot plot skips aggregation and returns each row's value with the first x bucket it falls in (rows in several buckets, as with multi-selects, appear once). A pick runs the same bucketing and returns the ids in the bucket (and lane) named by the keys the client drew, capped at 500, so the drill-down list always matches the mark. Calendar charts lift the bucket ceiling to 1,100 so three years of days fit.
+
+### internal/collection/query.go · weekday, hour and explicit hidden
+- refers-to: internal/collection/query.go :: `groupKeys` (`weekday`, `hour`), `ViewProp.Hidden`, `IsHidden`
+- kind: bug-context
+- logged: v0.12.0 · 2026-10-09
+
+`weekday` keys are `d0` to `d6` (Sunday is 0) ranked from the person's first day of the week; `hour` keys are `h00` to `h23`. `ViewProp.Hidden` was a plain bool with `omitempty`, so the client's explicit `false` (shown on a card view, where the default is hidden) never reached storage and shown properties vanished after a reload; it is a pointer now and `IsHidden` reads it.
+
+### internal/store/migrations/0024_view_types.sql · widening a CHECK
+- refers-to: internal/store/migrations/0024_view_types.sql
+- kind: warning-context
+- logged: v0.12.0 · 2026-10-09
+
+SQLite cannot alter a CHECK, so the table is rebuilt inside the migration's transaction. Foreign keys are on and cannot be turned off inside a transaction, so dropping the old table cascades into `form_links` and `calendar_feeds`; both are copied to temp tables first and put back after the rename. Any later table that references `collection_views` must be added to this dance if the table is ever rebuilt again.

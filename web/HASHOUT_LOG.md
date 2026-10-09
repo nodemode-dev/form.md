@@ -1539,3 +1539,33 @@ The server renders `/offline-shell` for the workspace in the remembered-workspac
 - logged: v0.11.1 · 2026-10-09
 
 A row page is not in the tree, so offline it can only be drawn from the cached page detail (`GET /api/pages/<id>`, which the engine's `loadDetail` reads on every page route) and the cached row read (`GET /api/rows/<id>`). Keeping a database caches both for every row in its first window and syncs each row's body into IndexedDB, four at a time. A row page opened from a server-rendered boot never fetches `/api/rows/<id>` (the boot carries it), so the worker is asked to fetch it once at start. After a kept page syncs, every `f:` attribute in its document, its cover and its icon are sent to the worker, which fetches the files it does not hold yet into `formmd-files`.
+
+## Phase 12 · visual data views
+
+### src/extensions/database/views/chartkinds.ts · the eight new kinds
+- refers-to: src/extensions/database/views/chartkinds.ts :: `drawExtra`, `layoutCalendar`, `paintCells`, `heatLevel`; chartdraw.ts :: the helper exports
+- kind: explainer
+- logged: v0.12.0 · 2026-10-09
+
+`drawChart` hands the new kinds to `drawExtra` before anything else, so the original bar, line and donut code is untouched. Everything is keyed SVG on the same six layers, so a live update moves marks. Heat levels run 0 to 5: linear divides by the maximum, quantile cuts the non-zero values at the 20th to 80th percentiles (with few distinct values fewer levels appear). The dot plot places dots by value along a band and steps them up and down until they do not overlap; overflow is placed by a hash of the row id rather than at random, so a redraw does not shuffle them. `layoutCalendar` is shared by the calendar chart kind and the heatmap view.
+
+### src/extensions/database/views/heatmap.ts · fixed heights
+- refers-to: src/extensions/database/views/heatmap.ts :: `heatmapView`, `paintBar`; src/styles/viz.css :: `.heatv[data-domain]`
+- kind: warning-context
+- logged: v0.12.0 · 2026-10-09
+
+The frame height comes from CSS by layout (`data-domain`, set synchronously at mount) and the grid is fitted into it, so the view never grows when data arrives; before the first answer the cells paint at level 0. Ranges move by whole domains and are fetched with a `between` filter on the date property, so a year's request carries only that year.
+
+### src/extensions/database/views/graph.ts and graphsim.ts · the graph
+- refers-to: graph.ts :: `build`, `startSim`, `link`, `unlink`, `paintSide`; graphsim.ts :: `charge`, `linkForce`, `clusterForce`
+- kind: explainer
+- logged: v0.12.0 · 2026-10-09
+
+Rows are fetched in pages of 1,000 up to 2,000 with `no_groups`; relation values become edges deduplicated per unordered pair (two-way relations would otherwise draw twice). The worker runs Barnes-Hut (theta 0.9) with d3-style link strength (one over the smaller degree) and a weak pull to each colour group's centroid, ticking in 14 ms slices and posting positions as transferable arrays; positions survive a rebuild by id. Edits go through `collections.setValue` and are mirrored in `rowVals` and the edge list at once, then the session's live update reloads the graph with a small reheat. Node colours are read from a probe element with `data-color`, converting `color(srgb …)` results for the canvas.
+
+### src/extensions/database/views/dashboard.ts and board.ts · upgrades
+- refers-to: dashboard.ts :: `Widget.size`, `Widget.kpi`, `startMove`; kpi.ts :: `drawKpi`; board.ts :: `fetchSummary`, `startEdit`, `layout().limits/collapsed/total/progress`
+- kind: explainer
+- logged: v0.12.0 · 2026-10-09
+
+Old widgets with `wide` read as size `l`. A KPI asks the chart endpoint twice (the number and a line by the trend period) and shows the last 24 buckets. Board totals and progress come from one chart request each over the board's own grouping (and sub-grouping as series), so they count every row, not just the loaded window. Card editing is a mode: the pencil starts it, a click on a property inside an editing card opens that property's editor instead of the row page, and a press outside the card (but not inside an editor in the overlay root) ends it.
