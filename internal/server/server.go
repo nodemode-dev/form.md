@@ -17,6 +17,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/aifill"
 	"github.com/nodemode-ai/form.md/internal/analytics"
 	"github.com/nodemode-ai/form.md/internal/answer"
+	"github.com/nodemode-ai/form.md/internal/apidoc"
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auditapi"
@@ -224,6 +225,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		feed.New(st, authSvc, cols, docs, comments).Module(),
 		templates.New(st, authSvc, gate, pages, docs, cols).Module(),
 		transfer.New(st, authSvc, gate, pages, docs, cols, fsvc, sites, log, cfg.DataDir).Module(),
+		apidoc.New(authSvc.BaseURL).Module(),
 		graph.New(st, authSvc, pages).Module(),
 		answer.New(st, authSvc, finder, brain).Module(),
 		static.Module(s.renderDocument),

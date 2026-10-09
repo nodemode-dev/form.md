@@ -643,6 +643,15 @@ function tokensTab(engine: Engine): Tab {
       });
 
       const intro = section(t("API tokens"), t("Tokens let agents and scripts use the REST API and the MCP endpoint as you. A token can only narrow what you can do, never widen it."));
+      intro.append(
+        h(
+          "p",
+          { class: "muted" },
+          h("a", { attrs: { href: "/api/docs", target: "_blank", rel: "noopener" }, text: t("API reference") }),
+          document.createTextNode(" · "),
+          h("a", { attrs: { href: "/api/openapi.json", target: "_blank", rel: "noopener" }, text: t("OpenAPI document") }),
+        ),
+      );
       const make = section(t("New token"));
       make.append(form);
       const existing = section(t("Your tokens"));

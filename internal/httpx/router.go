@@ -8,10 +8,13 @@ import (
 type Middleware func(http.Handler) http.Handler
 
 type Router struct {
-	mux *http.ServeMux
-	mw  []Middleware
-	log *slog.Logger
+	mux      *http.ServeMux
+	mw       []Middleware
+	log      *slog.Logger
+	patterns []string
 }
+
+func (r *Router) Patterns() []string { return append([]string(nil), r.patterns...) }
 
 func NewRouter(log *slog.Logger) *Router {
 	r := &Router{mux: http.NewServeMux(), log: log}
@@ -27,10 +30,12 @@ func (r *Router) Use(m ...Middleware) {
 }
 
 func (r *Router) Handle(pattern string, h http.Handler) {
+	r.patterns = append(r.patterns, pattern)
 	r.mux.Handle(pattern, h)
 }
 
 func (r *Router) HandleFunc(pattern string, h http.HandlerFunc) {
+	r.patterns = append(r.patterns, pattern)
 	r.mux.HandleFunc(pattern, h)
 }
 
