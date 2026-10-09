@@ -48,6 +48,8 @@ export class QuerySession {
   private pumpTimer: ReturnType<typeof setTimeout> | undefined;
   private pumpSince = 0;
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
+  private dirty = new Set<string>();
+  private dirtyAll = false;
   private extraGroups = new Map<string, number>();
   closed = false;
 
@@ -225,8 +227,21 @@ export class QuerySession {
 
   scheduleRefresh(ids: string[]): void {
     if (this.closed) return;
+    if (ids.length) for (const id of ids) this.dirty.add(id);
+    else this.dirtyAll = true;
     clearTimeout(this.refreshTimer);
-    this.refreshTimer = setTimeout(() => void this.refresh(ids).catch((e) => this.store.onError(e)), 120);
+    this.refreshTimer = setTimeout(() => {
+      const all = this.dirtyAll;
+      const list = [...this.dirty];
+      const mine = this.seq + 1;
+      void this.refresh(all ? [] : list)
+        .then(() => {
+          if (this.seq !== mine) return;
+          if (all) this.dirtyAll = false;
+          for (const id of list) this.dirty.delete(id);
+        })
+        .catch((e) => this.store.onError(e));
+    }, 120);
   }
 
   async refresh(changed: string[] = []): Promise<void> {
