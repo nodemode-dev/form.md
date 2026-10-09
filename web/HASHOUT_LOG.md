@@ -1569,3 +1569,12 @@ Rows are fetched in pages of 1,000 up to 2,000 with `no_groups`; relation values
 - logged: v0.12.0 · 2026-10-09
 
 Old widgets with `wide` read as size `l`. A KPI asks the chart endpoint twice (the number and a line by the trend period) and shows the last 24 buckets. Board totals and progress come from one chart request each over the board's own grouping (and sub-grouping as series), so they count every row, not just the loaded window. Card editing is a mode: the pencil starts it, a click on a property inside an editing card opens that property's editor instead of the row page, and a press outside the card (but not inside an editor in the overlay root) ends it.
+
+## Phase 13 · context for agents
+
+### src/ui/account-agents.ts · client snippets
+- refers-to: account-agents.ts :: `snippets`
+- kind: explainer
+- logged: v0.13.0 · 2026-10-09
+
+The labels are product and file names, so they are not run through `t()`. Codex starts MCP servers as commands, so its snippet runs the binary's `form-md mcp` bridge with `--url` set to this origin (the bridge appends `/mcp`) and a placeholder token, written as TOML that `~/.codex/config.toml` accepts as is. The snippets are built once when the tab renders and never change, so the tab cannot shift.

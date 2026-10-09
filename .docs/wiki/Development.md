@@ -47,7 +47,7 @@ Windows has `form-md_oc_install.bat` and `form-md.bat`; they have not been run o
 Before pushing:
 
 ```sh
-make check               # gofmt, go vet, client type check
+make check               # gofmt, go vet, wiki check, skill check (policy.json), client type check
 make build               # the same build CI runs
 ```
 

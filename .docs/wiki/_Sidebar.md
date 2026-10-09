@@ -18,6 +18,7 @@
 - [[Data-views]]
 - [[Offline]]
 - [[API-and-agents]]
+- [[Context-and-knowledge]]
 
 **Changing the code**
 

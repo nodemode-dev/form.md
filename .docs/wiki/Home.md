@@ -2,7 +2,7 @@
 
 form.md is a self-hosted workspace where people and AI agents write documents, run databases and edit together in realtime. It ships as one static Go binary (`form-md`) with the TypeScript web client embedded, and it keeps everything in one data directory: a SQLite database (`form-md.db`), the uploaded files and a few small key files. There is no separate database server, cache or object store. The server holds the collaborative document itself, so an agent writing through MCP or the REST API merges with what a person is typing. This wiki is for the people who install and run an instance and for the people who change its code.
 
-**Current version:** v0.10.1 released; `main` carries the 0.11.0 work (encryption, ACME, operations commands, offline start, installer) · **Stack:** Go 1.26, pure-Go SQLite, vanilla TypeScript and Vite, ProseMirror and Yjs · **Team:** one owner (nodemode-ai)
+**Current version:** v0.13.0 (context packs and agent connections; v0.12.0 brought the visual data views, v0.11.0 encryption, ACME, operations commands, offline start and the installer) · **Stack:** Go 1.26, pure-Go SQLite, vanilla TypeScript and Vite, ProseMirror and Yjs · **Team:** one owner (nodemode-ai)
 
 ## Status at a glance
 
@@ -11,6 +11,7 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 | Server, storage, accounts, workspaces, editor, databases, search, sharing | Stable, built through Phases 1 to 10 |
 | REST API with `/api/docs` and OAuth, MCP endpoint | Stable · see [[API-and-agents]] |
 | Charts, heatmaps, the graph view, KPI dashboards and kanban upgrades | Working since v0.12.0 · see [[Data-views]] |
+| Context packs, the knowledge bank, `form-md mcp`, Claude Code, Codex and Cursor connections | Working since v0.13.0; the client configs are checked by parsing, not yet inside each app · see [[Context-and-knowledge]] |
 | At-rest encryption, `form-md encrypt` | Working since v0.11.0, independently audited · see [[Encryption]] |
 | Built-in ACME certificates | Working, **in testing**: checked against a test CA (Pebble), not yet against Let's Encrypt production · see [[TLS-and-ACME]] |
 | `backup`, `restore`, `doctor`, `admin reset-owner` | Working since v0.11.0 · see [[Backup-and-restore]] and [[Operations]] |

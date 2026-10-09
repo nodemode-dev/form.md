@@ -19,7 +19,8 @@ form.md/
 ├── form-md_oc_install (+ .bat)      installs both sides
 ├── cmd/
 │   └── form-md/
-│       └── main.go                  subcommands (serve, version, help), wiring, exit codes
+│       ├── main.go                  subcommands (serve, version, help), wiring, exit codes
+│       └── bridge.go                form-md mcp: stdio to Streamable HTTP bridge for command-based MCP clients
 ├── internal/
 │   ├── HASHOUT_LOG.md               this file
 │   ├── admin/
@@ -67,6 +68,13 @@ form.md/
 │   │   └── module.go                route table for /api/auth, /api/setup, /api/me, invites
 │   ├── collection/                  databases: schema, rows, query stages, formula language, views, forms, CSV, public tables
 │   ├── comment/                     threads, replies, reactions, resolve, mentions, suggested edits
+│   ├── contextpack/
+│   │   ├── policy.go                policy.json from the contextual-compression skill: types, validation, budgets, token estimate
+│   │   ├── text.go                  words, stems, similarity, digest, outline
+│   │   ├── bank.go                  the knowledge bank: record with dedupe and conflicts, verdicts, decay, search, Brief for agents
+│   │   ├── pack.go                  context packs: sections, ranking, focus compression, delta, links, rendering
+│   │   ├── review.go                hygiene report: stale, weak, duplicate and conflicting items
+│   │   └── undo.go                  agent-run undo steps for knowledge writes
 │   ├── config/
 │   │   └── config.go                FORMMD_* env vars (incl. FETCH_PRIVATE, KEY_FILE, ACME_*, UPDATE_URL), defaults, validation
 │   ├── crypt/
@@ -116,7 +124,8 @@ form.md/
 │   │   ├── tools_read.go            read tools
 │   │   ├── tools_write.go           write tools with undo steps
 │   │   ├── internal.go              Specs and Invoke for in-process agents
-│   │   └── skill.go                 GET /api/mcp/skill.zip
+│   │   ├── tools_context.go         context_pack and knowledge_* tools, skill prompts and resources
+│   │   └── skill.go                 GET /api/mcp/skill.zip (form-md plus contextual-compression)
 │   ├── oauth/
 │   │   └── oauth.go                 OAuth 2.1 for agents: metadata, DCR, CIMD, consent, codes, tokens, grants
 │   ├── netguard/
@@ -141,6 +150,7 @@ form.md/
 │   │   ├── search.go                FTS5 index worker, tiered ranking, filters, GET /api/search
 │   │   ├── passages.go              Markdown split into passages with heading paths
 │   │   ├── sources.go               keyword OR search for AI answers, visibility-filtered
+│   │   ├── context.go               Passages: any-word passages with rank, heading and page age for context packs
 │   │   └── highlight.go             folding, stemming and snippet marks done in Go
 │   ├── scim/                        SCIM 2.0 Users and Groups for a workspace, token management
 │   ├── secrets/
@@ -195,8 +205,10 @@ form.md/
     ├── boot_backend (+ .bat)        Go side dev boot: go run on 127.0.0.1:8750
     ├── notices/
     │   └── main.go                  generates NOTICES.md from go list and web/node_modules
-    └── wikicheck/
-        └── main.go                  fails when the wiki names a variable, command, route or page that does not exist
+    ├── wikicheck/
+    │   └── main.go                  fails when the wiki names a variable, command, route or page that does not exist
+    └── skillcheck/
+        └── main.go                  fails when policy.json breaks its rules or a skill file's frontmatter or routing is wrong
 ```
 
 ---
@@ -1764,3 +1776,40 @@ Area, radial, histogram, compare, heatmap and calendar reuse the bucket and lane
 - logged: v0.12.0 · 2026-10-09
 
 SQLite cannot alter a CHECK, so the table is rebuilt inside the migration's transaction. Foreign keys are on and cannot be turned off inside a transaction, so dropping the old table cascades into `form_links` and `calendar_feeds`; both are copied to temp tables first and put back after the rename. Any later table that references `collection_views` must be added to this dance if the table is ever rebuilt again.
+
+## Phase 13 · context for agents
+
+### internal/contextpack/policy.go · one policy for the skill and the server
+- refers-to: embed.go :: `ContextSkill`; internal/contextpack/policy.go :: `LoadPolicy`, `ParsePolicy`, `Validate`; internal/server/server.go :: `Build`
+- kind: explainer
+- logged: v0.13.0 · 2026-10-09
+
+`.claude/skills/contextual-compression/policy.json` is embedded into the binary and parsed at start; a file that breaks its rules stops `Build` with the list of problems, and `tools/skillcheck` runs the same validation in `make check`. The skill's prose quotes key names, never numbers, so the agents reading the skill and the server packing context cannot drift apart. `knowledge.kinds` must equal the list in the `knowledge` CHECK of migration 0025; widening it needs a table rebuild like 0024.
+
+### internal/contextpack/pack.go · how a pack is filled
+- refers-to: internal/contextpack/pack.go :: `Service.Pack`, `packing.passages`, `Policy.compress`, `packing.since`
+- kind: explainer
+- logged: v0.13.0 · 2026-10-09
+
+Sections run in policy order. Each gets its share of the character budget (tokens times `chars_per_token`) plus whatever earlier sections left unused; a required section may take everything still free, and its overspend comes off the next. Rules are never cut. Passages come from `search.Passages` (any word, not all words) and are scored by the six weighted signals normalized by the sum of the weights, so `min_score` is a fraction; full-text rank is relative to the best candidate. A focus page goes in whole when it fits, else as heading-by-heading digests, else as an outline; a page included whole is not repeated as passages. Delta mode keeps only passages and related pages changed after the cutoff, which is an earlier pack of the same person, a time, or the agent's own last pack, clamped to `delta.max_hours`. Every pack is logged in `context_packs` with its sources so a delta can start from it.
+
+### internal/contextpack/bank.go · knowledge, access and decay
+- refers-to: internal/contextpack/bank.go :: `active`, `visible`, `Record`, `verdict`, `effective`, `rank`
+- kind: warning-context
+- logged: v0.13.0 · 2026-10-09
+
+An item whose source page the reader cannot open is dropped before ranking, so knowledge never leaks a private page. Recording text at or above `duplicate_similarity` to an item of the same kind confirms that item instead; between the conflict and duplicate lines with the same subject it is recorded and returned as a conflict. Effective confidence halves every `half_life_days[kind]` since the last confirmation; items under `confidence.floor` are hidden, a contradiction that reaches the floor retires the item. Similarity is Jaccard over stemmed words without stopwords; single digits count as words because "3 attempts" and "5 attempts" are different facts.
+
+### internal/mcp/tools_context.go · brief results and undo
+- refers-to: internal/mcp/tools.go :: `Tool.Brief`; internal/mcp/tools_context.go :: `knowledgeRecord`, `knowledgeConfirm`; internal/contextpack/undo.go
+- kind: explainer
+- logged: v0.13.0 · 2026-10-09
+
+Brief tools return their structured result as `structuredContent` but leave it out of the text, because the text already carries the rendered pack and doubling it would spend the budget the pack exists to save. Knowledge writes are recorded as `knowledge` steps of the agent run: undo deletes a recorded item or restores the previous confidence, counts and retirement of a confirmed, contradicted, superseded or retired one.
+
+### cmd/form-md/bridge.go · the stdio bridge
+- refers-to: cmd/form-md/bridge.go :: `bridge`, `forward`
+- kind: explainer
+- logged: v0.13.0 · 2026-10-09
+
+Codex and other clients that start a command speak MCP over standard input and output, one JSON message per line. The bridge forwards each line to `/mcp` with the token, up to four at a time, and writes each answer back as one line; notifications get no answer. When a message carries `_meta` with a protocol version, the bridge sets `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` (base64-wrapped when not plain ASCII) because the 2026-07-28 transport refuses requests without them. Transport failures come back as JSON-RPC errors for the request's id, never as broken lines.
