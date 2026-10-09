@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/nodemode-ai/form.md/internal/admin"
+	"github.com/nodemode-ai/form.md/internal/analytics"
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auth"
@@ -52,6 +53,7 @@ type Server struct {
 	Cols     *collection.Service
 	Comments *comment.Service
 	Inbox    *inbox.Service
+	Views    *analytics.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -96,6 +98,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	finder.SetRows(cols.RowText, cols.RowIDs)
 	cols.OnRows(finder.RowsChanged)
 	sites := site.New(st, gate, pages, docs, cols, fsvc, authSvc, set, al, log)
+	views := analytics.New(st, gate, pages, al, log)
+	pages.OnVisit(views.FromVisit)
+	sites.OnView(views.Record)
 
 	ws.SetNotifier(hub)
 	ws.SetImageCheck(func(ctx context.Context, ref, workspaceID string) bool {
@@ -121,7 +126,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{sites.Host, authSvc.Middleware},
@@ -142,6 +147,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		notes.Module(authSvc),
 		finder.Module(),
 		sites.Module(authSvc),
+		views.Module(authSvc),
 		static.Module(s.renderDocument),
 	}
 	return s, nil
@@ -168,6 +174,7 @@ func (s *Server) housekeeping(ctx context.Context) {
 		if _, err := s.Docs.PurgeVersions(ctx, s.Settings.Int("history.days")); err != nil {
 			s.Deps.Log.Warn("history purge failed", "err", err)
 		}
+		s.Views.Purge(ctx)
 		select {
 		case <-ctx.Done():
 			return

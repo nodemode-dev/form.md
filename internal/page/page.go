@@ -97,7 +97,12 @@ type Service struct {
 	watchers []func(ctx context.Context, ids []string)
 	creators []func(ctx context.Context, tx *sql.Tx, id, workspaceID, kind string, extra json.RawMessage) error
 	sharers  []func(ctx context.Context, m *Meta, kind, subject string)
+	visitors []func(ctx context.Context, p *policy.Principal, pageID, workspaceID string)
 	auth     *auth.Service
+}
+
+func (s *Service) OnVisit(fn func(ctx context.Context, p *policy.Principal, pageID, workspaceID string)) {
+	s.visitors = append(s.visitors, fn)
 }
 
 func (s *Service) OnCreate(fn func(ctx context.Context, tx *sql.Tx, id, workspaceID, kind string, extra json.RawMessage) error) {

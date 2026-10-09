@@ -143,12 +143,18 @@ func (s *Service) Visit(ctx context.Context, p *policy.Principal, pageID string)
 	if !p.IsSession() {
 		return nil
 	}
-	if _, _, err := s.readable(ctx, p, pageID); err != nil {
+	m, _, err := s.readable(ctx, p, pageID)
+	if err != nil {
 		return err
 	}
-	_, err := s.st.W.ExecContext(ctx, `INSERT INTO page_visits (user_id, page_id, visited_at) VALUES (?, ?, ?)
-		ON CONFLICT (user_id, page_id) DO UPDATE SET visited_at = excluded.visited_at`, p.UserID, pageID, store.NowMS())
-	return err
+	if _, err := s.st.W.ExecContext(ctx, `INSERT INTO page_visits (user_id, page_id, visited_at) VALUES (?, ?, ?)
+		ON CONFLICT (user_id, page_id) DO UPDATE SET visited_at = excluded.visited_at`, p.UserID, pageID, store.NowMS()); err != nil {
+		return err
+	}
+	for _, fn := range s.visitors {
+		fn(ctx, p, pageID, m.WorkspaceID)
+	}
+	return nil
 }
 
 type Recent struct {
