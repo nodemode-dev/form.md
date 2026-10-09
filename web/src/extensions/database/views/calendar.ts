@@ -1,7 +1,9 @@
 import { locale, weekStart } from "../../../engine/format";
 import { t } from "../../../engine/i18n";
 import type { CollectionView, Property, RowData } from "../../../engine/types";
+import { simpleDialog } from "../../../ui/dialog";
 import { byId, h, setAttr, setText } from "../../../ui/dom";
+import { toast } from "../../../ui/toast";
 import { iconNode } from "../../../ui/icons";
 import { reconcile } from "../../../ui/list";
 import { type MenuEntry, openMenu } from "../../../ui/menu";
@@ -62,6 +64,26 @@ export function spanOf(row: RowData, p: Property): Span | null {
 export function calendarView(host: ViewHost): ViewRenderer {
   const view = (): CollectionView => host.view();
   const layout = () => view().config.layout ?? {};
+  const subscribe = (reset: boolean) => {
+    void host.engine.api.http
+      .post<{ url: string }>(`/api/views/${encodeURIComponent(host.viewId)}/calendar-feed`, { reset })
+      .then((r) =>
+        simpleDialog(t("Subscribe in a calendar app"), (body, close) => {
+          const field = h("input", { class: "input input--mono", attrs: { type: "text", readonly: "", "aria-label": t("Calendar address") } });
+          field.value = r.url;
+          const copy = h("button", { class: "btn btn--primary", attrs: { type: "button" }, text: t("Copy address") });
+          copy.addEventListener("click", () => void navigator.clipboard?.writeText(r.url).then(() => toast({ id: "ics", tone: "success", message: t("Address copied") })));
+          const reset2 = h("button", { class: "btn btn--ghost", attrs: { type: "button" }, text: t("Make a new address") });
+          reset2.addEventListener("click", () => {
+            close();
+            subscribe(true);
+          });
+          body.append(h("p", { class: "muted", text: t("Add this address to Google Calendar, Apple Calendar or Outlook as a calendar subscription. It shows the pages you can see in this view and updates every few minutes. Keep it private: anyone with it can read these dates.") }), field, h("div", { class: "form-actions" }, reset2, copy));
+          return field;
+        }),
+      )
+      .catch(host.engine.reportError);
+  };
   const dateProp = (): Property | undefined => {
     const want = layout().date as string | undefined;
     const list = dateProps(host);
@@ -398,6 +420,7 @@ export function calendarView(host: ViewHost): ViewRenderer {
       const set = (change: Record<string, unknown>) => saveConfig(ctx, host.viewId, (cfg) => ({ ...cfg, layout: { ...(cfg.layout ?? {}), ...change } }), 0);
       const entries: MenuEntry[] = [{ kind: "heading", label: t("Show calendar by") }, ...dateProps(host).map((p) => ({ label: p.name, checked: dateProp()?.id === p.id, run: () => set({ date: p.id }) }))];
       entries.push({ kind: "separator" }, { label: t("Show weekends"), checked: weekends(), run: () => set({ weekends: !weekends() }) });
+      entries.push({ kind: "separator" }, { label: t("Subscribe in a calendar app"), icon: "calendar", run: () => subscribe(false) });
       openMenu(anchor, entries, { side: "bottom", align: "end", label: t("Layout") });
     },
     destroy() {

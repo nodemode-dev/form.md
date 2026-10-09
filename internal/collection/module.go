@@ -399,6 +399,47 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		w.WriteHeader(http.StatusNoContent)
 		return nil
 	}))
+	route("POST /api/views/{id}/calendar-feed", func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		var in struct {
+			Reset bool `json:"reset"`
+		}
+		if r.ContentLength != 0 {
+			if err := httpx.Decode(r, &in); err != nil {
+				return err
+			}
+		}
+		token, err := s.CalendarFeed(r.Context(), p, r.PathValue("id"), in.Reset)
+		if err != nil {
+			return err
+		}
+		return ok(w, map[string]any{"url": a.BaseURL(r) + "/api/public/calendar/" + token + ".ics"})
+	})
+	r.HandleFunc("GET /api/public/calendar/{file}", a.Public(func(w http.ResponseWriter, r *http.Request) error {
+		token := strings.TrimSuffix(r.PathValue("file"), ".ics")
+		viewID, userID, err := s.FeedOwner(r.Context(), token)
+		if err != nil {
+			return err
+		}
+		p, err := a.PrincipalFor(r.Context(), userID)
+		if err != nil {
+			return httpx.ErrNotFound
+		}
+		p.Kind, p.Scope = policy.KindSession, "read"
+		base := a.BaseURL(r)
+		host := strings.TrimPrefix(strings.TrimPrefix(base, "https://"), "http://")
+		body, name, err := s.ICS(r.Context(), p, viewID, base, host)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) || errors.Is(err, httpx.ErrForbidden) || errors.Is(err, policy.ErrHidden) {
+				return httpx.ErrNotFound
+			}
+			return err
+		}
+		w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+		w.Header().Set("Content-Disposition", `inline; filename="`+safeName(name)+`.ics"`)
+		w.Header().Set("Cache-Control", "private, max-age=300")
+		_, err = w.Write(body)
+		return err
+	}))
 	return nil
 }
 
