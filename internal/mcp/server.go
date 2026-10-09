@@ -375,5 +375,6 @@ func (Module) ID() string { return "mcp" }
 
 func (m Module) Mount(r *httpx.Router, _ *app.Deps) error {
 	r.HandleFunc("/mcp", m.s.handle)
+	r.HandleFunc("GET /api/mcp/skill.zip", m.s.Auth.Require(m.s.skill))
 	return nil
 }

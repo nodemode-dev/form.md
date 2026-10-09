@@ -36,6 +36,8 @@ export function agentsTab(engine: Engine): Tab {
         box.classList.add("snippet");
         connect.append(h("p", { class: "field__label", text: name }), box);
       }
+      const skill = h("a", { class: "btn btn--ghost", attrs: { href: "/api/mcp/skill.zip", download: "form-md-skill.zip" } }, iconNode("download"), h("span", { text: t("Download the form.md skill") }));
+      connect.append(h("p", { class: "section__lead", text: t("A skill teaches Claude and other agents how to work here: the address, the tools and the conventions, such as reading workspace rules first and grouping writes into undoable runs.") }), h("div", { class: "form-actions" }, skill));
 
       const grantList = h("div", { class: "rows" });
       const noGrants = h("p", { class: "muted", text: t("No agent is connected.") });
