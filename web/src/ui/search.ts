@@ -9,13 +9,26 @@ import { openLayer } from "./layers";
 import { reconcile } from "./list";
 import { type MenuEntry, openMenu } from "./menu";
 import { pageIcon } from "./pageicon";
+import { ApiError } from "../engine/api";
+import { reconcile as morph, render } from "../extensions/blocks/ai";
+import { markdownReady } from "../extensions/blocks/markdown";
 
 type Item =
   | { kind: "heading"; key: string; label: string }
   | { kind: "page"; key: string; hit: SearchHit }
   | { kind: "action"; key: string; command: Command; chord: string }
   | { kind: "more"; key: string }
+  | { kind: "ask"; key: string }
   | { kind: "empty"; key: string; label: string };
+
+interface Source {
+  page_id: string;
+  title: string;
+  heading: string;
+  path: { id: string; title: string }[];
+}
+
+const QUESTION = /\?\s*$|^(who|what|when|where|why|how|which|is|are|do|does|did|can|should|summari[sz]e|explain|list)\b/i;
 
 type DateRange = "any" | "today" | "week" | "month" | "year";
 
@@ -95,6 +108,12 @@ export function mountSearch(engine: Engine): void {
     const sortChip = chip(t("Best match"));
     const filterRow = h("div", { class: "srch__filters", attrs: { role: "group", "aria-label": t("Filters") } }, titleChip, byChip, inChip, dateChip, h("span", { class: "srch__spacer" }), sortChip);
     const list = h("div", { class: "srch__list", attrs: { id: "srch-list", role: "listbox", "aria-label": t("Results") } });
+    const answerText = h("div", { class: "srch__answer-text doc-body", attrs: { "aria-live": "polite" } });
+    const answerNote = h("p", { class: "srch__answer-note" });
+    const sourcesEl = h("ol", { class: "srch__sources", attrs: { "aria-label": t("Sources") } });
+    const answerClose = h("button", { class: "icon-btn icon-btn--sm", attrs: { type: "button", "aria-label": t("Close answer") } }, iconNode("close"));
+    const answer = h("section", { class: "srch__answer", attrs: { "aria-label": t("AI answer") } }, h("header", { class: "srch__answer-head" }, iconNode("sparkle"), h("span", { text: t("AI answer") }), answerClose), answerNote, answerText, sourcesEl);
+    answer.hidden = true;
     const foot = h(
       "div",
       { class: "srch__foot" },
@@ -103,13 +122,24 @@ export function mountSearch(engine: Engine): void {
       h("span", {}, h("kbd", { text: keymap.format("mod+enter").join("+") }), " ", t("in a new tab")),
       h("span", { class: "srch__took" }),
     );
-    const dialog = h("div", { class: "dialog srch", attrs: { role: "dialog", "aria-modal": "true", "aria-label": t("Search"), tabindex: "-1" } }, head, filterRow, list, foot);
+    const dialog = h("div", { class: "dialog srch", attrs: { role: "dialog", "aria-modal": "true", "aria-label": t("Search"), tabindex: "-1" } }, head, filterRow, answer, list, foot);
+    answerClose.addEventListener("click", () => stopAnswer());
+    sourcesEl.addEventListener("click", (e) => {
+      const a = (e.target as Element).closest<HTMLElement>("[data-page]");
+      if (!a?.dataset.page) return;
+      e.preventDefault();
+      close();
+      engine.openPage(a.dataset.page, { newTab: e instanceof MouseEvent && (e.ctrlKey || e.metaKey) });
+    });
     const scrim = h("div", { class: "scrim", attrs: { "aria-hidden": "true" } });
     scrim.hidden = true;
     dialog.hidden = true;
     byId("overlay-root").append(scrim, dialog);
 
-    input.addEventListener("input", () => schedule(110));
+    input.addEventListener("input", () => {
+      if (asked && asked !== query()) stopAnswer();
+      schedule(110);
+    });
     input.addEventListener("keydown", (e) => {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
@@ -203,7 +233,7 @@ export function mountSearch(engine: Engine): void {
         { side: "bottom", align: "end", label: t("Sort") },
       );
     });
-    return { scrim, dialog, input, busy, list, titleChip, byChip, inChip, dateChip, sortChip, took: foot.querySelector(".srch__took") as HTMLElement };
+    return { scrim, dialog, input, busy, list, titleChip, byChip, inChip, dateChip, sortChip, took: foot.querySelector(".srch__took") as HTMLElement, answer, answerText, answerNote, sourcesEl };
   }
 
   const paintChips = () => {
@@ -251,10 +281,17 @@ export function mountSearch(engine: Engine): void {
       const list = actions("");
       if (list.length) next.push({ kind: "heading", key: "h:actions", label: t("Actions") }, ...list);
     } else {
+      const ask: Item[] = [
+        { kind: "heading", key: "h:ai", label: t("AI") },
+        { kind: "ask", key: "ask" },
+      ];
+      const questionLike = QUESTION.test(q);
+      if (questionLike) next.push(...ask);
       next.push({ kind: "heading", key: "h:pages", label: t("Pages") });
       if (hits.length) next.push(...hits.map((hit) => ({ kind: "page" as const, key: `p:${hit.id}`, hit })));
       else next.push({ kind: "empty", key: "e:pages", label: t("No pages match") });
       if (more) next.push({ kind: "more", key: "more" });
+      if (!questionLike) next.push(...ask);
       const list = actions(q).slice(0, 4);
       if (list.length) next.push({ kind: "heading", key: "h:actions", label: t("Actions") }, ...list);
     }
@@ -263,7 +300,74 @@ export function mountSearch(engine: Engine): void {
     paint();
   };
 
-  const selectable = (it: Item | undefined) => !!it && (it.kind === "page" || it.kind === "action" || it.kind === "more");
+  const selectable = (it: Item | undefined) => !!it && (it.kind === "page" || it.kind === "action" || it.kind === "more" || it.kind === "ask");
+
+  let asked = "";
+  let answering: AbortController | null = null;
+
+  const stopAnswer = () => {
+    answering?.abort();
+    answering = null;
+    asked = "";
+    if (parts) parts.answer.hidden = true;
+  };
+
+  const runAnswer = (q: string) => {
+    if (!parts) return;
+    const p = parts;
+    answering?.abort();
+    const abort = new AbortController();
+    answering = abort;
+    asked = q;
+    p.answer.hidden = false;
+    p.answerText.replaceChildren();
+    p.sourcesEl.replaceChildren();
+    setText(p.answerNote, t("Reading the workspace"));
+    p.answerNote.hidden = false;
+    let raw = "";
+    let frame = 0;
+    void markdownReady().then((ready) =>
+      api.ai
+        .answer(
+          workspace(),
+          q,
+          (event, data) => {
+            if (answering !== abort) return;
+            if (event === "sources") {
+              const list = ((data as { sources?: Source[] }).sources ?? []) as Source[];
+              list.forEach((s, i) => {
+                const where = [...s.path.map((c) => c.title || t("Untitled")), s.title || t("Untitled")].join(" / ");
+                p.sourcesEl.append(h("li", {}, h("a", { attrs: { href: `/p/${s.page_id}`, "data-page": s.page_id } }, h("span", { class: "srch__src-n", text: `[${i + 1}]` }), h("span", { text: s.heading ? `${where} › ${s.heading}` : where }))));
+              });
+              setText(p.answerNote, list.length ? t("Writing an answer from {n} passages", { n: list.length }) : t("No page matched; answering anyway"));
+            } else if (event === "delta") {
+              raw += (data as { t?: string }).t ?? "";
+              p.answerNote.hidden = true;
+              if (!frame)
+                frame = requestAnimationFrame(() => {
+                  frame = 0;
+                  morph(p.answerText, render(raw, ready));
+                });
+            }
+          },
+          abort.signal,
+        )
+        .then(
+          () => {
+            if (answering !== abort) return;
+            cancelAnimationFrame(frame);
+            morph(p.answerText, render(raw, ready));
+            answering = null;
+          },
+          (e: unknown) => {
+            if (answering !== abort || (e instanceof ApiError && e.code === "cancelled")) return;
+            p.answerNote.hidden = false;
+            setText(p.answerNote, e instanceof Error ? e.message : t("The answer could not be written."));
+            answering = null;
+          },
+        ),
+    );
+  };
 
   const firstSelectable = (from: number, dir: number): number => {
     for (let i = from; i >= 0 && i < items.length; i += dir) if (selectable(items[i])) return i;
@@ -282,6 +386,7 @@ export function mountSearch(engine: Engine): void {
         if (it.kind === "heading") return h("div", { class: "srch__section", attrs: { role: "presentation" } });
         if (it.kind === "empty") return h("div", { class: "srch__empty", attrs: { role: "presentation" } });
         if (it.kind === "more") return h("div", { class: "srch__row srch__row--more", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("chevron-down")), h("span", { class: "srch__title" }));
+        if (it.kind === "ask") return h("div", { class: "srch__row srch__row--ask", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("sparkle")), h("span", { class: "srch__main" }, h("span", { class: "srch__title" }), h("span", { class: "srch__path" })), h("span", { class: "srch__meta" }));
         if (it.kind === "action")
           return h("div", { class: "srch__row srch__row--action", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("keyboard")), h("span", { class: "srch__main" }, h("span", { class: "srch__title" }), h("span", { class: "srch__path" })), h("span", { class: "srch__meta" }));
         return h(
@@ -303,6 +408,11 @@ export function mountSearch(engine: Engine): void {
         setAttr(el, "aria-selected", String(x.index === active));
         if (it.kind === "more") {
           setText(el.querySelector(".srch__title") as HTMLElement, t("Show more results"));
+          return;
+        }
+        if (it.kind === "ask") {
+          setText(el.querySelector(".srch__title") as HTMLElement, t("Ask AI: {q}", { q: query() }));
+          setText(el.querySelector(".srch__path") as HTMLElement, t("Answer from the pages in this workspace, with sources"));
           return;
         }
         if (it.kind === "action") {
@@ -353,6 +463,10 @@ export function mountSearch(engine: Engine): void {
     if (!it || !selectable(it)) return;
     if (it.kind === "more") {
       void fetchHits(true);
+      return;
+    }
+    if (it.kind === "ask") {
+      runAnswer(query());
       return;
     }
     close();
@@ -464,6 +578,7 @@ export function mountSearch(engine: Engine): void {
   };
 
   const close = () => {
+    stopAnswer();
     if (closeLayer) {
       const c = closeLayer;
       closeLayer = null;

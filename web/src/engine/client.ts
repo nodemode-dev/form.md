@@ -155,6 +155,8 @@ export function createClient(f: FetchFn) {
       setModel: (id: string, body: { model: string; label?: string; enabled?: boolean; audio?: boolean }) => put<void>(`/api/admin/ai/providers/${enc(id)}/models`, body),
       test: (model: string) => post<{ reply: string }>("/api/admin/ai/test", { model }),
       transcribe: (form: FormData) => upload<{ text: string }>(f, "/api/ai/transcribe", form, 600000),
+      answer: (workspaceId: string, question: string, onEvent: (event: string, data: unknown) => void, cancel?: AbortSignal) =>
+        stream(f, "/api/ai/answer", { workspace_id: workspaceId, question }, (e) => onEvent(e.event, e.data), cancel),
       setWorkspace: (workspaceId: string, enabled: boolean) => put<void>(`/api/workspaces/${enc(workspaceId)}/ai`, { enabled }),
     },
     auth: {
