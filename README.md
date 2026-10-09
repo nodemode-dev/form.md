@@ -13,9 +13,9 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
 </p>
 
-form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 8 of 11**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, full-text search w/ a command palette & the rest of the editor, collaboration & identity (sharing w/ six access levels, teamspaces, comments, suggested edits, an inbox, history, publishing, analytics, webhooks, an audit log, SCIM & SAML), & now agents & AI: an MCP server w/ OAuth, AI providers w/ an allow-list, writing help, AI blocks, autofill, a workspace agent & custom agents, meeting notes & answers from the workspace.
+form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 9 of 11**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, full-text search w/ a command palette & the rest of the editor, collaboration & identity (sharing w/ six access levels, teamspaces, comments, suggested edits, an inbox, history, publishing, analytics, webhooks, an audit log, SCIM & SAML), & now agents & AI: an MCP server w/ OAuth, AI providers w/ an allow-list, writing help, AI blocks, autofill, a workspace agent & custom agents, meeting notes & answers from the workspace, & now automations, charts & dashboards, buttons, templates, map & feed views.
 
-**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 26 MB static binary, 244 KB JS & 26 KB CSS gzipped up front; database views, search, settings, the agent pane, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
+**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 26 MB static binary, 246 KB JS & 28 KB CSS gzipped up front; database views & charts, automations, button editing, the sharing, publishing & history dialogs, search, settings, the agent pane, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
 
 ## Highlights
 
@@ -38,6 +38,12 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 - **AI in the editor** · Ctrl+J or the selection toolbar: rewrite, fix, shorten, change tone, explain, summarize, find action items, translate or any instruction, streamed into a preview & placed as real blocks; AI blocks that regenerate from their prompt; AI autofill properties that refill rows when they change
 - **A workspace agent & custom agents** · chat w/ an agent that searches, writes pages, builds databases & fills rows through the same tools, reads your instructions page & remembers what you tell it; custom agents run on a schedule, when a database gets or changes a row, or when a page changes, each run undoable
 - **Meeting notes & answers** · record the microphone & a tab or the system audio, get a transcript, summary & action items in the page; ask a question in the palette & get an answer cited from your pages
+- **Charts & dashboards** · bar, horizontal bar, line, donut & number charts computed by the server from the same query engine, so filters & access rules hold; series, stacking, cumulative lines, date buckets; dashboards of cards; PNG & SVG export that looks the same outside the app
+- **Automations** · when a row is added, a property changes or on a schedule: edit rows, add rows, notify people, send mail & post signed webhooks; a burst of edits fires once, an automation never triggers itself, & each run says what happened
+- **Buttons** · button blocks in any page & a button property in databases: insert blocks, open a page, confirm, & every automation action, w/ variables for the row, the person & the date
+- **Templates** · a starter gallery of our own documents & databases, any page saved as a template, row templates inside a database w/ a default
+- **Map & feed views** · rows w/ a place drawn on a bundled public-domain world map (no tile server); rows as posts w/ comments & reactions
+- **More from the database** · a private calendar subscription address per calendar view, sub-items that fold under their parent, double-press a column edge to fit it, a link graph of the workspace & a Databases section in the sidebar
 - **Enterprise identity** · SAML 2.0 w/ a SAML-only switch beside OIDC, SCIM 2.0 users & groups, signed webhooks w/ retries & auto-pause, an audit log w/ filters, CSV export, retention & a SIEM stream (Splunk HEC or JSON)
 - **One static binary** built w/ `CGO_ENABLED=0`: client, migrations & license notices embedded; five release targets (linux & darwin on amd64/arm64, windows amd64)
 - **Reads never queue behind writes** · one SQLite writer connection plus a query-only reader pool, numbered migrations in one transaction each, WAL checkpointed on clean shutdown
@@ -131,6 +137,14 @@ form.md/
 │   ├── webhook/        signed webhooks & SIEM streams fed from the audit log, retries
 │   ├── auditapi/       audit log queries, CSV export
 │   ├── scim/           SCIM 2.0 users & groups per workspace
+│   ├── mcp/            the MCP server & its tools; oauth/ signs agents in
+│   ├── agentrun/       agent runs, their inverses & undo
+│   ├── ai/             model providers, the allow-list, limits, writing help; aifill/ fills properties
+│   ├── agent/          the workspace agent, memory & custom agents; answer/ writes cited answers
+│   ├── automation/     automations & button runs: triggers, schedules, actions, signed webhooks
+│   ├── templates/      the starter gallery & page templates
+│   ├── feed/           the feed view's posts, reactions & comment counts
+│   ├── graph/          the workspace link graph
 │   ├── netguard/       the outbound HTTP client that only reaches public addresses
 │   ├── unfurl/         link previews for link cards
 │   ├── events/         the live event stream w/ replay & audience filtering
@@ -169,7 +183,8 @@ form.md/
 - **Pages & the shell:** built: tree, tabs, favorites, tags, notes mode, library, trash, covers, icons, uploads, live updates.
 - **Editor & realtime co-editing:** built, incl. equations, a breadcrumb block, columns made by dragging, link cards filled by the server, media from links & pasted pages, embeds, Mermaid diagrams drawn in a sandbox & synced blocks across pages. Table cells cannot be merged, & a synced block has no slash menu inside it yet.
 - **Search:** built: titles, bodies w/ heading paths & database properties, filters & sorts, from a palette (Ctrl or Cmd+K). PDF text arrives w/ the PDF importer (Phase 10).
-- **Databases:** built: 21 property types, seven views, formulas, relations & rollups, groups & calculations, inline databases, row pages, public forms, CSV import & export. The button property is reserved for automations (Phase 9); chart, map & feed views arrive in Phase 9.
+- **Databases:** built: 21 property types, seven views, formulas, relations & rollups, groups & calculations, inline databases, row pages, public forms, CSV import & export, chart, dashboard, map & feed views, the button property, sub-items & calendar subscriptions.
+- **Automations, buttons & templates:** built. Mail from automations goes only to workspace members; webhooks to private addresses need `FORMMD_FETCH_PRIVATE`.
 - **Sharing, comments, suggestions, inbox & history:** built. A restore keeps blocks someone is typing in as they are & says how many.
 - **Publishing:** built. Custom domains need TLS from a reverse proxy until built-in certificates (Phase 11); databases publish as a table of their first view.
 - **Analytics, webhooks, audit log, SCIM & SAML:** built. SAML & SCIM are tested against a local identity provider & provider-shaped requests, not yet against Okta, Entra or Google Workspace.
@@ -211,7 +226,7 @@ On macOS, `Ctrl` reads as `Cmd`.
 
 ## Status
 
-Phases 1 to 8 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, search w/ the rest of the editor, collaboration, sharing & identity, & agents & AI) are complete at this version. Phase 9, automations, charts, buttons, templates, map & feed, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
+Phases 1 to 8 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, search w/ the rest of the editor, collaboration, sharing & identity, agents & AI, & automations, charts, buttons, templates, map & feed) are complete at this version. Phase 10, importers, HTML & PDF export & the documented API, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
 
 ## Contributors
 
@@ -219,4 +234,4 @@ Phases 1 to 8 (skeleton binary, accounts, workspaces, the policy gate, the works
 
 ### Licensing
 
-Apache-2.0, see [LICENSE](LICENSE). Third-party components & their licenses are listed in [NOTICES.md](NOTICES.md), which the binary also serves at `/notices`. The Inter & JetBrains Mono font files in `web/src/fonts/` are under the SIL Open Font License 1.1, w/ the license texts beside them.
+Apache-2.0, see [LICENSE](LICENSE). Third-party components & their licenses are listed in [NOTICES.md](NOTICES.md), which the binary also serves at `/notices`. The Inter & JetBrains Mono font files in `web/src/fonts/` are under the SIL Open Font License 1.1, w/ the license texts beside them. The map view's world outline in `web/public/maps/` is derived from Natural Earth (public domain) via world-atlas (ISC), w/ the notice beside it.
