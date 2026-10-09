@@ -1,4 +1,4 @@
-import type { Engine, Me, Prefs, SessionInfo, ThemePref, Token } from "../engine";
+import type { Engine, Me, NotifyPrefs, Prefs, SessionInfo, ThemePref, Token } from "../engine";
 import { formatDateTime, formatRelative, weekStart } from "../engine/format";
 import { currentLang, t } from "../engine/i18n";
 import { avatar, COLORS, updateAvatar } from "./avatar";
@@ -8,6 +8,7 @@ import { actions, busy, button, choices, copyText, field, iconButton, input, sec
 import { iconNode } from "./icons";
 import { reconcile } from "./list";
 import { uploadPicture } from "./pickers";
+import { currentSubscription, disablePush, enablePush, pushSupported } from "./push";
 import { toast } from "./toast";
 
 const COLOR_LABEL: Record<string, () => string> = {
@@ -399,6 +400,96 @@ function sessionsSection(engine: Engine): { el: HTMLElement; refresh(): void } {
   return { el, refresh };
 }
 
+function notificationsTab(engine: Engine): Tab {
+  return {
+    id: "notifications",
+    label: t("Notifications"),
+    icon: "bell",
+    render(panel) {
+      const emailSt = status();
+      const email = choices<NotifyPrefs["email"]>(
+        "notify-email",
+        [
+          ["all", t("Everything in my inbox")],
+          ["mentions", t("Only mentions, assignments and reminders")],
+          ["off", t("Never")],
+        ],
+        "all",
+      );
+      const mailNote = h("p", { class: "muted" });
+      const mailSec = section(t("Email"), t("When you have not opened form.md for a while, unread notifications arrive by email."));
+      mailSec.append(email.el, mailNote, emailSt.el);
+      email.el.addEventListener("change", async () => {
+        emailSt.clear();
+        try {
+          await engine.api.inbox.setPrefs(email.value());
+          emailSt.say(t("Saved."), "success");
+        } catch (e) {
+          emailSt.error(e);
+        }
+      });
+
+      const pushSt = status();
+      const pushState = h("p", { class: "muted" });
+      const on = button(t("Turn on for this browser"), "primary", "bell");
+      const off = button(t("Turn off for this browser"), "ghost");
+      const test = button(t("Send a test"), "ghost");
+      const pushSec = section(t("Push notifications"), t("If you do not see a notification within ten seconds, this browser shows it even when form.md is in the background."));
+      pushSec.append(pushState, actions(off, test, on), pushSt.el);
+      panel.append(mailSec, pushSec);
+
+      let key = "";
+      const refresh = async () => {
+        try {
+          const prefs = await engine.api.inbox.prefs();
+          key = prefs.push_key;
+          email.set(prefs.email);
+          setText(mailNote, prefs.mail_enabled ? "" : t("Email is not set up on this instance yet, so nothing is sent for now."));
+          mailNote.hidden = prefs.mail_enabled;
+          const sub = await currentSubscription();
+          const supported = pushSupported();
+          on.hidden = !supported || !!sub;
+          off.hidden = !sub;
+          test.hidden = !sub;
+          setText(pushState, !supported ? t("This browser cannot receive push notifications.") : sub ? t("On for this browser.") : Notification.permission === "denied" ? t("Blocked in this browser's site settings.") : t("Off for this browser."));
+        } catch (e) {
+          pushSt.error(e);
+        }
+      };
+      on.addEventListener("click", async () => {
+        pushSt.clear();
+        try {
+          const r = await busy(on, () => enablePush(engine, key));
+          if (r === "denied") pushSt.say(t("The browser did not allow notifications."), "error");
+          await refresh();
+        } catch (e) {
+          pushSt.error(e);
+        }
+      });
+      off.addEventListener("click", async () => {
+        pushSt.clear();
+        try {
+          await busy(off, () => disablePush(engine));
+          await refresh();
+        } catch (e) {
+          pushSt.error(e);
+        }
+      });
+      test.addEventListener("click", async () => {
+        pushSt.clear();
+        try {
+          await busy(test, () => engine.api.inbox.testPush());
+          pushSt.say(t("Sent. It should appear in a moment."), "success");
+        } catch (e) {
+          pushSt.error(e);
+        }
+      });
+      void refresh();
+      return () => void refresh();
+    },
+  };
+}
+
 function securityTab(engine: Engine): Tab {
   return {
     id: "security",
@@ -635,5 +726,5 @@ function languageTab(engine: Engine): Tab {
 }
 
 export function mountAccount(engine: Engine): void {
-  overlayDialog(engine, "account", t("Account settings"), [profileTab(engine), securityTab(engine), tokensTab(engine), languageTab(engine)]);
+  overlayDialog(engine, "account", t("Account settings"), [profileTab(engine), notificationsTab(engine), securityTab(engine), tokensTab(engine), languageTab(engine)]);
 }

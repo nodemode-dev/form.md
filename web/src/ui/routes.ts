@@ -12,6 +12,8 @@ export function routeTitle(engine: Engine, r: Route): string {
       return t("Library");
     case "trash":
       return t("Trash");
+    case "inbox":
+      return t("Inbox");
     default:
       return engine.workspace()?.name ?? "";
   }

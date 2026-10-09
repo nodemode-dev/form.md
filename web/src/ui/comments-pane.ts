@@ -159,13 +159,42 @@ export function mountCommentsPane(engine: Engine): void {
     }
   });
 
+  let target: { page: string; thread: string } | null = null;
+  const fromUrl = new URLSearchParams(location.search).get("thread");
+  if (fromUrl && currentPage()) target = { page: currentPage(), thread: fromUrl };
+  const aim = () => {
+    if (!target || target.page !== currentPage()) return;
+    if (!open) setOpen(true);
+    const th = engine.comments.get(target.page).threads.find((x) => x.id === target?.thread);
+    if (!th) return;
+    if (th.resolved_at && filter === "open") {
+      filter = "resolved";
+      for (const b of Array.from(tabs.children) as HTMLElement[]) setAttr(b, "aria-pressed", b.dataset.filter === filter ? "true" : "false");
+      render();
+    }
+    const el = list.querySelector<HTMLElement>(`.cthread[data-thread="${th.id}"]`);
+    if (!el) return;
+    target = null;
+    el.scrollIntoView({ block: "nearest" });
+    el.classList.add("is-target");
+    setTimeout(() => el.classList.remove("is-target"), 2400);
+    if (th.anchor !== "page") jump(th);
+  };
+  window.addEventListener("formmd:thread", (e) => {
+    const d = (e as CustomEvent<{ page: string; thread: string }>).detail;
+    target = d;
+    requestAnimationFrame(aim);
+  });
   engine.comments.subscribe((id) => {
     if (id === pageId || id === currentPage()) render();
+    if (target && id === target.page) aim();
   });
+  editorHost()?.onShown(() => requestAnimationFrame(aim));
   state.watch("route", () => {
     btn.hidden = !currentPage();
     if (open) follow();
     else paintCount();
+    aim();
   });
   btn.hidden = !currentPage();
   paintCount();

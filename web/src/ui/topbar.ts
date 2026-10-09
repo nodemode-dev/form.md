@@ -44,6 +44,7 @@ export function mountTopbar(engine: Engine): void {
     const wsCrumb: Crumb = { key: "ws", label: w?.name ?? "", icon: "", kind: "ws", target: "", current: r.name === "home" };
     if (r.name === "library") return [{ key: "library", label: t("Library"), icon: "", kind: "library", target: "", current: true }];
     if (r.name === "trash") return [wsCrumb, { key: "trash", label: t("Trash"), icon: "", kind: "trash", target: "", current: true }];
+    if (r.name === "inbox") return [{ key: "inbox", label: t("Inbox"), icon: "", kind: "inbox", target: "", current: true }];
     if (r.name !== "page") return [wsCrumb];
     const p = currentPage();
     if (!p) return [];
@@ -68,7 +69,7 @@ export function mountTopbar(engine: Engine): void {
       let el = existing.get(c.key);
       if (el) existing.delete(c.key);
       else {
-        const lead = c.kind === "ws" ? tile("") : c.kind === "library" ? h("span", { class: "crumbs__glyph" }, iconNode("library")) : c.kind === "trash" ? h("span", { class: "crumbs__glyph" }, iconNode("trash")) : c.kind === "gap" ? h("span") : pageIcon(c.icon, fallbackGlyph(c.kind));
+        const lead = c.kind === "ws" ? tile("") : c.kind === "library" ? h("span", { class: "crumbs__glyph" }, iconNode("library")) : c.kind === "trash" ? h("span", { class: "crumbs__glyph" }, iconNode("trash")) : c.kind === "inbox" ? h("span", { class: "crumbs__glyph" }, iconNode("inbox")) : c.kind === "gap" ? h("span") : pageIcon(c.icon, fallbackGlyph(c.kind));
         el = h("button", { class: "crumbs__item", attrs: { type: "button" } }, h("span", { class: "crumbs__sep", attrs: { "aria-hidden": "true" } }, iconNode("chevron-right")), lead, h("span", { class: "crumbs__label" }));
         el.dataset.key = c.key;
       }

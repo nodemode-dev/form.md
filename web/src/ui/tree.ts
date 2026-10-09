@@ -111,6 +111,14 @@ export function mountTree(engine: Engine): void {
   const noteChips = h("div", { class: "notes-filters" });
   const noteList = h("ul", { class: "notes-list", attrs: { role: "list" } });
   const noteEmpty = h("p", { class: "sb-empty" });
+  const inboxCount = h("span", { class: "sb-count sb-count--badge" });
+  const inboxRow = h(
+    "a",
+    { class: "sb-trash sb-inbox", attrs: { href: "/inbox" } },
+    h("span", { class: "sb-icon" }, iconNode("inbox")),
+    h("span", { class: "sb-label", text: t("Inbox") }),
+    inboxCount,
+  );
   const trashCount = h("span", { class: "sb-count" });
   const trashRow = h(
     "a",
@@ -127,7 +135,7 @@ export function mountTree(engine: Engine): void {
   notes.body.append(noteChips, noteList, noteEmpty);
   const indicator = h("div", { class: "drop-indicator", attrs: { "aria-hidden": "true" } });
   indicator.hidden = true;
-  nav.append(favs.el, tags.el, filter, notes.el, teams.el, tree.el, shared.el, trashRow, indicator);
+  nav.append(inboxRow, favs.el, tags.el, filter, notes.el, teams.el, tree.el, shared.el, trashRow, indicator);
 
   const nodes = new Map<string, HTMLLIElement>();
   const teamNodes = new Map<string, HTMLLIElement>();
@@ -513,7 +521,14 @@ export function mountTree(engine: Engine): void {
 
   const paintTrash = () => {
     setAttr(trashRow, "aria-current", state.get("route").name === "trash" ? "page" : null);
+    setAttr(inboxRow, "aria-current", state.get("route").name === "inbox" ? "page" : null);
+    const n = engine.inbox.unread;
+    setText(inboxCount, n ? (n > 99 ? "99+" : String(n)) : "");
+    setAttr(inboxRow, "aria-label", n ? t("Inbox, {count} unread", { count: n }) : t("Inbox"));
   };
+  engine.inbox.subscribe((c) => {
+    if (c.kind !== "arrived") paintTrash();
+  });
 
   const renderAll = () => {
     paintWritable();
@@ -739,6 +754,10 @@ export function mountTree(engine: Engine): void {
   trashRow.addEventListener("click", (e) => {
     e.preventDefault();
     engine.navigate({ name: "trash" });
+  });
+  inboxRow.addEventListener("click", (e) => {
+    e.preventDefault();
+    engine.navigate({ name: "inbox" });
   });
   tree.add?.addEventListener("click", () => void addInside(""));
   notes.add?.addEventListener("click", () => void addInside(""));

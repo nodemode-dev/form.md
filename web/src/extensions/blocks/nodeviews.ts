@@ -3,7 +3,7 @@ import { NodeSelection } from "prosemirror-state";
 import { TableView } from "prosemirror-tables";
 import type { EditorView, NodeView, NodeViewConstructor, ViewMutationRecord } from "prosemirror-view";
 import { EMBED_ALLOW, EMBED_SANDBOX, embedSrc, humanSize, isRemote, safeHref } from "../../engine/doc/schema";
-import { formatDate } from "../../engine/format";
+import { formatDate, formatDateTime } from "../../engine/format";
 import { t } from "../../engine/i18n";
 import { h, setAttr, setText } from "../../ui/dom";
 import { iconNode } from "../../ui/icons";
@@ -375,8 +375,19 @@ class MentionView implements NodeView, Refreshable {
     } else if (kind === "user") {
       setText(this.dom, `@${String(this.node.attrs.label ?? "")}`);
     } else {
-      const ms = new Date(`${ref}T12:00:00`).getTime();
-      setText(this.dom, Number.isFinite(ms) ? formatDate(ms) : ref);
+      const timed = ref.includes("T");
+      const ms = new Date(timed ? ref : `${ref}T12:00:00`).getTime();
+      const text = Number.isFinite(ms) ? (timed ? formatDateTime(ms) : formatDate(ms)) : ref;
+      const remind = String(this.node.attrs.remind ?? "");
+      setAttr(this.dom, "data-remind", remind || null);
+      if (remind) {
+        if (this.dom.dataset.shape !== "remind") {
+          this.dom.dataset.shape = "remind";
+          this.dom.replaceChildren(iconNode("bell", "mention__bell"), h("span"));
+        }
+        setText(this.dom.lastElementChild as HTMLElement, text);
+        setAttr(this.dom, "title", t("Reminder"));
+      } else setText(this.dom, text);
     }
   }
 

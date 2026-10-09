@@ -3,7 +3,7 @@ import { type EditorState, Plugin, PluginKey, TextSelection } from "prosemirror-
 import type { EditorView } from "prosemirror-view";
 import type { Member, Page } from "../../engine";
 import { schema } from "../../engine/doc/schema";
-import { formatDate } from "../../engine/format";
+import { formatDate, formatDateTime } from "../../engine/format";
 import { t } from "../../engine/i18n";
 import { avatar } from "../../ui/avatar";
 import { fallbackGlyph, pageIcon } from "../../ui/pageicon";
@@ -120,6 +120,35 @@ function fuzzy(title: string, q: string): number {
   return -1;
 }
 
+function localStamp(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function reminderTimes(q: string): number[] {
+  const typed = /^(?:remind\s+)?(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?$/.exec(q);
+  if (typed) {
+    const [, y, mo, d, hh, mm] = typed;
+    const at = new Date(Number(y), Number(mo) - 1, Number(d), hh ? Number(hh) : 9, mm ? Number(mm) : 0).getTime();
+    return Number.isFinite(at) && at > Date.now() ? [at] : [];
+  }
+  if (q && !"remind".startsWith(q.split(/\s/)[0] ?? "") && !q.startsWith("remind")) return [];
+  const morning = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    d.setHours(9, 0, 0, 0);
+    return d.getTime();
+  };
+  const monday = (() => {
+    const d = new Date();
+    const add = ((8 - d.getDay()) % 7) || 7;
+    return morning(add);
+  })();
+  const hour = Math.ceil((Date.now() + 3600_000) / 60_000) * 60_000;
+  return [hour, morning(1), monday].filter((v, i, all) => all.indexOf(v) === i);
+}
+
 function isoDay(offset: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -222,6 +251,7 @@ class TriggerView {
       for (const [label, iso] of days) {
         if (typed || fuzzy(label, q) >= 0) out.push({ key: `d:${iso}`, label, icon: "calendar", detail: formatDate(new Date(`${iso}T12:00:00`).getTime()), section: t("Dates") });
       }
+      for (const at of reminderTimes(q)) out.push({ key: `r:${at}`, label: t("Remind me"), icon: "bell", detail: formatDateTime(at), section: t("Reminders") });
     }
     return out;
   }
@@ -257,7 +287,7 @@ class TriggerView {
     tr.setSelection(TextSelection.create(tr.doc, from));
     view.dispatch(tr);
     const mention = schema.nodes.mention as NodeType;
-    const insertMention = (attrs: Record<string, string>) => {
+    const insertMention = (attrs: Record<string, string | number>) => {
       const node = mention.create(attrs);
       const tr2 = view.state.tr.replaceSelectionWith(node, false).insertText(" ");
       view.dispatch(tr2.scrollIntoView());
@@ -276,6 +306,9 @@ class TriggerView {
       insertMention({ kind: "user", ref: item.key.slice(2), label: item.label });
     } else if (item.key.startsWith("d:")) {
       insertMention({ kind: "date", ref: item.key.slice(2), label: "" });
+    } else if (item.key.startsWith("r:")) {
+      const at = Number(item.key.slice(2));
+      insertMention({ kind: "date", ref: localStamp(at), label: "", remind: this.ctx.engine.state.get("me")?.user.id ?? "", at });
     } else if (item.key === "new") {
       const title = st.query.trim();
       const ws = this.ctx.workspaceId();

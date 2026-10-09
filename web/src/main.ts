@@ -13,6 +13,8 @@ import { mountAdmin } from "./ui/admin";
 import { mountUI, platformAdapter, storageAdapter } from "./ui/app";
 import { mountAuth } from "./ui/auth";
 import { mountCommentsPane } from "./ui/comments-pane";
+import { mountInboxView } from "./ui/inbox-view";
+import { listenForPushClicks } from "./ui/push";
 import { errorMessage } from "./ui/errors";
 import { mountLibraryView } from "./ui/library-view";
 import { mountPageView } from "./ui/page-view";
@@ -117,6 +119,8 @@ async function start(): Promise<void> {
     mountTopbar(engine);
     mountPageView(engine);
     mountCommentsPane(engine);
+    mountInboxView(engine);
+    listenForPushClicks(engine);
     mountLibraryView(engine);
     mountTrashView(engine);
     mountHome(engine);

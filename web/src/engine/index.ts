@@ -2,6 +2,7 @@ import type { FetchFn } from "./api";
 import { type Client, createClient } from "./client";
 import { CollectionStore } from "./collections";
 import { CommentStore } from "./comments";
+import { InboxStore } from "./inbox";
 import { Commands } from "./commands";
 import { DocStore } from "./doc/docs";
 import { DocSync } from "./doc/sync";
@@ -76,6 +77,7 @@ export interface Engine {
   readonly docs: DocStore;
   readonly collections: CollectionStore;
   readonly comments: CommentStore;
+  readonly inbox: InboxStore;
   resolvedTheme(): "dark" | "light";
   workspace(): Workspace | null;
   workspaceById(id: string): Workspace | null;
@@ -175,6 +177,7 @@ export function createEngine(deps: EngineDeps): Engine {
   const pages = new PageStore(api, reportError);
   const collections = new CollectionStore(api, reportError);
   const comments = new CommentStore(api, reportError);
+  const inbox = new InboxStore(api, reportError, () => typeof document !== "undefined" && document.visibilityState === "visible", deps.boot.inbox_unread ?? 0);
   if (bootPage && deps.boot.comments) comments.seed(bootPage.id, deps.boot.comments);
   if (deps.boot.collection) collections.seed(deps.boot.collection);
   if (deps.boot.query) collections.seedQuery(deps.boot.query);
@@ -284,6 +287,7 @@ export function createEngine(deps: EngineDeps): Engine {
     pages.apply(e);
     collections.apply(e);
     comments.apply(e);
+    inbox.apply(e);
     if (e.type === "workspace" && (e.what === "members" || e.what === "settings" || e.what === "rules" || e.what === "deleted")) void refreshMe().catch(reportError);
     if (e.type === "user" && (e.what === "workspaces" || e.what === "break_glass" || e.what === "shares")) void refreshMe().catch(reportError);
     if (e.type === "workspace" && e.what === "shares") void refreshMe().catch(reportError);
@@ -297,6 +301,7 @@ export function createEngine(deps: EngineDeps): Engine {
       const jobs: Promise<unknown>[] = [pages.reloadAll(), refreshMe(), pages.loadFavorites()];
       collections.resync();
       comments.resync();
+      jobs.push(inbox.resync());
       if (ws && !pages.isLoaded(ws)) jobs.push(pages.load(ws), pages.loadTags(ws));
       const r = state.get("route");
       if (r.name === "page") jobs.push(loadDetail(r.id));
@@ -346,6 +351,7 @@ export function createEngine(deps: EngineDeps): Engine {
     docs,
     collections,
     comments,
+    inbox,
     resolvedTheme() {
       const pref = state.get("themePref");
       if (pref !== "auto") return pref;

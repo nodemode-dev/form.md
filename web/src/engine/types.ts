@@ -73,6 +73,7 @@ export interface Boot {
   tags?: TagInfo[];
   teamspaces?: Teamspace[];
   comments?: CommentListing;
+  inbox_unread?: number;
   page?: PageDetail;
   collection?: Collection;
   query?: { view_id: string; result: QueryResult };
@@ -496,6 +497,33 @@ export interface CommentListing {
   can_comment: boolean;
   can_moderate: boolean;
   can_decide: boolean;
+}
+
+export type NotificationKind = "mention" | "comment" | "reply" | "suggestion" | "decision" | "share" | "assign" | "reminder";
+
+export interface InboxItem {
+  id: string;
+  workspace_id: string;
+  kind: NotificationKind;
+  page_id: string;
+  page_icon: string;
+  thread_id: string;
+  actor_id: string;
+  actor_name: string;
+  actor_color: string;
+  actor_avatar: string;
+  title: string;
+  body: string;
+  created_at: number;
+  read_at: number;
+  archived_at: number;
+}
+
+export interface NotifyPrefs {
+  email: "all" | "mentions" | "off";
+  push_key: string;
+  subscriptions: number;
+  mail_enabled: boolean;
 }
 
 export interface Crumb {

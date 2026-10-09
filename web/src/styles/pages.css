@@ -262,6 +262,20 @@
   padding-inline: var(--space-2);
 }
 
+.sb-inbox {
+  margin-block-end: var(--space-2);
+}
+
+.sb-count--badge:not(:empty) {
+  min-inline-size: 18px;
+  padding: 0 5px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--on-accent);
+  background: var(--accent);
+  border-radius: 8px;
+}
+
 .tree-row:hover,
 .flat-row:hover,
 .sb-trash:hover {
@@ -815,7 +829,8 @@
 
 :root[data-route="page"] .view--page,
 :root[data-route="library"] .view--library,
-:root[data-route="trash"] .view--trash {
+:root[data-route="trash"] .view--trash,
+:root[data-route="inbox"] .view--inbox {
   display: block;
 }
 

@@ -510,11 +510,17 @@ const nodes: Record<string, NodeSpec> = {
     inline: true,
     group: "inline",
     atom: true,
-    attrs: { kind: { default: "page" }, ref: { default: "" }, label: { default: "" } },
+    attrs: { kind: { default: "page" }, ref: { default: "" }, label: { default: "" }, remind: { default: "" }, at: { default: 0 } },
     parseDOM: [
       {
         tag: ".mention[data-kind]",
-        getAttrs: (dom: HTMLElement) => ({ kind: dom.dataset.kind ?? "page", ref: dom.dataset.ref ?? "", label: dom.querySelector(".mention__label")?.textContent ?? dom.textContent?.replace(/^@/, "") ?? "" }),
+        getAttrs: (dom: HTMLElement) => ({
+          kind: dom.dataset.kind ?? "page",
+          ref: dom.dataset.ref ?? "",
+          label: dom.querySelector(".mention__label")?.textContent ?? dom.textContent?.replace(/^@/, "") ?? "",
+          remind: dom.dataset.remind ?? "",
+          at: Number(dom.dataset.at ?? 0) || 0,
+        }),
       },
     ],
     toDOM: (n) => {
@@ -523,6 +529,7 @@ const nodes: Record<string, NodeSpec> = {
       const label = String(n.attrs.label ?? "");
       if (kind === "page") return ["a", { class: "mention", "data-kind": "page", "data-ref": ref, href: `/p/${ref}`, contenteditable: "false" }, ["span", { class: "mention__icon" }], ["span", { class: "mention__label" }, label || "Untitled"]];
       if (kind === "user") return ["span", { class: "mention", "data-kind": "user", "data-ref": ref, contenteditable: "false" }, `@${label}`];
+      if (n.attrs.remind) return ["span", { class: "mention", "data-kind": "date", "data-ref": ref, "data-remind": String(n.attrs.remind), "data-at": String(n.attrs.at ?? 0), contenteditable: "false" }, ref];
       return ["span", { class: "mention", "data-kind": "date", "data-ref": ref, contenteditable: "false" }, ref];
     },
   },

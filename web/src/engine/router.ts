@@ -2,7 +2,7 @@ export type LibraryView = "recent" | "favorites" | "shared" | "private" | "all" 
 
 export const LIBRARY_VIEWS: readonly LibraryView[] = ["recent", "favorites", "shared", "private", "all", "tree"];
 
-export type Route = { name: "home" } | { name: "page"; id: string } | { name: "library"; view: LibraryView } | { name: "trash" };
+export type Route = { name: "home" } | { name: "page"; id: string } | { name: "library"; view: LibraryView } | { name: "trash" } | { name: "inbox" };
 
 const ID = /^[a-z2-7]{26}$/;
 
@@ -14,6 +14,7 @@ export function parseRoute(path: string, search: string): Route {
     return { name: "library", view: v && LIBRARY_VIEWS.includes(v) ? v : "recent" };
   }
   if (path === "/trash" || path === "/trash/") return { name: "trash" };
+  if (path === "/inbox" || path === "/inbox/") return { name: "inbox" };
   return { name: "home" };
 }
 
@@ -25,6 +26,8 @@ export function routePath(r: Route): string {
       return r.view === "recent" ? "/library" : `/library?view=${r.view}`;
     case "trash":
       return "/trash";
+    case "inbox":
+      return "/inbox";
     default:
       return "/";
   }
