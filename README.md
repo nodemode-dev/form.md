@@ -13,9 +13,9 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
 </p>
 
-form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 7 of 11**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, full-text search w/ a command palette & the rest of the editor, & now collaboration & identity: page sharing w/ six access levels, teamspaces, groups, guests & links, comments, suggested edits, an inbox w/ push & mail, page history w/ a merge-safe restore, publishing to the web, analytics, signed webhooks, an audit log, SCIM & SAML. The agent surface & AI follow per the roadmap.
+form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 8 of 11**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, full-text search w/ a command palette & the rest of the editor, collaboration & identity (sharing w/ six access levels, teamspaces, comments, suggested edits, an inbox, history, publishing, analytics, webhooks, an audit log, SCIM & SAML), & now agents & AI: an MCP server w/ OAuth, AI providers w/ an allow-list, writing help, AI blocks, autofill, a workspace agent & custom agents, meeting notes & answers from the workspace.
 
-**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 25 MB static binary, 229 KB JS & 23 KB CSS gzipped up front; database views, search, settings, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
+**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 26 MB static binary, 244 KB JS & 26 KB CSS gzipped up front; database views, search, settings, the agent pane, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
 
 ## Highlights
 
@@ -33,6 +33,11 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 - **History w/o losing anyone's typing** · versions while editing, by hand & before every restore; preview & a block diff; a restore merges into the live document, so text a collaborator is typing at that moment survives
 - **Publish to the web** · a page & its subpages as a site at its own slug or a custom domain, server-rendered w/ the editor's own markup, SEO fields, themes, fonts, an optional password, indexing control & a sitemap; share links open without an account
 - **Know what is read** · views & unique viewers per page & per workspace over time, a personal opt-out & an anonymous-history switch
+- **Agents edit beside people** · an MCP server (2026-07-28, older clients too) w/ OAuth 2.1 sign-in, consent per workspace & read or write scope; agents address blocks by id, so their edits merge w/ live typing, show as a named cursor & group into runs that undo in one click; a downloadable skill teaches agents the conventions
+- **Bring your own models** · Anthropic, OpenAI, Gemini or any OpenAI-compatible server (Ollama, vLLM); keys sealed in the database, an owner allow-list, a default & a transcription model, per-person hourly limits, usage per model, a switch per workspace
+- **AI in the editor** · Ctrl+J or the selection toolbar: rewrite, fix, shorten, change tone, explain, summarize, find action items, translate or any instruction, streamed into a preview & placed as real blocks; AI blocks that regenerate from their prompt; AI autofill properties that refill rows when they change
+- **A workspace agent & custom agents** · chat w/ an agent that searches, writes pages, builds databases & fills rows through the same tools, reads your instructions page & remembers what you tell it; custom agents run on a schedule, when a database gets or changes a row, or when a page changes, each run undoable
+- **Meeting notes & answers** · record the microphone & a tab or the system audio, get a transcript, summary & action items in the page; ask a question in the palette & get an answer cited from your pages
 - **Enterprise identity** · SAML 2.0 w/ a SAML-only switch beside OIDC, SCIM 2.0 users & groups, signed webhooks w/ retries & auto-pause, an audit log w/ filters, CSV export, retention & a SIEM stream (Splunk HEC or JSON)
 - **One static binary** built w/ `CGO_ENABLED=0`: client, migrations & license notices embedded; five release targets (linux & darwin on amd64/arm64, windows amd64)
 - **Reads never queue behind writes** · one SQLite writer connection plus a query-only reader pool, numbered migrations in one transaction each, WAL checkpointed on clean shutdown
@@ -168,7 +173,7 @@ form.md/
 - **Sharing, comments, suggestions, inbox & history:** built. A restore keeps blocks someone is typing in as they are & says how many.
 - **Publishing:** built. Custom domains need TLS from a reverse proxy until built-in certificates (Phase 11); databases publish as a table of their first view.
 - **Analytics, webhooks, audit log, SCIM & SAML:** built. SAML & SCIM are tested against a local identity provider & provider-shaped requests, not yet against Okta, Entra or Google Workspace.
-- **Agents (MCP) & AI:** not built yet (Phase 8).
+- **Agents (MCP) & AI:** built. Verified against a local provider stand-in, not yet against live Anthropic, OpenAI or Gemini keys. AI answers draw on the workspace only; web & connector sources are not built.
 - **Windows scripts:** written but not yet run on a Windows host.
 
 ## Shortcuts
@@ -192,6 +197,8 @@ form.md/
 | `Alt+↑` · `Alt+↓` · `Ctrl+D` | Move the block up or down, duplicate it |
 | `Ctrl+Enter` | Tick or untick a to-do |
 | `Ctrl+Shift+C` | Copy the page as Markdown |
+| `Ctrl+J` | Ask AI about the selection or at the cursor |
+| `Ctrl+Shift+J` | Show or hide the agent |
 | `?` | Every shortcut that is live right now |
 
 On macOS, `Ctrl` reads as `Cmd`.
@@ -204,7 +211,7 @@ On macOS, `Ctrl` reads as `Cmd`.
 
 ## Status
 
-Phases 1 to 7 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, search w/ the rest of the editor, & collaboration, sharing & identity) are complete at this version. Phase 8, agents & AI, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
+Phases 1 to 8 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, search w/ the rest of the editor, collaboration, sharing & identity, & agents & AI) are complete at this version. Phase 9, automations, charts, buttons, templates, map & feed, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
 
 ## Contributors
 

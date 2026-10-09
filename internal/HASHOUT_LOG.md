@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.7.0
-Last updated: 2026-10-09 · Phase 7: access levels, comments, suggestions, inbox, history, sites, analytics, webhooks, audit, SCIM, SAML
+Current build version: v0.8.0
+Last updated: 2026-10-09 · Phase 8: MCP, OAuth for agents, AI providers, writing help, AI blocks, autofill, the workspace agent and custom agents, meeting notes, AI answers
 
 ---
 
@@ -29,8 +29,27 @@ form.md/
 │   │   ├── version.go               Version (set by -ldflags), Product name
 │   │   ├── health.go                GET /healthz
 │   │   └── notices.go               GET /notices
+│   ├── agent/
+│   │   ├── agent.go                 chats, messages, memory, prefs (instructions page)
+│   │   ├── loop.go                  the agent turn: system prompt, tools, step loop, run finish
+│   │   ├── custom.go                custom agents: CRUD, triggers, NextRun, runs list
+│   │   ├── runner.go                schedule loop, event triggers, debounce, loop guards, launch
+│   │   └── module.go                /api/agent*, /api/workspaces/{id}/agents, /api/agents/*
+│   ├── agentrun/
+│   │   └── agentrun.go              runs and their undo steps, undo in reverse, run listing
+│   ├── ai/
+│   │   ├── provider.go              Provider and Transcriber interfaces, messages, SSE reader
+│   │   ├── anthropic.go             Messages API stream with tools
+│   │   ├── openai.go                chat/completions stream with tools (OpenAI, Gemini, compatible), transcription
+│   │   ├── service.go               providers, allow-list, resolve, Allowed, Exec, Run, Transcribe, usage
+│   │   ├── writing.go               writing actions and their prompts
+│   │   └── module.go                admin AI routes, models, workspace switch, complete, transcribe
+│   ├── aifill/
+│   │   └── aifill.go                AI autofill: per-type answers, fill all, refill on change
 │   ├── analytics/
 │   │   └── analytics.go             page views per viewer per day, page and workspace reports, view privacy
+│   ├── answer/
+│   │   └── answer.go                POST /api/ai/answer: sources from search, cited stream
 │   ├── audit/
 │   │   ├── audit.go                 audit_log writer: actor kind, action, workspace, page, field changes
 │   │   └── query.go                 filtered, cursor-paged reads, facets, retention purge
@@ -62,6 +81,8 @@ form.md/
 │   │   ├── embed.go                 embed providers and the generic https embed
 │   │   ├── synced.go                synced roots, cross-page first-frame rendering
 │   │   ├── versions.go              page history: deflated Yjs states, list, read, save, restore record, purge
+│   │   ├── blocks.go                block-addressed edits with inverses, outline, agent presence
+│   │   ├── meeting.go               the meeting block's head text, shared by server and editor
 │   │   └── public.go                the HTML writer's public mode for published pages
 │   ├── events/
 │   │   └── events.go                Hub: sequenced events, replay ring, audience filter, GET /api/events (SSE)
@@ -81,6 +102,15 @@ form.md/
 │   │   └── ids.go                   128-bit random ids, lowercase base32
 │   ├── mail/
 │   │   └── mail.go                  Mailer: SMTP (TLS, STARTTLS, none), OAuth sender registry
+│   ├── mcp/
+│   │   ├── server.go                /mcp transport: versions, headers, dispatch, errors
+│   │   ├── tools.go                 tool registry, run grouping, idempotency, result framing
+│   │   ├── tools_read.go            read tools
+│   │   ├── tools_write.go           write tools with undo steps
+│   │   ├── internal.go              Specs and Invoke for in-process agents
+│   │   └── skill.go                 GET /api/mcp/skill.zip
+│   ├── oauth/
+│   │   └── oauth.go                 OAuth 2.1 for agents: metadata, DCR, CIMD, consent, codes, tokens, grants
 │   ├── netguard/
 │   │   └── netguard.go              the outbound HTTP client that only reaches public addresses
 │   ├── order/
@@ -102,6 +132,7 @@ form.md/
 │   ├── search/
 │   │   ├── search.go                FTS5 index worker, tiered ranking, filters, GET /api/search
 │   │   ├── passages.go              Markdown split into passages with heading paths
+│   │   ├── sources.go               keyword OR search for AI answers, visibility-filtered
 │   │   └── highlight.go             folding, stemming and snippet marks done in Go
 │   ├── scim/                        SCIM 2.0 Users and Groups for a workspace, token management
 │   ├── secrets/
@@ -184,6 +215,7 @@ form.md/
 - [Phase 4: documents](#p4)
 - [Phase 6: search and editor completion](#p6)
 - [Phase 7: collaboration, sharing and identity](#p7)
+- [Phase 8: agents and AI](#p8)
 
 ---
 
@@ -1286,3 +1318,103 @@ gosaml2 verifies the signature and reports audience and time problems as warning
 - logged: v0.7.0 · 2026-10-09
 
 The sidebar's version text is filled from `app.Version` on the server, so the footer line is its final height in the first frame. `/inbox` sets `data-route="inbox"` so a reload there paints the inbox view, not the home view the client would then swap out.
+
+## Phase 8: agents and AI {#p8}
+
+### internal/doc/blocks.go · edits by block id
+- refers-to: internal/doc/blocks.go :: `Apply`, `Revert`, `Outline`, `editor`, `locate`, `room.agentHere`
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+Blocks are found by their id attribute, never by index, so an edit lands on the right block while people type elsewhere. All reads happen before a transaction and each edit runs in its own `doc.Transact`: `ToDelta` takes a read lock that deadlocks inside a transaction. Every edit returns an inverse that holds a JSON snapshot of the nodes it removed or replaced, which is what `agentrun` replays to undo. Schema rules the CRDT does not enforce are kept by hand: list items only inside lists (`asItems`, `wrapItems`), table cells hold paragraphs, a container emptied by an edit gets a filler paragraph, and an edit aimed inside a list item escalates to the item. The agent's presence is an awareness entry whose cursor is a relative position, cleared 20 seconds after the last edit.
+
+### internal/agentrun · runs and undo
+- refers-to: internal/agentrun/agentrun.go :: `Open`, `Record`, `Finish`, `Undo`, `List`, `Purge`; migration 0016
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+A run groups the writes of one task (`kind` mcp, chat, custom or ai) and belongs to the person behind the credential. Each write records a step with a registered undoer name and its inverse; `Undo` replays the steps newest first and marks the run undone. Undoers exist for blocks, page create, trash, update and move, rows add and update, schema and comments. Runs older than 90 days are purged by housekeeping.
+
+### internal/mcp · transport
+- refers-to: internal/mcp/server.go :: `handle`, `dispatch`; internal/mcp/tools.go :: `callTool`, `frame`
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+Built to the stateless 2026-07-28 revision: no initialize or session, the version, client info and capabilities ride in `_meta`, and the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers must agree with the body (HeaderMismatch -32020; an unsupported version is -32022 with the supported list). Clients on 2025-11-25, 2025-06-18 and 2025-03-26 may still initialize. GET and DELETE answer 405. Read credentials never see write tools. Every result is framed `[untrusted result begin nonce=X] ... end nonce=X]` with a per-request nonce, writes return a `run_id`, and an `idempotency_key` replays the stored first result for 24 hours.
+
+### internal/mcp/internal.go · in-process calls
+- refers-to: internal/mcp/internal.go :: `Specs`, `Invoke`, `Session`
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+The workspace agent and custom agents call the same tool handlers as remote clients, so permissions, run grouping, undo, presence and framing are identical. `Invoke` builds a synthetic call with the session's display name, run kind and owning agent, forces the session's `run_id` onto writes and remembers the run id the first write opens. `run_id` and `idempotency_key` are left out of the specs the model sees.
+
+### internal/oauth · OAuth 2.1 for agents
+- refers-to: internal/oauth/oauth.go; internal/server/consent.go; internal/auth/oidc.go :: `BaseURL`, `MCPChallenge`; migration 0017
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+Protected resource metadata at `/.well-known/oauth-protected-resource[/mcp]`, authorization server metadata with client ID metadata documents and the `iss` response parameter. Public clients register dynamically or by a metadata document URL (https, or http only with FETCH_PRIVATE). PKCE S256 only, the `resource` must be the MCP address, codes live a minute, access tokens (`fmo_`) an hour and refresh tokens (`fmr_`) 30 days with rotation; reusing a code or a refresh token revokes the whole grant. OAuth tokens work only at `/mcp`. A password change revokes every grant.
+
+### internal/ai · providers and the allow-list
+- refers-to: internal/ai/service.go :: `resolve`, `allowed`, `Allowed`, `Exec`, `Run`, `Transcribe`; internal/ai/anthropic.go; internal/ai/openai.go; migration 0018
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+A model reference is `providerID:model`. Only models an instance admin enabled are offered or accepted: an explicit reference off the list is `model_unavailable`, and no reference means the default model, then the first enabled one. Keys are sealed with the instance key and never returned. `Run` checks the instance and workspace switches, the per-person hourly limit and a 30-per-minute burst before calling; `Exec` skips those checks so a loop (an agent's steps, autofill over many rows) is checked once by its caller with `Allowed`. Every call is logged in `ai_usage`. The HTTP client is ordinary on purpose: admins point it at local servers such as Ollama. Gemini goes through its OpenAI-compatible endpoint.
+
+### internal/ai/module.go · checks before the stream
+- refers-to: internal/ai/module.go :: `POST /api/ai/complete`, `POST /api/ai/transcribe`, `OpenStream`
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+`complete` resolves the model and runs every switch before it opens the event stream, so a refusal is a plain HTTP error rather than an error event after a 200. Events are `delta`, `done` and `error`. `transcribe` takes one audio segment up to 25 MB, keeps nothing, and is answered by the model an admin marked as audio.
+
+### internal/ai/writing.go · prompts
+- refers-to: internal/ai/writing.go :: `WritingSystem`, `actions`, `WritingPrompt`
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+Page text, selections, the text before the cursor and meeting notes reach the model inside `<page>`, `<selection>`, `<before>` and `<notes>` tags that the system prompt declares to be material, never instructions. A page is included only when there is no selection or the action needs context. A meeting transcript may run to 120,000 characters; other selections to 24,000.
+
+### internal/aifill · autofill
+- refers-to: internal/aifill/aifill.go :: `Fill`, `fillRow`, `ToValue`, `RowsChanged`, `PageChanged`, `schedule`; internal/collection/schema.go :: `Autofill`; internal/collection/schemaops.go :: `UpdateSchema`
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+A property's `autofill` holds the instruction, whether to refill on change, and `by`, which `UpdateSchema` sets to whoever saved it; background refills run as that person through a session-shaped principal. Answers are parsed per type and select answers only ever match existing options, so the model cannot invent options. The autofill write marks the row quiet for eight seconds so its own change event does not refill it again; refills wait four seconds after the last change and run two at a time.
+
+### internal/agent · the workspace agent
+- refers-to: internal/agent/loop.go :: `Run`, `system`, `tools`, `callTool`, `history`; internal/agent/agent.go
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+A turn saves the person's message, builds the system prompt (identity, workspace, today's date, the MCP rules, workspace rules, the instructions page or the custom agent's instructions, memory with ids, the page being looked at, the trigger), offers every MCP tool but `propose_rules` plus `remember` and `forget`, and loops up to 16 model steps. Tool results go back as `tool_result` parts; only the text of earlier turns is replayed as history. All writes of a turn share one run, finished as done or failed, and the reply stores its text and tool steps in order.
+
+### internal/agent/runner.go · triggers and loops
+- refers-to: internal/agent/runner.go :: `principal`, `Loop`, `due`, `OnEvent`, `debounce`, `launch`; internal/agent/custom.go :: `NextRun`; internal/webhook/webhook.go :: `OnEvent`
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+Custom agents run as their creator through an OAuth-kind principal limited to their workspace, so audit entries and webhooks record them as agents and the workspace agent policy applies. The schedule loop ticks every 15 seconds and claims a due agent by moving `next_run_at` with a compare-and-set, so a run is never started twice. Row and page triggers come from the webhook event stream: events whose actor is an agent are ignored, and because a page-content event carries no agent marker, an agent's page triggers are also ignored while it runs and for a minute on the pages its run touched. Row triggers wait three seconds, page triggers fifteen. Two runs at a time, ten minutes each at most.
+
+### internal/search/sources.go and internal/answer · AI answers
+- refers-to: internal/search/sources.go :: `Keywords`, `Sources`; internal/answer/answer.go
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+The page search needs every word, which fails for questions, so answers use an OR of the question's keywords (stop words dropped, prefix match) over titles, headings and bodies in the workspace, keep only pages the asker can read, two passages per page and eight in all. The stream sends the sources first, then the cited answer.
+
+### internal/doc/meeting.go and html.go · the meeting block
+- refers-to: internal/doc/meeting.go :: `MeetingMeta`; internal/doc/html.go :: the `meeting` and `ai_block` cases
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+The head text is the UTC date and rounded minutes, built the same way in the editor, so the first frame and the live editor agree. Icons are drawn on public pages only, as for toggles; in the app the icon slot has a fixed size.
+
+### internal/httpx/middleware.go · Permissions-Policy
+- refers-to: internal/httpx/middleware.go :: security headers
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+`microphone=(self)` and `display-capture=(self)` let meeting notes record; camera, geolocation and payment stay off.

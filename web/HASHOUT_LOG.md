@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.7.0
-Last updated: 2026-10-09 · Phase 7: sharing, comments, suggest mode, inbox, history, publishing, analytics, webhooks, audit, provisioning, SAML
+Current build version: v0.8.0
+Last updated: 2026-10-09 · Phase 8: consent and connected apps, AI admin, Ask AI, AI blocks, autofill, agent pane, custom agents, meeting notes, AI answers
 
 ---
 
@@ -78,6 +78,8 @@ web/
     │       ├── columns.ts           column view with resize, side drop, column commands, normalising
     │       ├── links.ts             link previews, media imports, paste choice, embed choice
     │       ├── diagram.ts           bridge to the sandboxed Mermaid renderer
+    │       ├── ai.ts                Ask AI panel, target decoration, Ctrl+J, AI block view, safe Markdown preview
+    │       ├── meeting.ts           meeting notes block: recorder, segments, transcription, summary
     │       └── synced.ts            synced block view with a nested editor, unsync
     ├── sandbox/
     │   └── main.ts                  renderer page: mermaid in strict mode, answers over postMessage
@@ -98,6 +100,10 @@ web/
     │   ├── bar-chart.ts             inline SVG bar chart updated in place
     │   ├── comment-view.ts          thread, composer and suggestion views
     │   ├── comments-pane.ts         the comments pane with filters
+    │   ├── agent-pane.ts            the agent pane: chat, tool steps, undo, history, settings (its own chunk)
+    │   ├── workspace-agents.ts      workspace settings: custom agents, editor, runs
+    │   ├── account-agents.ts        account settings: connect snippets, skill download, connected apps, runs
+    │   ├── admin-ai.ts              instance settings: AI providers, allow-list, defaults, limit, usage
     │   ├── discussion.ts            page-level discussion under the title
     │   ├── mode-switch.ts           Editing, Suggesting and Viewing switch
     │   ├── inbox-view.ts            inbox route
@@ -191,6 +197,7 @@ web/
 - [Phase 4: documents and editor](#p4)
 - [Phase 6: search and editor completion](#p6)
 - [Phase 7: collaboration, sharing and identity](#p7)
+- [Phase 8: agents and AI](#p8)
 
 ---
 
@@ -1276,3 +1283,68 @@ Page levels come with the tree and the page detail, so a changed workspace role 
 - logged: v0.7.0 · 2026-10-09
 
 The page actions in the top bar are hidden by CSS on every route but a page, so a home or library load does not paint them and then remove them. The sidebar version text is a server slot, so the footer line has its height in the first frame instead of growing when health arrives.
+
+## Phase 8: agents and AI {#p8}
+
+### src/engine/api.ts · stream
+- refers-to: src/engine/api.ts :: `stream`
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+POSTs JSON and reads server-sent events from the response body with a `TextDecoderStream`, splitting on blank lines. An `error` event becomes an `ApiError` with the server's code; an aborted signal becomes code `cancelled`, which callers treat as a quiet stop.
+
+### src/extensions/blocks/ai.ts · the Ask AI panel
+- refers-to: src/extensions/blocks/ai.ts :: `openAI`, `aiPlugins`, `AIPanel`, `domSelection`, `render`, `reconcile`, `clean`
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+The target range lives in plugin state and is mapped through every transaction, so remote edits during a stream move it correctly; a non-empty target is drawn with an inline decoration because focus moves to the panel. `openAI` first reads the DOM selection with `posAtDOM`: a key pressed right after a click or End can arrive before ProseMirror has read the new selection. The preview renders Markdown by parsing it into the schema and serializing that, never by inserting markdown-it's HTML, and drops media nodes first so a prompt injection cannot make the preview or the page load remote URLs. `reconcile` updates the preview in place (text data, matching elements recursively), so streaming replaces nothing.
+
+### src/extensions/blocks/ai.ts · the AI block
+- refers-to: src/extensions/blocks/ai.ts :: `AIBlockView`, `newAIBlock`
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+The stream shows in a live layer while the body is hidden by a class on the block, then one transaction replaces the body and the layer goes in the same frame. The Regenerate button is hidden for readers by CSS on a read-only editor, not by the view, because a node view is not rebuilt when writability changes.
+
+### src/extensions/database/autofill.ts · autofill
+- refers-to: src/extensions/database/autofill.ts :: `autofillEditor`, `runAutofill`; src/extensions/database/propedit.ts
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+Saving a property whose autofill was just turned on or whose instruction changed fills every row; progress goes to one toast that updates in place. A second run on the same property aborts the first.
+
+### src/engine/collections.ts · coalesced refreshes
+- refers-to: src/engine/collections.ts :: `scheduleRefresh`
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+Changed row ids accumulate in `dirty` until a refresh lands that was not superseded (its `seq` is still the latest). Before this, a burst of row events kept only the last event's ids, so rows updated in quick succession had fresh data but were never repainted.
+
+### src/ui/agent-pane.ts · the agent pane
+- refers-to: src/ui/agent-pane.ts :: `mountAgentPane`, `send`, `showMessage`; src/main.ts :: `ensureAgent`
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+Loaded on first open as its own chunk; `main.ts` owns the top-bar click and the Ctrl+Shift+J command so a click before the chunk loads still opens it. The pane is a flex column, not a grid: hidden children leave a grid's row assignment and pushed the composer into the stretching row. The person's message and a thinking row are added on send, before the network, so the empty state leaves inside the input window and nothing shifts when the stream starts. Escape closes the pane only when no menu or other layer is open.
+
+### src/ui/workspace-agents.ts · custom agents
+- refers-to: src/ui/workspace-agents.ts :: `customAgentsSection`, `editor`, `describe`
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+Schedules are sent with the browser's IANA time zone. The trigger fields shown follow the trigger and repeat choices. Rows reconcile by id, and Edit reads the latest agent kept on the row element.
+
+### src/extensions/blocks/meeting.ts · recording
+- refers-to: src/extensions/blocks/meeting.ts :: `Recorder`, `MeetingView`, `process`, `place`
+- kind: warning-context
+- logged: v0.8.0 · 2026-10-09
+
+The microphone and, when chosen, the shared tab or system audio are mixed in an `AudioContext` into one stream recorded as 32 kbps Opus; the recorder restarts every ten minutes so each segment is a file the transcription model can read alone (a timeslice chunk would lack headers), and stops itself after four hours. Recorders live in a map by block id so a rebuilt node view picks up a recording in progress. A block left in a working state by a closed tab offers Reset.
+
+### src/ui/search.ts · AI answers
+- refers-to: src/ui/search.ts :: `runAnswer`, `stopAnswer`, `QUESTION`; src/styles/search.css :: `.srch__*` grid rows
+- kind: explainer
+- logged: v0.8.0 · 2026-10-09
+
+"Ask AI" is listed first when the query reads as a question and after the pages otherwise, so Enter keeps opening the best page for ordinary searches. Each palette part has an explicit grid row because the answer section is hidden most of the time.
