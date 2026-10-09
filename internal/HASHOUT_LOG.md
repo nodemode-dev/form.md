@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.12.0
-Last updated: 2026-10-09 · Phase 11: at-rest encryption, ACME, backup and restore, doctor, offline shell, server i18n, update check
+Current build version: v0.13.0
+Last updated: 2026-10-09 · Phase 13: context packs, the knowledge bank, the skill policy, the stdio bridge
 
 ---
 
