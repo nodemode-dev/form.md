@@ -61,9 +61,18 @@ func ms(d time.Duration) int64 { return int64(d / time.Millisecond) }
 func (s *Service) issuer(r *http.Request) string   { return s.auth.BaseURL(r) }
 func (s *Service) resource(r *http.Request) string { return s.issuer(r) + "/mcp" }
 
+func (s *Service) apiResource(r *http.Request) string { return s.issuer(r) + "/api" }
+
 func (s *Service) okResource(r *http.Request, res string) bool {
 	res = strings.TrimRight(res, "/")
-	return strings.EqualFold(res, s.resource(r)) || strings.EqualFold(res, s.issuer(r))
+	return strings.EqualFold(res, s.resource(r)) || strings.EqualFold(res, s.issuer(r)) || strings.EqualFold(res, s.apiResource(r))
+}
+
+func (s *Service) canonResource(r *http.Request, res string) string {
+	if strings.EqualFold(strings.TrimRight(res, "/"), s.apiResource(r)) {
+		return s.apiResource(r)
+	}
+	return s.resource(r)
 }
 
 func cors(w http.ResponseWriter) {
@@ -239,8 +248,12 @@ func trim(s string, n int) string {
 
 func (s *Service) protectedResource(w http.ResponseWriter, r *http.Request) {
 	cors(w)
+	res := s.resource(r)
+	if strings.HasSuffix(r.URL.Path, "/api") {
+		res = s.apiResource(r)
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"resource":                 s.resource(r),
+		"resource":                 res,
 		"authorization_servers":    []string{s.issuer(r)},
 		"scopes_supported":         []string{"read", "write"},
 		"bearer_methods_supported": []string{"header"},
@@ -404,7 +417,7 @@ func (s *Service) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 	id := random(18)
 	_, err = s.st.W.ExecContext(r.Context(), "INSERT INTO oauth_requests (id, client_id, redirect_uri, state, challenge, scope, resource, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		id, c.ID, redirect, q.Get("state"), q.Get("code_challenge"), scope, s.resource(r), store.NowMS()+ms(requestTTL))
+		id, c.ID, redirect, q.Get("state"), q.Get("code_challenge"), scope, s.canonResource(r, resource), store.NowMS()+ms(requestTTL))
 	if err != nil {
 		errorPage(w, "The request could not be stored; try again.")
 		return
@@ -715,11 +728,11 @@ func (s *Service) resolve(ctx context.Context, bearer string) (*policy.Principal
 	if !strings.HasPrefix(bearer, accessPrefix) {
 		return nil, nil
 	}
-	var grant, user, clientName, scope string
+	var grant, user, clientName, scope, resource string
 	var exp, all, lastUsed int64
-	err := s.st.R.QueryRowContext(ctx, `SELECT t.grant_id, g.user_id, g.client_name, g.scope, g.all_workspaces, t.expires_at, g.last_used_at
+	err := s.st.R.QueryRowContext(ctx, `SELECT t.grant_id, g.user_id, g.client_name, g.scope, g.all_workspaces, t.expires_at, g.last_used_at, g.resource
 		FROM oauth_tokens t JOIN oauth_grants g ON g.id = t.grant_id
-		WHERE t.token_hash = ? AND t.kind = 'access' AND g.revoked_at = 0`, secrets.Hash(bearer)).Scan(&grant, &user, &clientName, &scope, &all, &exp, &lastUsed)
+		WHERE t.token_hash = ? AND t.kind = 'access' AND g.revoked_at = 0`, secrets.Hash(bearer)).Scan(&grant, &user, &clientName, &scope, &all, &exp, &lastUsed, &resource)
 	if errors.Is(err, sql.ErrNoRows) || (err == nil && exp < store.NowMS()) {
 		return nil, nil
 	}
@@ -734,6 +747,9 @@ func (s *Service) resolve(ctx context.Context, bearer string) (*policy.Principal
 		return nil, err
 	}
 	p.Kind, p.Scope, p.AllWorkspaces, p.CredentialID, p.ClientName = policy.KindOAuth, scope, all == 1, grant, clientName
+	if strings.HasSuffix(resource, "/api") {
+		p.Audience = "api"
+	}
 	if !p.AllWorkspaces {
 		p.Workspaces = map[string]bool{}
 		rows, err := s.st.R.QueryContext(ctx, "SELECT workspace_id FROM oauth_grant_workspaces WHERE grant_id = ?", grant)
@@ -838,8 +854,9 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	}
 	r.HandleFunc("GET /.well-known/oauth-protected-resource", s.protectedResource)
 	r.HandleFunc("GET /.well-known/oauth-protected-resource/mcp", s.protectedResource)
+	r.HandleFunc("GET /.well-known/oauth-protected-resource/api", s.protectedResource)
 	r.HandleFunc("GET /.well-known/oauth-authorization-server", s.serverMetadata)
-	for _, p := range []string{"/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp", "/.well-known/oauth-authorization-server", "/oauth/token", "/oauth/register", "/oauth/revoke"} {
+	for _, p := range []string{"/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp", "/.well-known/oauth-protected-resource/api", "/.well-known/oauth-authorization-server", "/oauth/token", "/oauth/register", "/oauth/revoke"} {
 		r.HandleFunc("OPTIONS "+p, preflight)
 	}
 	r.HandleFunc("POST /oauth/register", s.register)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ type Service struct {
 
 	loginLimit    *httpx.Limiter
 	badTokenLimit *httpx.Limiter
+	apiLimit      *httpx.Limiter
 	setupMu       sync.Mutex
 
 	mu        sync.RWMutex
@@ -68,8 +70,14 @@ func New(st *store.Store, box *secrets.Box, set *settings.Service, gate *policy.
 		log:           log,
 		loginLimit:    httpx.NewLimiter(30, 10),
 		badTokenLimit: httpx.NewLimiter(60, 20),
+		apiLimit:      httpx.NewLimiter(apiPerMinute, apiBurst),
 	}
 }
+
+const (
+	apiPerMinute = 600
+	apiBurst     = 120
+)
 
 func (s *Service) SetAccountHooks(h AccountHooks) { s.accounts = h }
 
@@ -338,10 +346,27 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		if p != nil {
-			if p.Kind == policy.KindOAuth && r.URL.Path != "/mcp" {
-				w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token", error_description="this token is for the MCP endpoint only"`)
-				httpx.Problem(w, r, s.log, httpx.Fail(http.StatusUnauthorized, "wrong_audience", "this token was issued for the MCP endpoint only"))
+			if p.Kind == policy.KindOAuth && (r.URL.Path == "/mcp") == (p.Audience == "api") {
+				msg := "this token was issued for the MCP endpoint only"
+				if p.Audience == "api" {
+					msg = "this token was issued for the REST API only"
+				}
+				w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token", error_description="`+msg+`"`)
+				httpx.Problem(w, r, s.log, httpx.Fail(http.StatusUnauthorized, "wrong_audience", msg))
 				return
+			}
+			if !p.IsSession() && r.URL.Path != "/mcp" {
+				ok, left, wait := s.apiLimit.Take(p.CredentialID)
+				w.Header().Set("RateLimit-Limit", strconv.Itoa(apiBurst))
+				w.Header().Set("RateLimit-Policy", strconv.Itoa(apiBurst)+";w=60")
+				w.Header().Set("RateLimit-Remaining", strconv.Itoa(left))
+				if !ok {
+					secs := int(wait.Seconds()) + 1
+					w.Header().Set("Retry-After", strconv.Itoa(secs))
+					w.Header().Set("RateLimit-Reset", strconv.Itoa(secs))
+					httpx.Problem(w, r, s.log, httpx.Fail(http.StatusTooManyRequests, "rate_limited", "too many requests with this credential; wait and try again").With("retry_after", secs))
+					return
+				}
 			}
 			if httpx.IsUnsafe(r.Method) && !p.CanWrite() && !strings.HasPrefix(r.URL.Path, "/mcp") {
 				httpx.Problem(w, r, s.log, httpx.ErrReadOnly)

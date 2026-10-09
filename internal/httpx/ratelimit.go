@@ -53,6 +53,19 @@ func (l *Limiter) Allow(key string) bool {
 	return true
 }
 
+func (l *Limiter) Take(key string) (bool, int, time.Duration) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	b := l.refill(key, time.Now())
+	if b.tokens < 1 {
+		return false, 0, time.Duration((1 - b.tokens) / l.perSec * float64(time.Second))
+	}
+	b.tokens--
+	return true, int(b.tokens), 0
+}
+
+func (l *Limiter) Burst() int { return int(l.burst) }
+
 func (l *Limiter) Exhausted(key string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()

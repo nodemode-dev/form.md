@@ -23,6 +23,7 @@ type Principal struct {
 	ClientName    string
 	AgentName     string
 	AgentRun      string
+	Audience      string
 }
 
 func (p *Principal) IsSession() bool { return p != nil && p.Kind == KindSession }
