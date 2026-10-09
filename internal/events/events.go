@@ -92,6 +92,10 @@ func (h *Hub) Collection(workspaceID string, aud Audience, data map[string]any) 
 	h.publish(Event{Type: "collection", Workspace: workspaceID, Audience: aud, Data: data})
 }
 
+func (h *Hub) PageNote(workspaceID string, aud Audience, kind, pageID string) {
+	h.publish(Event{Type: kind, Workspace: workspaceID, Audience: aud, Data: map[string]any{"workspace_id": workspaceID, "page_id": pageID}})
+}
+
 func (h *Hub) User(userID, what string) {
 	h.publish(Event{Type: "user", User: userID, Data: map[string]any{"what": what}})
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/collection"
+	"github.com/nodemode-ai/form.md/internal/comment"
 	"github.com/nodemode-ai/form.md/internal/config"
 	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/events"
@@ -47,6 +48,7 @@ type Server struct {
 	Files    *files.Service
 	Docs     *doc.Service
 	Cols     *collection.Service
+	Comments *comment.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -77,6 +79,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	pages.OnDuplicate(docs.Copy)
 	pages.OnDuplicated(docs.Remap)
 	cols := collection.New(st, pages, al, hub, log)
+	comments := comment.New(st, pages, al, hub, log)
 	finder := search.New(st, gate, authSvc, pages, log)
 	finder.SetRows(cols.RowText, cols.RowIDs)
 	cols.OnRows(finder.RowsChanged)
@@ -105,7 +108,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{authSvc.Middleware},
@@ -122,6 +125,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		links.Module(authSvc),
 		docs.Module(),
 		cols.Module(authSvc, authSvc.TrustProxy),
+		comments.Module(authSvc),
 		finder.Module(),
 		static.Module(s.renderDocument),
 	}
@@ -228,6 +232,9 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 				if d, err := s.Pages.Get(ctx, p, strings.TrimSuffix(id, "/")); err == nil {
 					boot["page"] = d
 					s.bootCollection(ctx, p, d, boot)
+					if l, err := s.Comments.List(ctx, p, d.ID); err == nil {
+						boot["comments"] = l
+					}
 					if body, err := s.Docs.Render(ctx, p, d.ID); err == nil {
 						htmlSlots["doc-body"] = body
 						slots["doc-page"] = d.ID
