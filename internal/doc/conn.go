@@ -397,7 +397,11 @@ func (c *conn) syncMessage(r *room, payload []byte) {
 			c.refuse(r, "doc_too_large")
 			return
 		}
+		if t == ysync.MsgSyncStep2 || body[0] == 0 {
+			r.expectDS = deleteSetBytes(r.doc)
+		}
 		err := crdt.ApplyUpdateV1(r.doc, body, &origin{c: c, user: c.p.UserID})
+		r.expectDS = nil
 		r.mu.Unlock()
 		if err != nil {
 			c.s.log.Warn("doc: rejected an update", "page", r.id, "user", c.p.UserID, "err", err)

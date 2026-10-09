@@ -1,6 +1,7 @@
 package doc
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -82,6 +83,19 @@ type room struct {
 	changedSinceVersion bool
 	lastVersion         int64
 	lastVersionID       string
+	expectDS            []byte
+}
+
+func deleteSetBytes(doc *crdt.Doc) []byte {
+	sv, err := crdt.DecodeStateVectorV1(crdt.EncodeStateVectorV1(doc))
+	if err != nil {
+		return nil
+	}
+	u := crdt.EncodeStateAsUpdateV1(doc, sv)
+	if len(u) == 0 || u[0] != 0 {
+		return nil
+	}
+	return u[1:]
 }
 
 func (s *Service) loadRoom(ctx context.Context, id string) (*room, error) {
@@ -148,6 +162,9 @@ func (s *Service) loadRoom(ctx context.Context, id string) (*room, error) {
 
 func (r *room) onUpdate(update []byte, o any) {
 	if len(update) <= 2 {
+		return
+	}
+	if r.expectDS != nil && update[0] == 0 && bytes.Equal(update[1:], r.expectDS) {
 		return
 	}
 	or, _ := o.(*origin)
