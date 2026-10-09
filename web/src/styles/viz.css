@@ -191,6 +191,186 @@
 .heatv__key i[data-level="4"] { background: color-mix(in srgb, var(--heat) 80%, var(--heat-0)); }
 .heatv__key i[data-level="5"] { background: var(--heat); }
 
+.graphv {
+  display: grid;
+  row-gap: var(--space-2);
+  padding-block: var(--space-2);
+  min-inline-size: 0;
+}
+
+.graphv__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 30px;
+}
+
+.graphv__search {
+  inline-size: min(240px, 40%);
+}
+
+.graphv__spacer {
+  flex: 1;
+}
+
+.graphv__count {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.graphv__frame {
+  position: relative;
+  block-size: clamp(420px, 66vh, 720px);
+  min-inline-size: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  contain: layout paint;
+}
+
+.graphv[data-inline="true"] .graphv__frame {
+  block-size: 420px;
+}
+
+.graphv__canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  touch-action: none;
+  outline: none;
+  cursor: grab;
+}
+
+.graphv__canvas:active {
+  cursor: grabbing;
+}
+
+.graphv[data-mode="link"] .graphv__canvas {
+  cursor: crosshair;
+}
+
+.graphv__probe {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+  color: var(--oc, var(--accent));
+  pointer-events: none;
+}
+
+.graphv__anchor {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 1px;
+  block-size: 1px;
+  pointer-events: none;
+}
+
+.graphv__side {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  display: grid;
+  row-gap: var(--space-2);
+  inline-size: 260px;
+  max-block-size: calc(100% - 2 * var(--space-2));
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  overflow-y: auto;
+  background: var(--sheet);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+}
+
+.graphv__side[hidden] {
+  display: none;
+}
+
+.graphv__sidehead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.graphv__title {
+  flex: 1;
+  min-inline-size: 0;
+  font-weight: var(--weight-semibold);
+}
+
+.graphv__sublabel {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.graphv__links {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.graphv__links li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: 28px;
+}
+
+.graphv__link {
+  flex: 1;
+  min-inline-size: 0;
+  padding: 2px var(--space-1);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graphv__link:hover {
+  background: var(--hover);
+}
+
+.graphv__sidefoot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.graphv__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  min-block-size: 18px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.graphv__key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.graphv__key i {
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: 50%;
+  background: var(--oc, var(--accent));
+}
+
 .picklist {
   display: grid;
   row-gap: var(--space-1);
