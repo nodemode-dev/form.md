@@ -680,9 +680,13 @@ function agentsTab(engine: Engine): Tab {
 
 export function mountWorkspaceSettings(engine: Engine): void {
   const dlg = overlayDialog(engine, "workspace", t("Workspace settings"), [generalTab(engine), membersTab(engine), groupsTab(engine), sitesTab(engine), analyticsTab(engine), webhooksTab(engine), auditTab(engine), identityTab(engine), agentsTab(engine)]);
-  engine.state.watch("overlay", (v) => {
-    if (v === "workspace") dlg.title(t("{name} settings", { name: engine.workspace()?.name ?? "" }));
-  });
+  engine.state.watch(
+    "overlay",
+    (v) => {
+      if (v === "workspace") dlg.title(t("{name} settings", { name: engine.workspace()?.name ?? "" }));
+    },
+    { immediate: true },
+  );
   engine.state.watch("me", () => {
     if (dlg.isOpen()) dlg.title(t("{name} settings", { name: engine.workspace()?.name ?? "" }));
   });
@@ -725,5 +729,5 @@ export function mountWorkspaceSettings(engine: Engine): void {
         if (engine.state.get("overlay") === "new-workspace") engine.state.set("overlay", null);
       },
     );
-  });
+  }, { immediate: true });
 }

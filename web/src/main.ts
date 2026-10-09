@@ -8,8 +8,6 @@ import { loadDatabase } from "./extensions/database/load";
 import pagesExtension from "./extensions/pages";
 import { activateAll, register } from "./extensions/registry";
 import shell from "./extensions/shell";
-import { mountAccount } from "./ui/account";
-import { mountAdmin } from "./ui/admin";
 import { mountUI, platformAdapter, storageAdapter } from "./ui/app";
 import { mountAuth } from "./ui/auth";
 import { mountCommentsPane } from "./ui/comments-pane";
@@ -24,7 +22,6 @@ import { toast } from "./ui/toast";
 import { mountTopbar } from "./ui/topbar";
 import { mountTrashView } from "./ui/trash-view";
 import { mountTree } from "./ui/tree";
-import { mountWorkspaceSettings } from "./ui/workspace-settings";
 
 const AUTH_STATES: readonly AuthState[] = ["pending", "setup", "signed-out", "signup", "invite", "app", "form"];
 
@@ -124,15 +121,27 @@ async function start(): Promise<void> {
     mountLibraryView(engine);
     mountTrashView(engine);
     mountHome(engine);
-    mountAccount(engine);
-    mountWorkspaceSettings(engine);
-    mountAdmin(engine);
     const app = engine;
+    const settingsOverlays = new Set<string | null>(["account", "workspace", "new-workspace", "admin"]);
+    let settingsJob: Promise<void> | null = null;
+    const ensureSettings = () =>
+      (settingsJob ??= import("./ui/settings-entry")
+        .then((m) => m.mountSettings(app))
+        .catch((e: unknown) => {
+          settingsJob = null;
+          if (settingsOverlays.has(app.state.get("overlay"))) app.state.set("overlay", null);
+          app.reportError(e);
+        }));
+    engine.state.watch("overlay", (v) => void (settingsOverlays.has(v) && ensureSettings()));
     const loadSearch = () => import("./ui/search").then((m) => m.mountSearch(app));
     let searchJob: Promise<void> | null = null;
     const ensureSearch = () => (searchJob ??= loadSearch().catch((e: unknown) => ((searchJob = null), app.reportError(e))));
     engine.state.watch("overlay", (v) => void (v === "search" && ensureSearch()));
-    setTimeout(() => ("requestIdleCallback" in window ? requestIdleCallback(() => void ensureSearch()) : void ensureSearch()), 2500);
+    const prefetch = () => {
+      void ensureSearch();
+      void ensureSettings();
+    };
+    setTimeout(() => ("requestIdleCallback" in window ? requestIdleCallback(prefetch) : prefetch()), 2500);
     engine.start();
   }
 }

@@ -171,10 +171,14 @@ export function overlayDialog(engine: Engine, name: Exclude<Overlay, null>, labe
   const dlg = tabbedDialog(label, tabs, () => {
     if (state.get("overlay") === name) state.set("overlay", null);
   });
-  state.watch("overlay", (v) => {
-    if (v === name) dlg.open(state.get("overlayTab") || undefined);
-    else if (dlg.isOpen()) dlg.close();
-  });
+  state.watch(
+    "overlay",
+    (v) => {
+      if (v === name) dlg.open(state.get("overlayTab") || undefined);
+      else if (dlg.isOpen()) dlg.close();
+    },
+    { immediate: true },
+  );
   state.watch("overlayTab", (tab) => {
     if (state.get("overlay") === name && tab) dlg.open(tab);
   });
