@@ -29,6 +29,8 @@ export function inboxSentence(n: InboxItem): [string, string, string] {
       return [who, t("assigned you in"), title];
     case "reminder":
       return [t("Reminder"), t("in"), title];
+    case "automation":
+      return [who, t("ran on"), title];
   }
   return [who, "", title];
 }

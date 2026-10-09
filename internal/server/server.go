@@ -21,6 +21,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/audit"
 	"github.com/nodemode-ai/form.md/internal/auditapi"
 	"github.com/nodemode-ai/form.md/internal/auth"
+	"github.com/nodemode-ai/form.md/internal/automation"
 	"github.com/nodemode-ai/form.md/internal/collection"
 	"github.com/nodemode-ai/form.md/internal/comment"
 	"github.com/nodemode-ai/form.md/internal/config"
@@ -70,6 +71,7 @@ type Server struct {
 	OAuth    *oauth.Service
 	AI       *ai.Service
 	Crew     *agent.Service
+	Flows    *automation.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist fs.FS, notices, instanceID string) (*Server, error) {
@@ -139,6 +141,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Version: app.Version, Log: log})
 	crew := agent.New(agent.Deps{Store: st, Auth: authSvc, Gate: gate, AI: brain, Tools: agents, Docs: docs, Cols: cols, Runs: runs, Log: log})
 	hooks.OnEvent(crew.OnEvent)
+	flows := automation.New(automation.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Cols: cols, Inbox: notes, Mail: mailer, Hooks: hooks, Box: box, Public: func() string { return set.Get("instance.public_url") }, Log: log})
+	hooks.OnEvent(flows.OnEvent)
 	docs.OnRefs(func(ctx context.Context, pageID, actor string, _ []string, _ []doc.Reminder) {
 		var wsID string
 		if st.R.QueryRowContext(ctx, "SELECT workspace_id FROM pages WHERE id = ?", pageID).Scan(&wsID) == nil {
@@ -181,7 +185,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		return map[string]any{"workspaces": list, "withheld_workspaces": withheld, "can_create_workspaces": ws.MayCreate(p)}, nil
 	})
 
-	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks, Runs: runs, OAuth: grants, AI: brain, Crew: crew}
+	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks, Runs: runs, OAuth: grants, AI: brain, Crew: crew, Flows: flows}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{sites.Host, prov.Middleware, authSvc.Middleware},
@@ -212,6 +216,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		brain.Module(authSvc, pageText),
 		filler.Module(),
 		crew.Module(),
+		flows.Module(),
 		answer.New(st, authSvc, finder, brain).Module(),
 		static.Module(s.renderDocument),
 	}
@@ -223,6 +228,7 @@ func (s *Server) Run(ctx context.Context) error {
 	go s.Inbox.Run(ctx)
 	go s.Hooks.Run(ctx)
 	go s.Crew.Loop(ctx)
+	go s.Flows.Loop(ctx)
 	return app.Run(ctx, s.Deps, s.Modules)
 }
 

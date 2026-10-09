@@ -302,6 +302,16 @@ func (s *Service) failed(ctx context.Context, hook string) {
 	}
 }
 
+func (s *Service) Send(ctx context.Context, raw, event, secret string, body []byte) (int, error) {
+	u, err := s.checkURL(raw)
+	if err != nil {
+		return 0, err
+	}
+	return s.post(ctx, u, event, "dlv_"+ids.New(), secret, "", body)
+}
+
+func (s *Service) CheckURL(raw string) (string, error) { return s.checkURL(raw) }
+
 func (s *Service) post(ctx context.Context, url, event, delivery, secret, auth string, body []byte) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()

@@ -101,13 +101,13 @@ type draft struct {
 	actor                        *policy.Principal
 }
 
-func (s *Service) deliver(ctx context.Context, d draft, users []string) {
+func (s *Service) deliver(ctx context.Context, d draft, users []string) int {
 	if len(users) == 0 {
-		return
+		return 0
 	}
 	m, err := s.pages.Load(ctx, d.pageID)
 	if err != nil {
-		return
+		return 0
 	}
 	actorID, actorName := "", ""
 	if d.actor != nil {
@@ -134,6 +134,7 @@ func (s *Service) deliver(ctx context.Context, d draft, users []string) {
 	for _, u := range reached {
 		s.hub.User(u, "inbox")
 	}
+	return len(reached)
 }
 
 func (s *Service) FromComment(ctx context.Context, e comment.Event) {
@@ -277,6 +278,10 @@ func (s *Service) FromShare(ctx context.Context, m *page.Meta, kind, subject str
 
 func (s *Service) FromAssign(ctx context.Context, p *policy.Principal, rowID string, users []string) {
 	s.deliver(ctx, draft{kind: "assign", pageID: rowID, actor: p}, users)
+}
+
+func (s *Service) FromAutomation(ctx context.Context, name, pageID, body string, users []string) int {
+	return s.deliver(ctx, draft{kind: "automation", pageID: pageID, body: body, actor: &policy.Principal{Name: name}}, users)
 }
 
 func (s *Service) fireReminders(ctx context.Context) {
@@ -533,6 +538,8 @@ func headline(n Notification) string {
 		return fmt.Sprintf("%s assigned you to %s", who, title)
 	case "reminder":
 		return fmt.Sprintf("Reminder in %s", title)
+	case "automation":
+		return fmt.Sprintf("%s ran on %s", who, title)
 	}
 	return title
 }

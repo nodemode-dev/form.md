@@ -861,7 +861,7 @@ export interface SiteInput {
   hostname?: string;
 }
 
-export type NotificationKind ="mention" | "comment" | "reply" | "suggestion" | "decision" | "share" | "assign" | "reminder";
+export type NotificationKind ="mention" | "comment" | "reply" | "suggestion" | "decision" | "share" | "assign" | "reminder" | "automation";
 
 export interface InboxItem {
   id: string;
