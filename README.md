@@ -13,9 +13,9 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
 </p>
 
-form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 6 of 11**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, & now full-text search w/ a command palette plus equations, drag-made columns, link cards, media from links, embeds, Mermaid diagrams & synced blocks. Sharing, history & the agent surface follow per the roadmap.
+form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 7 of 11**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, full-text search w/ a command palette & the rest of the editor, & now collaboration & identity: page sharing w/ six access levels, teamspaces, groups, guests & links, comments, suggested edits, an inbox w/ push & mail, page history w/ a merge-safe restore, publishing to the web, analytics, signed webhooks, an audit log, SCIM & SAML. The agent surface & AI follow per the roadmap.
 
-**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 17 MB static binary, 250 KB JS & 20 KB CSS gzipped up front, the code highlighter & Markdown parser loaded on demand
+**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 25 MB static binary, 229 KB JS & 23 KB CSS gzipped up front; database views, search, settings, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
 
 ## Highlights
 
@@ -27,6 +27,13 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 - **Big tables stay smooth** · 20,000 rows scroll at a 54 ms p95 step under 4x CPU & 500 kbps throttling; rows load in compressed windows of 100, windows that leave the screen are cancelled, & opening a database costs one round trip
 - **Forms anyone can fill** · build a form from a database's properties w/ required & conditional questions, share a public link that needs no account, & watch answers arrive as rows live
 - **CSV in & out** · upload a file, check the guessed type of each column, import 20,000 rows in about a second; export any view w/ its filter & sort
+- **Share exactly what you mean to** · six access levels from view to full access, walked down the tree; open, closed & private teamspaces; groups, guests by email & share links w/ expiry & password; private pages reset what they inherit; every level enforced by the server on every route incl. the sync socket
+- **Comments & suggestions that follow the text** · threads on a selection, a block or the page w/ mentions, reactions, resolve & a filtered pane; suggest mode for people w/ comment access, accepted or rejected per change; anchors are CRDT positions, so they hold while others type
+- **An inbox that reaches you** · mentions, replies, assignments, date reminders & shares arrive live, w/ browser push & an email fallback for what stays unread
+- **History w/o losing anyone's typing** · versions while editing, by hand & before every restore; preview & a block diff; a restore merges into the live document, so text a collaborator is typing at that moment survives
+- **Publish to the web** · a page & its subpages as a site at its own slug or a custom domain, server-rendered w/ the editor's own markup, SEO fields, themes, fonts, an optional password, indexing control & a sitemap; share links open without an account
+- **Know what is read** · views & unique viewers per page & per workspace over time, a personal opt-out & an anonymous-history switch
+- **Enterprise identity** · SAML 2.0 w/ a SAML-only switch beside OIDC, SCIM 2.0 users & groups, signed webhooks w/ retries & auto-pause, an audit log w/ filters, CSV export, retention & a SIEM stream (Splunk HEC or JSON)
 - **One static binary** built w/ `CGO_ENABLED=0`: client, migrations & license notices embedded; five release targets (linux & darwin on amd64/arm64, windows amd64)
 - **Reads never queue behind writes** · one SQLite writer connection plus a query-only reader pool, numbered migrations in one transaction each, WAL checkpointed on clean shutdown
 - **Zero first-paint flash** · the server renders the sign-in state, the account & the current workspace into the page, & an inline boot script applies theme & sidebar before CSS paints; Inter & JetBrains Mono are preloaded w/ metric-matched fallbacks, so text never reflows when a font arrives; verified frame by frame under 4x CPU & 500 kbps throttling, dark & light, signed out & signed in
@@ -103,7 +110,7 @@ form.md/
 ├── internal/
 │   ├── app/            module registry, server lifecycle, /healthz, /notices
 │   ├── server/         wiring & the server-rendered page document
-│   ├── auth/           passwords, sessions, TOTP, API tokens, SSO, invitations
+│   ├── auth/           passwords, sessions, TOTP, API tokens, OIDC & SAML sign-in, invitations
 │   ├── policy/         the principal & the single workspace gate
 │   ├── workspace/      workspaces, members, agent policy & rules
 │   ├── page/           the page tree, privacy, moves, duplicates, trash, favorites, tags, recents
@@ -112,6 +119,13 @@ form.md/
 │   ├── doc/            page bodies: CRDT rooms, the sync socket, Markdown in & out, first-frame HTML
 │   ├── collection/     databases: schema, values, the query engine, views, forms, CSV; formula/ is the formula language
 │   ├── search/         full-text search: passages, the FTS5 index worker, ranking, highlights
+│   ├── comment/        threads on text, blocks & pages, mentions, reactions, suggested edits
+│   ├── inbox/          notifications, Web Push w/ VAPID, the mail fallback, date reminders
+│   ├── site/           published sites, custom domains, passwords, share-link pages, sitemaps
+│   ├── analytics/      page views & viewers, privacy preferences
+│   ├── webhook/        signed webhooks & SIEM streams fed from the audit log, retries
+│   ├── auditapi/       audit log queries, CSV export
+│   ├── scim/           SCIM 2.0 users & groups per workspace
 │   ├── netguard/       the outbound HTTP client that only reaches public addresses
 │   ├── unfurl/         link previews for link cards
 │   ├── events/         the live event stream w/ replay & audience filtering
@@ -119,7 +133,7 @@ form.md/
 │   ├── admin/          users, ownership, emergency access, instance settings
 │   ├── settings/       typed instance settings w/ sealed secrets
 │   ├── secrets/        AES-GCM sealing & token minting
-│   ├── audit/          the activity record
+│   ├── audit/          the activity record, its queries & retention
 │   ├── mail/           SMTP sending
 │   ├── config/         FORMMD_* environment variables
 │   ├── httpx/          router, middleware chain, JSON errors, rate limits
@@ -144,14 +158,17 @@ form.md/
 
 ## Status of subsystems
 
-- **Accounts & sign-in:** built. Put HTTPS in front before exposing an instance (built-in certificates arrive in Phase 10).
-- **Mail:** SMTP only; Gmail & Microsoft Graph sending arrive in Phase 10.
-- **German:** the language setting exists; the German translation arrives in Phase 10.
+- **Accounts & sign-in:** built. Put HTTPS in front before exposing an instance (built-in certificates arrive in Phase 11).
+- **Mail:** SMTP only; Gmail & Microsoft Graph sending arrive in Phase 11.
+- **German:** the language setting exists; the German translation arrives in Phase 11.
 - **Pages & the shell:** built: tree, tabs, favorites, tags, notes mode, library, trash, covers, icons, uploads, live updates.
 - **Editor & realtime co-editing:** built, incl. equations, a breadcrumb block, columns made by dragging, link cards filled by the server, media from links & pasted pages, embeds, Mermaid diagrams drawn in a sandbox & synced blocks across pages. Table cells cannot be merged, & a synced block has no slash menu inside it yet.
 - **Search:** built: titles, bodies w/ heading paths & database properties, filters & sorts, from a palette (Ctrl or Cmd+K). PDF text arrives w/ the PDF importer (Phase 10).
 - **Databases:** built: 21 property types, seven views, formulas, relations & rollups, groups & calculations, inline databases, row pages, public forms, CSV import & export. The button property is reserved for automations (Phase 9); chart, map & feed views arrive in Phase 9.
-- **History & comments, sharing, agents (MCP):** not built yet (Phases 7 & 8).
+- **Sharing, comments, suggestions, inbox & history:** built. A restore keeps blocks someone is typing in as they are & says how many.
+- **Publishing:** built. Custom domains need TLS from a reverse proxy until built-in certificates (Phase 11); databases publish as a table of their first view.
+- **Analytics, webhooks, audit log, SCIM & SAML:** built. SAML & SCIM are tested against a local identity provider & provider-shaped requests, not yet against Okta, Entra or Google Workspace.
+- **Agents (MCP) & AI:** not built yet (Phase 8).
 - **Windows scripts:** written but not yet run on a Windows host.
 
 ## Shortcuts
@@ -181,13 +198,13 @@ On macOS, `Ctrl` reads as `Cmd`.
 
 ## Development
 
-- One `main` branch for now; a branch model arrives w/ the wiki in Phase 10
+- One `main` branch for now; a branch model arrives w/ the wiki in Phase 11
 - Conventions: surgical edits only, zero emojis anywhere incl. markdown, every colour & layer from the token files, no icon libraries, no UI framework, semver tags from `main`
 - `make check` runs gofmt, `go vet` & the client type check
 
 ## Status
 
-Phases 1 to 6 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, & search w/ the rest of the editor) are complete at this version. Phase 7, collaboration, sharing & identity, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
+Phases 1 to 7 (skeleton binary, accounts, workspaces, the policy gate, the workspace shell w/ pages & live updates, the document engine w/ the block editor & realtime co-editing, databases w/ their views, forms & CSV, search w/ the rest of the editor, & collaboration, sharing & identity) are complete at this version. Phase 8, agents & AI, is next. The full roadmap is kept outside the tree in the planning sidecar that ships w/ each release zip.
 
 ## Contributors
 
