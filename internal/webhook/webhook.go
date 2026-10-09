@@ -96,6 +96,11 @@ type Service struct {
 	client *http.Client
 	wake   chan struct{}
 	plain  bool
+	subs   []func(ctx context.Context, e Event)
+}
+
+func (s *Service) OnEvent(fn func(ctx context.Context, e Event)) {
+	s.subs = append(s.subs, fn)
 }
 
 func New(st *store.Store, gate *policy.Gate, box *secrets.Box, al *audit.Log, fetcher *http.Client, allowHTTP bool, log *slog.Logger) *Service {
@@ -128,6 +133,9 @@ func matches(patterns []string, event string, isAudit bool, kind string) bool {
 }
 
 func (s *Service) enqueue(ctx context.Context, e Event) {
+	for _, fn := range s.subs {
+		go fn(context.WithoutCancel(ctx), e)
+	}
 	rows, err := s.st.R.QueryContext(ctx, "SELECT id, kind, events FROM webhooks WHERE workspace_id = ? AND active = 1", e.WorkspaceID)
 	if err != nil {
 		return

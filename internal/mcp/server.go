@@ -91,6 +91,8 @@ type call struct {
 	version string
 	client  string
 	nonce   string
+	kind    string
+	owner   string
 }
 
 const (

@@ -37,6 +37,8 @@ type exec struct {
 	agent  *doc.Agent
 	opened bool
 	want   string
+	kind   string
+	owner  string
 }
 
 func (t *Tool) describe() map[string]any {
@@ -73,7 +75,11 @@ func (x *exec) openRun(ctx context.Context) (string, error) {
 	if x.opened {
 		return x.run, nil
 	}
-	id, err := x.s.Runs.Open(ctx, x.p, x.want, "mcp", x.name, "", x.tool)
+	kind := x.kind
+	if kind == "" {
+		kind = "mcp"
+	}
+	id, err := x.s.Runs.Open(ctx, x.p, x.want, kind, x.name, x.owner, x.tool)
 	if err != nil {
 		return "", err
 	}
@@ -129,7 +135,7 @@ func (s *Server) callTool(ctx context.Context, c *call, t *Tool, raw json.RawMes
 		return toolResult(nil, "too many tool calls; wait a minute and try again", true)
 	}
 	pp := *c.p
-	x := &exec{s: s, c: c, p: &pp, tool: t.Name, want: meta.RunID}
+	x := &exec{s: s, c: c, p: &pp, tool: t.Name, want: meta.RunID, kind: c.kind, owner: c.owner}
 	x.name = s.displayName(ctx, c)
 	pp.AgentName = x.name
 	x.agent = &doc.Agent{Key: key, Name: x.name}
