@@ -329,3 +329,40 @@
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--space-2);
 }
+
+.agent-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-2);
+}
+
+.agent-row__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-3);
+}
+
+.agent-row .row__main {
+  display: grid;
+  row-gap: 2px;
+  min-inline-size: 0;
+}
+
+.agent-row__switch {
+  justify-content: start;
+  gap: var(--space-3);
+}
+
+.agent-runs {
+  display: grid;
+  row-gap: var(--space-1);
+  padding-inline-start: var(--space-4);
+}
+
+.agent-runs__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-2);
+}

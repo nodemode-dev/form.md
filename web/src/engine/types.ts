@@ -129,6 +129,80 @@ export interface AIAdmin {
   kinds: Record<string, string>;
 }
 
+export interface AgentChat {
+  id: string;
+  workspace_id: string;
+  agent_id?: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AgentSegment {
+  type: "text" | "tool";
+  text?: string;
+  tool?: string;
+  label?: string;
+  ok?: boolean;
+  summary?: string;
+}
+
+export interface AgentMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  parts: AgentSegment[];
+  run_id?: string;
+  run_status?: string;
+  run_ops?: number;
+  created_at: number;
+}
+
+export interface AgentState {
+  prefs: { instructions_page: string; memory: boolean };
+  memory: { id: string; text: string; created_at: number }[];
+  chats: AgentChat[];
+}
+
+export interface AgentTrigger {
+  every?: "once" | "minutes" | "hours" | "day" | "week";
+  n?: number;
+  at?: string;
+  weekday?: number;
+  tz?: string;
+  once_at?: number;
+  collection?: string;
+  page?: string;
+}
+
+export type AgentTriggerKind = "manual" | "schedule" | "row_added" | "row_changed" | "page_changed";
+
+export interface CustomAgent {
+  id: string;
+  workspace_id: string;
+  created_by: string;
+  name: string;
+  icon: string;
+  instructions: string;
+  model: string;
+  trigger_kind: AgentTriggerKind;
+  trigger: AgentTrigger;
+  enabled: boolean;
+  next_run_at: number;
+  last_run_at: number;
+  last_status: string;
+  can_edit: boolean;
+}
+
+export interface CustomAgentRun {
+  chat_id: string;
+  title: string;
+  run_id?: string;
+  status: string;
+  ops: number;
+  created_at: number;
+}
+
 export interface AgentGrant {
   id: string;
   client: string;

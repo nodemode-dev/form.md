@@ -66,7 +66,7 @@ function sliceFor(text: string, state: EditorState, at: number, ready: boolean):
 
 const blank = schema.topNodeType.createAndFill() as PMNode;
 
-function render(text: string, ready: boolean): DocumentFragment {
+export function render(text: string, ready: boolean): DocumentFragment {
   const slice = ready ? parseMarkdownSlice(text, blank.resolve(0)) : plainTextSlice(text);
   return DOMSerializer.fromSchema(schema).serializeFragment(clean(slice.content)) as DocumentFragment;
 }
@@ -77,7 +77,7 @@ function sameShell(a: Element, b: Element): boolean {
   return true;
 }
 
-function reconcile(target: Node, fresh: Node): void {
+export function reconcile(target: Node, fresh: Node): void {
   const next = Array.from(fresh.childNodes);
   next.forEach((n, i) => {
     const cur = target.childNodes[i];

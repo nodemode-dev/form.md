@@ -1,6 +1,6 @@
 import { type AuthState, type Boot, createEngine, type Engine } from "./engine";
 import { createClient } from "./engine/client";
-import { resolveLang, setLang } from "./engine/i18n";
+import { resolveLang, setLang, t } from "./engine/i18n";
 import account from "./extensions/account";
 import blocks from "./extensions/blocks";
 import database from "./extensions/database";
@@ -133,6 +133,18 @@ async function start(): Promise<void> {
           app.reportError(e);
         }));
     engine.state.watch("overlay", (v) => void (settingsOverlays.has(v) && ensureSettings()));
+    const agentBtn = document.querySelector<HTMLButtonElement>("[data-ref='act-agent']");
+    let agentJob: Promise<{ toggle(): void }> | null = null;
+    const ensureAgent = () => {
+      if (!agentBtn) return Promise.reject(new Error("no agent button"));
+      agentJob ??= import("./ui/agent-pane").then((m) => m.mountAgentPane(app, agentBtn));
+      agentJob.catch(() => (agentJob = null));
+      return agentJob;
+    };
+    const toggleAgent = () => void ensureAgent().then((p) => p.toggle(), app.reportError);
+    agentBtn?.addEventListener("click", toggleAgent);
+    engine.commands.register({ id: "agent.toggle", label: () => t("Show or hide the agent"), group: () => t("AI"), run: toggleAgent });
+    engine.keymap.register({ id: "agent.toggle", command: "agent.toggle", chords: ["mod+shift+j"], scope: "global", whileTyping: true });
     const loadSearch = () => import("./ui/search").then((m) => m.mountSearch(app));
     let searchJob: Promise<void> | null = null;
     const ensureSearch = () => (searchJob ??= loadSearch().catch((e: unknown) => ((searchJob = null), app.reportError(e))));

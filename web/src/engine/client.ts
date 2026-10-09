@@ -5,8 +5,13 @@ import type {
   AIAdmin,
   AIAsk,
   AIChoices,
+  AgentChat,
   AgentGrant,
+  AgentMessage,
   AgentRun,
+  AgentState,
+  CustomAgent,
+  CustomAgentRun,
   BreakGlassGrant,
   Collection,
   CollectionView,
@@ -121,6 +126,22 @@ export function createClient(f: FetchFn) {
   const enc = encodeURIComponent;
 
   return {
+    agent: {
+      state: (ws: string) => get<AgentState>(`/api/agent?workspace=${enc(ws)}`),
+      setPrefs: (ws: string, prefs: { instructions_page: string; memory: boolean }) => put<void>("/api/agent/prefs", { workspace_id: ws, ...prefs }),
+      forget: (id: string) => del(`/api/agent/memory/${enc(id)}`),
+      newChat: (ws: string) => post<{ chat: AgentChat }>("/api/agent/chats", { workspace_id: ws }),
+      chat: (id: string) => get<{ chat: AgentChat; messages: AgentMessage[] }>(`/api/agent/chats/${enc(id)}`),
+      deleteChat: (id: string) => del(`/api/agent/chats/${enc(id)}`),
+      send: (id: string, body: { text: string; page_id?: string }, onEvent: (event: string, data: unknown) => void, cancel?: AbortSignal) =>
+        stream(f, `/api/agent/chats/${enc(id)}/messages`, body, (e) => onEvent(e.event, e.data), cancel),
+      list: (ws: string) => get<{ agents: CustomAgent[] }>(`/api/workspaces/${enc(ws)}/agents`),
+      create: (ws: string, body: Partial<CustomAgent>) => post<{ agent: CustomAgent }>(`/api/workspaces/${enc(ws)}/agents`, body),
+      update: (id: string, body: Partial<CustomAgent>) => patch<{ agent: CustomAgent }>(`/api/agents/${enc(id)}`, body),
+      remove: (id: string) => del(`/api/agents/${enc(id)}`),
+      run: (id: string) => post<{ chat: AgentChat }>(`/api/agents/${enc(id)}/run`),
+      runs: (id: string) => get<{ runs: CustomAgentRun[] }>(`/api/agents/${enc(id)}/runs`),
+    },
     ai: {
       models: (workspaceId = "") => get<AIChoices>(`/api/ai/models${workspaceId ? `?workspace=${enc(workspaceId)}` : ""}`),
       complete: (body: AIAsk, onText: (t: string) => void, cancel?: AbortSignal) =>

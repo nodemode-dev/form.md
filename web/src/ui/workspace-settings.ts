@@ -14,6 +14,7 @@ import { auditTab } from "./workspace-audit";
 import { identityTab } from "./workspace-identity";
 import { webhooksTab } from "./workspace-webhooks";
 import { sitesTab } from "./workspace-sites";
+import { customAgentsSection } from "./workspace-agents";
 
 const MAX_RULES = 16000;
 
@@ -640,7 +641,8 @@ function agentsTab(engine: Engine): Tab {
       }
     });
     s2.append(proposal, form);
-    panel.append(s1, sAI, s2);
+    const crew = customAgentsSection(engine, w);
+    panel.append(s1, sAI, crew.el, s2);
 
     let dirty = false;
     box.addEventListener("input", () => {
@@ -691,6 +693,7 @@ function agentsTab(engine: Engine): Tab {
     return () => {
       access.set(engine.workspace()?.agent_access ?? w.agent_access);
       aiOn.input.checked = (engine.workspace() ?? w).ai_enabled !== false;
+      crew.refresh();
       load();
     };
   });
