@@ -11,5 +11,6 @@
  "Match the system theme": "Wie das System",
  "Connected": "Verbunden",
  "Degraded": "Eingeschränkt",
- "Unreachable": "Nicht erreichbar"
+ "Unreachable": "Nicht erreichbar",
+ "{version}, and {latest} is available": "{version}, und {latest} ist verfügbar"
 }

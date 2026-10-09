@@ -6,6 +6,7 @@ export interface Health {
   phase: HealthPhase;
   version: string | null;
   storage: string | null;
+  latest: string | null;
   latencyMs: number | null;
   checkedAt: number | null;
 }
@@ -14,6 +15,7 @@ export const initialHealth: Health = {
   phase: "idle",
   version: null,
   storage: null,
+  latest: null,
   latencyMs: null,
   checkedAt: null,
 };
@@ -22,6 +24,7 @@ interface HealthBody {
   status?: string;
   version?: string;
   storage?: string;
+  latest?: string;
 }
 
 export interface HealthSink {
@@ -86,6 +89,7 @@ export class HealthMonitor {
         phase,
         version: body.version ?? previous.version,
         storage: body.storage ?? null,
+        latest: body.latest ?? null,
         latencyMs,
         checkedAt,
       };

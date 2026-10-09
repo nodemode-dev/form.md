@@ -17,7 +17,8 @@ type Config struct {
 	TLSCert string
 	TLSKey  string
 
-	KeyFile string
+	KeyFile   string
+	UpdateURL string
 
 	ACMEDomains   []string
 	ACMEEmail     string
@@ -43,6 +44,7 @@ var Vars = []Var{
 	{"ACME_EMAIL", "", "contact address given to the certificate authority"},
 	{"ACME_DIRECTORY", "https://acme-v02.api.letsencrypt.org/directory", "ACME directory URL; point it at a staging or private CA to test"},
 	{"HTTP_ADDR", ":80", "with ACME on, the plain HTTP listener that answers challenges and redirects to HTTPS"},
+	{"UPDATE_URL", "", "where the daily update check reads the latest release (GitHub's API when unset); point it at a mirror on a closed network"},
 	{"FETCH_PRIVATE", "", "set to 1 to let link previews and media imports reach private network addresses such as intranet sites; off by default"},
 }
 
@@ -53,7 +55,8 @@ func Load() (Config, error) {
 		TLSCert: get("TLS_CERT"),
 		TLSKey:  get("TLS_KEY"),
 
-		KeyFile: get("KEY_FILE"),
+		KeyFile:   get("KEY_FILE"),
+		UpdateURL: get("UPDATE_URL"),
 
 		ACMEEmail:     get("ACME_EMAIL"),
 		ACMEDirectory: get("ACME_DIRECTORY"),

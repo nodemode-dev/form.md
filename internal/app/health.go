@@ -19,13 +19,14 @@ type healthBody struct {
 	Product string `json:"product"`
 	Version string `json:"version"`
 	Storage string `json:"storage"`
+	Latest  string `json:"latest,omitempty"`
 }
 
 func (health) Mount(r *httpx.Router, d *Deps) error {
 	r.HandleFunc("GET /healthz", func(w http.ResponseWriter, req *http.Request) {
 		ctx, cancel := context.WithTimeout(req.Context(), 2*time.Second)
 		defer cancel()
-		body := healthBody{Status: "ok", Product: Product, Version: Version, Storage: "ok"}
+		body := healthBody{Status: "ok", Product: Product, Version: Version, Storage: "ok", Latest: LatestRelease()}
 		status := http.StatusOK
 		if err := d.Store.Ping(ctx); err != nil {
 			d.Log.Warn("health: storage ping failed", "err", err)

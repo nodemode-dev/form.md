@@ -236,6 +236,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 func (s *Server) Run(ctx context.Context) error {
 	go s.housekeeping(ctx)
 	go s.Docs.Recover(ctx)
+	go app.CheckUpdates(ctx, s.Deps.Config.UpdateURL, func() bool { return s.Settings.Bool("update.check") }, s.Deps.Log)
 	go s.Inbox.Run(ctx)
 	go s.Hooks.Run(ctx)
 	go s.Crew.Loop(ctx)

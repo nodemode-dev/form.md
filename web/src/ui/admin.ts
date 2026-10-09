@@ -960,7 +960,7 @@ function aboutTab(engine: Engine): Tab {
       const storage = h("span", { class: "row__meta" });
       const paint = () => {
         const hl = engine.state.get("health");
-        setText(version, hl.version ?? t("unknown"));
+        setText(version, hl.latest ? t("{version}, and {latest} is available", { version: hl.version ?? "", latest: hl.latest }) : (hl.version ?? t("unknown")));
         setText(storage, hl.storage ?? t("unknown"));
       };
       paint();
