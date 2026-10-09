@@ -185,6 +185,25 @@ const nodes: Record<string, NodeSpec> = {
       return ["div", a, ["span", { class: "callout__icon", contenteditable: "false" }], ["div", { class: "callout__body" }, 0]];
     },
   },
+  ai_block: {
+    content: "block+",
+    group: "block",
+    defining: true,
+    attrs: { ...withId, prompt: { default: "" } },
+    parseDOM: [
+      {
+        tag: "div.ai-block",
+        contentElement: ".ai-block__body",
+        getAttrs: (dom: HTMLElement) => ({ prompt: dom.dataset.prompt ?? "" }),
+      },
+    ],
+    toDOM: (n) => [
+      "div",
+      { class: "ai-block", ...blockAttr(n), "data-prompt": String(n.attrs.prompt ?? "") },
+      ["div", { class: "ai-block__head", contenteditable: "false" }, ["span", { class: "ai-block__prompt" }, String(n.attrs.prompt ?? "")]],
+      ["div", { class: "ai-block__body" }, 0],
+    ],
+  },
   toggle: {
     content: "toggle_title block*",
     group: "block",

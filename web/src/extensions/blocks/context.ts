@@ -20,6 +20,7 @@ export interface EditorCtx {
   uploadFiles(view: EditorView, files: File[], at?: number): void;
   doc(): Y.Doc | null;
   syncedSnapshot(block: string): string;
+  markdownBetween(from: number, to: number): string;
 }
 
 export function caretRect(view: EditorView, pos = view.state.selection.head): Rect | null {

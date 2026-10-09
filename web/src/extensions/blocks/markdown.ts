@@ -281,6 +281,12 @@ export function preloadMarkdown(): void {
   );
 }
 
+export async function markdownReady(): Promise<boolean> {
+  preloadMarkdown();
+  await loading;
+  return MarkdownIt !== null;
+}
+
 const makeParser = () => new (MarkdownIt as typeof MarkdownItType)({ html: true, linkify: true, breaks: false });
 let md: ReturnType<typeof makeParser> | null = null;
 

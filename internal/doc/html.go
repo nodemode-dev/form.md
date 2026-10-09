@@ -139,6 +139,20 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.open("blockquote", "data-block", id)
 		w.kids(el)
 		w.b.WriteString("</blockquote>")
+	case "ai_block":
+		prompt := attrString(el, "prompt")
+		w.open("div", "class", "ai-block", "data-block", id, "data-prompt", prompt)
+		icon := ""
+		if w.pub != nil {
+			icon = w.pub.UI("sparkle")
+		}
+		w.b.WriteString(`<div class="ai-block__head" contenteditable="false"><span class="ai-block__icon">` + icon + `</span><span class="ai-block__prompt">` + esc(prompt) + `</span>`)
+		if w.pub == nil {
+			w.b.WriteString(`<button class="ai-block__run" type="button">Regenerate</button>`)
+		}
+		w.b.WriteString(`</div><div class="ai-block__body">`)
+		w.kids(el)
+		w.b.WriteString("</div></div>")
 	case "callout":
 		w.open("div", "class", "doc-callout", "data-block", id, "data-tone", attrString(el, "tone"), "data-icon", attrString(el, "icon"))
 		if w.pub != nil {

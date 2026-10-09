@@ -3,6 +3,7 @@ import type { EditorView } from "prosemirror-view";
 import { embedProvider, newBlockId, schema } from "../../engine/doc/schema";
 import { t } from "../../engine/i18n";
 import type { IconName } from "../../ui/icons";
+import { newAIBlock, openAI } from "./ai";
 import { type BlockKind, insertBlock, turnInto } from "./commands";
 import { caretRect, type EditorCtx } from "./context";
 import { embedFor, mediaFromLink } from "./links";
@@ -26,6 +27,7 @@ const BASIC = () => t("Basic blocks");
 const MEDIA = () => t("Media");
 const LAYOUT = () => t("Layout");
 const LINKS = () => t("Links");
+const AI = () => t("AI");
 
 const turn = (kind: BlockKind) => (view: EditorView) => {
   turnInto(view, kind);
@@ -189,6 +191,25 @@ export const CATALOG: CatalogEntry[] = [
     run: (view) => {
       view.dispatch(view.state.tr.insertText("[["));
     },
+  },
+  {
+    id: "ask-ai",
+    label: () => t("Ask AI"),
+    section: AI,
+    icon: "sparkle",
+    keywords: "ai write continue summarize translate assistant generate draft",
+    hint: "Ctrl+J",
+    run: (view, ctx) => {
+      requestAnimationFrame(() => openAI(ctx, view));
+    },
+  },
+  {
+    id: "ai-block",
+    label: () => t("AI block"),
+    section: AI,
+    icon: "sparkle",
+    keywords: "ai block generate prompt regenerate summary",
+    run: (view) => insertBlock(view, newAIBlock()),
   },
 ];
 

@@ -6,6 +6,7 @@ import { byId, h, setAttr } from "../../ui/dom";
 import { anchorToRect, type Rect } from "../../ui/floating";
 import { type IconName, iconNode } from "../../ui/icons";
 import { type MenuEntry, openMenu } from "../../ui/menu";
+import { openAI } from "./ai";
 import { CATALOG } from "./catalog";
 import { markActive, markCommand, setMark, turnInto } from "./commands";
 import { commentUI } from "./comments";
@@ -58,6 +59,15 @@ export class FormatBar {
       },
     });
     this.tools = [
+      {
+        id: "ai",
+        icon: "sparkle",
+        label: () => t("Ask AI"),
+        run: (view) => {
+          this.hide();
+          openAI(this.ctx, view);
+        },
+      },
       {
         id: "turn",
         icon: "turn",

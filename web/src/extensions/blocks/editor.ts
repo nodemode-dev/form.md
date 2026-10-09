@@ -22,6 +22,7 @@ import { linksPlugin, offerLinkChoice } from "./links";
 import { mathKeys } from "./math";
 import { rulesPlugin } from "./rules";
 import { triggerPlugin } from "./triggers";
+import { aiPlugins } from "./ai";
 
 const URL_ONLY = /^https?:\/\/\S+$/i;
 
@@ -205,6 +206,12 @@ export class EditorHost implements EditorCtx {
     return this.snaps.get(block) ?? "";
   }
 
+  markdownBetween(from: number, to: number): string {
+    const v = this.ed;
+    if (!v || to <= from) return "";
+    return this.md.doc(v.state.doc.slice(from, to, true).content);
+  }
+
   onShown(fn: (id: string) => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
@@ -301,6 +308,7 @@ export class EditorHost implements EditorCtx {
       triggerPlugin(this),
       rulesPlugin(),
       mathKeys(),
+      ...aiPlugins(this),
       ...keysPlugin(this),
       idsPlugin(),
       placeholderPlugin(),
