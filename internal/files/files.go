@@ -328,6 +328,21 @@ func (s *Service) Serve(w http.ResponseWriter, r *http.Request, p *policy.Princi
 	if err := s.canRead(r.Context(), p, f); err != nil {
 		return err
 	}
+	return s.send(w, r, f, "private, max-age=31536000, immutable")
+}
+
+func (s *Service) ServePublic(w http.ResponseWriter, r *http.Request, id string, allow func(f *File) bool) error {
+	f, err := s.lookup(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	if f.Purpose == "avatar" || !allow(f) {
+		return httpx.ErrNotFound
+	}
+	return s.send(w, r, f, "public, max-age=300")
+}
+
+func (s *Service) send(w http.ResponseWriter, r *http.Request, f *File, cache string) error {
 	fh, err := os.Open(s.path(f.ID, f.ext))
 	if errors.Is(err, os.ErrNotExist) {
 		return httpx.ErrNotFound
@@ -339,7 +354,7 @@ func (s *Service) Serve(w http.ResponseWriter, r *http.Request, p *policy.Princi
 	hdr := w.Header()
 	hdr.Set("Content-Type", f.Mime)
 	hdr.Set("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox")
-	hdr.Set("Cache-Control", "private, max-age=31536000, immutable")
+	hdr.Set("Cache-Control", cache)
 	hdr.Set("ETag", `"`+f.ID+`"`)
 	disposition := "attachment"
 	if inlineTypes[f.Mime] {

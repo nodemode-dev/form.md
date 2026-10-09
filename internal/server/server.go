@@ -28,6 +28,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/search"
 	"github.com/nodemode-ai/form.md/internal/secrets"
 	"github.com/nodemode-ai/form.md/internal/settings"
+	"github.com/nodemode-ai/form.md/internal/site"
 	"github.com/nodemode-ai/form.md/internal/static"
 	"github.com/nodemode-ai/form.md/internal/store"
 	"github.com/nodemode-ai/form.md/internal/unfurl"
@@ -94,6 +95,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	finder := search.New(st, gate, authSvc, pages, log)
 	finder.SetRows(cols.RowText, cols.RowIDs)
 	cols.OnRows(finder.RowsChanged)
+	sites := site.New(st, gate, pages, docs, cols, fsvc, authSvc, set, al, log)
 
 	ws.SetNotifier(hub)
 	ws.SetImageCheck(func(ctx context.Context, ref, workspaceID string) bool {
@@ -122,7 +124,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes}
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
-		Middleware: []httpx.Middleware{authSvc.Middleware},
+		Middleware: []httpx.Middleware{sites.Host, authSvc.Middleware},
 	}
 	s.Modules = []app.Module{
 		app.Health(),
@@ -139,6 +141,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		comments.Module(authSvc),
 		notes.Module(authSvc),
 		finder.Module(),
+		sites.Module(authSvc),
 		static.Module(s.renderDocument),
 	}
 	return s, nil

@@ -88,7 +88,7 @@ func (w *htmlWriter) synced(el *crdt.YXmlElement, id string) {
 	switch {
 	case w.nested || !SyncKey(key):
 	case w.local != nil && pg == w.self:
-		w.b.WriteString(renderFragment(w.local(SyncRoot(key)), w.title))
+		w.b.WriteString(w.child(w.local(SyncRoot(key))))
 	default:
 		if html, ok := w.foreign[syncedRef{pg, key}]; ok && html != syncedDenied {
 			w.b.WriteString(html)

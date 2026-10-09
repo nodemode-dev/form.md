@@ -423,8 +423,13 @@ func (s *Service) RevokeLink(ctx context.Context, p *policy.Principal, linkID st
 	if _, err := s.CanShare(ctx, p, page); err != nil {
 		return err
 	}
-	_, err := s.st.W.ExecContext(ctx, "UPDATE share_links SET revoked_at = ? WHERE id = ?", store.NowMS(), linkID)
-	return err
+	return s.st.Tx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, "UPDATE share_links SET revoked_at = ? WHERE id = ?", store.NowMS(), linkID); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, "DELETE FROM page_shares WHERE created_by = ?", "link:"+linkID)
+		return err
+	})
 }
 
 type LinkAccess struct {
@@ -433,17 +438,39 @@ type LinkAccess struct {
 	WorkspaceID string
 	Level       string
 	Password    string
+	ExpiresAt   int64
 }
 
 func (s *Service) ResolveLink(ctx context.Context, token string) (*LinkAccess, error) {
 	var l LinkAccess
-	err := s.st.R.QueryRowContext(ctx, `SELECT l.id, l.page_id, l.workspace_id, l.level, l.password_hash FROM share_links l JOIN pages p ON p.id = l.page_id
+	err := s.st.R.QueryRowContext(ctx, `SELECT l.id, l.page_id, l.workspace_id, l.level, l.password_hash, l.expires_at FROM share_links l JOIN pages p ON p.id = l.page_id
 		WHERE l.token_hash = ? AND l.revoked_at = 0 AND (l.expires_at = 0 OR l.expires_at > ?) AND p.trashed_at = 0`, secrets.Hash(token), store.NowMS()).
-		Scan(&l.LinkID, &l.PageID, &l.WorkspaceID, &l.Level, &l.Password)
+		Scan(&l.LinkID, &l.PageID, &l.WorkspaceID, &l.Level, &l.Password, &l.ExpiresAt)
 	if err != nil {
 		return nil, store.NoRows(err)
 	}
 	return &l, nil
+}
+
+func (s *Service) GrantLink(ctx context.Context, p *policy.Principal, l *LinkAccess) error {
+	if !p.IsSession() {
+		return policy.ErrHidden
+	}
+	want, ok := ParseLevel(l.Level)
+	if !ok {
+		want = LevelView
+	}
+	if have, _, err := s.Level(ctx, p, l.PageID); err == nil && have >= want {
+		return nil
+	}
+	return s.st.Tx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO page_shares (id, page_id, workspace_id, subject_kind, subject_id, level, expires_at, created_by, created_at)
+			VALUES (?, ?, ?, 'user', ?, ?, ?, ?, ?) ON CONFLICT (page_id, subject_kind, subject_id) DO NOTHING`,
+			ids.New(), l.PageID, l.WorkspaceID, p.UserID, want.String(), l.ExpiresAt, "link:"+l.LinkID, store.NowMS()); err != nil {
+			return err
+		}
+		return s.audit.Record(ctx, tx, p, audit.Entry{Action: "page.link_open", WorkspaceID: l.WorkspaceID, PageID: l.PageID, Detail: l.Level})
+	})
 }
 
 type SharedPage struct {

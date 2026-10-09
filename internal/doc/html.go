@@ -20,6 +20,7 @@ type htmlWriter struct {
 	self    string
 	local   func(name string) *crdt.YXmlFragment
 	foreign map[syncedRef]string
+	pub     *Public
 }
 
 func (r *room) render(title func(id string) string, crumbs []page.Crumb, foreign map[syncedRef]string) string {
@@ -92,6 +93,14 @@ func (w *htmlWriter) remoteMedia(el *crdt.YXmlElement, id string) {
 	if u, err := url.Parse(src); err == nil && u.Host != "" {
 		host = u.Host
 	}
+	if w.pub != nil {
+		w.open("figure", "class", "media media--"+el.NodeName, "data-block", id)
+		w.open("a", "class", "embed__fallback", "href", safeHref(src), "target", "_blank", "rel", "noopener noreferrer nofollow")
+		w.b.WriteString(esc(host) + "</a>")
+		w.caption(attrString(el, "caption"))
+		w.b.WriteString("</figure>")
+		return
+	}
 	w.open("figure", "class", "media media--"+el.NodeName+" is-remote", "data-block", id, "data-src", src)
 	w.b.WriteString(`<div class="media__pending"><span class="media__pending-text">` + esc(host) + `</span></div>`)
 	w.caption(attrString(el, "caption"))
@@ -132,7 +141,11 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.b.WriteString("</blockquote>")
 	case "callout":
 		w.open("div", "class", "doc-callout", "data-block", id, "data-tone", attrString(el, "tone"), "data-icon", attrString(el, "icon"))
-		w.b.WriteString(`<span class="callout__icon" contenteditable="false"></span><div class="callout__body">`)
+		if w.pub != nil {
+			w.b.WriteString(w.pub.Icon(attrString(el, "icon"), "lightbulb", "callout__icon") + `<div class="callout__body">`)
+		} else {
+			w.b.WriteString(`<span class="callout__icon" contenteditable="false"></span><div class="callout__body">`)
+		}
 		w.kids(el)
 		w.b.WriteString("</div></div>")
 	case "toggle":
@@ -142,7 +155,11 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 			level = strconv.Itoa(lvl)
 		}
 		w.open("div", "class", "toggle", "data-block", id, "data-level", level)
-		w.b.WriteString(`<button class="toggle__btn" type="button" contenteditable="false" aria-expanded="false"></button><div class="toggle__content">`)
+		chevron := ""
+		if w.pub != nil {
+			chevron = w.pub.UI("chevron-right")
+		}
+		w.b.WriteString(`<button class="toggle__btn" type="button" contenteditable="false" aria-expanded="false" aria-label="Show or hide">` + chevron + `</button><div class="toggle__content">`)
 		w.kids(el)
 		w.b.WriteString("</div></div>")
 	case "toggle_title":
@@ -177,6 +194,9 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 			checked = "true"
 			box = `<input type="checkbox" checked>`
 		}
+		if w.pub != nil {
+			box = strings.Replace(box, ">", ` disabled aria-label="Done">`, 1)
+		}
 		w.open("li", "class", "task", "data-block", id, "data-checked", checked)
 		w.b.WriteString(`<span class="task__check" contenteditable="false">` + box + `</span><div class="task__body">`)
 		w.kids(el)
@@ -190,7 +210,15 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 			}
 		}
 		w.open("div", "class", "code", "data-block", id, "data-language", lang, "data-view", view)
-		w.b.WriteString(`<div class="code__bar" contenteditable="false"></div><pre class="code__pre" spellcheck="false"><code>`)
+		bar := ""
+		if w.pub != nil {
+			label := lang
+			if label == "" {
+				label = "Plain text"
+			}
+			bar = `<span class="code__lang">` + esc(label) + `</span>`
+		}
+		w.b.WriteString(`<div class="code__bar" contenteditable="false">` + bar + `</div><pre class="code__pre" spellcheck="false"><code>`)
 		code := (&mdWriter{}).plain(el)
 		w.b.WriteString(esc(code))
 		if code == "" || strings.HasSuffix(code, "\n") {
@@ -247,29 +275,33 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 	case "image":
 		w.open("figure", "class", "media media--image", "data-block", id)
 		w.b.WriteString(`<div class="media__frame">`)
-		w.open("img", "src", fileURL(attrString(el, "src")), "alt", attrString(el, "alt"), "width", dim(el, "w"), "height", dim(el, "h"), "loading", "lazy", "decoding", "async", "draggable", "false")
+		w.open("img", "src", w.src(attrString(el, "src")), "alt", attrString(el, "alt"), "width", dim(el, "w"), "height", dim(el, "h"), "loading", "lazy", "decoding", "async", "draggable", "false")
 		w.b.WriteString("</div>")
 		w.caption(attrString(el, "caption"))
 		w.b.WriteString("</figure>")
 	case "video":
 		w.open("figure", "class", "media media--video", "data-block", id)
 		w.b.WriteString(`<div class="media__frame">`)
-		w.open("video", "src", fileURL(attrString(el, "src")), "width", dim(el, "w"), "height", dim(el, "h"), "controls", "controls", "preload", "metadata")
+		w.open("video", "src", w.src(attrString(el, "src")), "width", dim(el, "w"), "height", dim(el, "h"), "controls", "controls", "preload", "metadata")
 		w.b.WriteString("</video></div>")
 		w.caption(attrString(el, "caption"))
 		w.b.WriteString("</figure>")
 	case "audio":
 		w.open("figure", "class", "media media--audio", "data-block", id)
-		w.open("audio", "src", fileURL(attrString(el, "src")), "controls", "controls", "preload", "metadata")
+		w.open("audio", "src", w.src(attrString(el, "src")), "controls", "controls", "preload", "metadata")
 		w.b.WriteString("</audio>")
 		w.caption(attrString(el, "caption"))
 		w.b.WriteString("</figure>")
 	case "file":
-		src := fileURL(attrString(el, "src"))
+		src := w.src(attrString(el, "src"))
 		mime := attrString(el, "mime")
 		name := attrString(el, "name")
 		w.open("div", "class", "file", "data-block", id, "data-mime", mime)
-		w.b.WriteString(`<div class="file__card"><span class="file__icon"></span>`)
+		clip := ""
+		if w.pub != nil {
+			clip = w.pub.UI("attachment")
+		}
+		w.b.WriteString(`<div class="file__card"><span class="file__icon">` + clip + `</span>`)
 		w.open("a", "class", "file__name", "href", src, "target", "_blank", "rel", "noopener")
 		w.b.WriteString(esc(name) + `</a><span class="file__size">` + esc(humanSize(int64(attrInt(el, "size", 0)))) + "</span></div>")
 		if mime == "application/pdf" {
@@ -290,11 +322,11 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		}
 		w.b.WriteString(`<span class="bookmark__text"><span class="bookmark__title">` + esc(title) + `</span><span class="bookmark__desc">` + esc(attrString(el, "description")) + `</span><span class="bookmark__url">`)
 		if ic := attrString(el, "icon"); fileID(ic) != "" {
-			w.open("img", "class", "bookmark__icon", "src", fileURL(ic), "alt", "", "width", "16", "height", "16")
+			w.open("img", "class", "bookmark__icon", "src", w.src(ic), "alt", "", "width", "16", "height", "16")
 		}
 		w.b.WriteString(esc(url) + `</span></span>`)
 		if img := attrString(el, "image"); fileID(img) != "" {
-			w.open("img", "class", "bookmark__image", "src", fileURL(img), "alt", "", "loading", "lazy")
+			w.open("img", "class", "bookmark__image", "src", w.src(img), "alt", "", "loading", "lazy")
 		}
 		w.b.WriteString("</a></div>")
 	case "embed":
@@ -317,6 +349,9 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.b.WriteString("</figure>")
 	case "database":
 		w.open("div", "class", "dbblock", "data-block", id, "data-collection", attrString(el, "collection"), "data-view", attrString(el, "view"), "contenteditable", "false")
+		if w.pub != nil && w.pub.Table != nil {
+			w.b.WriteString(w.pub.Table(attrString(el, "collection"), attrString(el, "view")))
+		}
 		w.b.WriteString("</div>")
 	case "toc":
 		w.open("nav", "class", "toc", "data-block", id, "contenteditable", "false")
@@ -335,6 +370,11 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 			label := c.Title
 			if label == "" {
 				label = "Untitled"
+			}
+			if w.pub != nil {
+				w.open("a", "class", "crumbline__item", "href", w.pub.Page(c.ID))
+				w.b.WriteString(w.pub.PageIcon(c.ID, "crumbline__icon") + `<span class="crumbline__label">` + esc(label) + "</span></a>")
+				continue
 			}
 			w.open("a", "class", "crumbline__item", "href", "/p/"+c.ID)
 			w.b.WriteString(`<span class="crumbline__icon"></span><span class="crumbline__label">` + esc(label) + "</span></a>")
@@ -425,7 +465,7 @@ func (w *htmlWriter) inline(el *crdt.YXmlElement) {
 					switch m {
 					case "link":
 						openHref = href
-						w.open("a", "href", href, "rel", "noopener noreferrer nofollow")
+						w.open("a", "href", w.href(href), "rel", "noopener noreferrer nofollow")
 					case "highlight":
 						w.open("mark", "data-color", markAttr(marks[m], "value"))
 					case "color":
@@ -493,6 +533,10 @@ func (w *htmlWriter) mention(el *crdt.YXmlElement) {
 	kind, ref, label := attrString(el, "kind"), attrString(el, "ref"), attrString(el, "label")
 	switch kind {
 	case "page":
+		if w.pub != nil {
+			w.pubMention(ref)
+			return
+		}
 		if w.title != nil {
 			if t := w.title(ref); t != "" {
 				label = t
@@ -504,14 +548,17 @@ func (w *htmlWriter) mention(el *crdt.YXmlElement) {
 		w.open("a", "class", "mention", "data-kind", "page", "data-ref", ref, "href", "/p/"+ref, "contenteditable", "false")
 		w.b.WriteString(`<span class="mention__icon"></span><span class="mention__label">` + esc(label) + "</span></a>")
 	case "user":
+		if w.pub != nil {
+			ref = ""
+		}
 		w.open("span", "class", "mention", "data-kind", "user", "data-ref", ref, "contenteditable", "false")
 		w.b.WriteString("@" + esc(label) + "</span>")
 	case "date":
-		if who := attrString(el, "remind"); who != "" {
+		if who := attrString(el, "remind"); who != "" && w.pub == nil {
 			w.open("span", "class", "mention", "data-kind", "date", "data-ref", ref, "data-remind", who, "data-at", attrString(el, "at"), "contenteditable", "false")
 		} else {
 			w.open("span", "class", "mention", "data-kind", "date", "data-ref", ref, "contenteditable", "false")
 		}
-		w.b.WriteString(esc(ref) + "</span>")
+		w.b.WriteString(esc(w.dateText(ref)) + "</span>")
 	}
 }
