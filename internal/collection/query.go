@@ -37,9 +37,11 @@ type Grouping struct {
 
 type ViewProp struct {
 	ID     string `json:"id"`
-	Hidden bool   `json:"hidden,omitempty"`
+	Hidden *bool  `json:"hidden,omitempty"`
 	Width  int    `json:"width,omitempty"`
 }
+
+func (v ViewProp) IsHidden() bool { return v.Hidden != nil && *v.Hidden }
 
 type ViewConfig struct {
 	Props    []ViewProp        `json:"props,omitempty"`

@@ -65,7 +65,7 @@ func (s *Service) PublicTable(ctx context.Context, collectionID, viewID string, 
 	order := []*Property{}
 	placed := map[string]bool{}
 	for _, vp := range v.Config.Props {
-		if vp.Hidden {
+		if vp.IsHidden() {
 			hidden[vp.ID] = true
 		}
 		if p := sn.schema.ByID(vp.ID); p != nil && !placed[p.ID] {

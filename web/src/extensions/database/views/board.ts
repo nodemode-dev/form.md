@@ -6,9 +6,11 @@ import { reconcile } from "../../../ui/list";
 import { type MenuEntry, openMenu } from "../../../ui/menu";
 import { cardCover, optionChip, paintCell } from "../cells";
 import { editCell } from "../editors";
+import { openPanel } from "../panel";
 import { asList, computed } from "../props";
 import type { ViewHost, ViewRenderer } from "../surface";
 import { openGroupPanel, orderedProps, saveConfig } from "../toolbar";
+import { chartFormat } from "./chart";
 import { configKey, prefillFromFilter } from "./shared";
 
 export function groupValue(p: Property, key: string, row: RowData | undefined, fromKey: string): unknown {
@@ -61,7 +63,10 @@ export function paintCard(card: HTMLElement, row: RowData, ctx: ReturnType<ViewH
     shown,
     (p) => p.id,
     () => h("div", { class: "card__prop" }),
-    (el, p) => paintCell(el, p, row, ctx, "card"),
+    (el, p) => {
+      el.dataset.prop = p.id;
+      paintCell(el, p, row, ctx, "card");
+    },
   );
 }
 
@@ -101,11 +106,62 @@ export function boardView(host: ViewHost): ViewRenderer {
   };
 
   const column = () => {
-    const head = h("div", { class: "board__colhead" }, h("span", { class: "board__label" }), h("span", { class: "board__count" }), h("button", { class: "icon-btn icon-btn--sm board__add", attrs: { type: "button", "aria-label": t("New page in this group") } }, iconNode("plus")), h("button", { class: "icon-btn icon-btn--sm board__menu", attrs: { type: "button", "aria-label": t("Group options") } }, iconNode("more")));
+    const head = h("div", { class: "board__colhead" }, h("button", { class: "icon-btn icon-btn--sm board__fold", attrs: { type: "button", "aria-label": t("Collapse group"), "aria-expanded": "true" } }, iconNode("chevron-left")), h("span", { class: "board__label" }), h("span", { class: "board__count" }), h("button", { class: "icon-btn icon-btn--sm board__add", attrs: { type: "button", "aria-label": t("New page in this group") } }, iconNode("plus")), h("button", { class: "icon-btn icon-btn--sm board__menu", attrs: { type: "button", "aria-label": t("Group options") } }, iconNode("more")));
+    const meter = h("div", { class: "board__meter", attrs: { "aria-hidden": "true" } }, h("i"));
     const cards = h("div", { class: "board__cards" });
     const more = h("button", { class: "board__more", attrs: { type: "button" } });
     const add = h("button", { class: "board__new", attrs: { type: "button" } }, iconNode("plus"), h("span", { text: t("New") }));
-    return h("div", { class: "board__col" }, head, cards, more, add);
+    const total = h("div", { class: "board__total" });
+    return h("div", { class: "board__col" }, head, meter, cards, more, add, total);
+  };
+
+  const limits = () => (layout().limits ?? {}) as Record<string, number>;
+  const folded = () => new Set((layout().collapsed ?? []) as string[]);
+  const summary = new Map<string, { total?: number; progress?: number }>();
+  const summaryKey = (g: string, lane: string | undefined) => `${lane ?? ""}\u0000${g}`;
+  const totalSpec = () => layout().total as { prop?: string; fn?: string } | undefined;
+  const progressProp = () => ctx.col().schema.find((p) => p.id === (layout().progress as string | undefined) && (p.type === "checkbox" || p.type === "number"));
+  let summarySeq = 0;
+  let summaryTimer: ReturnType<typeof setTimeout> | undefined;
+  const loadSummary = () => {
+    clearTimeout(summaryTimer);
+    summaryTimer = setTimeout(() => void fetchSummary(), 250);
+  };
+  const fetchSummary = async () => {
+    const g = view().config.group;
+    const sub = view().config.sub_group;
+    const tot = totalSpec();
+    const prog = progressProp();
+    const mine = ++summarySeq;
+    if (!g || (!tot?.fn && !prog)) {
+      if (summary.size) {
+        summary.clear();
+        paint();
+      }
+      return;
+    }
+    const base = { kind: "bar" as const, x: { ...g, hidden: [] }, limit: 500, ...(sub ? { series: { ...sub, hidden: [] } } : {}) };
+    const ask = (fn: string, prop?: string) => host.engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: { ...base, fn, ...(prop ? { prop } : {}) }, search: host.search() || undefined });
+    try {
+      const [tr, pr] = await Promise.all([tot?.fn ? ask(tot.fn, tot.fn === "count" ? undefined : tot.prop) : Promise.resolve(null), prog ? ask(prog.type === "checkbox" ? "percent_checked" : "average", prog.id) : Promise.resolve(null)]);
+      if (mine !== summarySeq || destroyed) return;
+      summary.clear();
+      const take = (r: typeof tr, field: "total" | "progress") => {
+        if (!r) return;
+        for (const s of r.series)
+          r.x.forEach((x, i) => {
+            const k = summaryKey(x.key, sub ? s.key : undefined);
+            const cur = summary.get(k) ?? {};
+            cur[field] = s.values[i] ?? 0;
+            summary.set(k, cur);
+          });
+      };
+      take(tr, "total");
+      take(pr, "progress");
+      paint();
+    } catch (e) {
+      if (mine === summarySeq) host.engine.reportError(e);
+    }
   };
 
   const paintColumn = (col: HTMLElement, g: GroupResult, laneKey: string | undefined) => {
@@ -122,8 +178,38 @@ export function boardView(host: ViewHost): ViewRenderer {
         else label.replaceChildren(document.createTextNode(g.label || t("Empty")));
       }
     }
-    setText(col.querySelector(".board__count") as HTMLElement, String(g.count));
+    const limit = limits()[g.key || "#none"] ?? 0;
+    setText(col.querySelector(".board__count") as HTMLElement, limit ? `${g.count} / ${limit}` : String(g.count));
+    setAttr(col, "data-over", limit && g.count > limit ? "true" : null);
     setAttr(col, "data-color", g.color ?? null);
+    const isFolded = folded().has(g.key || "#none");
+    setAttr(col, "data-folded", isFolded ? "true" : null);
+    const fold = col.querySelector<HTMLElement>(".board__fold");
+    if (fold) {
+      setAttr(fold, "aria-expanded", isFolded ? "false" : "true");
+      setAttr(fold, "aria-label", isFolded ? t("Expand group") : t("Collapse group"));
+    }
+    const sum = summary.get(summaryKey(g.key, laneKey));
+    const prog = progressProp();
+    const meter = col.querySelector<HTMLElement>(".board__meter");
+    if (meter) {
+      meter.hidden = !prog;
+      const share = prog ? Math.max(0, Math.min(1, prog.type === "checkbox" ? (sum?.progress ?? 0) : (sum?.progress ?? 0) / (prog.max || 100))) : 0;
+      const bar = meter.firstElementChild as HTMLElement;
+      const w = `${Math.round(share * 1000) / 10}%`;
+      if (bar.style.width !== w) bar.style.width = w;
+      setAttr(meter, "title", prog ? `${prog.name}: ${Math.round(share * 100)}%` : null);
+    }
+    const totalEl = col.querySelector<HTMLElement>(".board__total");
+    const tot = totalSpec();
+    if (totalEl) {
+      totalEl.hidden = !tot?.fn;
+      if (tot?.fn) {
+        const f = chartFormat(ctx.col(), { kind: "bar", fn: tot.fn, ...(tot.prop ? { prop: tot.prop } : {}) });
+        const p2 = ctx.col().schema.find((x) => x.id === tot.prop);
+        setText(totalEl, sum?.total !== undefined ? `${t(tot.fn === "count" ? "Count" : tot.fn === "sum" ? "Sum" : "Average")}${p2 && tot.fn !== "count" ? ` ${p2.name}` : ""} ${f.fmt(sum.total)}` : "");
+      }
+    }
     const editable = host.canWrite() && !!p && !computed(p.type);
     for (const b of Array.from(col.querySelectorAll<HTMLElement>(".board__add, .board__new"))) b.hidden = !editable;
     const props = cardProps(host, ctx);
@@ -135,6 +221,7 @@ export function boardView(host: ViewHost): ViewRenderer {
       (id) => {
         const card = makeCard(true);
         card.dataset.row = id;
+        if (host.canWrite()) card.append(h("button", { class: "icon-btn icon-btn--sm card__edit", attrs: { type: "button", "aria-label": t("Edit on the card") } }, iconNode("pencil")));
         return card;
       },
       (card, id) => {
@@ -206,6 +293,7 @@ export function boardView(host: ViewHost): ViewRenderer {
   };
 
   session.on((c) => {
+    if (c.kind === "rows" || c.kind === "reset") loadSummary();
     if (c.kind === "rows") {
       const props = cardProps(host, ctx);
       const coverSource = String(layout().cover ?? "content");
@@ -264,9 +352,33 @@ export function boardView(host: ViewHost): ViewRenderer {
       paint();
       return;
     }
+    const editBtn = target.closest<HTMLElement>(".card__edit");
+    if (editBtn) {
+      const card = editBtn.closest<HTMLElement>(".card");
+      if (card) startEdit(card, null);
+      return;
+    }
+    const editing = target.closest<HTMLElement>('.card[data-editing="true"]');
+    if (editing) {
+      const propEl = target.closest<HTMLElement>(".card__prop[data-prop]");
+      if (propEl || target.closest(".card__title")) {
+        startEdit(editing, propEl);
+        return;
+      }
+    }
     const col = target.closest<HTMLElement>(".board__col");
     const key = col?.dataset.group ?? "";
     const lane = col?.dataset.lane;
+    const foldKey = key || "#none";
+    if (target.closest(".board__fold") || (col?.dataset.folded === "true" && target.closest(".board__colhead"))) {
+      saveConfig(ctx, host.viewId, (cfg) => {
+        const cur = new Set(((cfg.layout ?? {}).collapsed ?? []) as string[]);
+        if (cur.has(foldKey)) cur.delete(foldKey);
+        else cur.add(foldKey);
+        return { ...cfg, layout: { ...(cfg.layout ?? {}), collapsed: [...cur] } };
+      }, 0);
+      return;
+    }
     if (target.closest(".board__add")) return addIn(key, lane, true);
     if (target.closest(".board__new")) return addIn(key, lane, false);
     if (target.closest(".board__more")) {
@@ -275,8 +387,36 @@ export function boardView(host: ViewHost): ViewRenderer {
     }
     const menuBtn = target.closest<HTMLElement>(".board__menu");
     if (menuBtn) {
+      const setLimit = (n: number) =>
+        saveConfig(ctx, host.viewId, (cfg) => {
+          const cur = { ...(((cfg.layout ?? {}).limits ?? {}) as Record<string, number>) };
+          if (n > 0) cur[foldKey] = n;
+          else delete cur[foldKey];
+          return { ...cfg, layout: { ...(cfg.layout ?? {}), limits: cur } };
+        }, 0);
       const entries: MenuEntry[] = [
+        { label: t("Collapse group"), icon: "chevron-left", run: () => saveConfig(ctx, host.viewId, (cfg) => ({ ...cfg, layout: { ...(cfg.layout ?? {}), collapsed: [...new Set([...(((cfg.layout ?? {}).collapsed ?? []) as string[]), foldKey])] } }), 0) },
         { label: t("Hide group"), icon: "eye-off", run: () => saveConfig(ctx, host.viewId, (cfg) => (cfg.group ? { ...cfg, group: { ...cfg.group, hidden: [...(cfg.group.hidden ?? []), key] } } : cfg), 0) },
+        {
+          label: limits()[foldKey] ? t("Change the limit") : t("Set a limit"),
+          icon: "hash",
+          run: () =>
+            openPanel(
+              menuBtn,
+              (panel, close) => {
+                const i = h("input", { class: "input input--sm", attrs: { type: "number", min: "0", step: "1", "aria-label": t("Most cards in this group"), placeholder: t("No limit") } });
+                i.value = limits()[foldKey] ? String(limits()[foldKey]) : "";
+                i.addEventListener("keydown", (ev) => {
+                  if (ev.key !== "Enter") return;
+                  setLimit(Math.max(0, Math.floor(Number(i.value) || 0)));
+                  close();
+                });
+                panel.append(h("div", { class: "dbpanel__pad dbpanel__stack" }, h("label", { class: "field field--compact" }, h("span", { class: "field__label", text: t("Most cards in this group") }), i)));
+              },
+              { label: t("Group limit"), align: "end" },
+            ),
+        },
+        ...(limits()[foldKey] ? [{ label: t("Remove the limit"), icon: "close" as const, run: () => setLimit(0) }] : []),
       ];
       openMenu(menuBtn, entries, { side: "bottom", align: "end", label: t("Group") });
       return;
@@ -293,8 +433,25 @@ export function boardView(host: ViewHost): ViewRenderer {
   });
   el.addEventListener("keydown", (e) => {
     const card = (e.target as Element).closest<HTMLElement>(".card");
-    if (card?.dataset.row && e.key === "Enter") host.openRow(card.dataset.row, e);
+    if (card?.dataset.row && e.key === "Enter" && card.dataset.editing !== "true") host.openRow(card.dataset.row, e);
+    if (card && e.key === "Escape") setAttr(card, "data-editing", null);
   });
+
+  const startEdit = (card: HTMLElement, propEl: HTMLElement | null) => {
+    const row = session.rows.get(card.dataset.row ?? "");
+    if (!row || !host.canWrite()) return;
+    for (const other of Array.from(el.querySelectorAll<HTMLElement>('.card[data-editing="true"]'))) if (other !== card) setAttr(other, "data-editing", null);
+    setAttr(card, "data-editing", "true");
+    const p = propEl ? ctx.col().schema.find((x) => x.id === propEl.dataset.prop) : ctx.col().schema.find((x) => x.type === "title");
+    const anchorEl = propEl ?? card.querySelector<HTMLElement>(".card__title");
+    if (p && anchorEl) editCell(anchorEl, p, row, ctx);
+  };
+  const leaveEdit = (e: PointerEvent) => {
+    const target = e.target as Element;
+    if (target.closest('.card[data-editing="true"]') || target.closest("#overlay-root")) return;
+    for (const c of Array.from(el.querySelectorAll<HTMLElement>('.card[data-editing="true"]'))) setAttr(c, "data-editing", null);
+  };
+  document.addEventListener("pointerdown", leaveEdit, true);
 
   let suppressClick = false;
   el.addEventListener("pointerdown", (e) => {
@@ -392,6 +549,7 @@ export function boardView(host: ViewHost): ViewRenderer {
     ready,
     ctx,
     configChanged(prev, next) {
+      loadSummary();
       if (configKey(prev.config) !== configKey(next.config)) {
         if (groupProp()) void session.load().catch(host.engine.reportError);
         else paint();
@@ -422,11 +580,29 @@ export function boardView(host: ViewHost): ViewRenderer {
         ...fileProps.map((p) => ({ label: p.name, checked: lay.cover === p.id, run: () => set({ cover: p.id }) })),
         { kind: "heading", label: t("Card size") },
         ...(["small", "medium", "large"] as const).map((s) => ({ label: t(s.charAt(0).toUpperCase() + s.slice(1)), checked: (lay.size ?? "medium") === s, run: () => set({ size: s }) })),
+        { kind: "heading", label: t("Column total") },
+        { label: t("None"), checked: !totalSpec()?.fn, run: () => set({ total: null }) },
+        { label: t("Count cards"), checked: totalSpec()?.fn === "count", run: () => set({ total: { fn: "count" } }) },
+        ...ctx
+          .col()
+          .schema.filter((p) => p.type === "number")
+          .flatMap((p) => [
+            { label: t("Sum of {prop}", { prop: p.name }), checked: totalSpec()?.fn === "sum" && totalSpec()?.prop === p.id, run: () => set({ total: { fn: "sum", prop: p.id } }) },
+            { label: t("Average of {prop}", { prop: p.name }), checked: totalSpec()?.fn === "average" && totalSpec()?.prop === p.id, run: () => set({ total: { fn: "average", prop: p.id } }) },
+          ]),
+        { kind: "heading", label: t("Progress bar") },
+        { label: t("None"), checked: !progressProp(), run: () => set({ progress: null }) },
+        ...ctx
+          .col()
+          .schema.filter((p) => p.type === "checkbox" || p.type === "number")
+          .map((p) => ({ label: p.type === "checkbox" ? t("Share of {prop} checked", { prop: p.name }) : t("Average of {prop}", { prop: p.name }), checked: progressProp()?.id === p.id, run: () => set({ progress: p.id }) })),
       ];
       openMenu(anchor, entries, { side: "bottom", align: "end", label: t("Layout") });
     },
     destroy() {
       destroyed = true;
+      clearTimeout(summaryTimer);
+      document.removeEventListener("pointerdown", leaveEdit, true);
       session.close();
       el.remove();
     },

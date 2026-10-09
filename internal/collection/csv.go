@@ -634,7 +634,7 @@ func (s *Service) ExportCSV(ctx context.Context, p *policy.Principal, viewID str
 	order := []*Property{}
 	placed := map[string]bool{}
 	for _, vp := range v.Config.Props {
-		if vp.Hidden {
+		if vp.IsHidden() {
 			hidden[vp.ID] = true
 		}
 		if p := sn.schema.ByID(vp.ID); p != nil && !placed[p.ID] {
