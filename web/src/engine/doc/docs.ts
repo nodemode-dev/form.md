@@ -281,7 +281,7 @@ export class DocStore {
     for (const s of this.sessions.values()) s.destroy();
     this.sessions.clear();
     this.sync.stop();
-    if (typeof caches !== "undefined") await caches.delete("formmd-shell").catch(() => false);
+    if (typeof caches !== "undefined") await Promise.all(["formmd-shell", "formmd-api"].map((name) => caches.delete(name).catch(() => false)));
     if (typeof indexedDB === "undefined" || !indexedDB.databases) return;
     const dbs = await indexedDB.databases().catch(() => []);
     await Promise.all(

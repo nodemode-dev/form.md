@@ -1,6 +1,8 @@
 const ASSETS = "formmd-assets";
 const SHELL = "formmd-shell";
 const SHELL_URL = "/offline-shell";
+const API = "formmd-api";
+const API_READS = /^\/api\/(collections\/[^/]+|rows\/[^/]+)$/;
 const APP_ROUTES = /^\/(p\/[^/]+\/?|library\/?|trash\/?|inbox\/?)?$/;
 
 async function precache(all) {
@@ -37,6 +39,19 @@ async function fromCache(request) {
   return res;
 }
 
+async function apiRead(request) {
+  const cache = await caches.open(API);
+  try {
+    const res = await fetch(request);
+    if (res.ok) await cache.put(request, res.clone());
+    return res;
+  } catch (err) {
+    const hit = (await cache.match(request, { ignoreVary: true })) ?? (await cache.match(request, { ignoreVary: true, ignoreSearch: true }));
+    if (hit) return hit;
+    throw err;
+  }
+}
+
 async function navigate(request) {
   try {
     return await fetch(request);
@@ -66,13 +81,22 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/assets/")) event.respondWith(fromCache(request));
   else if (request.mode === "navigate" && APP_ROUTES.test(url.pathname)) event.respondWith(navigate(request));
+  else if (API_READS.test(url.pathname)) event.respondWith(apiRead(request));
 });
 
 self.addEventListener("message", (event) => {
   const type = event.data && event.data.type;
   if (type === "offline-shell") event.waitUntil(refreshShell().catch(() => undefined));
   else if (type === "offline-precache") event.waitUntil(precache(true).catch(() => undefined));
-  else if (type === "offline-clear") event.waitUntil(caches.delete(SHELL));
+  else if (type === "offline-api" && Array.isArray(event.data.urls))
+    event.waitUntil(
+      Promise.all(
+        event.data.urls
+          .filter((u) => typeof u === "string" && API_READS.test(new URL(u, self.location.origin).pathname))
+          .map((u) => apiRead(new Request(new URL(u, self.location.origin).href, { credentials: "same-origin" })).catch(() => undefined)),
+      ),
+    );
+  else if (type === "offline-clear") event.waitUntil(Promise.all([caches.delete(SHELL), caches.delete(API)]));
 });
 
 self.addEventListener("push", (event) => {

@@ -65,15 +65,26 @@ function syncDoc(engine: Engine, id: string, ms = 20_000): Promise<boolean> {
 
 function keptPages(engine: Engine, roots: string[]): string[] {
   const seen = new Set<string>();
-  for (const id of roots) for (const p of engine.pages.subtree(id)) if (p.kind === "doc") seen.add(p.id);
+  for (const id of roots) for (const p of engine.pages.subtree(id)) if (p.kind === "doc" || p.kind === "collection") seen.add(p.id);
   return [...seen];
+}
+
+function keep(engine: Engine, id: string): Promise<boolean> {
+  if (engine.pages.get(id)?.kind === "collection") {
+    void started?.then((reg) => reg && post(reg, { type: "offline-api", urls: [`/api/collections/${encodeURIComponent(id)}?view=`] } as { type: string }));
+    return engine.api.collections.get(id, "").then(
+      () => true,
+      () => false,
+    );
+  }
+  return syncDoc(engine, id);
 }
 
 async function refreshKept(engine: Engine): Promise<void> {
   if (!navigator.onLine) return;
   for (const id of keptPages(engine, offlineIds(engine))) {
     if (!navigator.onLine) return;
-    await syncDoc(engine, id);
+    await keep(engine, id);
   }
 }
 
@@ -92,7 +103,7 @@ export async function toggleOffline(engine: Engine, id: string): Promise<void> {
   const pages = keptPages(engine, [id]);
   toast({ id: "offline", message: plural(pages.length, "Saving {count} page for offline use", "Saving {count} pages for offline use"), durationMs: 60_000 });
   let ok = 0;
-  for (const p of pages) if (await syncDoc(engine, p)) ok++;
+  for (const p of pages) if (await keep(engine, p)) ok++;
   toast({
     id: "offline",
     tone: ok === pages.length ? "success" : "warning",
