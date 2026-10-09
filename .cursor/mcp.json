@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "form-md": {
+      "url": "http://127.0.0.1:8750/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:FORMMD_MCP_TOKEN}"
+      }
+    }
+  }
+}

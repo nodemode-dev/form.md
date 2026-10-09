@@ -1,0 +1,6 @@
+[mcp_servers.form-md]
+command = "form-md"
+args = ["mcp"]
+env = { FORMMD_MCP_URL = "https://notes.example.com", FORMMD_MCP_TOKEN = "fmd_replace_with_your_token" }
+startup_timeout_sec = 20
+tool_timeout_sec = 120

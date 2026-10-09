@@ -17,7 +17,8 @@ function copyBox(text: () => string, label: string): HTMLElement {
 function snippets(url: string): [string, string][] {
   return [
     ["Claude Code", `claude mcp add --transport http form-md ${url}`],
-    ["Cursor, VS Code and others (mcp.json)", JSON.stringify({ mcpServers: { "form-md": { url } } }, null, 2)],
+    ["Codex (~/.codex/config.toml)", `[mcp_servers.form-md]\ncommand = "form-md"\nargs = ["mcp", "--url", "${url.replace(/\/mcp$/, "")}"]\nenv = { FORMMD_MCP_TOKEN = "fmd_..." }`],
+    ["Cursor (.cursor/mcp.json), VS Code and others", JSON.stringify({ mcpServers: { "form-md": { url } } }, null, 2)],
     [t("Any MCP client"), url],
   ];
 }

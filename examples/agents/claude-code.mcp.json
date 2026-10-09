@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "form-md": {
+      "type": "http",
+      "url": "https://notes.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${FORMMD_MCP_TOKEN}"
+      }
+    }
+  }
+}
