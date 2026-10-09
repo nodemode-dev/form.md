@@ -532,6 +532,82 @@ export interface Site {
   path: string;
 }
 
+export interface Webhook {
+  id: string;
+  workspace_id: string;
+  kind: "webhook" | "siem";
+  url: string;
+  description: string;
+  events: string[];
+  format: "json" | "splunk";
+  has_auth: boolean;
+  active: boolean;
+  failures: number;
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+  last_status: "" | "delivered" | "failed";
+  last_at: number;
+}
+
+export interface WebhookInput {
+  kind?: Webhook["kind"];
+  url?: string;
+  description?: string;
+  events?: string[];
+  format?: Webhook["format"];
+  auth_header?: string;
+  active?: boolean;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  webhook_id: string;
+  event: string;
+  event_id: string;
+  status: "pending" | "delivered" | "failed";
+  attempts: number;
+  next_at: number;
+  last_status: number;
+  last_error: string;
+  created_at: number;
+  delivered_at: number;
+  payload?: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  at: number;
+  actor_kind: "human" | "agent" | "form" | "system";
+  actor_id: string;
+  actor_label: string;
+  agent: string;
+  action: string;
+  workspace_id: string;
+  page_id: string;
+  page_title: string;
+  detail: string;
+  changes?: { field: string; before: unknown; after: unknown }[];
+}
+
+export interface AuditQuery {
+  actor?: string;
+  action?: string;
+  page?: string;
+  from?: number;
+  to?: number;
+  before?: number;
+  limit?: number;
+}
+
+export interface AuditPage {
+  entries: AuditEntry[];
+  next: number;
+  retention_days: number;
+  actions?: string[];
+  actors?: { id: string; label: string }[];
+}
+
 export interface AnalyticsPerson {
   id: string;
   name: string;

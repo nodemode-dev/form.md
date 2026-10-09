@@ -10,6 +10,8 @@ import { iconNode } from "./icons";
 import { reconcile } from "./list";
 import { toast } from "./toast";
 import { analyticsTab } from "./workspace-analytics";
+import { auditTab } from "./workspace-audit";
+import { webhooksTab } from "./workspace-webhooks";
 import { sitesTab } from "./workspace-sites";
 
 const MAX_RULES = 16000;
@@ -676,7 +678,7 @@ function agentsTab(engine: Engine): Tab {
 }
 
 export function mountWorkspaceSettings(engine: Engine): void {
-  const dlg = overlayDialog(engine, "workspace", t("Workspace settings"), [generalTab(engine), membersTab(engine), groupsTab(engine), sitesTab(engine), analyticsTab(engine), agentsTab(engine)]);
+  const dlg = overlayDialog(engine, "workspace", t("Workspace settings"), [generalTab(engine), membersTab(engine), groupsTab(engine), sitesTab(engine), analyticsTab(engine), webhooksTab(engine), auditTab(engine), agentsTab(engine)]);
   engine.state.watch("overlay", (v) => {
     if (v === "workspace") dlg.title(t("{name} settings", { name: engine.workspace()?.name ?? "" }));
   });

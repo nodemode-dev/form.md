@@ -29,6 +29,11 @@ import type {
   PageVersion,
   PageAnalytics,
   WorkspaceAnalytics,
+  Webhook,
+  WebhookDelivery,
+  WebhookInput,
+  AuditPage,
+  AuditQuery,
   Site,
   SiteInput,
   SiteStatus,
@@ -93,6 +98,12 @@ export interface ShareRequest {
   email?: string;
   level: string;
   expires_at?: number;
+}
+
+function auditParams(q: AuditQuery): string {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== "" && v !== 0) p.set(k, String(v));
+  return p.toString();
 }
 
 export function createClient(f: FetchFn) {
@@ -192,6 +203,20 @@ export function createClient(f: FetchFn) {
       get: (id: string) => get<{ version: PageVersion; state: string }>(`/api/versions/${enc(id)}`),
       save: (pageId: string, beforeRestore = false) => post<{ id: string }>(`/api/pages/${enc(pageId)}/versions${beforeRestore ? "?kind=restore" : ""}`),
       restored: (id: string) => post<void>(`/api/versions/${enc(id)}/restored`),
+    },
+    webhooks: {
+      list: (workspaceId: string) => get<{ webhooks: Webhook[] }>(`/api/workspaces/${enc(workspaceId)}/webhooks`),
+      create: (workspaceId: string, input: WebhookInput) => post<{ webhook: Webhook; secret: string }>(`/api/workspaces/${enc(workspaceId)}/webhooks`, input),
+      update: (id: string, input: WebhookInput) => patch<{ webhook: Webhook }>(`/api/webhooks/${enc(id)}`, input),
+      remove: (id: string) => del(`/api/webhooks/${enc(id)}`),
+      rotate: (id: string) => post<{ secret: string }>(`/api/webhooks/${enc(id)}/rotate`),
+      test: (id: string) => post<void>(`/api/webhooks/${enc(id)}/test`),
+      deliveries: (id: string) => get<{ deliveries: WebhookDelivery[] }>(`/api/webhooks/${enc(id)}/deliveries`),
+      retry: (deliveryId: string) => post<void>(`/api/deliveries/${enc(deliveryId)}/retry`),
+    },
+    audit: {
+      list: (workspaceId: string, q: AuditQuery) => get<AuditPage>(`/api/workspaces/${enc(workspaceId)}/audit?${auditParams(q)}`),
+      csvUrl: (workspaceId: string, q: AuditQuery) => `/api/workspaces/${enc(workspaceId)}/audit.csv?${auditParams(q)}`,
     },
     analytics: {
       page: (pageId: string, days: number) => get<PageAnalytics>(`/api/pages/${enc(pageId)}/analytics?days=${days}`),
