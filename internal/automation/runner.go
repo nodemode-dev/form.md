@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/nodemode-ai/form.md/internal/collection"
@@ -29,7 +30,7 @@ func (s *Service) runAs(ctx context.Context, a *Automation) (*policy.Principal, 
 }
 
 func (s *Service) OnEvent(ctx context.Context, e webhook.Event) {
-	if e.PageID == "" || e.Actor.Kind == "agent" || e.Actor.Agent != "" {
+	if e.PageID == "" || strings.HasPrefix(e.Actor.Agent, agentPrefix) {
 		return
 	}
 	var kind string
