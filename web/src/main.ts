@@ -1,7 +1,7 @@
 import { type AuthState, type Boot, createEngine, type Engine } from "./engine";
 import { ApiError } from "./engine/api";
 import { createClient } from "./engine/client";
-import { resolveLang, setLang, t } from "./engine/i18n";
+import { plural, resolveLang, setLang, t } from "./engine/i18n";
 import account from "./extensions/account";
 import blocks from "./extensions/blocks";
 import database from "./extensions/database";
@@ -134,6 +134,12 @@ async function start(): Promise<void> {
     mountTrashView(engine);
     mountHome(engine);
     const app = engine;
+    engine.collections.onQueued = (n) =>
+      toast({ id: "row-outbox", message: n ? plural(n, "{count} database change is saved on this device and will be sent when the connection is back", "{count} database changes are saved on this device and will be sent when the connection is back") : t("Database changes made offline were sent") });
+    if (navigator.onLine && engine.collections.queued()) void engine.collections.replay();
+    window.addEventListener("online", () => {
+      if (engine.collections.queued()) void engine.collections.replay();
+    });
     setTimeout(() => void import("./ui/offline").then((m) => m.startOffline(app)).catch(() => undefined), 2500);
     if (matchMedia("(display-mode: standalone)").matches && "ontouchstart" in window) void import("./ui/pull").then((m) => m.mountPullToRefresh(app));
     const settingsOverlays = new Set<string | null>(["account", "workspace", "new-workspace", "admin"]);

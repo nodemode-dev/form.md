@@ -1,3 +1,4 @@
+import { ApiError } from "./api";
 import type { Client } from "./client";
 import type {
   Collection,
@@ -16,6 +17,15 @@ import type {
   ViewConfig,
   ViewType,
 } from "./types";
+
+const OUTBOX_KEY = "formmd.rowOutbox";
+
+interface OutboxEntry {
+  col: string;
+  values: Record<string, unknown>;
+  title?: string;
+  at: number;
+}
 
 export type SessionChange = { kind: "rows"; ids: string[] } | { kind: "reset" } | { kind: "loading"; on: boolean };
 
@@ -98,7 +108,7 @@ export class QuerySession {
   }
 
   private absorb(r: QueryResult): void {
-    for (const row of r.rows) this.rows.set(row.id, row);
+    for (const row of r.rows) this.rows.set(row.id, this.store.overlay(row));
     for (const [k, v] of Object.entries(r.refs)) this.refs.set(k, v);
   }
 
@@ -330,6 +340,9 @@ export class CollectionStore {
   private memberCache = new Map<string, Map<string, Member>>();
   private pending = new Map<string, { values: Record<string, unknown>; title?: string; timer?: ReturnType<typeof setTimeout>; inflight: boolean }>();
   private firstPages = new Map<string, { result: QueryResult; at: number }>();
+  private replaying: Promise<void> | null = null;
+  private box: Record<string, OutboxEntry> | null = null;
+  onQueued: ((count: number) => void) | null = null;
 
   constructor(
     readonly api: Client,
@@ -575,9 +588,90 @@ export class CollectionStore {
       if (!this.pending.has(rowId)) this.patchSessions(r.row);
     } catch (e) {
       this.pending.delete(rowId);
+      if (e instanceof ApiError && e.status === 0) {
+        this.queue(colId, rowId, body);
+        return;
+      }
       this.onError(e);
       for (const s of this.sessions) if (s.collectionId === colId) s.scheduleRefresh([rowId]);
     }
+  }
+
+  private outbox(): Record<string, OutboxEntry> {
+    if (this.box) return { ...this.box };
+    try {
+      const v = JSON.parse(localStorage.getItem(OUTBOX_KEY) ?? "{}");
+      this.box = v && typeof v === "object" ? (v as Record<string, OutboxEntry>) : {};
+    } catch {
+      this.box = {};
+    }
+    return { ...this.box };
+  }
+
+  private saveOutbox(box: Record<string, OutboxEntry>): void {
+    this.box = { ...box };
+    try {
+      if (Object.keys(box).length) localStorage.setItem(OUTBOX_KEY, JSON.stringify(box));
+      else localStorage.removeItem(OUTBOX_KEY);
+    } catch {
+      return;
+    }
+  }
+
+  private queue(colId: string, rowId: string, body: { title?: string; values?: Record<string, unknown> }): void {
+    const box = this.outbox();
+    const prev = box[rowId];
+    const next: OutboxEntry = { col: colId, values: { ...(prev?.values ?? {}), ...(body.values ?? {}) }, at: prev?.at ?? Date.now() };
+    const title = body.title ?? prev?.title;
+    if (title !== undefined) next.title = title;
+    box[rowId] = next;
+    this.saveOutbox(box);
+    this.onQueued?.(Object.keys(box).length);
+  }
+
+  queued(): number {
+    return Object.keys(this.outbox()).length;
+  }
+
+  overlay(row: RowData): RowData {
+    if (this.box === null) this.outbox();
+    const q = this.box?.[row.id];
+    if (!q) return row;
+    const values = { ...row.values };
+    for (const [k, v] of Object.entries(q.values)) {
+      if (v === null || v === "" || (Array.isArray(v) && v.length === 0)) delete values[k];
+      else values[k] = v;
+    }
+    return { ...row, values, ...(q.title !== undefined ? { title: q.title } : {}) };
+  }
+
+  async replay(): Promise<void> {
+    if (this.replaying) return this.replaying;
+    this.replaying = (async () => {
+      const box = this.outbox();
+      const ids = Object.keys(box).sort((a, b) => (box[a]?.at ?? 0) - (box[b]?.at ?? 0));
+      for (const rowId of ids) {
+        const q = box[rowId];
+        if (!q) continue;
+        const body: { title?: string; values?: Record<string, unknown> } = {};
+        if (q.title !== undefined) body.title = q.title;
+        if (Object.keys(q.values).length) body.values = q.values;
+        try {
+          const r = await this.api.collections.updateRow(rowId, body);
+          this.patchSessions(r.row);
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 0) break;
+          this.onError(e);
+        }
+        const now = this.outbox();
+        delete now[rowId];
+        this.saveOutbox(now);
+      }
+      this.onQueued?.(this.queued());
+    })().finally(() => {
+      this.replaying = null;
+    });
+    return this.replaying;
   }
 
   async moveRow(_colId: string, rowId: string, target: { before_id?: string; after_id?: string; values?: Record<string, unknown> }): Promise<RowData> {
@@ -617,7 +711,9 @@ export class CollectionStore {
   }
 
   resync(): void {
-    for (const id of this.cols.keys()) void this.load(id, true).catch(() => undefined);
-    for (const s of this.sessions) s.scheduleRefresh([]);
+    void this.replay().finally(() => {
+      for (const id of this.cols.keys()) void this.load(id, true).catch(() => undefined);
+      for (const s of this.sessions) s.scheduleRefresh([]);
+    });
   }
 }
