@@ -733,6 +733,7 @@ func (s *Service) Apply(ctx context.Context, p *policy.Principal, pageID string,
 	if applyErr != nil {
 		return nil, applyErr
 	}
+	s.importRemote(p, pageID)
 	return res, nil
 }
 

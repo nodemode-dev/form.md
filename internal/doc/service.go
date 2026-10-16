@@ -33,6 +33,8 @@ type Service struct {
 	stopped  bool
 	refHooks []func(ctx context.Context, pageID, actor string, mentioned []string, reminders []Reminder)
 	audit    *audit.Log
+
+	remote RemoteImporter
 }
 
 func New(st *store.Store, pages *page.Service, a *auth.Service, log *slog.Logger) *Service {
@@ -519,6 +521,7 @@ func (s *Service) Write(ctx context.Context, p *policy.Principal, id string, in 
 	if missing {
 		return httpx.Fail(http.StatusNotFound, "block_not_found", "no top-level block has that id")
 	}
+	s.importRemote(p, id)
 	return nil
 }
 

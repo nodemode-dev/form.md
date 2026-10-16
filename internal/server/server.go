@@ -121,6 +121,13 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	pages.OnDuplicate(docs.Copy)
 	pages.OnDuplicated(docs.Remap)
 	docs.SetAudit(al)
+	docs.SetRemoteImporter(func(ctx context.Context, p *policy.Principal, pageID, url string) (string, error) {
+		f, err := fsvc.Import(ctx, p, url, files.ImportOptions{Purpose: "attachment", PageID: pageID, ImagesOnly: true})
+		if err != nil {
+			return "", err
+		}
+		return f.ID, nil
+	})
 	cols := collection.New(st, pages, al, hub, log)
 	comments := comment.New(st, pages, al, hub, log)
 	notes, err := inbox.New(ctx, st, pages, hub, mailer, set, fetcher, log)
