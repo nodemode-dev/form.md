@@ -19,6 +19,7 @@ import type {
 } from "./types";
 
 const OUTBOX_KEY = "formmd.rowOutbox";
+const DELETE_KEY = "formmd.rowDeletes";
 
 interface OutboxEntry {
   col: string;
@@ -125,8 +126,10 @@ export class QuerySession {
     this.calcs = r.calcs;
     this.epoch = r.epoch;
     if (!r.groups && !r.lanes) {
-      if (this.slots.length !== r.total) this.slots.length = r.total;
-      r.order.forEach((id, i) => {
+      const order = r.order.filter((id) => !this.store.deletedLocally(id));
+      this.total = r.total - (r.order.length - order.length);
+      if (this.slots.length !== this.total) this.slots.length = this.total;
+      order.forEach((id, i) => {
         this.slots[offset + i] = id;
       });
     } else {
@@ -310,6 +313,20 @@ export class QuerySession {
     else this.emit({ kind: "rows", ids: changed.length ? changed.filter((id) => this.rows.has(id)) : r.order });
   }
 
+  hide(ids: string[]): void {
+    const gone = new Set(ids);
+    const before = this.slots.length;
+    this.slots = this.slots.filter((x) => x === undefined || !gone.has(x));
+    this.total = Math.max(0, this.total - (before - this.slots.length));
+    const trim = (gs: GroupResult[]) => {
+      for (const g of gs) g.rows = g.rows.filter((id) => !gone.has(id));
+    };
+    if (this.groups) trim(this.groups);
+    if (this.lanes) for (const l of this.lanes) trim(l.groups);
+    for (const id of ids) this.rows.delete(id);
+    this.emit({ kind: "reset" });
+  }
+
   patch(row: RowData): void {
     if (!this.rows.has(row.id)) return;
     this.rows.set(row.id, row);
@@ -342,6 +359,7 @@ export class CollectionStore {
   private firstPages = new Map<string, { result: QueryResult; at: number }>();
   private replaying: Promise<void> | null = null;
   private box: Record<string, OutboxEntry> | null = null;
+  private dels: Record<string, string> | null = null;
   onQueued: ((count: number) => void) | null = null;
 
   constructor(
@@ -630,7 +648,7 @@ export class CollectionStore {
   }
 
   queued(): number {
-    return Object.keys(this.outbox()).length;
+    return Object.keys(this.outbox()).length + Object.keys(this.deletes()).length;
   }
 
   overlay(row: RowData): RowData {
@@ -650,6 +668,7 @@ export class CollectionStore {
     this.replaying = (async () => {
       const box = this.outbox();
       const ids = Object.keys(box).sort((a, b) => (box[a]?.at ?? 0) - (box[b]?.at ?? 0));
+      let offline = false;
       for (const rowId of ids) {
         const q = box[rowId];
         if (!q) continue;
@@ -660,12 +679,29 @@ export class CollectionStore {
           const r = await this.api.collections.updateRow(rowId, body);
           this.patchSessions(r.row);
         } catch (e) {
-          if (e instanceof ApiError && e.status === 0) break;
+          if (e instanceof ApiError && e.status === 0) {
+            offline = true;
+            break;
+          }
           this.onError(e);
         }
         const now = this.outbox();
         delete now[rowId];
         this.saveOutbox(now);
+      }
+      const dels = this.deletes();
+      const byCol = new Map<string, string[]>();
+      for (const [id, col] of Object.entries(dels)) byCol.set(col, [...(byCol.get(col) ?? []), id]);
+      for (const [col, list] of offline ? [] : byCol) {
+        try {
+          await this.api.collections.deleteRows(col, list);
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 0) break;
+          this.onError(e);
+        }
+        for (const id of list) delete dels[id];
+        this.saveDeletes();
+        for (const s of this.sessions) if (s.collectionId === col) s.scheduleRefresh([]);
       }
       this.onQueued?.(this.queued());
     })().finally(() => {
@@ -691,8 +727,49 @@ export class CollectionStore {
   }
 
   async deleteRows(colId: string, ids: string[]): Promise<void> {
-    await this.api.collections.deleteRows(colId, ids);
+    try {
+      await this.api.collections.deleteRows(colId, ids);
+    } catch (e) {
+      if (!(e instanceof ApiError && e.status === 0)) throw e;
+      const dels = this.deletes();
+      const box = this.outbox();
+      for (const id of ids) {
+        dels[id] = colId;
+        delete box[id];
+      }
+      this.saveDeletes();
+      this.saveOutbox(box);
+      for (const s of this.sessions) if (s.collectionId === colId) s.hide(ids);
+      this.onQueued?.(this.queued());
+      return;
+    }
     for (const s of this.sessions) if (s.collectionId === colId) s.scheduleRefresh([]);
+  }
+
+  private deletes(): Record<string, string> {
+    if (!this.dels) {
+      try {
+        const v = JSON.parse(localStorage.getItem(DELETE_KEY) ?? "{}");
+        this.dels = v && typeof v === "object" ? (v as Record<string, string>) : {};
+      } catch {
+        this.dels = {};
+      }
+    }
+    return this.dels;
+  }
+
+  private saveDeletes(): void {
+    try {
+      const d = this.deletes();
+      if (Object.keys(d).length) localStorage.setItem(DELETE_KEY, JSON.stringify(d));
+      else localStorage.removeItem(DELETE_KEY);
+    } catch {
+      return;
+    }
+  }
+
+  deletedLocally(id: string): boolean {
+    return id in this.deletes();
   }
 
   apply(e: LiveEvent): void {
