@@ -195,6 +195,16 @@ function itemsView(host: ViewHost, kind: Kind): ViewRenderer {
     if (n?.dataset.row && e.key === "Enter") host.openRow(n.dataset.row, e);
   });
 
+  const autoMore = host.inline
+    ? null
+    : new IntersectionObserver(
+        (entries) => {
+          if (!destroyed && !more.hidden && entries.some((x) => x.isIntersecting)) more.click();
+        },
+        { rootMargin: "600px 0px" },
+      );
+  autoMore?.observe(more);
+
   return {
     el,
     ready,
@@ -232,6 +242,7 @@ function itemsView(host: ViewHost, kind: Kind): ViewRenderer {
       : {}),
     destroy() {
       destroyed = true;
+      autoMore?.disconnect();
       session.close();
       el.remove();
     },
