@@ -25,6 +25,16 @@ type CommandSpec struct {
 	Risky       bool                      `json:"risky,omitempty"`
 }
 
+func (c *CommandSpec) UnmarshalJSON(b []byte) error {
+	type plain CommandSpec
+	v := plain{Mutates: true}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	*c = CommandSpec(v)
+	return nil
+}
+
 type Sender interface {
 	Send(userID, kind string, data map[string]any)
 	Online(userID string) bool

@@ -165,6 +165,7 @@ function registerOfflineCommands(engine: Engine): void {
     id: "offline.recent",
     label: () => t("Keep recent pages offline"),
     group: () => t("Offline"),
+    mutates: false,
     description: "Turns on or off keeping the 20 most recently opened pages and databases for offline use in this browser, in addition to the pages marked for offline use. On by default.",
     params: { on: { type: "boolean" } },
     run: (p) => {
