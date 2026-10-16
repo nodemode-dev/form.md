@@ -1713,6 +1713,13 @@ Above 200 rows only bars within 30 rows of the visible area are reconciled into 
 
 The observer only presses the existing Load more button, so loading has one code path; it watches with a 600 px margin so the next rows usually arrive before the reader reaches the end, and it is disconnected in `destroy`. Inline lists inside pages are left alone so a page with an inline database does not load its rows just by scrolling past it.
 
+### src/engine/collections.ts · offline row deletes
+- refers-to: src/engine/collections.ts :: `deleteRows`, `deletes`, `deletedLocally`, `QuerySession.hide`, `apply`, `replay`
+- kind: explainer
+- logged: v0.25.0 · 2026-10-16
+
+A delete that fails for lack of a network records each row id with its database in `formmd.rowDeletes`, drops any queued edits for those rows, and hides them from every open session (`hide` removes them from slots, groups and lanes and lowers the total). `apply` filters them out of every later result, which covers cached reads after an offline reload. `replay` sends deletes after edits, grouped per database, and refreshes those views.
+
 ### src/ui/account.ts · Writing section
 - refers-to: src/ui/account.ts :: profileTab (Writing); src/extensions/blocks/triggers.ts :: `SLASH_KEY`
 - kind: explainer
