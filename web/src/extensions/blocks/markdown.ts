@@ -1,6 +1,7 @@
 import type MarkdownItType from "markdown-it";
 import { DOMParser as PMDOMParser, type Fragment, type Mark, type Node as PMNode, type ResolvedPos, Slice } from "prosemirror-model";
 import { schema } from "../../engine/doc/schema";
+import { t } from "../../engine/i18n";
 
 const MARK_ORDER = ["link", "strong", "em", "strike", "underline", "code"];
 
@@ -201,7 +202,7 @@ export class MarkdownWriter {
         const kind = String(c.attrs.kind);
         const ref = String(c.attrs.ref);
         if (kind === "page") {
-          const label = this.title(ref) || String(c.attrs.label) || "Untitled";
+          const label = this.title(ref) || String(c.attrs.label) || t("Untitled");
           runs.push({ text: label, marks: [schema.marks.link!.create({ href: `/p/${ref}` })] });
         } else if (kind === "user") runs.push({ text: `@${String(c.attrs.label)}`, marks: [] });
         else runs.push({ text: ref, marks: [] });
