@@ -300,6 +300,7 @@ export class EditorHost implements EditorCtx {
 
   private plugins(s: DocSession, mapping: unknown): Plugin[] {
     const host = this;
+    let presence = "";
     return [
       ySyncPlugin(s.fragment, mapping ? ({ mapping } as Parameters<typeof ySyncPlugin>[1]) : {}),
       yCursorPlugin(s.awareness, { cursorBuilder, selectionBuilder }),
@@ -319,6 +320,40 @@ export class EditorHost implements EditorCtx {
       commentsPlugin(this),
       ...columnsPlugins(() => this.wrap),
       ...structurePlugins(),
+      new Plugin({
+        key: new PluginKey("formmd-presence"),
+        props: {
+          handleDOMEvents: {
+            blur: () => {
+              presence = "";
+              s.awareness.setLocalStateField("blocks", []);
+              return false;
+            },
+            focus: (view) => {
+              view.dispatch(view.state.tr.setMeta("formmd-presence", true));
+              return false;
+            },
+          },
+        },
+        view: () => {
+          return {
+            update(view) {
+              const ids: string[] = [];
+              if (view.hasFocus()) {
+                const $head = view.state.selection.$head;
+                for (let d = 1; d <= $head.depth; d++) {
+                  const id = $head.node(d).attrs.id;
+                  if (typeof id === "string" && id) ids.push(id);
+                }
+              }
+              const key = ids.join(",");
+              if (key === presence) return;
+              presence = key;
+              s.awareness.setLocalStateField("blocks", ids);
+            },
+          };
+        },
+      }),
       new Plugin({
         key: new PluginKey("formmd-chrome"),
         view: () => ({

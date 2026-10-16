@@ -486,8 +486,12 @@ func (s *Service) Write(ctx context.Context, p *policy.Principal, id string, in 
 		return httpx.Fail(http.StatusBadRequest, "bad_mode", "mode is append, prepend, replace or after")
 	}
 	nodes := ParseMarkdown(in.Markdown, s.fileLookup(ctx, workspaceID))
-	var missing bool
+	var missing, busy bool
 	err = s.withRoom(ctx, id, func(r *room) {
+		if in.Mode == "replace" && !p.IsSession() && r.personIn("") {
+			busy = true
+			return
+		}
 		frag := r.fragment()
 		at := frag.Len()
 		switch in.Mode {
@@ -517,6 +521,9 @@ func (s *Service) Write(ctx context.Context, p *policy.Principal, id string, in 
 	})
 	if err != nil {
 		return err
+	}
+	if busy {
+		return personTyping("")
 	}
 	if missing {
 		return httpx.Fail(http.StatusNotFound, "block_not_found", "no top-level block has that id")

@@ -220,6 +220,30 @@ func missingBlock(id string) error {
 	return httpx.Fail(http.StatusNotFound, "block_not_found", "no block has the id "+id)
 }
 
+func (r *room) personIn(block string) bool {
+	for _, e := range r.aware {
+		var st struct {
+			Blocks []string `json:"blocks"`
+		}
+		if json.Unmarshal(e.state, &st) != nil {
+			continue
+		}
+		for _, b := range st.Blocks {
+			if block == "" || b == block {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func personTyping(id string) error {
+	if id == "" {
+		return httpx.Fail(http.StatusConflict, "person_editing", "someone is editing this page right now; insert new blocks instead, or try again when they have left")
+	}
+	return httpx.Fail(http.StatusConflict, "person_editing", "someone is editing block "+id+" right now; insert next to it instead, or try again in a moment")
+}
+
 func elementIDs(nodes []*pmNode) []string {
 	var out []string
 	for _, n := range nodes {
@@ -355,6 +379,8 @@ type editor struct {
 	out   []string
 	inv   []Edit
 	last  string
+
+	guard bool
 }
 
 func (e *editor) nodes(ed Edit) ([]*pmNode, error) {
@@ -542,6 +568,9 @@ func (e *editor) delete(ed Edit) error {
 		return badEdit("name the blocks to delete")
 	}
 	for _, id := range ids {
+		if e.guard && e.r.personIn(id) {
+			return personTyping(id)
+		}
 		l := locate(e.frag, id)
 		if l == nil {
 			return missingBlock(id)
@@ -568,6 +597,9 @@ func (e *editor) delete(ed Edit) error {
 func (e *editor) replace(ed Edit) error {
 	if ed.Block == "" {
 		return badEdit("name the block to replace")
+	}
+	if e.guard && e.r.personIn(ed.Block) {
+		return personTyping(ed.Block)
 	}
 	nodes, err := e.nodes(ed)
 	if err != nil {
@@ -692,7 +724,7 @@ func (s *Service) Apply(ctx context.Context, p *policy.Principal, pageID string,
 	var applyErr error
 	err = s.withRoom(ctx, pageID, func(r *room) {
 		who := &origin{user: p.UserID}
-		e := &editor{r: r, frag: r.fragment(), files: files, who: who}
+		e := &editor{r: r, frag: r.fragment(), files: files, who: who, guard: !p.IsSession()}
 		for _, ed := range edits {
 			var err error
 			switch ed.Op {

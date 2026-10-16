@@ -37,7 +37,7 @@ func (s *Server) registerWrites() {
 		Props:       map[string]any{"page_id": str("Page id"), "markdown": str("Markdown to insert"), "where": whereProp, "anchor": str("Block id that where refers to"), "section": str("Insert at the end of the section under this heading")},
 		Required:    []string{"page_id", "markdown"}, Run: s.insertBlocks})
 	s.add(&Tool{Name: "replace_block", Title: "Replace a block", Write: true, Destructive: true, Idempotent: true,
-		Description: "Replace one block with Markdown. The first new block keeps the block id. Text that people type elsewhere in the page is kept.",
+		Description: "Replace one block with Markdown. The first new block keeps the block id. Text that people type elsewhere in the page is kept. Refused (person_editing) while a person's cursor is in that block; insert next to it instead or try again later.",
 		Props:       map[string]any{"page_id": str("Page id"), "block_id": str("Block id"), "markdown": str("New Markdown for the block")},
 		Required:    []string{"page_id", "block_id", "markdown"}, Run: s.replaceBlock})
 	s.add(&Tool{Name: "delete_blocks", Title: "Delete blocks", Write: true, Destructive: true, Idempotent: true,
@@ -49,7 +49,7 @@ func (s *Server) registerWrites() {
 		Props:       map[string]any{"page_id": str("Page id"), "block_id": str("Block to move"), "where": whereProp, "anchor": str("Block id that where refers to"), "section": str("Move to the end of the section under this heading")},
 		Required:    []string{"page_id", "block_id"}, Run: s.moveBlock})
 	s.add(&Tool{Name: "replace_page_content", Title: "Replace a page's whole body", Write: true, Destructive: true, Idempotent: true,
-		Description: "Replace every block of a page with new Markdown. Prefer insert_blocks and replace_block for targeted edits.",
+		Description: "Replace every block of a page with new Markdown. Prefer insert_blocks and replace_block for targeted edits. Refused (person_editing) while a person is editing the page.",
 		Props:       map[string]any{"page_id": str("Page id"), "markdown": str("The new body")},
 		Required:    []string{"page_id", "markdown"}, Run: s.replaceContent})
 	s.add(&Tool{Name: "create_database", Title: "Create a database", Write: true,
