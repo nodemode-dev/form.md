@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.13.0
-Last updated: 2026-10-09 · Phase 13: agent client snippets on the connect screen
+Current build version: v0.14.0
+Last updated: 2026-10-16 · Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages, the canvas engine core
 
 ---
 
