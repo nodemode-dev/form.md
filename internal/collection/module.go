@@ -120,7 +120,11 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 				}
 			}
 			if v.Type == "table" || v.Type == "list" {
-				if res, err := s.Query(r.Context(), p, out.ID, QueryInput{ViewID: v.ID, Limit: 100}); err == nil {
+				limit := 100
+				if n, err := strconv.Atoi(r.URL.Query().Get("rows")); err == nil && n > limit {
+					limit = min(n, 1000)
+				}
+				if res, err := s.Query(r.Context(), p, out.ID, QueryInput{ViewID: v.ID, Limit: limit}); err == nil {
 					body["first"] = map[string]any{"view_id": v.ID, "result": res}
 				}
 			}

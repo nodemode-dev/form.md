@@ -61,7 +61,12 @@ async function apiRead(request) {
     if (res.ok) await cache.put(request, res.clone());
     return res;
   } catch (err) {
-    const hit = (await cache.match(request, { ignoreVary: true })) ?? (await cache.match(request, { ignoreVary: true, ignoreSearch: true }));
+    const kept = new URL(request.url);
+    kept.searchParams.set("rows", "1000");
+    const hit =
+      (kept.pathname.startsWith("/api/collections/") && !new URL(request.url).searchParams.has("rows") ? await cache.match(kept.href, { ignoreVary: true }) : undefined) ??
+      (await cache.match(request, { ignoreVary: true })) ??
+      (await cache.match(request, { ignoreVary: true, ignoreSearch: true }));
     if (hit) return hit;
     throw err;
   }

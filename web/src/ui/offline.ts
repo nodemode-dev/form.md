@@ -6,6 +6,10 @@ import { toast } from "./toast";
 
 let started: Promise<ServiceWorkerRegistration | null> | null = null;
 
+const ROWS_KEPT = 1000;
+const RECENT_KEPT = 20;
+const RECENT_OFF_KEY = "formmd.offlineRecentOff";
+
 const idle = (fn: () => void, delay: number) => setTimeout(() => (window.requestIdleCallback ?? ((f: () => void) => f()))(fn), delay);
 
 function post(reg: ServiceWorkerRegistration, message: { type: string }): void {
@@ -26,6 +30,7 @@ async function register(): Promise<ServiceWorkerRegistration | null> {
 export function startOffline(engine: Engine): Promise<ServiceWorkerRegistration | null> {
   return (started ??= register().then((reg) => {
     if (!reg) return null;
+    registerOfflineCommands(engine);
     const shell = () => {
       if (navigator.onLine && engine.state.get("me")) post(reg, { type: "offline-shell" });
     };
@@ -112,10 +117,14 @@ async function keepRows(engine: Engine, rows: string[]): Promise<void> {
 function keep(engine: Engine, id: string): Promise<boolean> {
   postApi([`/api/pages/${encodeURIComponent(id)}`]);
   if (engine.pages.get(id)?.kind === "collection") {
-    postApi([`/api/collections/${encodeURIComponent(id)}?view=`]);
-    return engine.api.collections.get(id, "").then(
+    const base = `/api/collections/${encodeURIComponent(id)}`;
+    return engine.api.collections.get(id).then(
       async (r) => {
-        await keepRows(engine, r.first?.result.order ?? []);
+        const views = r.collection.views.filter((v) => v.type === "table" || v.type === "list");
+        postApi([`${base}?view=&rows=${ROWS_KEPT}`, ...views.map((v) => `${base}?view=${encodeURIComponent(v.id)}&rows=${ROWS_KEPT}`)]);
+        const first = r.collection.views[0]?.id;
+        const q = await engine.api.collections.query(id, { ...(first ? { view_id: first } : {}), limit: ROWS_KEPT, no_groups: true });
+        await keepRows(engine, q.order);
         return true;
       },
       () => false,
@@ -124,12 +133,52 @@ function keep(engine: Engine, id: string): Promise<boolean> {
   return syncDoc(engine, id);
 }
 
+function recentOff(): boolean {
+  try {
+    return localStorage.getItem(RECENT_OFF_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+async function recentPages(engine: Engine): Promise<string[]> {
+  if (recentOff()) return [];
+  try {
+    const r = await engine.api.pages.recent(RECENT_KEPT);
+    return r.pages.filter((p) => p.kind === "doc" || p.kind === "collection").map((p) => p.id);
+  } catch {
+    return [];
+  }
+}
+
 async function refreshKept(engine: Engine): Promise<void> {
   if (!navigator.onLine) return;
-  for (const id of keptPages(engine, offlineIds(engine))) {
+  const ids = new Set([...keptPages(engine, offlineIds(engine)), ...(await recentPages(engine))]);
+  for (const id of ids) {
     if (!navigator.onLine) return;
     await keep(engine, id);
   }
+}
+
+function registerOfflineCommands(engine: Engine): void {
+  engine.commands.register({
+    id: "offline.recent",
+    label: () => t("Keep recent pages offline"),
+    group: () => t("Offline"),
+    description: "Turns on or off keeping the 20 most recently opened pages and databases for offline use in this browser, in addition to the pages marked for offline use. On by default.",
+    params: { on: { type: "boolean" } },
+    run: (p) => {
+      const on = typeof p?.on === "boolean" ? p.on : recentOff();
+      try {
+        if (on) localStorage.removeItem(RECENT_OFF_KEY);
+        else localStorage.setItem(RECENT_OFF_KEY, "1");
+      } catch {
+        return;
+      }
+      toast({ id: "offline", message: on ? t("Recent pages will be kept for offline use") : t("Recent pages are no longer kept for offline use") });
+      if (on) void refreshKept(engine);
+    },
+  });
 }
 
 export async function toggleOffline(engine: Engine, id: string): Promise<void> {
