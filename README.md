@@ -7,7 +7,7 @@
 <p align="center"><b>One workspace for people & agents: documents, databases & realtime editing in a single binary.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.13.0-9a8cff" alt="version v0.13.0" />
+  <img src="https://img.shields.io/badge/version-v0.14.0-9a8cff" alt="version v0.14.0" />
   <img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+" />
   <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
@@ -19,6 +19,10 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 
 ## Highlights
 
+- **Claude Code inside the workspace** · a bottom panel with real terminals, Claude Code tabs already connected to this form.md's MCP tools, and a Claude Code chat that shows each tool call as it runs; hand a chat to a terminal tab or bring one back (Mod+J, Mod+Alt+J, Mod+Alt+K)
+- **Agents drive the window** · every command carries a description, typed parameters & whether it changes anything; agents list & run them through MCP (`window_commands`, `window_command_run`), REST or `form-md cli`
+- **26 languages** · the whole window & its mail in English (default), Spanish (Spain & Mexico), Brazilian Portuguese, French (France & Canada), German, Italian, Dutch, Danish, Finnish, Norwegian Bokmål, Swedish, Russian, Polish, Czech, Hungarian, Ukrainian, Turkish, Simplified & Traditional Chinese, Japanese, Korean, Indonesian, Thai & Vietnamese
+- **Vector canvas, in progress** · the engine for an Illustrator-parity canvas has started with Live Corners on any point of any path (round, inverted, chamfer); the surface & tools follow in Phase 16
 - **The server owns the document** · every page body is a CRDT the server applies & reads itself, so a Markdown write over the API merges w/ what people are typing; one socket carries every open page w/ state-vector sync, a write check on every frame & cursors named by the server
 - **Offline that survives closing the tab** · edits made without a connection are kept in the browser & merge when it comes back, in any browser
 - **The body in the first frame** · the server renders the page body into the document & the editor adopts it, so a reload shows the text before any script runs; switching pages swaps header & body together once the next page is ready, prefetched on hover
@@ -88,12 +92,14 @@ chmod +x form-md_oc_install form-md
 ./form-md
 ```
 
-Open http://127.0.0.1:5750 while developing. To build the single binary & run it:
+Open http://127.0.0.1:5750 while developing. To build the single binary from a clean clone & run it:
 
 ```shell
-make build
-./bin/form-md
+./build_app          # checks Go & Node, installs, builds the client, compiles bin/form-md
+./form-md serve      # or ./bin/form-md
 ```
+
+`./form-md help` lists the rest: `release` (every platform into `release/`), `claude` (Claude Code in this terminal w/ form.md's tools), `mcp`, `agents install`, `cli list|describe|run`, `check`, `counts`, `clean`.
 
 Then open http://127.0.0.1:8750. The first visit shows the set-up screen that creates the owner account; everyone else joins by invitation unless sign-up is opened in Instance settings.
 
@@ -243,6 +249,8 @@ form.md/
 | Keys | Action |
 |---|---|
 | `Alt+N` | New page |
+| `Ctrl+J` | Terminal & Claude Code panel (owner, on this computer) |
+| `Ctrl+Alt+J` · `Ctrl+Alt+K` | Claude Code in a terminal tab · Claude Code chat |
 | `F` | Add or remove the open page from favorites |
 | `L` | Library |
 | `M` | Notes mode on or off |

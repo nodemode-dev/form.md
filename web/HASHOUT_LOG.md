@@ -34,7 +34,7 @@ web/
     │   ├── router.ts                routes, paths and the pure tab operations
     │   ├── order.ts                 fractional sort keys for optimistic placement
     │   ├── state.ts                 per-key observable state
-    │   ├── commands.ts              command registry
+    │   ├── commands.ts              command registry: metadata, typed params, invoke, catalogue for agents
     │   ├── keymap.ts                scoped shortcut registry, chord parse, match, format
     │   ├── api.ts                   request() and getJSON with typed ApiError (code, message, data)
     │   ├── client.ts                typed API client: auth, me, workspaces, admin
@@ -47,8 +47,11 @@ web/
     │       ├── schema.ts            ProseMirror schema, block ids, embed and href rules (DOM matches the server)
     │       ├── sync.ts              DocSync: one socket for every open page, frames, watchdog, backoff
     │       └── docs.ts              DocSession (Y.Doc, IndexedDB, awareness, generation) and DocStore cache
+    ├── canvas/
+    │   └── engine/                  DOM-free vector engine: geometry.ts (anchors, Live Corners, SVG d, bounds), ops.ts (shapes, path ops)
     ├── extensions/
     │   ├── registry.ts              register, activateAll, disposeAll
+    │   ├── harness/                 dock and Claude Code commands and keys, catalogue mirroring to the server
     │   ├── shell/
     │   │   └── index.ts             shell commands and their shortcuts
     │   ├── account/
@@ -102,6 +105,7 @@ web/
     │   ├── comment-view.ts          thread, composer and suggestion views
     │   ├── comments-pane.ts         the comments pane with filters
     │   ├── agent-pane.ts            the agent pane: chat, tool steps, undo, history, settings (its own chunk)
+    │   ├── agent-dock.ts            bottom panel: xterm terminals, Claude Code tabs, Claude Code chat (its own chunk)
     │   ├── workspace-agents.ts      workspace settings: custom agents, editor, runs
     │   ├── account-agents.ts        account settings: connect snippets, skill download, connected apps, runs
     │   ├── admin-ai.ts              instance settings: AI providers, allow-list, defaults, limit, usage
@@ -1578,3 +1582,33 @@ Old widgets with `wide` read as size `l`. A KPI asks the chart endpoint twice (t
 - logged: v0.13.0 · 2026-10-09
 
 The labels are product and file names, so they are not run through `t()`. Codex starts MCP servers as commands, so its snippet runs the binary's `form-md mcp` bridge with `--url` set to this origin (the bridge appends `/mcp`) and a placeholder token, written as TOML that `~/.codex/config.toml` accepts as is. The snippets are built once when the tab renders and never change, so the tab cannot shift.
+
+## Phase 14 · agent harness, commands, languages, canvas engine
+
+### src/ui/agent-dock.ts · the bottom panel
+- refers-to: src/ui/agent-dock.ts :: `mountAgentDock`, `TermView`, `buildChat`; src/extensions/harness/index.ts
+- kind: explainer
+- logged: v0.14.0 · 2026-10-16
+
+Loaded on first use as its own chunk with xterm.js 6 and its fit addon (both MIT). The panel is a fixed sheet at `--z-chrome` with a top grip whose height is kept in localStorage (wrapped in try). Each terminal tab owns one xterm and one WebSocket; panes are created once and toggled with `hidden`, never rebuilt, and fit only while visible. Theme colours are read from the CSS tokens and reapplied when the theme preference changes. The chat renders Markdown through the same `render` and `reconcile` pair the agent pane uses, so a growing reply patches its existing nodes instead of replacing them. Keys: Mod+J panel, Mod+Alt+J Claude Code, Mod+Alt+K chat (Mod+Shift+J stays the built-in agent).
+
+### src/engine/commands.ts · the catalogue
+- refers-to: src/engine/commands.ts :: `Command`, `invoke`, `catalogue`; src/engine/index.ts :: `dispatch` (command.run)
+- kind: explainer
+- logged: v0.14.0 · 2026-10-16
+
+The command shape follows formvis's: description, a "use when" sentence, typed parameters with enum and range, mutates and risky. `invoke` checks parameters before running, returns `{ ok: true }` when a command returns nothing, and is what agents reach: the harness extension mirrors `catalogue()` to the server 400 ms after any registration change, and a `command.run` event from the server runs `invoke` and posts the result or error back with its call id. Existing commands carry only id, label and group until Phase 15 fills in their metadata.
+
+### src/engine/i18n.ts · 26 languages
+- refers-to: src/engine/i18n.ts :: `LANGUAGES`, `resolveLang`; internal/i18n/i18n.go :: `Resolve`
+- kind: explainer
+- logged: v0.14.0 · 2026-10-16
+
+Catalogue folders are named by BCP 47 tag (`es-MX`, `pt-BR`, `zh-Hant`), and each holds `01.json` to `08.json` (the interface strings in the canonical order) plus `server.json` (mail and notification strings the Go side reads from the same embedded tree). Resolution is exact tag first, then aliases (zh-TW and zh-HK to zh-Hant, zh-CN to zh-Hans, pt to pt-BR, es-419 to es-MX, no and nn to nb), then the base language; Go and TypeScript use the same table. German keeps its older 01 to 10 files and gains 11.json with this release's strings.
+
+### src/canvas/engine/geometry.ts · Live Corners
+- refers-to: src/canvas/engine/geometry.ts :: `expandCorners`, `maxCornerRadius`, `segments`
+- kind: explainer
+- logged: v0.14.0 · 2026-10-16
+
+A corner radius is stored on the anchor and expanded only when segments are produced, so the path's own points never move and a radius can be changed or removed later. For a corner with incoming and outgoing tangents u and v at angle theta, the arc meets the edges at distance r / tan(theta / 2) from the corner and is drawn as one cubic with handles of (4/3) tan(turn / 4) r, which is exact to within 0.03 percent for a quarter turn. The radius is clamped so the two tangent points use at most half of each neighbouring segment. Inverted corners swing the handles perpendicular to the edges toward the bisector; chamfers join the two tangent points with a line. Tangents follow the handles when they exist, so rounding works between curves too.

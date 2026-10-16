@@ -15,11 +15,14 @@ form.md/
 ├── go.mod, go.sum                   module github.com/nodemode-ai/form.md, Go 1.26+
 ├── NOTICES.md                       generated third-party notices, embedded, served at /notices
 ├── Makefile                         build, web, notices, server, release, check, clean
-├── form-md, form-md.bat             dev boot: Go server on :8750 plus Vite on :5750
+├── form-md                          root command set: boot (default), install, build, release, serve, claude, mcp, agents, cli, check, counts, clean
+├── form-md.bat                      Windows dev boot: Go server on :8750 plus Vite on :5750
+├── build_app                        one script from a clean clone to bin/form-md (or every target with --all)
 ├── form-md_oc_install (+ .bat)      installs both sides
 ├── cmd/
 │   └── form-md/
 │       ├── main.go                  subcommands (serve, version, help), wiring, exit codes
+│       ├── cli.go                   form-md cli list|describe|run: the open window's command catalogue over REST
 │       └── bridge.go                form-md mcp: stdio to Streamable HTTP bridge for command-based MCP clients
 ├── internal/
 │   ├── HASHOUT_LOG.md               this file
@@ -57,6 +60,7 @@ form.md/
 │   ├── auditapi/
 │   │   └── auditapi.go              GET /api/workspaces/{id}/audit and audit.csv for admins
 │   ├── auth/
+│   │   ├── apptoken.go              per-account write token for Claude Code inside form.md, rotated each server start
 │   │   ├── password.go              argon2id hash and verify, concurrency cap, dummy hash
 │   │   ├── totp.go                  TOTP check with replay step, otpauth URL, QR as SVG, recovery codes
 │   │   ├── service.go               Service, session cookies, credential middleware, handler wrappers
@@ -66,6 +70,7 @@ form.md/
 │   │   ├── saml.go                  SAML 2.0 service provider: metadata, start, ACS, account linking, SAML-only
 │   │   ├── invites.go               invitations: create, list, cancel, look up, accept
 │   │   └── module.go                route table for /api/auth, /api/setup, /api/me, invites
+│   ├── claudecode/                  terminals (PTY over WebSocket), Claude Code launch and chat (claude -p stream-json), window command bridge
 │   ├── collection/                  databases: schema, rows, query stages, formula language, views, forms, CSV, public tables
 │   ├── comment/                     threads, replies, reactions, resolve, mentions, suggested edits
 │   ├── contextpack/
@@ -119,6 +124,7 @@ form.md/
 │   ├── mail/
 │   │   └── mail.go                  Mailer: SMTP (TLS, STARTTLS, none), OAuth sender registry
 │   ├── mcp/
+│   │   ├── tools_window.go          window_commands, window_command_describe, window_command_run
 │   │   ├── server.go                /mcp transport: versions, headers, dispatch, errors
 │   │   ├── tools.go                 tool registry, run grouping, idempotency, result framing
 │   │   ├── tools_read.go            read tools
@@ -1813,3 +1819,40 @@ Brief tools return their structured result as `structuredContent` but leave it o
 - logged: v0.13.0 · 2026-10-09
 
 Codex and other clients that start a command speak MCP over standard input and output, one JSON message per line. The bridge forwards each line to `/mcp` with the token, up to four at a time, and writes each answer back as one line; notifications get no answer. When a message carries `_meta` with a protocol version, the bridge sets `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` (base64-wrapped when not plain ASCII) because the 2026-07-28 transport refuses requests without them. Transport failures come back as JSON-RPC errors for the request's id, never as broken lines.
+
+## Phase 14 · agent harness
+
+### internal/claudecode/terminal.go · terminals
+- refers-to: internal/claudecode/terminal.go :: `Terminals`, `Session.pump`, `Session.Attach`
+- kind: explainer
+- logged: v0.14.0 · 2026-10-16
+
+Each terminal is a PTY (creack/pty, MIT) running the login shell, or Claude Code, in a folder; the reader goroutine keeps the last 256 KiB as scrollback so a reattached tab (reload, second window) replays its screen. Subscribers get chunks on buffered channels and a slow one drops chunks rather than stalling the shell. `gen` invalidates the pump of a killed process so a restart never mixes output. Output goes to the browser as binary WebSocket frames because a PTY chunk can end inside a UTF-8 sequence and a text frame must be valid UTF-8; the one control message, exit, is a text frame. Windows returns an error: creack/pty has no ConPTY path at this version.
+
+### internal/claudecode/module.go · who may open a terminal
+- refers-to: internal/claudecode/module.go :: `Service.enabled`, `Service.gate`
+- kind: rationale
+- logged: v0.14.0 · 2026-10-16
+
+A terminal is a shell as the server's own user, so only a signed-in session of the instance owner may open one, and only when the server listens on loopback (the desktop and local-dev case) unless `FORMMD_TERMINAL=on` says otherwise; `FORMMD_TERMINAL=off` turns it off even locally. Agent tokens cannot reach the terminal routes. The WebSocket accepts loopback and Tauri origins only; the Vite proxy rewrites the origin to the backend's.
+
+### internal/claudecode/chat.go · the chat
+- refers-to: internal/claudecode/chat.go :: `chat.run`, `chatArgv`, `transcript`, `conversations`
+- kind: explainer
+- logged: v0.14.0 · 2026-10-16
+
+Ported in behaviour from formlit's `cmd_chat.py`: `claude -p` with `--output-format stream-json --verbose --include-partial-messages`, form.md's MCP config and `--allowedTools mcp__formmd`, resuming the session id from the previous turn. Sub-agent events (with `parent_tool_use_id`) are skipped; text deltas, tool uses and tool results become `delta`, `tool` and `toolDone` SSE events; usage comes from `message_start` and `message_delta`, the context window from the result's `modelUsage`. The answer streams straight back on the POST rather than through the event hub, whose 128-event queue would close a subscriber on a long reply. Conversations started in Claude Code tabs live under `~/.claude/projects/<folder with non-alphanumerics as dashes>`; `transcript` reads one back for the Chat tab, skipping side chains, meta lines and tool-result echoes.
+
+### internal/auth/apptoken.go · the in-app token
+- refers-to: internal/auth/apptoken.go :: `AppToken`
+- kind: rationale
+- logged: v0.14.0 · 2026-10-16
+
+Only the hash of an API token is stored, so the plain token for Claude Code inside form.md lives in memory for the process's life. On the first use after a start the old row with the same name is deleted and a new write token for all workspaces is made, so the account's token list shows exactly one "Claude Code in form.md" and revoking it there cuts the in-app agent off until the next start.
+
+### internal/claudecode/bridge.go · window commands
+- refers-to: internal/claudecode/bridge.go :: `Bridge.Run`, `Bridge.Answer`; internal/events/events.go :: `Hub.Send`
+- kind: explainer
+- logged: v0.14.0 · 2026-10-16
+
+The window owns its commands, so the server only keeps the last catalogue each account's window sent and relays calls: `Run` publishes a `command.run` event with a call id to that account's sessions, waits up to a minute, and returns what the window posts to `/api/commands/result`. A credential that cannot write may still run commands whose spec says they change nothing. With no window online the call fails at once with a message telling the agent to ask the person to open form.md.

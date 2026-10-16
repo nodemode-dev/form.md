@@ -19,6 +19,7 @@
 - [[Offline]]
 - [[API-and-agents]]
 - [[Context-and-knowledge]]
+- [[Terminal-and-Claude-Code]]
 
 **Changing the code**
 
