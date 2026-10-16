@@ -103,6 +103,14 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		sc, err := s.siteScope(r, r.PathValue("slug"), "/s/"+r.PathValue("slug"))
 		s.unlockPost(w, r, sc, err)
 	})
+	r.HandleFunc("GET /s/{slug}/fonts.css", func(w http.ResponseWriter, r *http.Request) {
+		sc, err := s.siteScope(r, r.PathValue("slug"), "/s/"+r.PathValue("slug"))
+		s.fontsSheet(w, r, sc, err)
+	})
+	r.HandleFunc("GET /l/{token}/fonts.css", func(w http.ResponseWriter, r *http.Request) {
+		sc, err := s.linkScope(r, r.PathValue("token"))
+		s.fontsSheet(w, r, sc, err)
+	})
 	r.HandleFunc("GET /s/{slug}/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
 		sc, err := s.siteScope(r, r.PathValue("slug"), "/s/"+r.PathValue("slug"))
 		s.sitemap(w, r, sc, err)
@@ -260,6 +268,9 @@ func (s *Service) fileAllowed(ctx context.Context, sc *scope, f *files.File) boo
 	if sc.site != nil && sc.site.Image == ref {
 		return true
 	}
+	if sc.usedFonts()[f.ID] {
+		return true
+	}
 	if _, ok := sc.pages[f.PageID]; ok && f.PageID != "" {
 		return true
 	}
@@ -287,6 +298,16 @@ func (s *Service) fileAllowed(ctx context.Context, sc *scope, f *files.File) boo
 		}
 	}
 	return false
+}
+
+func (s *Service) fontsSheet(w http.ResponseWriter, r *http.Request, sc *scope, err error) {
+	if err != nil || !s.unlocked(r, sc) {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/css; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	_, _ = w.Write([]byte(s.fontsCSS(sc)))
 }
 
 func (s *Service) file(w http.ResponseWriter, r *http.Request, sc *scope, err error, id string) {

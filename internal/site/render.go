@@ -120,6 +120,44 @@ type scope struct {
 	export   bool
 
 	wsStyle string
+	wsFonts string
+	fontRef string
+}
+
+func (sc *scope) fontFor(id string) string {
+	n := sc.pages[id]
+	if n == nil {
+		return ""
+	}
+	ref := pagestyle.Merge(sc.wsStyle, n.Style).Font
+	if !strings.HasPrefix(ref, "f:") {
+		return ""
+	}
+	for _, f := range pagestyle.ParseFonts(sc.wsFonts) {
+		if f.File == ref {
+			return ref
+		}
+	}
+	return ""
+}
+
+func (sc *scope) usedFonts() map[string]bool {
+	out := map[string]bool{}
+	for id := range sc.pages {
+		if ref := sc.fontFor(id); ref != "" {
+			out[strings.TrimPrefix(ref, "f:")] = true
+		}
+	}
+	return out
+}
+
+func (s *Service) fontsCSS(sc *scope) string {
+	var b strings.Builder
+	for id := range sc.usedFonts() {
+		b.WriteString("@font-face{font-family:\"wsf-" + id + "\";src:url(\"" + sc.fileHref(id) + "\");font-display:block}\n")
+		b.WriteString(".site-main[data-style-font=\"f:" + id + "\"]{font-family:\"wsf-" + id + "\",var(--font-sans)}\n")
+	}
+	return b.String()
 }
 
 func (s *Service) load(ctx context.Context, sc *scope, subpages bool) error {
@@ -156,7 +194,7 @@ func (s *Service) load(ctx context.Context, sc *scope, subpages bool) error {
 	for _, list := range sc.kids {
 		sort.Slice(list, func(i, j int) bool { return list[i].SortKey < list[j].SortKey })
 	}
-	_ = s.st.R.QueryRowContext(ctx, "SELECT page_style FROM workspaces WHERE id = ?", sc.ws).Scan(&sc.wsStyle)
+	_ = s.st.R.QueryRowContext(ctx, "SELECT page_style, fonts FROM workspaces WHERE id = ?", sc.ws).Scan(&sc.wsStyle, &sc.wsFonts)
 	return nil
 }
 
@@ -343,6 +381,10 @@ func (s *Service) head(b *strings.Builder, sc *scope, title, desc, canonical, im
 	if s.assets.css != "" {
 		b.WriteString(`<link rel="stylesheet" href="` + esc(s.assets.css) + `">`)
 	}
+	if id, ok := strings.CutPrefix(sc.fontRef, "f:"); ok {
+		b.WriteString(`<link rel="preload" href="` + esc(sc.fileHref(id)) + `" as="font" crossorigin>`)
+		b.WriteString(`<link rel="stylesheet" href="` + esc(sc.base+"/fonts.css") + `">`)
+	}
 	if s.assets.js != "" {
 		b.WriteString(`<script type="module" src="` + esc(s.assets.js) + `"></script>`)
 	}
@@ -434,6 +476,7 @@ func (s *Service) renderPage(ctx context.Context, sc *scope, id string) (string,
 		canonical = sc.origin + sc.href(id)
 	}
 	var b strings.Builder
+	sc.fontRef = sc.fontFor(id)
 	s.head(&b, sc, pageTitle, clip(desc, 200), canonical, image)
 	cls := "site"
 	if n.Cover != "" {
@@ -451,7 +494,7 @@ func (s *Service) renderPage(ctx context.Context, sc *scope, id string) (string,
 		wide = " data-wide"
 	}
 	for _, kv := range pagestyle.Merge(sc.wsStyle, n.Style).Attrs() {
-		if !strings.HasPrefix(kv[1], "f:") {
+		if !strings.HasPrefix(kv[1], "f:") || kv[1] == sc.fontFor(id) {
 			wide += ` data-style-` + kv[0] + `="` + esc(kv[1]) + `"`
 		}
 	}
