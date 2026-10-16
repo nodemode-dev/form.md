@@ -438,4 +438,10 @@
   .crumbs {
     padding-inline-start: 0;
   }
+
+  .topbar__actions [data-command="dock.toggle"],
+  .topbar__actions [data-command="shell.showShortcuts"],
+  .topbar__mode > span {
+    display: none;
+  }
 }
