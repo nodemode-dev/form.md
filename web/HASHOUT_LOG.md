@@ -1656,3 +1656,24 @@ Alignment is an attribute on paragraphs and headings only, empty for left so exi
 - logged: v0.18.0 · 2026-10-16
 
 The board is an SVG with a fixed viewBox, so its height is known from the first frame and pictures arriving later never move the page. `sync` keeps one foreignObject per card id and only rebuilds a card when its kind, picture, link or editability changes; a note's text is set in place unless the note has focus, and cards are reordered only when their order differs, so a focused note is never moved. A drag moves the card's attributes directly and commits once on release (the moved card goes last, which brings it to the front); `update` skips syncing while a drag is running. `pointerdown` calls preventDefault, because the block is draggable and the browser's native drag would otherwise cancel the pointer stream after a few pixels; a press that does not move focuses a note's text, and a link card still opens on click. New cards go to the first free spot on a 40-unit grid, or under everything with the board grown to fit. Pictures dropped on the board upload as page attachments and keep their aspect ratio. The public site stylesheet imports `board.css` and `annotate.css`.
+
+### src/ui/offline.ts and public/sw.js · recent pages and kept rows
+- refers-to: src/ui/offline.ts :: `keep`, `recentPages`, `refreshKept`, `registerOfflineCommands`; public/sw.js :: `apiRead`
+- kind: explainer
+- logged: v0.19.0 · 2026-10-16
+
+Keeping a database caches `?view=<id>&rows=1000` for every table and list view (and `?view=&rows=1000` for the default) and syncs the row pages of the first 1000 rows of the first view. Offline, `apiRead` answers a collection read that has no `rows` parameter from the `rows=1000` copy first, then the exact URL, then any variant. `refreshKept` adds the 20 most recent pages from `/api/recent` unless `formmd.offlineRecentOff` is set; the recent list comes from the server, so pages visited on another device are kept too. The `offline.recent` command registers when the service worker starts, so it is absent in browsers without one.
+
+### src/engine/commands.ts · mutates defaults to true
+- refers-to: src/engine/commands.ts :: `catalogue`; internal/claudecode/module.go (read-only check)
+- kind: rationale
+- logged: v0.19.0 · 2026-10-16
+
+The catalogue tells the server whether a command changes data, and a read-only MCP credential may run only commands marked as not changing anything. A command that forgets the flag is therefore listed as changing data, so the mistake fails closed. Every command declares the flag explicitly anyway; a command that only changes the view or local preferences of this window says `mutates: false`.
+
+### src/styles/shell.css and editor.css · phone width
+- refers-to: src/styles/shell.css (max-width 767px block); src/styles/editor.css :: `.code`
+- kind: rationale
+- logged: v0.19.0 · 2026-10-16
+
+At phone width the terminal and shortcut buttons are hidden (neither is usable on a touch screen) and the mode button keeps only its icon, its aria-label still naming the mode, so the page title in the top bar keeps room. `.code` is a grid whose implicit column sized to the longest line; `minmax(0, 1fr)` bounds it so `.code__pre` scrolls instead of widening the block.

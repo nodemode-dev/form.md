@@ -1895,3 +1895,10 @@ A board keeps its cards in one JSON attribute (`items`) plus a `height`, in boar
 
 Canva uses the design's `/view?embed` address, Behance `/embed/project/{id}`, Sketchfab `/models/{uid}/embed`, Pinterest the `assets.pinterest.com/ext/embed.html?id=` widget page and Apple Music the `embed.music.apple.com` host with the same path. The editor's table in `web/src/engine/doc/schema.ts` must list the same patterns.
 
+### internal/collection/module.go · rows on the collection read
+- refers-to: internal/collection/module.go (GET /api/collections/{id}, `rows`)
+- kind: rationale
+- logged: v0.19.0 · 2026-10-16
+
+The first page of a table or list view stays at 100 rows for the window, which loads the rest as it scrolls. `rows` (clamped to 1000, the query ceiling) exists for the offline keeper, which needs one cacheable GET per view because the service worker cannot cache the POST queries the table uses for later windows.
+
