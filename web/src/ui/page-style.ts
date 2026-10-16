@@ -3,6 +3,7 @@ import { t } from "../engine/i18n";
 import type { Unsubscribe } from "../engine/state";
 import type { PageStyle } from "../engine/types";
 import { setAttr } from "./dom";
+import { openPrompt } from "../extensions/blocks/popover";
 import { type MenuEntry, openMenu } from "./menu";
 
 type Key = keyof PageStyle;
@@ -79,6 +80,39 @@ async function uploadFont(engine: Engine, p: Page): Promise<void> {
   setStyle(engine, engine.pages.get(p.id) ?? p, { font: `f:${up.file.id}` });
 }
 
+async function saveFonts(engine: Engine, workspaceId: string, fonts: { file: string; family: string }[]): Promise<void> {
+  await engine.api.workspaces.update(workspaceId, { fonts });
+  await engine.refreshMe();
+  syncFonts(engine, workspaceId);
+}
+
+function renameFont(engine: Engine, anchor: HTMLElement, workspaceId: string, file: string, family: string): void {
+  openPrompt({
+    label: t("Rename this font..."),
+    placeholder: t("Font name"),
+    value: family,
+    action: t("Rename"),
+    rect: () => anchor.getBoundingClientRect(),
+    onSubmit: (raw) => {
+      const name = raw.replace(/[^\p{L}\p{N} ._-]+/gu, " ").trim().slice(0, 60);
+      if (!name || name === family) return;
+      const fonts = (engine.workspaceById(workspaceId)?.fonts ?? []).map((f) => (f.file === file ? { file: f.file, family: name } : f));
+      void saveFonts(engine, workspaceId, fonts).catch(engine.reportError);
+    },
+  });
+}
+
+async function removeFont(engine: Engine, p: Page, file: string): Promise<void> {
+  const fonts = (engine.workspaceById(p.workspace_id)?.fonts ?? []).filter((f) => f.file !== file);
+  if (p.style?.font === file) setStyle(engine, p, { font: "sans" });
+  const def = engine.workspaceById(p.workspace_id)?.page_style;
+  if (def?.font === file) {
+    const { font: _gone, ...rest } = def;
+    await engine.api.workspaces.update(p.workspace_id, { page_style: rest });
+  }
+  await saveFonts(engine, p.workspace_id, fonts);
+}
+
 export function openStyleMenu(engine: Engine, anchor: HTMLElement, p: Page): void {
   const cur = effectiveStyle(engine, p);
   const entries: MenuEntry[] = [];
@@ -92,6 +126,11 @@ export function openStyleMenu(engine: Engine, anchor: HTMLElement, p: Page): voi
     if (o.key === "font") {
       for (const f of ws?.fonts ?? []) entries.push({ label: f.family, checked: cur.font === f.file, run: () => setStyle(engine, p, { font: f.file as `f:${string}` }) });
       if (ws?.role === "admin") entries.push({ label: t("Upload a font..."), icon: "upload", run: () => void uploadFont(engine, p).catch(engine.reportError) });
+      const mine = ws?.role === "admin" ? ws.fonts?.find((f) => f.file === cur.font) : undefined;
+      if (mine) {
+        entries.push({ label: t("Rename this font..."), icon: "pencil", run: () => renameFont(engine, anchor, p.workspace_id, mine.file, mine.family) });
+        entries.push({ label: t("Remove this font from the workspace"), icon: "trash", danger: true, run: () => void removeFont(engine, p, mine.file).catch(engine.reportError) });
+      }
     }
   }
   entries.push({ kind: "separator" });
