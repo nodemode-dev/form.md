@@ -122,7 +122,7 @@ const media = (kind: "image" | "video" | "audio", n: PMNode): DOMOutputSpec => {
     return o;
   };
   if (kind === "image")
-    return ["figure", { class: "media media--image", ...blockAttr(n) }, ["div", { class: "media__frame" }, ["img", { src, alt: String(n.attrs.alt ?? ""), ...dims(), loading: "lazy", decoding: "async", draggable: "false" }]], caption];
+    return ["figure", { class: "media media--image", ...blockAttr(n), ...(n.attrs.marks ? { "data-marks": String(n.attrs.marks) } : {}) }, ["div", { class: "media__frame" }, ["img", { src, alt: String(n.attrs.alt ?? ""), ...dims(), loading: "lazy", decoding: "async", draggable: "false" }]], caption];
   if (kind === "video") return ["figure", { class: "media media--video", ...blockAttr(n) }, ["div", { class: "media__frame" }, ["video", { src, ...dims(), controls: "controls", preload: "metadata" }]], caption];
   return ["figure", { class: "media media--audio", ...blockAttr(n) }, ["audio", { src, controls: "controls", preload: "metadata" }], caption];
 };
@@ -137,6 +137,7 @@ const mediaParse = (kind: string) => ({
       caption: dom.querySelector("figcaption")?.textContent ?? "",
       w: Number(el?.getAttribute("width")) || null,
       h: Number(el?.getAttribute("height")) || null,
+      ...(kind === "image" && dom.dataset.marks ? { marks: dom.dataset.marks } : {}),
     };
   },
 });
@@ -361,7 +362,7 @@ const nodes: Record<string, NodeSpec> = {
     group: "block",
     atom: true,
     draggable: true,
-    attrs: { ...withId, src: { default: "" }, alt: { default: "" }, caption: { default: "" }, w: { default: null }, h: { default: null } },
+    attrs: { ...withId, src: { default: "" }, alt: { default: "" }, caption: { default: "" }, w: { default: null }, h: { default: null }, marks: { default: "" } },
     parseDOM: [
       mediaParse("image"),
       {

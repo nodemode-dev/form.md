@@ -1,0 +1,85 @@
+.media--image .media__frame {
+  position: relative;
+}
+
+.media__marks {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.media__marks[hidden] {
+  display: none;
+}
+
+.media__frame.is-annotating .media__marks {
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.media__annotate {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.media__annotate[hidden] {
+  display: none;
+}
+
+.media:hover .media__annotate,
+.media:focus-within .media__annotate,
+.ProseMirror-selectednode .media__annotate {
+  opacity: 1;
+}
+
+.media__frame.is-annotating .media__annotate {
+  visibility: hidden;
+}
+
+.annot__bar {
+  position: absolute;
+  inset-inline: var(--space-2);
+  inset-block-end: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
+}
+
+.annot__tool[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.annot__swatch {
+  inline-size: 20px;
+  block-size: 20px;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+.annot__swatch[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.annot__sep {
+  inline-size: 1px;
+  block-size: 18px;
+  margin-inline: var(--space-1);
+  background: var(--border);
+}

@@ -307,9 +307,14 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.kids(el)
 		w.b.WriteString("</" + tag + ">")
 	case "image":
-		w.open("figure", "class", "media media--image", "data-block", id)
+		notes := attrString(el, "marks")
+		if parseMarks(notes) == nil {
+			notes = ""
+		}
+		w.open("figure", "class", "media media--image", "data-block", id, "data-marks", notes)
 		w.b.WriteString(`<div class="media__frame">`)
 		w.open("img", "src", w.src(attrString(el, "src")), "alt", attrString(el, "alt"), "width", dim(el, "w"), "height", dim(el, "h"), "loading", "lazy", "decoding", "async", "draggable", "false")
+		w.b.WriteString(marksSVG(notes))
 		w.b.WriteString("</div>")
 		w.caption(attrString(el, "caption"))
 		w.b.WriteString("</figure>")

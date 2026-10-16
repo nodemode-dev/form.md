@@ -11,6 +11,7 @@ import { reconcile } from "../../ui/list";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { fallbackGlyph, paintIcon } from "../../ui/pageicon";
 import { openIconPicker } from "../../ui/pickers";
+import { marksSvg, paintMarks, parseMarks, startAnnotating } from "./annotate";
 import type { EditorCtx, Refreshable } from "./context";
 import { LANGUAGES, languageLabel } from "./languages";
 import { openLightbox } from "./lightbox";
@@ -611,6 +612,9 @@ class MediaView implements NodeView {
   private caption: HTMLElement;
   private pending: HTMLElement | null = null;
   private unwatch: (() => void) | null = null;
+  private marks: SVGSVGElement | null = null;
+  private annotateBtn: HTMLButtonElement | null = null;
+  private stopAnnotating: (() => void) | null = null;
 
   constructor(
     private node: PMNode,
@@ -635,8 +639,32 @@ class MediaView implements NodeView {
         const sel = this.view.state.selection;
         if (sel instanceof NodeSelection && sel.from === pos) openLightbox(String((this.el as HTMLImageElement).src), String(this.node.attrs.alt ?? ""));
       });
+      this.marks = marksSvg();
+      this.annotateBtn = h("button", { class: "btn btn--sm media__annotate", attrs: { type: "button", contenteditable: "false" }, text: t("Annotate") });
+      this.annotateBtn.addEventListener("click", () => this.annotate());
+      this.frame?.append(this.marks, this.annotateBtn);
     }
     this.paint();
+  }
+
+  annotate(): void {
+    if (this.stopAnnotating || !this.frame || !this.marks || !this.ctx.writable()) return;
+    this.stopAnnotating = startAnnotating(
+      {
+        frame: this.frame,
+        img: this.el as HTMLImageElement,
+        svg: this.marks,
+        read: () => parseMarks(this.node.attrs.marks),
+        write: (next) => {
+          const pos = this.getPos();
+          if (pos === undefined) return;
+          this.view.dispatch(this.view.state.tr.setNodeMarkup(pos, undefined, { ...this.node.attrs, marks: next ? JSON.stringify(next) : "" }));
+        },
+      },
+      () => {
+        this.stopAnnotating = null;
+      },
+    );
   }
 
   private remote(src: string): void {
@@ -679,6 +707,8 @@ class MediaView implements NodeView {
       setAttr(this.el, "width", this.node.attrs.w ? String(this.node.attrs.w) : null);
       setAttr(this.el, "height", this.node.attrs.h ? String(this.node.attrs.h) : null);
     }
+    if (this.marks && !this.stopAnnotating) paintMarks(this.marks, parseMarks(this.node.attrs.marks));
+    if (this.annotateBtn && this.annotateBtn.hidden === this.ctx.writable()) this.annotateBtn.hidden = !this.ctx.writable();
     setText(this.caption, String(this.node.attrs.caption ?? ""));
   }
 
@@ -691,11 +721,15 @@ class MediaView implements NodeView {
 
   stopEvent(e: Event): boolean {
     if (this.pending?.contains(e.target as Node) && (e.target as Element).closest?.("button")) return true;
+    const target = e.target as Element;
+    if (target.closest?.(".media__annotate, .annot__bar")) return true;
+    if (this.stopAnnotating && this.marks?.contains(target)) return true;
     return this.node.type.name !== "image" && (e.target as Node) === this.el && e.type !== "dragstart";
   }
 
   destroy(): void {
     this.unwatch?.();
+    this.stopAnnotating?.();
   }
 
   ignoreMutation(): boolean {
