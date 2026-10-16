@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.19.0
-Last updated: 2026-10-16 · v0.19.0: offline by default, phone width, command metadata; v0.18.0: the board block; v0.17.0: custom fonts, typewriter scrolling; v0.16.0: image annotations, block alignment; v0.15.0: page styles, focus mode, word counts; v0.14.1: the vector canvas engine removed; Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages
+Current build version: v0.20.0
+Last updated: 2026-10-16 · v0.20.0: alignment on public pages, align.css; v0.19.0: offline by default, phone width, command metadata; v0.18.0: the board block; v0.17.0: custom fonts, typewriter scrolling; v0.16.0: image annotations, block alignment; v0.15.0: page styles, focus mode, word counts; v0.14.1: the vector canvas engine removed; Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages
 
 ---
 
