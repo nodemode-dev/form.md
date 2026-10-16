@@ -20,6 +20,35 @@ import type {
 
 const OUTBOX_KEY = "formmd.rowOutbox";
 const DELETE_KEY = "formmd.rowDeletes";
+const CREATE_KEY = "formmd.rowCreates";
+
+interface CreateEntry {
+  col: string;
+  body: { id: string; title?: string; values?: Record<string, unknown>; before_id?: string; after_id?: string; top?: boolean };
+  at: number;
+}
+
+function newRowId(): string {
+  const abc = "abcdefghijklmnopqrstuvwxyz234567";
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  let bits = 0;
+  let acc = 0;
+  let out = "";
+  for (const b of bytes) {
+    acc = (acc << 8) | b;
+    bits += 8;
+    while (bits >= 5) {
+      out += abc[(acc >> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) out += abc[(acc << (5 - bits)) & 31];
+  return out;
+}
+
+function localRow(id: string, c: CreateEntry): RowData {
+  return { id, title: c.body.title ?? "", icon: "", sort_key: "", values: (c.body.values ?? {}) as RowData["values"], number: 0, version: 0, created_at: c.at, created_by: "", updated_at: c.at, updated_by: "" };
+}
 
 interface OutboxEntry {
   col: string;
@@ -127,7 +156,17 @@ export class QuerySession {
     this.epoch = r.epoch;
     if (!r.groups && !r.lanes) {
       const order = r.order.filter((id) => !this.store.deletedLocally(id));
-      this.total = r.total - (r.order.length - order.length);
+      const removed = r.order.length - order.length;
+      let added = 0;
+      if (offset + r.order.length >= r.total) {
+        for (const row of this.store.localRows(this.collectionId)) {
+          if (order.includes(row.id)) continue;
+          this.rows.set(row.id, row);
+          order.push(row.id);
+          added += 1;
+        }
+      }
+      this.total = r.total - removed + added;
       if (this.slots.length !== this.total) this.slots.length = this.total;
       order.forEach((id, i) => {
         this.slots[offset + i] = id;
@@ -313,6 +352,16 @@ export class QuerySession {
     else this.emit({ kind: "rows", ids: changed.length ? changed.filter((id) => this.rows.has(id)) : r.order });
   }
 
+  insertLocal(row: RowData, top: boolean): void {
+    this.rows.set(row.id, row);
+    if (!this.groups && !this.lanes) {
+      if (top) this.slots.unshift(row.id);
+      else this.slots.push(row.id);
+      this.total += 1;
+    }
+    this.emit({ kind: "reset" });
+  }
+
   hide(ids: string[]): void {
     const gone = new Set(ids);
     const before = this.slots.length;
@@ -360,6 +409,7 @@ export class CollectionStore {
   private replaying: Promise<void> | null = null;
   private box: Record<string, OutboxEntry> | null = null;
   private dels: Record<string, string> | null = null;
+  private made: Record<string, CreateEntry> | null = null;
   onQueued: ((count: number) => void) | null = null;
 
   constructor(
@@ -648,7 +698,7 @@ export class CollectionStore {
   }
 
   queued(): number {
-    return Object.keys(this.outbox()).length + Object.keys(this.deletes()).length;
+    return Object.keys(this.outbox()).length + Object.keys(this.deletes()).length + Object.keys(this.creates()).length;
   }
 
   overlay(row: RowData): RowData {
@@ -667,8 +717,23 @@ export class CollectionStore {
     if (this.replaying) return this.replaying;
     this.replaying = (async () => {
       const box = this.outbox();
-      const ids = Object.keys(box).sort((a, b) => (box[a]?.at ?? 0) - (box[b]?.at ?? 0));
       let offline = false;
+      const made = this.creates();
+      for (const [id, c] of Object.entries(made).sort(([, a], [, b]) => a.at - b.at)) {
+        try {
+          const r = await this.api.collections.createRow(c.col, c.body);
+          for (const s of this.sessions) if (s.collectionId === c.col) s.scheduleRefresh([r.row.id]);
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 0) {
+            offline = true;
+            break;
+          }
+          this.onError(e);
+        }
+        delete made[id];
+        this.saveCreates();
+      }
+      const ids = offline ? [] : Object.keys(box).sort((a, b) => (box[a]?.at ?? 0) - (box[b]?.at ?? 0));
       for (const rowId of ids) {
         const q = box[rowId];
         if (!q) continue;
@@ -721,9 +786,53 @@ export class CollectionStore {
   }
 
   async createRow(colId: string, body: { title?: string; values?: Record<string, unknown>; before_id?: string; after_id?: string; top?: boolean } = {}): Promise<RowData> {
-    const r = await this.api.collections.createRow(colId, body);
+    let r: { row: RowData };
+    try {
+      r = await this.api.collections.createRow(colId, body);
+    } catch (e) {
+      if (!(e instanceof ApiError && e.status === 0)) throw e;
+      const id = newRowId();
+      const creates = this.creates();
+      creates[id] = { col: colId, body: { ...body, id }, at: Date.now() };
+      this.saveCreates();
+      const row = localRow(id, creates[id]!);
+      setTimeout(() => {
+        for (const s of this.sessions) if (s.collectionId === colId) s.insertLocal(row, !!body.top);
+      }, 0);
+      this.onQueued?.(this.queued());
+      return row;
+    }
     for (const s of this.sessions) if (s.collectionId === colId) s.scheduleRefresh([r.row.id]);
     return r.row;
+  }
+
+  private creates(): Record<string, CreateEntry> {
+    if (!this.made) {
+      try {
+        const v = JSON.parse(localStorage.getItem(CREATE_KEY) ?? "{}");
+        this.made = v && typeof v === "object" ? (v as Record<string, CreateEntry>) : {};
+      } catch {
+        this.made = {};
+      }
+    }
+    return this.made;
+  }
+
+  private saveCreates(): void {
+    try {
+      const c = this.creates();
+      if (Object.keys(c).length) localStorage.setItem(CREATE_KEY, JSON.stringify(c));
+      else localStorage.removeItem(CREATE_KEY);
+    } catch {
+      return;
+    }
+  }
+
+  localRows(colId: string): RowData[] {
+    return Object.entries(this.creates())
+      .filter(([, c]) => c.col === colId)
+      .sort(([, a], [, b]) => a.at - b.at)
+      .map(([id, c]) => this.overlay(localRow(id, c)));
   }
 
   async deleteRows(colId: string, ids: string[]): Promise<void> {
@@ -733,10 +842,13 @@ export class CollectionStore {
       if (!(e instanceof ApiError && e.status === 0)) throw e;
       const dels = this.deletes();
       const box = this.outbox();
+      const made = this.creates();
       for (const id of ids) {
-        dels[id] = colId;
+        if (made[id]) delete made[id];
+        else dels[id] = colId;
         delete box[id];
       }
+      this.saveCreates();
       this.saveDeletes();
       this.saveOutbox(box);
       for (const s of this.sessions) if (s.collectionId === colId) s.hide(ids);

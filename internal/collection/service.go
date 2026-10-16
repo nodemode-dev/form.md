@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -797,7 +798,11 @@ type RowInput struct {
 	Top      bool                       `json:"top"`
 	Template string                     `json:"template_id"`
 	template bool
+
+	ID string `json:"id"`
 }
+
+var clientRowID = regexp.MustCompile(`^[a-z2-7]{26}$`)
 
 type RowPatch struct {
 	Title    *string                    `json:"title"`
@@ -1102,6 +1107,21 @@ func (s *Service) CreateRow(ctx context.Context, p *policy.Principal, collection
 	if in.Template != "" {
 		return s.fromTemplate(ctx, p, m, in)
 	}
+	if in.ID != "" {
+		if !clientRowID.MatchString(in.ID) {
+			return nil, httpx.Fail(http.StatusBadRequest, "bad_id", "a row id is 26 lowercase letters a to z and digits 2 to 7")
+		}
+		if col, err := s.RowCollection(ctx, in.ID); err == nil {
+			if col != collectionID {
+				return nil, httpx.Fail(http.StatusConflict, "id_taken", "that id is already used")
+			}
+			return s.rowOut(ctx, p, collectionID, in.ID)
+		}
+		var n int
+		if s.st.R.QueryRowContext(ctx, "SELECT COUNT(*) FROM pages WHERE id = ?", in.ID).Scan(&n) == nil && n > 0 {
+			return nil, httpx.Fail(http.StatusConflict, "id_taken", "that id is already used")
+		}
+	}
 	id, err := s.createRow(ctx, p, m, in, p.UserID)
 	if err != nil {
 		return nil, err
@@ -1113,6 +1133,9 @@ func (s *Service) createRow(ctx context.Context, p *policy.Principal, m *page.Me
 	collectionID := m.ID
 	nc := s.normCtx(ctx, m.WorkspaceID)
 	id := ids.New()
+	if in.ID != "" {
+		id = in.ID
+	}
 	touched := map[string]map[string]bool{collectionID: {id: true}}
 	schemaChanged := false
 	err := s.st.Tx(ctx, func(tx *sql.Tx) error {
