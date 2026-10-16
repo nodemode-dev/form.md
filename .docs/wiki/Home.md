@@ -2,7 +2,7 @@
 
 form.md is a self-hosted workspace where people and AI agents write documents, run databases and edit together in realtime. It ships as one static Go binary (`form-md`) with the TypeScript web client embedded, and it keeps everything in one data directory: a SQLite database (`form-md.db`), the uploaded files and a few small key files. There is no separate database server, cache or object store. The server holds the collaborative document itself, so an agent writing through MCP or the REST API merges with what a person is typing. This wiki is for the people who install and run an instance and for the people who change its code.
 
-**Current version:** v0.14.0 (terminal, Claude Code and its chat inside the app, window commands for agents, 26 languages; v0.13.0 brought context packs and agent connections, v0.12.0 the visual data views, v0.11.0 encryption, ACME, operations commands, offline start and the installer) · **Stack:** Go 1.26, pure-Go SQLite, vanilla TypeScript and Vite, ProseMirror and Yjs · **Team:** one owner (nodemode-ai)
+**Current version:** v0.14.1 (v0.14.0 brought the terminal, Claude Code and its chat inside the app, window commands for agents, 26 languages; v0.13.0 brought context packs and agent connections, v0.12.0 the visual data views, v0.11.0 encryption, ACME, operations commands, offline start and the installer) · **Stack:** Go 1.26, pure-Go SQLite, vanilla TypeScript and Vite, ProseMirror and Yjs · **Team:** one owner (nodemode-ai)
 
 ## Status at a glance
 
