@@ -154,7 +154,7 @@ export const CATALOG: CatalogEntry[] = [
     label: () => t("Embed"),
     section: LINKS,
     icon: "globe",
-    keywords: "embed iframe youtube vimeo loom figma miro codepen codesandbox spotify soundcloud google docs drive maps airtable typeform excalidraw tiktok website",
+    keywords: "embed iframe youtube vimeo loom figma miro codepen codesandbox spotify soundcloud google docs drive maps airtable typeform excalidraw tiktok canva behance sketchfab pinterest apple music website",
     run: (view, ctx) => askUrl(view, t("Embed"), t("Paste any link to show it inside the page"), (url) => void embedFor(ctx, url).then((node) => insertBlock(view, node))),
   },
   {

@@ -50,6 +50,13 @@ var providers = []provider{
 	{"airtable", regexp.MustCompile(`^https://airtable\.com/(?:embed/)?((?:app\w{10,20}/)?shr\w{10,20})`), func(m []string, _ string) string { return "https://airtable.com/embed/" + m[1] }, 533},
 	{"typeform", regexp.MustCompile(`^https://[\w-]{1,60}\.typeform\.com/to/[A-Za-z0-9]{4,20}`), func(m []string, _ string) string { return m[0] }, 500},
 	{"excalidraw", regexp.MustCompile(`^https://excalidraw\.com/`), func(_ []string, raw string) string { return raw }, 500},
+	{"canva", regexp.MustCompile(`^https://(?:www\.)?canva\.com/design/([\w-]{8,20})/([\w-]{8,40})/`), func(m []string, _ string) string {
+		return "https://www.canva.com/design/" + m[1] + "/" + m[2] + "/view?embed"
+	}, 480},
+	{"behance", regexp.MustCompile(`^https://(?:www\.)?behance\.net/gallery/(\d{5,12})`), func(m []string, _ string) string { return "https://www.behance.net/embed/project/" + m[1] + "?ilo0=1" }, 520},
+	{"sketchfab", regexp.MustCompile(`^https://sketchfab\.com/(?:3d-models/[\w-]*?-?|models/)([a-f0-9]{32})`), func(m []string, _ string) string { return "https://sketchfab.com/models/" + m[1] + "/embed" }, 480},
+	{"pinterest", regexp.MustCompile(`^https://(?:[a-z]{2,3}\.|www\.)?pinterest\.[a-z.]{2,6}/pin/(\d{6,25})`), func(m []string, _ string) string { return "https://assets.pinterest.com/ext/embed.html?id=" + m[1] }, 620},
+	{"applemusic", regexp.MustCompile(`^https://music\.apple\.com/([a-z]{2}/(?:album|playlist|song|music-video)/[^?#\s"<>]{1,200})`), func(m []string, _ string) string { return "https://embed.music.apple.com/" + m[1] }, 450},
 }
 
 const webHeight = 480

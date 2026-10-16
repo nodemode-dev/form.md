@@ -79,6 +79,11 @@ const PROVIDERS: Provider[] = [
   { id: "airtable", re: /^https:\/\/airtable\.com\/(?:embed\/)?((?:app\w{10,20}\/)?shr\w{10,20})/, src: (m) => `https://airtable.com/embed/${m[1]}`, height: 533 },
   { id: "typeform", re: /^https:\/\/[\w-]{1,60}\.typeform\.com\/to\/[A-Za-z0-9]{4,20}/, src: (m) => m[0], height: 500 },
   { id: "excalidraw", re: /^https:\/\/excalidraw\.com\//, src: (_m, url) => url, height: 500 },
+  { id: "canva", re: /^https:\/\/(?:www\.)?canva\.com\/design\/([\w-]{8,20})\/([\w-]{8,40})\//, src: (m) => `https://www.canva.com/design/${m[1]}/${m[2]}/view?embed`, height: 480 },
+  { id: "behance", re: /^https:\/\/(?:www\.)?behance\.net\/gallery\/(\d{5,12})/, src: (m) => `https://www.behance.net/embed/project/${m[1]}?ilo0=1`, height: 520 },
+  { id: "sketchfab", re: /^https:\/\/sketchfab\.com\/(?:3d-models\/[\w-]*?-?|models\/)([a-f0-9]{32})/, src: (m) => `https://sketchfab.com/models/${m[1]}/embed`, height: 480 },
+  { id: "pinterest", re: /^https:\/\/(?:[a-z]{2,3}\.|www\.)?pinterest\.[a-z.]{2,6}\/pin\/(\d{6,25})/, src: (m) => `https://assets.pinterest.com/ext/embed.html?id=${m[1]}`, height: 620 },
+  { id: "applemusic", re: /^https:\/\/music\.apple\.com\/([a-z]{2}\/(?:album|playlist|song|music-video)\/[^?#\s"<>]{1,200})/, src: (m) => `https://embed.music.apple.com/${m[1]}`, height: 450 },
 ];
 
 const WEB_HEIGHT = 480;
