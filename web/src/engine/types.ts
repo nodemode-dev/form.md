@@ -1096,6 +1096,7 @@ export type LiveEvent =
   | { type: "workspace"; seq: number; workspace_id: string; what: string }
   | { type: "user"; seq: number; what: string }
   | { type: "comments"; seq: number; workspace_id: string; page_id: string }
+  | { type: "command.run"; seq: number; call_id: string; id: string; params: Record<string, unknown> }
   | { type: "collection"; seq: number; workspace_id: string; collection_id: string; what: "rows" | "schema" | "views"; ids?: string[]; epoch: number };
 
 export interface Member {

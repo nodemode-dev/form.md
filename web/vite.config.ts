@@ -55,6 +55,17 @@ export default defineConfig({
     host: false,
     strictPort: true,
     proxy: {
+      "/api/terminal": {
+        target: BACKEND,
+        ws: true,
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("proxyReqWs", (req) => req.setHeader("origin", BACKEND));
+          proxy.on("proxyReq", (req) => {
+            if (req.getHeader("origin")) req.setHeader("origin", BACKEND);
+          });
+        },
+      },
       "/api": toBackend,
       "/healthz": toBackend,
       "/notices": toBackend,

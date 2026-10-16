@@ -43,6 +43,7 @@ func (s *Server) register() {
 		Description: "The recent runs of this person's agents with the number of changes in each; undo_run reverts one.",
 		Props:       map[string]any{"limit": intp("Up to 100, default 20")}, Run: s.listRuns})
 	s.registerContext()
+	s.registerWindow()
 	s.registerWrites()
 }
 

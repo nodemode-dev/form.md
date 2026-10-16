@@ -8,6 +8,7 @@ import database from "./extensions/database";
 import { loadDatabase } from "./extensions/database/load";
 import pagesExtension from "./extensions/pages";
 import { activateAll, register } from "./extensions/registry";
+import harness from "./extensions/harness";
 import shell from "./extensions/shell";
 import { mountUI, platformAdapter, storageAdapter } from "./ui/app";
 import { mountAuth } from "./ui/auth";
@@ -103,6 +104,7 @@ async function start(): Promise<void> {
   register(pagesExtension);
   register(blocks);
   register(database);
+  register(harness);
   activateAll(engine);
   if (auth === "form" || boot.collection || boot.row || document.querySelector("[data-ref='doc-body'] .dbblock")) await loadDatabase().catch(() => undefined);
   mountUI(engine);

@@ -23,6 +23,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/auditapi"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/automation"
+	"github.com/nodemode-ai/form.md/internal/claudecode"
 	"github.com/nodemode-ai/form.md/internal/collection"
 	"github.com/nodemode-ai/form.md/internal/comment"
 	"github.com/nodemode-ai/form.md/internal/config"
@@ -156,7 +157,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	}
 	packer := contextpack.New(contextpack.Deps{Store: st, Gate: gate, Pages: pages, Docs: docs, Search: finder, Policy: packPolicy, Log: log})
 	runs.Handle(contextpack.UndoKind, packer.Undo)
-	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Context: packer, Skill: skill, Version: app.Version, Log: log})
+	harness := claudecode.New(authSvc, hub, cfg.Addr, cfg.DataDir)
+	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Context: packer, Skill: skill, Window: harness, Version: app.Version, Log: log})
 	crew := agent.New(agent.Deps{Store: st, Auth: authSvc, Gate: gate, AI: brain, Tools: agents, Docs: docs, Cols: cols, Runs: runs, Context: packer, Log: log})
 	hooks.OnEvent(crew.OnEvent)
 	flows := automation.New(automation.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Cols: cols, Inbox: notes, Mail: mailer, Hooks: hooks, Box: box, Public: func() string { return set.Get("instance.public_url") }, Log: log})
@@ -242,6 +244,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		brain.Module(authSvc, pageText),
 		filler.Module(),
 		crew.Module(),
+		harness.Module(),
 		flows.Module(),
 		feed.New(st, authSvc, cols, docs, comments).Module(),
 		templates.New(st, authSvc, gate, pages, docs, cols).Module(),

@@ -51,6 +51,7 @@ type Deps struct {
 	Runs      *agentrun.Service
 	Context   *contextpack.Service
 	Skill     fs.FS
+	Window    Window
 	Version   string
 	Log       *slog.Logger
 }

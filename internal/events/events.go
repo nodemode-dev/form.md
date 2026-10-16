@@ -100,6 +100,10 @@ func (h *Hub) User(userID, what string) {
 	h.publish(Event{Type: "user", User: userID, Data: map[string]any{"what": what}})
 }
 
+func (h *Hub) Send(userID, kind string, data map[string]any) {
+	h.publish(Event{Type: kind, User: userID, Data: data})
+}
+
 func (h *Hub) Online(userID string) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()

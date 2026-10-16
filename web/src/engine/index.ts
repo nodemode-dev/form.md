@@ -1,4 +1,4 @@
-import type { FetchFn } from "./api";
+import { type FetchFn, request } from "./api";
 import { type Client, createClient } from "./client";
 import { CollectionStore } from "./collections";
 import { CommentStore } from "./comments";
@@ -165,6 +165,10 @@ export function createEngine(deps: EngineDeps): Engine {
 
   const commands = new Commands();
   const keymap = new Keymap(commands, deps.platform.mac);
+  commands.keysOf = (id) => {
+    const keys = keymap.chordFor(id);
+    return keys ? [keys.join("+")] : [];
+  };
   const health = new HealthMonitor(
     deps.fetch,
     {
@@ -289,6 +293,14 @@ export function createEngine(deps: EngineDeps): Engine {
   let queue: LiveEvent[] = [];
   let needsLoad = false;
   const dispatch = (e: LiveEvent) => {
+    if (e.type === "command.run") {
+      const answer = (body: { result?: unknown; error?: string }) => request(deps.fetch, "POST", "/api/commands/result", { call_id: e.call_id, ...body }).catch(reportError);
+      void commands.invoke(e.id, e.params ?? {}).then(
+        (result) => answer({ result }),
+        (err: unknown) => answer({ error: err instanceof Error ? err.message : String(err) }),
+      );
+      return;
+    }
     pages.apply(e);
     collections.apply(e);
     comments.apply(e);
