@@ -1902,6 +1902,13 @@ Canva uses the design's `/view?embed` address, Behance `/embed/project/{id}`, Sk
 
 The client imports remote media only while a writable editor has the page open, so pages written by agents or the API kept remote pictures, which public pages and exports render as links. After a successful write the server imports up to 20 remote image srcs in a goroutine, as the writing principal (so the usual file authorization applies), and swaps them in one transaction. The fragment must be taken before `Transact`: calling `r.fragment()` inside a transaction locks the ygo document again and deadlocks the room. The importer is a function set from server.go so `doc` does not import `files`.
 
+### internal/doc/blocks.go · person_editing guard
+- refers-to: internal/doc/blocks.go :: `room.personIn`, `personTyping`, `editor.guard`, `replace`, `delete`; internal/doc/service.go :: `Write` (replace mode)
+- kind: rationale
+- logged: v0.21.0 · 2026-10-16
+
+Inserts merge with typing, but a replace deletes and recreates the block, so it can lose keystrokes. The guard applies only to non-session principals (tokens and OAuth clients, which is how agents write) so a person's own browser and the undo of an agent run are never refused. It reads the `blocks` field of every awareness entry in the room; entries leave the room when their connection closes, so a stale cursor cannot block an agent for long. An empty block id means "anyone in this page", used for a whole-body replace.
+
 ### internal/claudecode/bridge.go · CommandSpec decode
 - refers-to: internal/claudecode/bridge.go :: `CommandSpec.UnmarshalJSON`
 - kind: rationale

@@ -17,6 +17,7 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 | Image annotations, per-block alignment | Working since v0.16.0; checked in Chrome under CPU and network throttling |
 | Custom workspace fonts, typewriter scrolling | Working since v0.17.0; checked in Chrome under CPU and network throttling |
 | Board block, five creative embed providers, pictures on fresh public pages | Working since v0.18.0; checked in Chrome under CPU and network throttling |
+| Phone block toolbar, renaming and removing uploaded fonts, the person_editing guard for agent replaces | Working since v0.21.0; checked in Chrome under CPU throttling · see [[API-and-agents]] |
 | Recent pages kept offline, 1000-row offline databases, phone-width top bar and code blocks, described window commands | Working since v0.19.0; checked in Chrome · see [[Offline]] and [[Data-views]] |
 | Interface and mail in 26 languages | Since v0.14.0; es-MX and fr-CA want a native read |
 | At-rest encryption, `form-md encrypt` | Working since v0.11.0, independently audited · see [[Encryption]] |

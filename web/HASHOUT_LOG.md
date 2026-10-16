@@ -1664,6 +1664,27 @@ The board is an SVG with a fixed viewBox, so its height is known from the first 
 
 Keeping a database caches `?view=<id>&rows=1000` for every table and list view (and `?view=&rows=1000` for the default) and syncs the row pages of the first 1000 rows of the first view. Offline, `apiRead` answers a collection read that has no `rows` parameter from the `rows=1000` copy first, then the exact URL, then any variant. `refreshKept` adds the 20 most recent pages from `/api/recent` unless `formmd.offlineRecentOff` is set; the recent list comes from the server, so pages visited on another device are kept too. The `offline.recent` command registers when the service worker starts, so it is absent in browsers without one.
 
+### src/extensions/blocks/handle.ts · phone block toolbar
+- refers-to: src/extensions/blocks/handle.ts :: `BlockHandle` (phone bar, `caretBlock`, `moveCaretBlock`, `menu(anchor)`); styles/editor.css (.block-phonebar)
+- kind: explainer
+- logged: v0.21.0 · 2026-10-16
+
+The hover handle is useless on touch, so at 720px and below a toolbar shows while the editor has focus, chosen purely in CSS (`:has(.ProseMirror-focused)`), so no script toggles it. It sits at `--keyboard-h` from the bottom, the height the visualViewport says the on-screen keyboard covers. Buttons prevent default on pointerdown so the editor keeps focus and the keyboard stays up; each click first points the handle's target at the block holding the cursor. The bar stays while its own menu is open (`:has([aria-expanded="true"])`), because the menu stays anchored to the button. The focused editor gets bottom padding the height of the bar so the last line is never under it.
+
+### src/extensions/blocks/editor.ts · block presence for the agent guard
+- refers-to: src/extensions/blocks/editor.ts :: `plugins` (formmd-presence); internal/doc/blocks.go :: `personIn`
+- kind: explainer
+- logged: v0.21.0 · 2026-10-16
+
+The editor writes the ids of every block around the cursor (outermost first) into its awareness state as `blocks`, only when they change, and clears them on blur; a focus event dispatches an empty transaction so the ids come back. The server reads them to refuse agent replaces and deletes of a block a person is in.
+
+### src/ui/page-style.ts · renaming and removing fonts
+- refers-to: src/ui/page-style.ts :: `renameFont`, `removeFont`, `saveFonts`
+- kind: explainer
+- logged: v0.21.0 · 2026-10-16
+
+The entries show only for admins and only when the page uses an uploaded font, so they always act on a font the person can see. Removing switches this page to Sans and drops the font from the workspace default style before saving the shorter list; other pages that used it fall back to the default face because the generated stylesheet no longer has a rule for it.
+
 ### src/engine/commands.ts · mutates defaults to true
 - refers-to: src/engine/commands.ts :: `catalogue`; internal/claudecode/module.go (read-only check)
 - kind: rationale

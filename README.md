@@ -25,6 +25,8 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 - **Image annotations** · arrows, boxes, ellipses, freehand lines & text drawn over any picture in a page, kept editable, synced live & present in the first frame, public pages & HTML export
 - **Block alignment** · left, centred, right or justified per paragraph & heading from the format bar
 - **Boards** · a moodboard block where pictures, notes & link cards sit anywhere on a dotted surface; drop pictures straight onto it, drag & resize cards, & the board scales w/ the column on public pages too
+- **Phone editing** · a block toolbar above the on-screen keyboard to add, move, turn into, duplicate & delete blocks
+- **Agents never overwrite your typing** · an agent's replace or delete of the block you are typing in is refused until you move on, & inserts merge live
 - **Offline by default** · the 20 pages & databases you opened most recently are kept on the device w/o marking them, & a database kept offline keeps up to 1000 rows & their row pages
 - **Creative embeds** · Canva, Behance, Sketchfab, Pinterest & Apple Music join Figma, Miro, YouTube, Vimeo, Spotify, SoundCloud, Google Docs & Maps & the rest; pictures on freshly published pages load at once
 - **Writing tools** · focus mode that hides everything but the text & keeps the line you type mid-screen, live word, character & reading-time counts for the page, the selection or the paragraph, & an option that keeps the slash menu out of sentences
