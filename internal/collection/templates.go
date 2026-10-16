@@ -20,8 +20,9 @@ func badTemplate(msg string) error { return httpx.Fail(http.StatusBadRequest, "b
 
 func (s *Service) templates(ctx context.Context, collectionID string) ([]TemplateRef, string) {
 	out := []TemplateRef{}
-	rows, err := s.st.R.QueryContext(ctx, `SELECT p.id, p.title, p.icon FROM collection_rows r JOIN pages p ON p.id = r.page_id
-		WHERE r.collection_id = ? AND p.is_template = 1 AND p.trashed_at = 0 ORDER BY p.sort_key, p.id`, collectionID)
+	rows, err := s.st.R.QueryContext(ctx, `SELECT p.id, p.title, p.icon FROM pages p CROSS JOIN collection_rows r ON r.page_id = p.id
+		WHERE p.workspace_id = (SELECT workspace_id FROM pages WHERE id = ?) AND p.is_template = 1 AND r.collection_id = ? AND p.trashed_at = 0
+		ORDER BY p.sort_key, p.id`, collectionID, collectionID)
 	if err == nil {
 		for rows.Next() {
 			var t TemplateRef
