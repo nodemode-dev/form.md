@@ -47,6 +47,12 @@ export interface Workspace {
   ai_enabled?: boolean;
   page_style?: PageStyle;
   fonts?: WorkspaceFont[];
+  style_presets?: StylePreset[];
+}
+
+export interface StylePreset {
+  name: string;
+  style: PageStyle;
 }
 
 export interface WorkspaceFont {

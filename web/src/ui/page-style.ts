@@ -1,7 +1,7 @@
 import type { Engine, Page } from "../engine";
 import { t } from "../engine/i18n";
 import type { Unsubscribe } from "../engine/state";
-import type { PageStyle } from "../engine/types";
+import type { PageStyle, StylePreset } from "../engine/types";
 import { setAttr } from "./dom";
 import { openPrompt } from "../extensions/blocks/popover";
 import { type MenuEntry, openMenu } from "./menu";
@@ -113,6 +113,37 @@ async function removeFont(engine: Engine, p: Page, file: string): Promise<void> 
   await saveFonts(engine, p.workspace_id, fonts);
 }
 
+async function savePresets(engine: Engine, workspaceId: string, list: StylePreset[]): Promise<void> {
+  await engine.api.workspaces.update(workspaceId, { style_presets: list });
+  await engine.refreshMe();
+}
+
+function savePreset(engine: Engine, anchor: HTMLElement, p: Page): void {
+  openPrompt({
+    label: t("Save this style..."),
+    placeholder: t("Style name"),
+    action: t("Save"),
+    rect: () => anchor.getBoundingClientRect(),
+    onSubmit: (raw) => {
+      const name = raw.trim().slice(0, 60);
+      if (!name) return;
+      const list = (engine.workspaceById(p.workspace_id)?.style_presets ?? []).filter((x) => x.name.toLowerCase() !== name.toLowerCase());
+      void savePresets(engine, p.workspace_id, [...list, { name, style: effectiveStyle(engine, p) }]).catch(engine.reportError);
+    },
+  });
+}
+
+function removePresetMenu(engine: Engine, anchor: HTMLElement, p: Page): void {
+  const list = engine.workspaceById(p.workspace_id)?.style_presets ?? [];
+  const entries: MenuEntry[] = list.map((s) => ({
+    label: s.name,
+    icon: "trash",
+    danger: true,
+    run: () => void savePresets(engine, p.workspace_id, list.filter((x) => x !== s)).catch(engine.reportError),
+  }));
+  openMenu(anchor, entries, { side: "bottom", align: "end", label: t("Remove a saved style...") });
+}
+
 export function openStyleMenu(engine: Engine, anchor: HTMLElement, p: Page): void {
   const cur = effectiveStyle(engine, p);
   const entries: MenuEntry[] = [];
@@ -132,6 +163,13 @@ export function openStyleMenu(engine: Engine, anchor: HTMLElement, p: Page): voi
         entries.push({ label: t("Remove this font from the workspace"), icon: "trash", danger: true, run: () => void removeFont(engine, p, mine.file).catch(engine.reportError) });
       }
     }
+  }
+  const presets = ws?.style_presets ?? [];
+  if (presets.length || ws?.role === "admin") entries.push({ kind: "heading", label: t("Saved styles") });
+  for (const s of presets) entries.push({ label: s.name, icon: "text", run: () => engine.pages.edit(p.id, { style: { ...s.style } }, false) });
+  if (ws?.role === "admin") {
+    entries.push({ label: t("Save this style..."), icon: "plus", run: () => savePreset(engine, anchor, p) });
+    if (presets.length) entries.push({ label: t("Remove a saved style..."), icon: "trash", run: () => requestAnimationFrame(() => removePresetMenu(engine, anchor, p)) });
   }
   entries.push({ kind: "separator" });
   entries.push({ label: t("Reset this page to the workspace style"), run: () => engine.pages.edit(p.id, { style: {} }, false) });

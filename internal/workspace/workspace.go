@@ -107,23 +107,26 @@ type Workspace struct {
 
 	PageStyle json.RawMessage  `json:"page_style,omitempty"`
 	Fonts     []pagestyle.Font `json:"fonts,omitempty"`
+
+	StylePresets []pagestyle.Preset `json:"style_presets,omitempty"`
 }
 
 const wsColumns = `w.id, w.name, w.icon, w.image, w.personal, w.auto_join, w.sidebar_mode, w.agent_access,
 	w.rules != '', w.rules_proposal != '', COALESCE(w.owner_id, ''), w.rules_updated_at,
-	(SELECT COUNT(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id), w.ai_enabled, w.page_style, w.fonts`
+	(SELECT COUNT(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id), w.ai_enabled, w.page_style, w.fonts, w.style_presets`
 
 func scanWorkspace(row interface{ Scan(...any) error }, extra ...any) (*Workspace, error) {
 	w := &Workspace{}
 	var personal, autoJoin, hasRules, proposal, aiOn int
-	var pageStyle, fonts string
+	var pageStyle, fonts, presets string
 	dest := append([]any{&w.ID, &w.Name, &w.Icon, &w.Image, &personal, &autoJoin, &w.SidebarMode, &w.AgentAccess,
-		&hasRules, &proposal, &w.OwnerID, &w.RulesUpdatedAt, &w.MemberCount, &aiOn, &pageStyle, &fonts}, extra...)
+		&hasRules, &proposal, &w.OwnerID, &w.RulesUpdatedAt, &w.MemberCount, &aiOn, &pageStyle, &fonts, &presets}, extra...)
 	if err := row.Scan(dest...); err != nil {
 		return nil, store.NoRows(err)
 	}
 	w.PageStyle = pagestyle.Raw(pageStyle)
 	w.Fonts = pagestyle.ParseFonts(fonts)
+	w.StylePresets = pagestyle.ParsePresets(presets)
 	w.Personal, w.AutoJoin, w.HasRules, w.ProposalWaits, w.AIEnabled = personal == 1, autoJoin == 1, hasRules == 1, proposal == 1, aiOn == 1
 	return w, nil
 }
@@ -311,6 +314,8 @@ type Update struct {
 
 	PageStyle *json.RawMessage  `json:"page_style"`
 	Fonts     *[]pagestyle.Font `json:"fonts"`
+
+	StylePresets *[]pagestyle.Preset `json:"style_presets"`
 }
 
 func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in Update) (*Workspace, error) {
@@ -369,6 +374,14 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 		}
 		sets, args = append(sets, "fonts = ?"), append(args, list)
 		changes = append(changes, audit.Change{Field: "fonts", After: list})
+	}
+	if in.StylePresets != nil {
+		list, err := pagestyle.CleanPresets(*in.StylePresets)
+		if err != nil {
+			return nil, err
+		}
+		sets, args = append(sets, "style_presets = ?"), append(args, list)
+		changes = append(changes, audit.Change{Field: "style_presets", After: list})
 	}
 	if in.AgentAccess != nil {
 		if !p.IsSession() {

@@ -87,6 +87,55 @@ func CleanFonts(in []Font, owned func(ref string) bool) (string, error) {
 	return string(raw), nil
 }
 
+type Preset struct {
+	Name  string `json:"name"`
+	Style Style  `json:"style"`
+}
+
+const MaxPresets = 24
+
+var presetName = regexp.MustCompile(`^[\p{L}\p{N} ._'&()-]{1,60}$`)
+
+func CleanPresets(in []Preset) (string, error) {
+	if len(in) > MaxPresets {
+		return "", httpx.Fail(http.StatusBadRequest, "too_many_presets", "a workspace can keep up to 24 saved styles")
+	}
+	seen := map[string]bool{}
+	out := make([]Preset, 0, len(in))
+	for _, p := range in {
+		name := strings.TrimSpace(p.Name)
+		if !presetName.MatchString(name) {
+			return "", httpx.Fail(http.StatusBadRequest, "bad_preset", "a saved style needs a name of up to 60 letters, digits, spaces or simple punctuation")
+		}
+		raw, _ := json.Marshal(p.Style)
+		clean, err := Clean(raw)
+		if err != nil {
+			return "", err
+		}
+		var st Style
+		_ = json.Unmarshal([]byte(clean), &st)
+		key := strings.ToLower(name)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, Preset{Name: name, Style: st})
+	}
+	if len(out) == 0 {
+		return "", nil
+	}
+	raw, _ := json.Marshal(out)
+	return string(raw), nil
+}
+
+func ParsePresets(stored string) []Preset {
+	var out []Preset
+	if stored != "" {
+		_ = json.Unmarshal([]byte(stored), &out)
+	}
+	return out
+}
+
 func ParseFonts(stored string) []Font {
 	var out []Font
 	if stored != "" {
