@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.15.0
-Last updated: 2026-10-16 · v0.15.0: page styles, focus mode, word counts; v0.14.1: the vector canvas engine removed; Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages
+Current build version: v0.16.0
+Last updated: 2026-10-16 · v0.16.0: image annotations, block alignment; v0.15.0: page styles, focus mode, word counts; v0.14.1: the vector canvas engine removed; Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages
 
 ---
 
@@ -1628,3 +1628,17 @@ Attributes go on the html element, not the page view, because the server writes 
 - logged: v0.15.0 · 2026-10-16
 
 Focus mode is `data-focus` on the html element, restored by the boot script before first paint, and hides chrome with `visibility` so nothing reflows; the app grid closes the sidebar column the same way the collapsed sidebar does. Counts run on the next animation frame after input in the document body or any selection change, never on a timer, and read the ProseMirror document rather than the DOM; `Intl.Segmenter` gives word counts for languages without spaces. The counter is hidden while the terminal panel is open so the two never overlap. The slash rule reads localStorage each time, so the setting applies without reloading the editor.
+
+### src/extensions/blocks/annotate.ts · image annotations
+- refers-to: src/extensions/blocks/annotate.ts :: `parseMarks`, `markNodes`, `paintMarks`, `startAnnotating`; nodeviews.ts :: `MediaView.annotate`; engine/doc/schema.ts (image `marks`, data-marks); internal/doc/marks.go :: `marksSVG`
+- kind: explainer
+- logged: v0.16.0 · 2026-10-16
+
+Marks are stored in the picture's own pixel space (`w`, `h` at the time of the first mark) and drawn in an SVG with that viewBox and `xMidYMid meet`, laid over the image inside the frame, so they scale with any display width and stay put after resizing. Arrow heads are polygons computed from the line, not SVG markers, so there are no ids to collide between images. Each finished shape is one `setNodeMarkup` transaction; the overlay is repainted only when the JSON of the items changes, and the drawing in progress lives in its own nodes until it is committed. Colours are a fixed set of six-digit hex values, checked again by the Go renderer before they reach HTML, and text is escaped on both sides. Freehand strokes over 200 points are thinned by half before saving.
+
+### src/extensions/blocks/align.ts · block alignment
+- refers-to: src/extensions/blocks/align.ts :: `setAlign`; engine/doc/schema.ts :: `ALIGNS`, `alignOf`, `alignAttr`; internal/doc/marks.go :: `align`; styles/page-style.css
+- kind: explainer
+- logged: v0.16.0 · 2026-10-16
+
+Alignment is an attribute on paragraphs and headings only, empty for left so existing documents are unchanged. Its CSS rule sits after the page-style rules with the same specificity, so a block's own alignment wins over the page's. `right` maps to `text-align: end` so right-to-left text behaves.
