@@ -17,6 +17,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/icon"
 	"github.com/nodemode-ai/form.md/internal/ids"
 	"github.com/nodemode-ai/form.md/internal/order"
+	"github.com/nodemode-ai/form.md/internal/pagestyle"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/store"
 )
@@ -181,6 +182,8 @@ type UpdateInput struct {
 	Tags        *[]string `json:"tags"`
 	Visibility  *string   `json:"visibility"`
 	IsTemplate  *bool     `json:"is_template"`
+
+	Style *json.RawMessage `json:"style"`
 }
 
 func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in UpdateInput) (*Meta, error) {
@@ -251,6 +254,14 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 		}
 		sets, args = append(sets, "is_template = ?"), append(args, store.Bool(*in.IsTemplate))
 		changes = append(changes, audit.Change{Field: "is_template", Before: strconv.FormatBool(m.IsTemplate), After: strconv.FormatBool(*in.IsTemplate)})
+	}
+	if in.Style != nil {
+		st, err := pagestyle.Clean(*in.Style)
+		if err != nil {
+			return nil, err
+		}
+		sets, args = append(sets, "style = ?"), append(args, st)
+		changes = append(changes, audit.Change{Field: "style", Before: string(m.Style), After: st})
 	}
 	movedPrivacy := false
 	if in.Visibility != nil {

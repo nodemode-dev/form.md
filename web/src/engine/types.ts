@@ -45,6 +45,15 @@ export interface Workspace {
   owner_id: string;
   rules_updated_at: number;
   ai_enabled?: boolean;
+  page_style?: PageStyle;
+}
+
+export interface PageStyle {
+  font?: "sans" | "serif" | "mono" | "rounded" | "slab" | "humanist";
+  size?: "small" | "default" | "large";
+  width?: "default" | "wide" | "full";
+  spacing?: "compact" | "default" | "relaxed";
+  align?: "start" | "justify" | "center";
 }
 
 export interface Me {
@@ -615,6 +624,7 @@ export interface Page {
   trashed_by?: string;
   trashed_by_kind?: string;
   row?: boolean;
+  style?: PageStyle;
   teamspace_id?: string;
   detached?: boolean;
   access?: AccessLevel;

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -391,6 +392,24 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 					for _, w := range list {
 						if w.ID == d.WorkspaceID {
 							cur = w
+						}
+					}
+					var st map[string]string
+					if cur != nil && cur.ID == d.WorkspaceID && len(cur.PageStyle) > 0 {
+						_ = json.Unmarshal(cur.PageStyle, &st)
+					}
+					var own map[string]string
+					if len(d.Style) > 0 && json.Unmarshal(d.Style, &own) == nil {
+						if st == nil {
+							st = map[string]string{}
+						}
+						for k, v := range own {
+							st[k] = v
+						}
+					}
+					for k, v := range st {
+						if v != "" && v != "default" && !(k == "font" && v == "sans") && !(k == "align" && v == "start") {
+							attrs["style-"+k] = v
 						}
 					}
 				}

@@ -15,6 +15,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/events"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/icon"
+	"github.com/nodemode-ai/form.md/internal/pagestyle"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/settings"
 	"github.com/nodemode-ai/form.md/internal/store"
@@ -57,22 +58,26 @@ type Meta struct {
 	Detached      bool     `json:"detached,omitempty"`
 	Access        string   `json:"access,omitempty"`
 	trashBatch    string
+
+	Style json.RawMessage `json:"style,omitempty"`
 }
 
 const metaColumns = `p.id, p.workspace_id, COALESCE(p.parent_id, ''), p.kind, p.sort_key, p.title, p.icon, p.cover, p.description, p.tags,
 	p.visibility, COALESCE(p.owner_id, ''), p.is_template, p.snippet, p.thumb, p.created_at, p.created_by, p.updated_at, p.updated_by,
-	p.trashed_at, p.trashed_by, p.trashed_by_kind, p.trash_batch, p.is_row, COALESCE(p.teamspace_id, '')`
+	p.trashed_at, p.trashed_by, p.trashed_by_kind, p.trash_batch, p.is_row, COALESCE(p.teamspace_id, ''), p.style`
 
 func scanMeta(row interface{ Scan(...any) error }) (*Meta, error) {
 	var m Meta
 	var tags string
 	var tpl, isRow int
+	var style string
 	err := row.Scan(&m.ID, &m.WorkspaceID, &m.ParentID, &m.Kind, &m.SortKey, &m.Title, &m.Icon, &m.Cover, &m.Description, &tags,
 		&m.Visibility, &m.OwnerID, &tpl, &m.Snippet, &m.Thumb, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy,
-		&m.TrashedAt, &m.TrashedBy, &m.TrashedByKind, &m.trashBatch, &isRow, &m.TeamspaceID)
+		&m.TrashedAt, &m.TrashedBy, &m.TrashedByKind, &m.trashBatch, &isRow, &m.TeamspaceID, &style)
 	if err != nil {
 		return nil, err
 	}
+	m.Style = pagestyle.Raw(style)
 	m.IsTemplate = tpl == 1
 	m.Row = isRow == 1
 	m.Tags = []string{}

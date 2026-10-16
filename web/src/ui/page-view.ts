@@ -17,6 +17,7 @@ import { type DatabaseViews, databaseViews, loadDatabase } from "../extensions/d
 import type { RowPropsHandle } from "../extensions/database/rowprops";
 import type { DatabaseHandle } from "../extensions/database/surface";
 import type { RowDetail } from "../engine/types";
+import { applyStyle, effectiveStyle } from "./page-style";
 
 const HOLD_MS = 450;
 const HOLD_DB_MS = 1600;
@@ -391,6 +392,7 @@ export function mountPageView(engine: Engine): void {
     setValue(title, p.title, fresh);
     setValue(desc, p.description, fresh);
     paintCover(p);
+    applyStyle(document.documentElement, effectiveStyle(engine, p));
     iconBtn.hidden = !p.icon;
     iconBtn.disabled = !w;
     if (p.icon) paintIcon(bigIcon, p.icon, fallbackGlyph(p.kind));

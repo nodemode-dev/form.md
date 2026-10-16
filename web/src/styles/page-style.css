@@ -1,0 +1,30 @@
+:root {
+  --font-serif-stack: ui-serif, "New York", Charter, "Iowan Old Style", "Palatino Linotype", Georgia, Cambria, "Times New Roman", serif;
+  --font-rounded-stack: ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", Quicksand, Comfortaa, Manjari, "Arial Rounded MT", "Arial Rounded MT Bold", Calibri, sans-serif;
+  --font-slab-stack: Rockwell, "Rockwell Nova", "Roboto Slab", "Sitka Small", "DejaVu Serif", Georgia, serif;
+  --font-humanist-stack: Seravek, "Gill Sans Nova", Ubuntu, Calibri, "DejaVu Sans", "Segoe UI", sans-serif;
+}
+
+:root[data-style-font="serif"] .view--page .page { font-family: var(--font-serif-stack); }
+:root[data-style-font="mono"] .view--page .page { font-family: var(--font-mono); }
+:root[data-style-font="rounded"] .view--page .page { font-family: var(--font-rounded-stack); }
+:root[data-style-font="slab"] .view--page .page { font-family: var(--font-slab-stack); }
+:root[data-style-font="humanist"] .view--page .page { font-family: var(--font-humanist-stack); }
+
+:root[data-style-size="small"] .view--page .doc-body { --doc-text: 14px; }
+:root[data-style-size="large"] .view--page .doc-body { --doc-text: 18px; }
+
+:root[data-style-width="wide"] .view--page { --doc-w: 960px; }
+:root[data-style-width="full"] .view--page { --doc-w: 100%; }
+
+:root[data-style-spacing="compact"] .view--page .doc-body { line-height: 1.45; --block-gap: 1px; }
+:root[data-style-spacing="relaxed"] .view--page .doc-body { line-height: 1.9; --block-gap: 6px; }
+
+:root[data-style-align="justify"] .view--page .doc-body :is(p, li, blockquote) {
+  text-align: justify;
+  hyphens: auto;
+}
+
+:root[data-style-align="center"] .view--page .doc-body :is(p, h1, h2, h3, h4, h5, h6, blockquote) {
+  text-align: center;
+}

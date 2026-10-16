@@ -1,6 +1,7 @@
 import type { Engine } from "../../engine";
 import { t } from "../../engine/i18n";
 import type { Unsubscribe } from "../../engine/state";
+import { registerStyleCommands } from "../../ui/page-style";
 import { toast } from "../../ui/toast";
 import type { Extension } from "../registry";
 
@@ -161,6 +162,7 @@ function setup(engine: Engine): void {
     }),
 
     keymap.register({ id: "page.new", command: "page.new", chords: ["alt+n"], scope: "global", whileTyping: true }),
+    ...registerStyleCommands(engine),
     keymap.register({ id: "page.favorite", command: "page.favorite", chords: ["f"], scope: "view" }),
     keymap.register({ id: "library.open", command: "library.open", chords: ["l"], scope: "view" }),
     keymap.register({ id: "search.open", command: "search.open", chords: ["mod+k", "mod+p"], scope: "global", whileTyping: true }),

@@ -3,6 +3,7 @@ package workspace
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/icon"
 	"github.com/nodemode-ai/form.md/internal/ids"
+	"github.com/nodemode-ai/form.md/internal/pagestyle"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/store"
 )
@@ -97,20 +99,24 @@ type Workspace struct {
 	OwnerID        string `json:"owner_id"`
 	RulesUpdatedAt int64  `json:"rules_updated_at"`
 	AIEnabled      bool   `json:"ai_enabled"`
+
+	PageStyle json.RawMessage `json:"page_style,omitempty"`
 }
 
 const wsColumns = `w.id, w.name, w.icon, w.image, w.personal, w.auto_join, w.sidebar_mode, w.agent_access,
 	w.rules != '', w.rules_proposal != '', COALESCE(w.owner_id, ''), w.rules_updated_at,
-	(SELECT COUNT(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id), w.ai_enabled`
+	(SELECT COUNT(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id), w.ai_enabled, w.page_style`
 
 func scanWorkspace(row interface{ Scan(...any) error }, extra ...any) (*Workspace, error) {
 	w := &Workspace{}
 	var personal, autoJoin, hasRules, proposal, aiOn int
+	var pageStyle string
 	dest := append([]any{&w.ID, &w.Name, &w.Icon, &w.Image, &personal, &autoJoin, &w.SidebarMode, &w.AgentAccess,
-		&hasRules, &proposal, &w.OwnerID, &w.RulesUpdatedAt, &w.MemberCount, &aiOn}, extra...)
+		&hasRules, &proposal, &w.OwnerID, &w.RulesUpdatedAt, &w.MemberCount, &aiOn, &pageStyle}, extra...)
 	if err := row.Scan(dest...); err != nil {
 		return nil, store.NoRows(err)
 	}
+	w.PageStyle = pagestyle.Raw(pageStyle)
 	w.Personal, w.AutoJoin, w.HasRules, w.ProposalWaits, w.AIEnabled = personal == 1, autoJoin == 1, hasRules == 1, proposal == 1, aiOn == 1
 	return w, nil
 }
@@ -295,6 +301,8 @@ type Update struct {
 	SidebarMode *string `json:"sidebar_mode"`
 	AgentAccess *string `json:"agent_access"`
 	AutoJoin    *bool   `json:"auto_join"`
+
+	PageStyle *json.RawMessage `json:"page_style"`
 }
 
 func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in Update) (*Workspace, error) {
@@ -337,6 +345,14 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 			return nil, httpx.Fail(http.StatusBadRequest, "bad_sidebar_mode", "sidebar mode must be split or tree")
 		}
 		sets, args = append(sets, "sidebar_mode = ?"), append(args, *in.SidebarMode)
+	}
+	if in.PageStyle != nil {
+		st, err := pagestyle.Clean(*in.PageStyle)
+		if err != nil {
+			return nil, err
+		}
+		sets, args = append(sets, "page_style = ?"), append(args, st)
+		changes = append(changes, audit.Change{Field: "page_style", Before: string(cur.PageStyle), After: st})
 	}
 	if in.AgentAccess != nil {
 		if !p.IsSession() {

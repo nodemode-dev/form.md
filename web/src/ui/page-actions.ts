@@ -6,6 +6,7 @@ import { openAnalytics } from "./analytics-dialog";
 import type { MenuEntry } from "./menu";
 import { tile } from "./avatar";
 import { offlineIds } from "./offline-list";
+import { openStyleMenu } from "./page-style";
 import { toast } from "./toast";
 
 export function openShareDialog(engine: Engine, id: string): void {
@@ -85,6 +86,16 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
   if (!personal) entries.push({ label: t("Share"), icon: "users", run: () => openShareDialog(engine, id) });
   if (engine.can(id, "full")) entries.push({ label: t("Publish to the web"), icon: "globe", run: () => void openPublishDialog(engine, id) });
   if (engine.can(id, "content")) entries.push({ label: t("Add a page inside"), icon: "plus", run: handlers.addInside });
+  if (engine.can(id, "content") && p.kind !== "collection") {
+    entries.push({
+      label: t("Style"),
+      icon: "text",
+      run: () => {
+        const anchor = document.querySelector<HTMLElement>("[data-ref='act-more']");
+        if (anchor) requestAnimationFrame(() => openStyleMenu(engine, anchor, p));
+      },
+    });
+  }
   const parent = p.parent_id && !p.detached ? p.parent_id : "";
   if (parent ? engine.can(parent, "content") : member) entries.push({ label: t("Duplicate"), icon: "copy", run: () => void duplicatePage(engine, id) });
   if (member && engine.can(id, "edit") && !p.row) entries.push({ label: t("Save as template"), icon: "gallery", run: () => void setTemplate(engine, id, true) });
