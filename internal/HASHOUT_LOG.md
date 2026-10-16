@@ -1874,3 +1874,24 @@ A style is five closed choices (font, size, width, spacing, align); `Clean` refu
 
 The content security policy allows styles only from this origin, so custom faces cannot be injected as an inline style; each workspace gets a small generated stylesheet instead, with one @font-face and one `data-style-font` rule per font, and the first response links it (and preloads the font file) only when the page's style uses a custom font. Font uploads are stored under the existing `workspace` purpose because `files.purpose` carries a CHECK constraint that a migration cannot widen without rebuilding the table; the upload's bytes must sniff as font/woff2, font/woff, font/ttf or font/otf, and `FontInWorkspace` checks that MIME type when a font list is saved. Families are limited to letters, digits, spaces, dots, dashes and underscores, which keeps them safe inside the generated CSS. `font-display: block` hides text for up to three seconds instead of swapping fonts mid-read. The system-font account setting strips every font preload, this one included.
 
+### internal/site/module.go · files on freshly published pages
+- refers-to: internal/site/module.go :: `fileAllowed`; internal/doc/service.go :: `LiveFile`
+- kind: rationale
+- logged: v0.18.0 · 2026-10-16
+
+A public page renders from the live document, but `doc_refs` is written only when the document is materialised after its debounce, so a picture added a moment before publishing answered 404 to visitors. `fileAllowed` checks the stored refs first and then asks `LiveFile` whether any in-scope page that is loaded in memory references the file. `LiveFile` never loads a room (a page that is not in memory has already been materialised, so its refs are current) and holds the service lock while reading, in the same lock order as `unload`, so a room cannot be destroyed under it.
+
+### internal/doc/board.go · board block
+- refers-to: internal/doc/board.go :: `parseBoard`, `boardSVG`, `boardEncode`, `boardNode`; html.go, markdown.go, parse.go (board cases)
+- kind: explainer
+- logged: v0.18.0 · 2026-10-16
+
+A board keeps its cards in one JSON attribute (`items`) plus a `height`, in board units 1000 wide. `parseBoard` is the single gate: at most 200 cards, positions inside the board, image cards only with an uploaded file reference, links only http or https without credentials, notes cut at 4000 bytes; anything else is dropped. The HTML is an SVG with a viewBox and one foreignObject per card, so the board scales with the column and positions need no inline styles under the public CSP. Markdown carries the board as `<!-- board:base64url(json) -->`, like buttons, and the writer notes every picture as a page file, which is what lets public pages serve them.
+
+### internal/doc/embed.go · creative providers
+- refers-to: internal/doc/embed.go :: `providers`
+- kind: explainer
+- logged: v0.18.0 · 2026-10-16
+
+Canva uses the design's `/view?embed` address, Behance `/embed/project/{id}`, Sketchfab `/models/{uid}/embed`, Pinterest the `assets.pinterest.com/ext/embed.html?id=` widget page and Apple Music the `embed.music.apple.com` host with the same path. The editor's table in `web/src/engine/doc/schema.ts` must list the same patterns.
+

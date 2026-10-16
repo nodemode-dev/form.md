@@ -1649,3 +1649,10 @@ Alignment is an attribute on paragraphs and headings only, empty for left so exi
 - logged: v0.17.0 · 2026-10-16
 
 `syncFonts` adds the workspace's fonts stylesheet as a link only when a page uses a custom font, with a version made from the font ids so a new upload is fetched, and removes the older link once the new one has loaded so nothing unstyles in between. Typewriter scrolling acts only after keystrokes in the document (a pointer press clears the flag), finds the nearest scrolling ancestor and moves it so the caret sits at 45 percent; focus mode adds 55vh of space under the page so the last line can reach that point. `data-typewriter-off` is restored by the boot script like `data-focus`.
+
+### src/extensions/blocks/board.ts · board block
+- refers-to: src/extensions/blocks/board.ts :: `BoardView`, `newBoard`, `readBoard`; styles/board.css; site/site.css
+- kind: explainer
+- logged: v0.18.0 · 2026-10-16
+
+The board is an SVG with a fixed viewBox, so its height is known from the first frame and pictures arriving later never move the page. `sync` keeps one foreignObject per card id and only rebuilds a card when its kind, picture, link or editability changes; a note's text is set in place unless the note has focus, and cards are reordered only when their order differs, so a focused note is never moved. A drag moves the card's attributes directly and commits once on release (the moved card goes last, which brings it to the front); `update` skips syncing while a drag is running. `pointerdown` calls preventDefault, because the block is draggable and the browser's native drag would otherwise cancel the pointer stream after a few pixels; a press that does not move focuses a note's text, and a link card still opens on click. New cards go to the first free spot on a 40-unit grid, or under everything with the board grown to fit. Pictures dropped on the board upload as page attachments and keep their aspect ratio. The public site stylesheet imports `board.css` and `annotate.css`.
