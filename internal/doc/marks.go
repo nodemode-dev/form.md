@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/reearth/ygo/crdt"
 )
 
 type mark struct {
@@ -25,6 +27,14 @@ type marks struct {
 }
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+func align(el *crdt.YXmlElement) string {
+	switch v := attrString(el, "align"); v {
+	case "center", "right", "justify":
+		return v
+	}
+	return ""
+}
 
 func num(f float64) string { return strconv.FormatFloat(math.Round(f*100)/100, 'f', -1, 64) }
 

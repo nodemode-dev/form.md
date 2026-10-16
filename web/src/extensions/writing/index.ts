@@ -3,6 +3,7 @@ import { plural, t } from "../../engine/i18n";
 import type { Unsubscribe } from "../../engine/state";
 import { h, setText } from "../../ui/dom";
 import { editorHost } from "../blocks";
+import { type Align, setAlign } from "../blocks/align";
 import { SLASH_KEY } from "../blocks/triggers";
 import type { Extension } from "../registry";
 
@@ -130,6 +131,20 @@ function setup(engine: Engine): void {
       description: "Returns word, character and reading-time counts for the open page, the current selection or the paragraph under the cursor.",
       params: { scope: { type: "string", enum: ["page", "selection", "paragraph"] } },
       run: (p) => countsFor((p?.scope as Counts["scope"]) ?? "page") ?? { error: "no document is open" },
+    }),
+    commands.register({
+      id: "editor.align",
+      label: () => t("Text alignment"),
+      group,
+      description: "Aligns the paragraphs and headings in the selection, or the one under the cursor; left removes the alignment.",
+      params: { align: { type: "string", required: true, enum: ["left", "center", "right", "justify"] } },
+      mutates: true,
+      run: (p) => {
+        const v = editorHost()?.view();
+        if (!v || !v.editable) throw new Error("no editable document is open");
+        const a = String(p?.align ?? "left");
+        return { changed: setAlign(v, a === "left" ? "" : (a as Align)) };
+      },
     }),
     commands.register({
       id: "editor.slashAtStart",

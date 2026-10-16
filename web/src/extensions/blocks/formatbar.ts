@@ -7,6 +7,7 @@ import { anchorToRect, type Rect } from "../../ui/floating";
 import { type IconName, iconNode } from "../../ui/icons";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { openAI } from "./ai";
+import { type Align, alignAt, setAlign } from "./align";
 import { CATALOG } from "./catalog";
 import { markActive, markCommand, setMark, turnInto } from "./commands";
 import { commentUI } from "./comments";
@@ -104,6 +105,16 @@ export class FormatBar {
           const { from, to } = view.state.selection;
           this.hide();
           commentUI(view)?.startThread(from, to, "text");
+        },
+      },
+      {
+        id: "align",
+        icon: "align",
+        label: () => t("Text alignment"),
+        run: (view, btn) => {
+          const cur = alignAt(view);
+          const opts: [Align, string][] = [["", "Left"], ["center", "Centred"], ["right", "Right"], ["justify", "Justified"]];
+          openMenu(btn, opts.map(([v, label]) => ({ label: t(label), checked: cur === v, run: () => (setAlign(view, v), view.focus()) })), { side: "bottom", align: "start", label: t("Text alignment") });
         },
       },
       {

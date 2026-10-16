@@ -123,7 +123,7 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 	}
 	switch el.NodeName {
 	case "paragraph":
-		w.open("p", "data-block", id)
+		w.open("p", "data-block", id, "data-align", align(el))
 		w.inline(el)
 		w.b.WriteString("</p>")
 	case "heading":
@@ -132,7 +132,7 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 			lvl = 1
 		}
 		tag := "h" + strconv.Itoa(lvl)
-		w.open(tag, "data-block", id)
+		w.open(tag, "data-block", id, "data-align", align(el))
 		w.inline(el)
 		w.b.WriteString("</" + tag + ">")
 	case "blockquote":

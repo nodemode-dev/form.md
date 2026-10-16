@@ -7,6 +7,12 @@ type Attrs = Record<string, string>;
 
 const blockAttr = (n: PMNode): Attrs => (n.attrs.id ? { "data-block": String(n.attrs.id) } : {});
 const withId = { id: { default: null } };
+export const ALIGNS = ["center", "right", "justify"] as const;
+const alignOf = (dom: HTMLElement): string => {
+  const v = dom.dataset.align || dom.style.textAlign;
+  return (ALIGNS as readonly string[]).includes(v) ? v : "";
+};
+const alignAttr = (n: PMNode): Attrs => (n.attrs.align ? { "data-align": String(n.attrs.align) } : {});
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 
@@ -147,17 +153,17 @@ const nodes: Record<string, NodeSpec> = {
   paragraph: {
     content: "inline*",
     group: "block",
-    attrs: withId,
-    parseDOM: [{ tag: "p" }],
-    toDOM: (n) => ["p", blockAttr(n), 0],
+    attrs: { ...withId, align: { default: "" } },
+    parseDOM: [{ tag: "p", getAttrs: (dom: HTMLElement) => ({ align: alignOf(dom) }) }],
+    toDOM: (n) => ["p", { ...blockAttr(n), ...alignAttr(n) }, 0],
   },
   heading: {
     content: "inline*",
     group: "block",
     defining: true,
-    attrs: { ...withId, level: { default: 1 } },
-    parseDOM: [1, 2, 3, 4, 5, 6].map((level) => ({ tag: `h${level}`, attrs: { level } })),
-    toDOM: (n) => [`h${n.attrs.level as number}`, blockAttr(n), 0],
+    attrs: { ...withId, level: { default: 1 }, align: { default: "" } },
+    parseDOM: [1, 2, 3, 4, 5, 6].map((level) => ({ tag: `h${level}`, getAttrs: (dom: HTMLElement) => ({ level, align: alignOf(dom) }) })),
+    toDOM: (n) => [`h${n.attrs.level as number}`, { ...blockAttr(n), ...alignAttr(n) }, 0],
   },
   blockquote: {
     content: "block+",
