@@ -45,6 +45,8 @@ func (s *Service) NewExport(nodes []ExportNode, root, theme string, href, file f
 	return &Export{s: s, sc: sc}
 }
 
+func (e *Export) UseFonts(stored string) { e.sc.wsFonts = stored }
+
 func (e *Export) Page(ctx context.Context, id string) (string, error) {
 	if _, ok := e.sc.pages[id]; !ok {
 		return "", nil

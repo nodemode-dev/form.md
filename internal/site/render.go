@@ -372,7 +372,7 @@ func (s *Service) head(b *strings.Builder, sc *scope, title, desc, canonical, im
 	}
 	b.WriteString(`<script>` + themeScript + `</script>`)
 	if sc.export {
-		b.WriteString(`<style>` + strings.ReplaceAll(s.assets.cssText, "</style", "<\\/style") + `</style></head>`)
+		b.WriteString(`<style>` + strings.ReplaceAll(s.assets.cssText+s.fontsCSS(sc), "</style", "<\\/style") + `</style></head>`)
 		return
 	}
 	if s.assets.font != "" {

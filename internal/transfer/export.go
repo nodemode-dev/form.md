@@ -319,7 +319,8 @@ func (s *Service) exportHTML(ctx context.Context, p *policy.Principal, set *expo
 	e := &exporter{s: s, p: p, set: set, origin: origin, files: map[string]*fileCopy{}}
 	nodes := make([]site.ExportNode, 0, len(set.all))
 	var wsStyle string
-	_ = s.st.R.QueryRowContext(ctx, "SELECT page_style FROM workspaces WHERE id = ?", set.ws).Scan(&wsStyle)
+	var wsFonts string
+	_ = s.st.R.QueryRowContext(ctx, "SELECT page_style, fonts FROM workspaces WHERE id = ?", set.ws).Scan(&wsStyle, &wsFonts)
 	for _, n := range set.all {
 		style, _ := json.Marshal(pagestyle.Merge(wsStyle, n.style))
 		nodes = append(nodes, site.ExportNode{ID: n.id, Parent: n.parent, Title: n.title, Icon: n.icon, Cover: n.cover, Kind: n.kind, Description: n.desc, SortKey: n.sortKey, Row: n.row, Inline: n.inline, UpdatedAt: n.updated, Style: string(style)})
@@ -362,6 +363,7 @@ func (s *Service) exportHTML(ctx context.Context, p *policy.Principal, set *expo
 		return relLink(current.file+".html", fp)
 	}
 	x := s.site.NewExport(nodes, root, theme, href, file)
+	x.UseFonts(wsFonts)
 	if single {
 		current = set.roots[0]
 		out, err := x.Page(ctx, current.id)
