@@ -15,6 +15,8 @@ import { prefillFromFilter } from "./shared";
 
 const DAY = 86400000;
 const ROW_H = 36;
+const WINDOW_FROM = 200;
+const WINDOW_BUFFER = 30;
 const ZOOM: Record<string, number> = { hours: 960, day: 48, week: 22, biweek: 12, month: 6, quarter: 2.4, year: 0.8 };
 const ZOOM_LABEL: [string, string][] = [["hours", "Hours"], ["day", "Day"], ["week", "Week"], ["biweek", "Bi-week"], ["month", "Month"], ["quarter", "Quarter"], ["year", "Year"]];
 
@@ -43,6 +45,13 @@ export function timelineView(host: ViewHost): ViewRenderer {
   const zoom = () => (ZOOM[String(layout().zoom)] ? String(layout().zoom) : "week");
   const px = () => ZOOM[zoom()] ?? 22;
   const showTable = () => layout().table !== false;
+
+  let windowKey = "";
+  let rowCount = 0;
+  const rowWindow = (): [number, number] => {
+    const top = scroll.scrollTop;
+    return [Math.max(0, Math.floor(top / ROW_H) - WINDOW_BUFFER), Math.ceil((top + (scroll.clientHeight || 900)) / ROW_H) + WINDOW_BUFFER];
+  };
 
   const el = h("div", { class: "tl" });
   const zoomBtn = h("button", { class: "btn btn--sm", attrs: { type: "button" } });
@@ -168,9 +177,13 @@ export function timelineView(host: ViewHost): ViewRenderer {
     );
     sideRows.style.height = `${(list.length + 1) * ROW_H}px`;
     const bars = list.map((s, i) => ({ ...s, i }));
+    const [first, last] = rowWindow();
+    windowKey = `${first}:${last}`;
+    rowCount = bars.length;
+    const shown = bars.length > WINDOW_FROM ? bars.filter((b) => b.i >= first && b.i <= last) : bars;
     reconcile(
       canvas,
-      [{ id: "#today", i: -1 }, { id: "#deps", i: -1 }, ...bars],
+      [{ id: "#today", i: -1 }, { id: "#deps", i: -1 }, ...shown],
       (s) => s.id,
       (s) => {
         if (s.id === "#today") return todayLine;
@@ -265,8 +278,15 @@ export function timelineView(host: ViewHost): ViewRenderer {
   });
   sized.observe(scroll);
 
+  let windowFrame = 0;
   scroll.addEventListener("scroll", () => {
     sideRows.style.transform = `translateY(${-scroll.scrollTop}px)`;
+    if (windowFrame) return;
+    windowFrame = requestAnimationFrame(() => {
+      windowFrame = 0;
+      const [first, last] = rowWindow();
+      if (`${first}:${last}` !== windowKey && rowCount > WINDOW_FROM) paint();
+    });
   }, { passive: true });
 
   const create = (day: Date) => {
