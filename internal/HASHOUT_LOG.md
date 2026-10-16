@@ -1909,6 +1909,13 @@ The client imports remote media only while a writable editor has the page open, 
 
 Inserts merge with typing, but a replace deletes and recreates the block, so it can lose keystrokes. The guard applies only to non-session principals (tokens and OAuth clients, which is how agents write) so a person's own browser and the undo of an agent run are never refused. It reads the `blocks` field of every awareness entry in the room; entries leave the room when their connection closes, so a stale cursor cannot block an agent for long. An empty block id means "anyone in this page", used for a whole-body replace.
 
+### internal/site/render.go and internal/transfer/export.go · page style on public pages and exports
+- refers-to: internal/pagestyle/pagestyle.go :: `Merge`, `Style.Attrs`; internal/site/render.go :: `load` (p.style, wsStyle), page main element; internal/transfer/export.go :: `exportHTML`
+- kind: explainer
+- logged: v0.22.0 · 2026-10-16
+
+The page's main element carries `data-style-*` for every non-default field of the merged style, written by the server so the first paint is styled. `Attrs` re-checks each value against the allowed sets before it reaches HTML. Uploaded fonts (`f:` refs) are skipped on public pages: serving them would need a public fonts stylesheet and an allow rule for font files no page references. The export merges the workspace default itself because the export scope has no workspace id.
+
 ### internal/claudecode/bridge.go · CommandSpec decode
 - refers-to: internal/claudecode/bridge.go :: `CommandSpec.UnmarshalJSON`
 - kind: rationale

@@ -35,7 +35,8 @@ A kept database keeps up to 1000 rows: the worker caches `GET /api/collections/<
 
 | Works offline | Needs the server |
 |---|---|
-| Opening the app at `/`, a page, the library, the trash or the inbox route | Database edits, other views, filters, more rows, charts and forms |
+| Opening the app at `/`, a page, the library, the trash or the inbox route | Adding, deleting or moving rows, schema changes, other views, filters, more rows, charts and forms |
+| Editing cells and row titles of kept or opened databases: kept in this browser and sent when the connection is back (last write wins) | |
 | Kept or opened databases, read-only, with the first window of rows of the view they opened with, when that view is a table or a list | Databases whose first view is a board, calendar, gallery, timeline, chart or form show their title and no rows |
 | The sidebar (page tree, favorites, tags) of the workspace that was current at the last shell refresh | Search and the command palette's answers; the trees of other workspaces |
 | Reading pages saved on this device | Comments, the inbox contents, sharing, history |

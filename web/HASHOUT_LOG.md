@@ -1685,6 +1685,20 @@ The editor writes the ids of every block around the cursor (outermost first) int
 
 The entries show only for admins and only when the page uses an uploaded font, so they always act on a font the person can see. Removing switches this page to Sans and drops the font from the workspace default style before saving the shorter list; other pages that used it fall back to the default face because the generated stylesheet no longer has a rule for it.
 
+### src/engine/collections.ts · offline row outbox
+- refers-to: src/engine/collections.ts :: `flushRow`, `queue`, `overlay`, `replay`, `resync`; src/main.ts (onQueued notice, online listener)
+- kind: explainer
+- logged: v0.22.0 · 2026-10-16
+
+A row update that fails with status 0 (no network) is merged into `formmd.rowOutbox` in localStorage per row id, values last-wins, keeping the oldest time for ordering. `QuerySession.absorb` passes every row through `overlay`, so cached views and offline reloads show the queued values; the outbox is cached in memory after the first read. `replay` runs on the online event, on resync (before views refresh, so a refresh cannot paint old values) and at start when online; it stops at the first network failure and drops an entry the server refuses, reporting it. Only cell and title edits are queued: creating, deleting and moving rows still need the server because they change row ids and order.
+
+### src/ui/account.ts · Writing section
+- refers-to: src/ui/account.ts :: profileTab (Writing); src/extensions/blocks/triggers.ts :: `SLASH_KEY`
+- kind: explainer
+- logged: v0.22.0 · 2026-10-16
+
+The toggle reads and writes the same localStorage key the editor reads at each slash, so it applies at once without a reload and matches the editor.slashAtStart command.
+
 ### src/engine/commands.ts · mutates defaults to true
 - refers-to: src/engine/commands.ts :: `catalogue`; internal/claudecode/module.go (read-only check)
 - kind: rationale
