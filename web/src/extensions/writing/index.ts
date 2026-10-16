@@ -9,6 +9,7 @@ import type { Extension } from "../registry";
 
 const COUNT_KEY = "formmd.wordCount";
 const FOCUS_KEY = "formmd.focus";
+const TYPEWRITER_OFF_KEY = "formmd.typewriterOff";
 const WPM = 230;
 
 let teardown: Unsubscribe[] = [];
@@ -70,8 +71,22 @@ function setup(engine: Engine): void {
     const p = engine.pages.get(r.id);
     return !!p && p.kind !== "collection";
   };
+  const centerCaret = () => {
+    const v = editorHost()?.view();
+    if (!v || !v.hasFocus()) return;
+    let scroller: HTMLElement | null = v.dom.parentElement;
+    while (scroller && !(/(auto|scroll)/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight)) scroller = scroller.parentElement;
+    if (!scroller) return;
+    const c = v.coordsAtPos(v.state.selection.head);
+    const box = scroller.getBoundingClientRect();
+    const delta = (c.top + c.bottom) / 2 - (box.top + box.height * 0.45);
+    if (Math.abs(delta) > 6) scroller.scrollTop += delta;
+  };
+  let byKeyboard = false;
   const paint = () => {
     frame = 0;
+    if (byKeyboard && root.hasAttribute("data-focus") && !read(TYPEWRITER_OFF_KEY)) centerCaret();
+    byKeyboard = false;
     const show = (read(COUNT_KEY) || root.hasAttribute("data-focus")) && onPage();
     if (meter.hidden === show) meter.hidden = !show;
     if (!show) return;
@@ -92,7 +107,15 @@ function setup(engine: Engine): void {
   const onInput = (e: Event) => {
     if ((e.target as HTMLElement | null)?.closest?.(".doc-body")) schedule();
   };
+  const onKey = (e: KeyboardEvent) => {
+    if ((e.target as HTMLElement | null)?.closest?.(".doc-body")) byKeyboard = true;
+  };
+  const onPointer = () => {
+    byKeyboard = false;
+  };
   document.addEventListener("input", onInput, true);
+  document.addEventListener("keydown", onKey, true);
+  document.addEventListener("pointerdown", onPointer, true);
   document.addEventListener("selectionchange", schedule);
   const offShown = editorHost()?.onShown(() => schedule()) ?? (() => undefined);
 
@@ -103,6 +126,7 @@ function setup(engine: Engine): void {
     schedule();
   };
   if (read(FOCUS_KEY)) root.toggleAttribute("data-focus", true);
+  if (read(TYPEWRITER_OFF_KEY)) root.toggleAttribute("data-typewriter-off", true);
 
   const group = () => t("Writing");
   teardown = [
@@ -113,6 +137,17 @@ function setup(engine: Engine): void {
       description: "Hides the sidebar, top bar, tabs and page controls so only the text remains, and shows the word count. Run again to leave.",
       params: { on: { type: "boolean" } },
       run: (p) => setFocus(typeof p?.on === "boolean" ? p.on : !root.hasAttribute("data-focus")),
+    }),
+    commands.register({
+      id: "view.typewriter",
+      label: () => t("Typewriter scrolling in focus mode"),
+      group,
+      description: "In focus mode the line being typed stays near the middle of the screen; this turns that on or off.",
+      run: () => {
+        const off = !read(TYPEWRITER_OFF_KEY);
+        write(TYPEWRITER_OFF_KEY, off);
+        root.toggleAttribute("data-typewriter-off", off);
+      },
     }),
     commands.register({
       id: "view.wordCount",
@@ -158,6 +193,8 @@ function setup(engine: Engine): void {
     state.watch("route", schedule),
     () => {
       document.removeEventListener("input", onInput, true);
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("pointerdown", onPointer, true);
       document.removeEventListener("selectionchange", schedule);
       offShown();
       meter.remove();

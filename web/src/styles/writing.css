@@ -24,6 +24,10 @@
   pointer-events: none;
 }
 
+:root[data-focus]:not([data-typewriter-off]) .view--page .page {
+  padding-block-end: 55vh;
+}
+
 .wcount {
   position: fixed;
   inset-block-end: var(--space-3);

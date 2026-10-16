@@ -1,5 +1,6 @@
 import { t } from "../../engine/i18n";
 import { h } from "../../ui/dom";
+import { openPrompt } from "./popover";
 
 export type MarkKind = "arrow" | "rect" | "ellipse" | "pen" | "text";
 
@@ -163,11 +164,20 @@ export function startAnnotating(host: AnnotatorHost, done: () => void): () => vo
     e.stopPropagation();
     const [x, y] = at(e);
     if (kind === "text") {
-      const label = prompt(t("Text"))?.trim();
-      if (label) {
-        marks = { ...marks, items: [...marks.items, { k: "text", c: color, s: stroke, p: [x, y], t: label.slice(0, 200) }] };
-        commit();
-      }
+      const at = { x: e.clientX, y: e.clientY };
+      const c = color;
+      openPrompt({
+        label: t("Text"),
+        placeholder: t("Text"),
+        action: t("Add"),
+        rect: () => ({ x: at.x, y: at.y, width: 0, height: 0 }),
+        onSubmit: (value) => {
+          const label = value.trim().slice(0, 200);
+          if (!label) return;
+          marks = { ...marks, items: [...marks.items, { k: "text", c, s: stroke, p: [x, y], t: label }] };
+          commit();
+        },
+      });
       return;
     }
     svg.setPointerCapture(e.pointerId);
