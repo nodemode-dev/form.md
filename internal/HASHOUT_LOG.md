@@ -1895,6 +1895,20 @@ A board keeps its cards in one JSON attribute (`items`) plus a `height`, in boar
 
 Canva uses the design's `/view?embed` address, Behance `/embed/project/{id}`, Sketchfab `/models/{uid}/embed`, Pinterest the `assets.pinterest.com/ext/embed.html?id=` widget page and Apple Music the `embed.music.apple.com` host with the same path. The editor's table in `web/src/engine/doc/schema.ts` must list the same patterns.
 
+### internal/doc/remote.go · remote pictures imported after writes
+- refers-to: internal/doc/remote.go :: `importRemote`, `SetRemoteImporter`; internal/doc/service.go :: `Write`; internal/doc/blocks.go :: `Apply`; internal/server/server.go (wiring to files.Import)
+- kind: rationale
+- logged: v0.20.0 · 2026-10-16
+
+The client imports remote media only while a writable editor has the page open, so pages written by agents or the API kept remote pictures, which public pages and exports render as links. After a successful write the server imports up to 20 remote image srcs in a goroutine, as the writing principal (so the usual file authorization applies), and swaps them in one transaction. The fragment must be taken before `Transact`: calling `r.fragment()` inside a transaction locks the ygo document again and deadlocks the room. The importer is a function set from server.go so `doc` does not import `files`.
+
+### internal/claudecode/bridge.go · CommandSpec decode
+- refers-to: internal/claudecode/bridge.go :: `CommandSpec.UnmarshalJSON`
+- kind: rationale
+- logged: v0.20.0 · 2026-10-16
+
+A catalogue entry without `mutates` decodes as true, matching the client default, so a missing flag can never let a read-only credential run a command.
+
 ### internal/collection/module.go · rows on the collection read
 - refers-to: internal/collection/module.go (GET /api/collections/{id}, `rows`)
 - kind: rationale
