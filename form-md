@@ -1,6 +1,89 @@
 #!/usr/bin/env bash
 set -e
 cd "$(dirname "$0")"
+export GOTOOLCHAIN="${GOTOOLCHAIN:-auto}"
+
+usage() {
+  printf 'form.md %s · workspace for people and agents\n' "$(sed -n 's/^  "version": "\(.*\)",$/\1/p' web/package.json 2>/dev/null)"
+  cat << 'EOF'
+
+usage: ./form-md [command] [options]
+
+  (none) | boot        boot the server (8750) and the web client (5750) together
+  install              install the Go modules and the web client's packages
+  backend              boot the server only
+  frontend             boot the web client only
+  build                build everything into one binary, bin/form-md (same as ./build_app)
+  release              build every release target into release/ (same as ./build_app --all)
+  serve                run the built binary (bin/form-md serve) on 127.0.0.1:8750
+  claude [args]        Claude Code in this terminal with form.md's MCP tools attached (needs FORMMD_MCP_TOKEN)
+  mcp                  the MCP server over stdio for agents that start a command (Codex, Claude Desktop)
+  agents install       register form.md with Claude Code, Codex and Cursor (needs FORMMD_MCP_TOKEN)
+  cli list|describe|run  the command catalogue of the open window: list [text], describe ID, run ID key=value ...
+  doctor | backup | restore | admin | keygen | encrypt | version   the binary's own commands
+  check                gofmt, go vet, the wiki and skill checks and the TypeScript check
+  counts               lines of Go, TypeScript and CSS (product code)
+  clean [--all]        remove build output (--all also web/node_modules)
+  help                 this text
+EOF
+}
+
+binary() {
+  if [ -x bin/form-md ]; then exec bin/form-md "$@"; fi
+  exec go run ./cmd/form-md "$@"
+}
+
+cmd="${1:-boot}"
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  boot|dev) ;;
+  install) exec ./form-md_oc_install "$@" ;;
+  backend) exec ./tools/boot_backend "$@" ;;
+  frontend) exec ./web/boot_frontend "$@" ;;
+  build) exec ./build_app "$@" ;;
+  release) exec ./build_app --all "$@" ;;
+  serve)
+    [ -x bin/form-md ] || ./build_app
+    export FORMMD_ADDR="${FORMMD_ADDR:-127.0.0.1:8750}"
+    export FORMMD_DATA="${FORMMD_DATA:-./data}"
+    exec bin/form-md serve "$@" ;;
+  claude)
+    command -v claude >/dev/null 2>&1 || { printf '[form-md] Claude Code is not installed: https://claude.com/claude-code\n' >&2; exit 1; }
+    [ -n "${FORMMD_MCP_TOKEN:-}" ] || { printf '[form-md] set FORMMD_MCP_TOKEN to a personal API token (Account settings, API tokens), or use the terminal panel inside form.md, which signs in for you\n' >&2; exit 1; }
+    exec claude --mcp-config "{\"mcpServers\":{\"formmd\":{\"type\":\"stdio\",\"command\":\"$PWD/form-md\",\"args\":[\"mcp\"]}}}" --allowedTools mcp__formmd "$@" ;;
+  mcp) binary mcp "$@" ;;
+  cli) binary cli "$@" ;;
+  doctor|backup|restore|admin|keygen|encrypt|version) binary "$cmd" "$@" ;;
+  agents)
+    sub="${1:-install}"
+    [ "$sub" = install ] || { usage; exit 2; }
+    [ -n "${FORMMD_MCP_TOKEN:-}" ] || { printf '[form-md] set FORMMD_MCP_TOKEN to a personal API token first\n' >&2; exit 1; }
+    url="${FORMMD_MCP_URL:-http://127.0.0.1:8750/mcp}"
+    if command -v claude >/dev/null 2>&1; then
+      claude mcp remove formmd -s user >/dev/null 2>&1 || true
+      claude mcp add --transport http -s user formmd "$url" --header "Authorization: Bearer $FORMMD_MCP_TOKEN" && printf '[form-md] Claude Code: formmd added for every project\n'
+    else
+      printf '[form-md] Claude Code not found; skipped\n'
+    fi
+    if command -v codex >/dev/null 2>&1; then
+      printf '[form-md] Codex: copy examples/agents/codex.config.toml into ~/.codex/config.toml\n'
+    fi
+    printf '[form-md] Cursor: copy examples/agents/cursor.mcp.json to ~/.cursor/mcp.json\n'
+    exit 0 ;;
+  check) exec make check ;;
+  counts)
+    go_lines="$(find cmd internal tools -name '*.go' ! -name '*_test.go' -print0 | xargs -0 cat | wc -l)"
+    ts_lines="$(find web/src -name '*.ts' -print0 | xargs -0 cat | wc -l)"
+    css_lines="$(find web/src -name '*.css' -print0 | xargs -0 cat | wc -l)"
+    printf 'Go %s · TypeScript %s · CSS %s\n' "$go_lines" "$ts_lines" "$css_lines"
+    exit 0 ;;
+  clean)
+    make clean
+    if [ "${1:-}" = --all ]; then rm -rf web/node_modules; fi
+    exit 0 ;;
+  help|-h|--help) usage; exit 0 ;;
+  *) printf '[form-md] unknown command: %s\n\n' "$cmd" >&2; usage >&2; exit 2 ;;
+esac
 
 pids=()
 ./tools/boot_backend &
