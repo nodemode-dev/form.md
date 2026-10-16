@@ -1,0 +1,3 @@
+:root .doc-body :is(p, h1, h2, h3, h4, h5, h6)[data-align="center"] { text-align: center; }
+:root .doc-body :is(p, h1, h2, h3, h4, h5, h6)[data-align="right"] { text-align: end; }
+:root .doc-body :is(p, h1, h2, h3, h4, h5, h6)[data-align="justify"] { text-align: justify; hyphens: auto; }
