@@ -404,6 +404,10 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.open("div", "class", "docbtn", "data-block", id, "data-label", attrString(el, "label"), "data-actions", actions, "contenteditable", "false")
 		w.open("span", "class", "docbtn__label")
 		w.b.WriteString(esc(label) + "</span></div>")
+	case "board":
+		height := boardHeight(attrInt(el, "height", 600))
+		w.open("div", "class", "board", "data-block", id, "data-height", strconv.Itoa(height), "contenteditable", "false")
+		w.b.WriteString(boardSVG(height, parseBoard(attrString(el, "items")), w.src) + "</div>")
 	case "toc":
 		w.open("nav", "class", "toc", "data-block", id, "contenteditable", "false")
 		for _, h := range w.heads {

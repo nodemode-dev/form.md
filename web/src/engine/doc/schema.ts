@@ -493,6 +493,15 @@ const nodes: Record<string, NodeSpec> = {
     parseDOM: [{ tag: "div.docbtn", getAttrs: (d) => ({ id: (d as HTMLElement).dataset.block ?? null, label: (d as HTMLElement).dataset.label ?? "", actions: (d as HTMLElement).dataset.actions || "[]" }) }],
     toDOM: (n) => ["div", { class: "docbtn", ...blockAttr(n), "data-label": String(n.attrs.label), "data-actions": String(n.attrs.actions), contenteditable: "false" }, ["span", { class: "docbtn__label" }, String(n.attrs.label || "Button")]],
   },
+  board: {
+    group: "block",
+    atom: true,
+    selectable: true,
+    draggable: true,
+    attrs: { ...withId, items: { default: "[]" }, height: { default: 600 } },
+    parseDOM: [{ tag: "div.board", getAttrs: (d) => ({ id: (d as HTMLElement).dataset.block ?? null, items: (d as HTMLElement).dataset.items || "[]", height: Number((d as HTMLElement).dataset.height) || 600 }) }],
+    toDOM: (n) => ["div", { class: "board", ...blockAttr(n), "data-items": String(n.attrs.items), "data-height": String(n.attrs.height), contenteditable: "false" }],
+  },
   toc: {
     group: "block",
     atom: true,

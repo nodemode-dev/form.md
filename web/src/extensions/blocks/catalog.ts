@@ -4,6 +4,7 @@ import { embedProvider, newBlockId, schema } from "../../engine/doc/schema";
 import { t } from "../../engine/i18n";
 import type { IconName } from "../../ui/icons";
 import { newAIBlock, openAI } from "./ai";
+import { newBoard } from "./board";
 import { editButton, newButton } from "./button";
 import { newMeeting } from "./meeting";
 import { type BlockKind, insertBlock, turnInto } from "./commands";
@@ -164,6 +165,14 @@ export const CATALOG: CatalogEntry[] = [
     icon: "image",
     keywords: "image video audio pdf url link import web picture",
     run: (view) => askUrl(view, t("Media from a link"), t("Paste a link to an image, video, audio or PDF file"), (url) => insertBlock(view, mediaFromLink(url))),
+  },
+  {
+    id: "board",
+    label: () => t("Board"),
+    section: MEDIA,
+    icon: "pin",
+    keywords: "board moodboard mood inspiration references pin pinboard collage canvas notes pictures links",
+    run: (view) => insertBlock(view, newBoard()),
   },
   {
     id: "page",

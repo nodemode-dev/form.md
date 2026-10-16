@@ -119,6 +119,18 @@ export class MarkdownWriter {
         for (const b of bytes) bin += String.fromCharCode(b);
         return [`<!-- button:${btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")} -->`];
       }
+      case "board": {
+        let items: unknown = [];
+        try {
+          items = JSON.parse(String(n.attrs.items));
+        } catch {
+          items = [];
+        }
+        const bytes = new TextEncoder().encode(JSON.stringify({ height: Number(n.attrs.height) || 600, items }));
+        let bin = "";
+        for (const b of bytes) bin += String.fromCharCode(b);
+        return [`<!-- board:${btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")} -->`];
+      }
       case "breadcrumb":
         return ["<!-- breadcrumb -->"];
       case "synced":

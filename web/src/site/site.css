@@ -4,6 +4,8 @@
 @import "../styles/base.css";
 @import "../styles/covers.css";
 @import "../styles/editor.css";
+@import "../styles/annotate.css";
+@import "../styles/board.css";
 
 [data-color="violet"] { --tint: var(--c-violet); }
 [data-color="blue"] { --tint: var(--c-blue); }

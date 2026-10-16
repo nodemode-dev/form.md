@@ -254,6 +254,14 @@ func (w *mdWriter) block(el *crdt.YXmlElement) []string {
 		return []string{"<" + url + ">"}
 	case "embed":
 		return []string{"<" + attrString(el, "url") + ">"}
+	case "board":
+		items := attrString(el, "items")
+		for _, it := range parseBoard(items) {
+			w.noteFile(it.Src)
+			w.addText(it.Text)
+		}
+		w.blockBreak()
+		return []string{"<!-- board:" + boardEncode(attrInt(el, "height", 600), items) + " -->"}
 	case "toc":
 		return []string{"<!-- toc -->"}
 	case "button":
