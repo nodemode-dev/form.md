@@ -1916,6 +1916,20 @@ Inserts merge with typing, but a replace deletes and recreates the block, so it 
 
 The page's main element carries `data-style-*` for every non-default field of the merged style, written by the server so the first paint is styled. `Attrs` re-checks each value against the allowed sets before it reaches HTML. Since v0.23.0 uploaded fonts are served too: `scope.fontFor` resolves a page's merged font to an `f:` ref only when the workspace font list has it, `fontsCSS` writes one @font-face and one `.site-main[data-style-font]` rule per font a page in scope uses, served at `<base>/fonts.css` (the public CSP forbids inline styles), and `fileAllowed` lets exactly those font files through. The HTML export still skips uploaded fonts because its scope has no workspace font list. The export merges the workspace default itself because the export scope has no workspace id.
 
+### internal/doc/marks.go and internal/transfer/pdf.go · marks in Markdown and PDF
+- refers-to: internal/doc/marks.go :: `marksEncode`, `marksDecode`, `MarksComment`; internal/doc/markdown.go (image); internal/doc/parse.go (marks comment); internal/transfer/pdf.go :: `pdfR.marks`, `lastImg`
+- kind: explainer
+- logged: v0.24.0 · 2026-10-16
+
+An annotated picture is written as its image line, a blank line and `<!-- marks:base64url(json) -->`. The parser attaches that comment to the node emitted just before it only if that node is an image, and only after `parseMarks` accepts it, so a stray comment does nothing. The PDF export renders from Markdown: each picture records where it was placed, and the marks comment that follows it is drawn in that box with fpdf lines, rectangles, ellipses, a filled arrow head and bold text, scaled from the marks' own width and height.
+
+### internal/collection/cache.go · row updates measured
+- refers-to: internal/collection/cache.go :: `snap.put`, `snap.drop`
+- kind: rationale
+- logged: v0.24.0 · 2026-10-16
+
+The audit flagged the linear scan in `put` and `drop`. A binary search was tried and timed against the previous build with 5000 rows: 1000 row updates through MCP took 19.0 s against 19.2 s, so the scan is not where the time goes (about 19 ms per row update is spent elsewhere, likely in the per-row write path). The code was left as it was; the per-row write cost is the thing to profile next.
+
 ### internal/claudecode/bridge.go · CommandSpec decode
 - refers-to: internal/claudecode/bridge.go :: `CommandSpec.UnmarshalJSON`
 - kind: rationale

@@ -1706,6 +1706,13 @@ Hit testing uses each mark's bounding box widened by three stroke widths, newest
 
 Above 200 rows only bars within 30 rows of the visible area are reconciled into the canvas; `reconcile` keys them by row id, so bars that stay in the window are not touched when it moves. The scroll handler compares the window on an animation frame and repaints only when it changes. The canvas height and dependency paths still use every row.
 
+### src/extensions/database/views/list.ts · loading on scroll
+- refers-to: src/extensions/database/views/list.ts :: `autoMore`
+- kind: explainer
+- logged: v0.24.0 · 2026-10-16
+
+The observer only presses the existing Load more button, so loading has one code path; it watches with a 600 px margin so the next rows usually arrive before the reader reaches the end, and it is disconnected in `destroy`. Inline lists inside pages are left alone so a page with an inline database does not load its rows just by scrolling past it.
+
 ### src/ui/account.ts · Writing section
 - refers-to: src/ui/account.ts :: profileTab (Writing); src/extensions/blocks/triggers.ts :: `SLASH_KEY`
 - kind: explainer
