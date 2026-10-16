@@ -30,6 +30,8 @@ function setup(engine: Engine): void {
       id: "page.new",
       label: () => t("New page"),
       group: PAGES,
+      description: "Creates a new empty page at the top level of the current workspace and opens it with the title focused. Needs write access to the workspace.",
+      mutates: true,
       enabled: () => engine.canWrite(),
       run: async () => {
         const ws = state.get("workspaceId");
@@ -47,6 +49,8 @@ function setup(engine: Engine): void {
       id: "page.newDatabase",
       label: () => t("New database"),
       group: PAGES,
+      description: "Creates a new database (a page that holds rows) in the current workspace and opens it. Needs write access to the workspace.",
+      mutates: true,
       enabled: () => engine.canWrite(),
       run: async () => {
         const ws = state.get("workspaceId");
@@ -65,6 +69,8 @@ function setup(engine: Engine): void {
       id: "page.newInside",
       label: () => t("New page inside this one"),
       group: PAGES,
+      description: "Creates a new empty page as a child of the page that is currently open and opens it. Needs an open page that the user can add content to.",
+      mutates: true,
       enabled: () => !!currentId(engine) && engine.can(currentId(engine), "content"),
       run: async () => {
         const parent = pages.get(currentId(engine));
@@ -82,6 +88,8 @@ function setup(engine: Engine): void {
       id: "page.favorite",
       label: () => t("Star or unstar this page"),
       group: PAGES,
+      description: "Adds the open page to the user's favorites, or removes it if it is already a favorite. Needs a page to be open.",
+      mutates: true,
       enabled: () => !!currentId(engine),
       run: () => void pages.toggleFavorite(currentId(engine)).catch(engine.reportError),
     }),
@@ -89,6 +97,8 @@ function setup(engine: Engine): void {
       id: "page.trash",
       label: () => t("Move to trash"),
       group: PAGES,
+      description: "Moves the open page to the trash, from where it can be restored. Needs a page to be open that the user can edit.",
+      mutates: true,
       enabled: () => {
         const p = pages.get(currentId(engine));
         return !!p && engine.can(p.id, "edit");
@@ -109,12 +119,16 @@ function setup(engine: Engine): void {
       id: "library.open",
       label: () => t("Library"),
       group: PAGES,
+      description: "Switches the view to the library, showing recently opened pages. Does not change any data.",
+      mutates: false,
       run: () => engine.navigate({ name: "library", view: "recent" }),
     }),
     commands.register({
       id: "search.open",
       label: () => t("Search"),
       group: PAGES,
+      description: "Opens the search dialog so the user can look for pages. Needs a workspace to be selected.",
+      mutates: false,
       enabled: () => !!state.get("workspaceId"),
       run: () => state.set("overlay", "search"),
     }),
@@ -122,12 +136,16 @@ function setup(engine: Engine): void {
       id: "trash.open",
       label: () => t("Trash"),
       group: PAGES,
+      description: "Switches the view to the trash, which lists pages that were moved to the trash. Does not change any data.",
+      mutates: false,
       run: () => engine.navigate({ name: "trash" }),
     }),
     commands.register({
       id: "notes.toggle",
       label: () => t("Notes mode"),
       group: PAGES,
+      description: "Turns the user's notes mode preference on or off and saves it to their account. Only available in a signed-in browser session.",
+      mutates: true,
       enabled: () => state.get("me")?.credential.kind === "session",
       run: async () => {
         const me = state.get("me");
@@ -143,6 +161,8 @@ function setup(engine: Engine): void {
       id: "tabs.next",
       label: () => t("Next tab"),
       group: TABS,
+      description: "Switches to the next open tab. Needs more than one tab to be open.",
+      mutates: false,
       enabled: () => state.get("tabs").length > 1,
       run: () => void engine.cycleTab(1),
     }),
@@ -150,6 +170,8 @@ function setup(engine: Engine): void {
       id: "tabs.prev",
       label: () => t("Previous tab"),
       group: TABS,
+      description: "Switches to the previous open tab. Needs more than one tab to be open.",
+      mutates: false,
       enabled: () => state.get("tabs").length > 1,
       run: () => void engine.cycleTab(-1),
     }),
@@ -157,6 +179,8 @@ function setup(engine: Engine): void {
       id: "tabs.close",
       label: () => t("Close tab"),
       group: TABS,
+      description: "Closes the tab of the open page in this window. The page itself is not changed. Needs an open page that has a tab.",
+      mutates: false,
       enabled: () => !!currentId(engine) && state.get("tabs").includes(currentId(engine)),
       run: () => engine.closeTab(currentId(engine)),
     }),

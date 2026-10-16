@@ -94,7 +94,7 @@ export class Commands {
         ...(c.when ? { when: c.when } : {}),
         keys: this.keysOf?.(c.id) ?? [],
         ...(c.params ? { params: c.params } : {}),
-        mutates: c.mutates ?? false,
+        mutates: c.mutates ?? true,
         ...(c.risky ? { risky: true } : {}),
       }))
       .sort((a, b) => a.id.localeCompare(b.id));

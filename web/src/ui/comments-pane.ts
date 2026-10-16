@@ -203,6 +203,8 @@ export function mountCommentsPane(engine: Engine): void {
     id: "page.comments",
     label: () => t("Show or hide comments"),
     group: () => t("Pages"),
+    description: "Shows or hides the comments pane for the open page. Does not change any comments. Needs a page to be open.",
+    mutates: false,
     enabled: () => !!currentPage(),
     run: () => setOpen(!open),
   });

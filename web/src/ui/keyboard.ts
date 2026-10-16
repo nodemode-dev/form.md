@@ -20,6 +20,8 @@ export function mountKeyboard(engine: Engine): void {
     id: "layers.closeTop",
     label: () => t("Close the open panel or dialog"),
     group: () => "General",
+    description: "Closes the topmost open panel, menu or dialog in this window.",
+    mutates: false,
     enabled: () => hasLayers(),
     run: () => {
       closeTop();

@@ -23,6 +23,8 @@ function setup(engine: Engine): void {
       id: `shell.theme.${pref}`,
       label: () => t(label),
       group: APPEARANCE,
+      description: "Sets the color theme for this browser to light, dark or matching the system, depending on the command.",
+      mutates: false,
       run: () => state.set("themePref", pref),
     });
 
@@ -31,6 +33,8 @@ function setup(engine: Engine): void {
       id: "shell.toggleSidebar",
       label: () => t("Show or hide the sidebar"),
       group: GENERAL,
+      description: "Shows or hides the sidebar in this window, or the sidebar drawer on a narrow screen.",
+      mutates: false,
       run: () => {
         if (platform.isNarrow()) state.set("drawer", !state.get("drawer"));
         else state.set("sidebar", state.get("sidebar") === "collapsed" ? "expanded" : "collapsed");
@@ -40,24 +44,32 @@ function setup(engine: Engine): void {
       id: "shell.showShortcuts",
       label: () => t("Keyboard shortcuts"),
       group: GENERAL,
+      description: "Opens the dialog that lists the keyboard shortcuts.",
+      mutates: false,
       run: () => state.set("overlay", "shortcuts"),
     }),
     commands.register({
       id: "shell.sync",
       label: () => t("Sync now"),
       group: GENERAL,
+      description: "Reconnects to the server, checks that it is reachable and reloads the page list for the current workspace.",
+      mutates: false,
       run: () => void syncNow(engine),
     }),
     commands.register({
       id: "shell.checkConnection",
       label: () => t("Check the server connection"),
       group: GENERAL,
+      description: "Checks whether the server can be reached and updates the connection status shown in the window.",
+      mutates: false,
       run: () => engine.health.check(),
     }),
     commands.register({
       id: "shell.toggleTheme",
       label: () => t("Switch between light and dark"),
       group: APPEARANCE,
+      description: "Switches this browser between the light and dark theme.",
+      mutates: false,
       run: () => state.set("themePref", engine.resolvedTheme() === "dark" ? "light" : "dark"),
     }),
     themeCommand("light", "Light theme"),

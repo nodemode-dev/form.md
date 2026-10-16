@@ -128,6 +128,7 @@ export function registerStyleCommands(engine: Engine): Unsubscribe[] {
       id: "page.styleReset",
       label: () => t("Reset this page to the workspace style"),
       group,
+      description: "Removes the open page's own style so it follows the workspace default again.",
       mutates: true,
       enabled: () => {
         const p = currentPage(engine);

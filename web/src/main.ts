@@ -157,7 +157,7 @@ async function start(): Promise<void> {
     };
     const toggleAgent = () => void ensureAgent().then((p) => p.toggle(), app.reportError);
     agentBtn?.addEventListener("click", toggleAgent);
-    engine.commands.register({ id: "agent.toggle", label: () => t("Show or hide the agent"), group: () => t("AI"), run: toggleAgent });
+    engine.commands.register({ id: "agent.toggle", label: () => t("Show or hide the agent"), group: () => t("AI"), description: "Shows or hides the agent pane in this window. Does not send anything to the agent.", mutates: false, run: toggleAgent });
     engine.keymap.register({ id: "agent.toggle", command: "agent.toggle", chords: ["mod+shift+j"], scope: "global", whileTyping: true });
     const loadSearch = () => import("./ui/search").then((m) => m.mountSearch(app));
     let searchJob: Promise<void> | null = null;

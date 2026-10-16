@@ -34,6 +34,7 @@ function setup(engine: Engine): void {
       label: () => t("Show or hide the terminal"),
       group: GROUP,
       description: "Shows or hides the bottom panel with terminals, Claude Code and the Claude Code chat.",
+      mutates: false,
       run: () => void dock().then((d) => d.toggle(), fail),
     }),
     commands.register({
@@ -41,6 +42,7 @@ function setup(engine: Engine): void {
       label: () => t("New terminal"),
       group: GROUP,
       description: "Opens a new shell tab in the bottom panel, on the computer form.md runs on.",
+      mutates: true,
       run: () => dock().then((d) => d.newTerminal()),
     }),
     commands.register({
@@ -49,6 +51,7 @@ function setup(engine: Engine): void {
       group: GROUP,
       description: "Opens Claude Code in a terminal tab, already connected to this form.md through its MCP tools.",
       when: "Use when the person wants the full Claude Code terminal experience inside form.md.",
+      mutates: true,
       run: () => dock().then((d) => d.claude()),
     }),
     commands.register({
@@ -56,6 +59,7 @@ function setup(engine: Engine): void {
       label: () => t("Chat with Claude Code"),
       group: GROUP,
       description: "Opens the Claude Code chat tab: Claude Code answers through form.md's tools, with each tool call shown as it runs.",
+      mutates: true,
       run: () => dock().then((d) => d.chat()),
     }),
     keymap.register({ id: "dock.toggle", command: "dock.toggle", chords: ["mod+j"], scope: "global", whileTyping: true }),

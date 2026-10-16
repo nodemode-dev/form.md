@@ -55,13 +55,29 @@ function setup(engine: Engine): void {
 
   const mark = (id: string, label: () => string, name: string, chords: string[]) => {
     teardown.push(
-      commands.register({ id, label, group: EDITING, enabled: editing, run: withView((v) => void markCommand(name)(v.state, v.dispatch, v)) }),
+      commands.register({
+        id,
+        label,
+        group: EDITING,
+        description: `Toggles the "${name}" inline formatting mark on the selected text, or on the text typed next if nothing is selected. Needs the cursor in an editable page.`,
+        mutates: true,
+        enabled: editing,
+        run: withView((v) => void markCommand(name)(v.state, v.dispatch, v)),
+      }),
       keymap.register({ id, command: id, chords, scope: "editor", whileTyping: true }),
     );
   };
   const block = (id: string, label: () => string, kind: BlockKind, chords: string[]) => {
     teardown.push(
-      commands.register({ id, label, group: BLOCKS, enabled: editing, run: withView((v) => void turnInto(v, kind)) }),
+      commands.register({
+        id,
+        label,
+        group: BLOCKS,
+        description: `Changes the block holding the cursor into the "${kind}" block type, keeping its text. Needs the cursor in an editable page.`,
+        mutates: true,
+        enabled: editing,
+        run: withView((v) => void turnInto(v, kind)),
+      }),
       keymap.register({ id, command: id, chords, scope: "editor", whileTyping: true }),
     );
   };
@@ -85,6 +101,8 @@ function setup(engine: Engine): void {
       id: "editor.link",
       label: () => t("Link"),
       group: EDITING,
+      description: "Opens the link editor in the format bar for the selected text so a URL can be set. Needs a non-empty text selection in an editable page.",
+      mutates: false,
       enabled: () => editing() && !host?.view()?.state.selection.empty,
       run: () => {
         const v = host?.view();
@@ -96,6 +114,8 @@ function setup(engine: Engine): void {
       id: "editor.comment",
       label: () => t("Comment on the selection"),
       group: EDITING,
+      description: "Starts a new comment thread anchored to the selected text, opening the comment composer. Needs a non-empty text selection and permission to comment on the page.",
+      mutates: false,
       enabled: () => {
         const v = host?.view();
         return !!v && v.hasFocus() && !v.state.selection.empty && engine.comments.get(host?.current() ?? "").can_comment;
@@ -103,22 +123,72 @@ function setup(engine: Engine): void {
       run: withView((v) => commentUI(v)?.startThread(v.state.selection.from, v.state.selection.to, "text")),
     }),
     keymap.register({ id: "editor.comment", command: "editor.comment", chords: ["mod+shift+m"], scope: "editor", whileTyping: true }),
-    commands.register({ id: "editor.inlineMath", label: () => t("Inline equation"), group: EDITING, enabled: editing, run: withView((v) => void insertInlineMath(v)) }),
+    commands.register({
+      id: "editor.inlineMath",
+      label: () => t("Inline equation"),
+      group: EDITING,
+      description: "Inserts an inline equation at the cursor, using the selected text as its TeX if there is a selection. Needs the cursor in a text block of an editable page, not in a code block.",
+      mutates: true,
+      enabled: editing,
+      run: withView((v) => void insertInlineMath(v)),
+    }),
     keymap.register({ id: "editor.inlineMath", command: "editor.inlineMath", chords: ["mod+shift+e"], scope: "editor", whileTyping: true }),
-    commands.register({ id: "editor.undo", label: () => t("Undo"), group: EDITING, enabled: editing, run: withView((v) => void undo(v.state)) }),
+    commands.register({
+      id: "editor.undo",
+      label: () => t("Undo"),
+      group: EDITING,
+      description: "Reverts the most recent edit made by this user in the open page. Needs the editor focused on an editable page.",
+      mutates: true,
+      enabled: editing,
+      run: withView((v) => void undo(v.state)),
+    }),
     keymap.register({ id: "editor.undo", command: "editor.undo", chords: ["mod+z"], scope: "editor", whileTyping: true }),
-    commands.register({ id: "editor.redo", label: () => t("Redo"), group: EDITING, enabled: editing, run: withView((v) => void redo(v.state)) }),
+    commands.register({
+      id: "editor.redo",
+      label: () => t("Redo"),
+      group: EDITING,
+      description: "Reapplies the edit most recently undone by this user in the open page. Needs the editor focused on an editable page.",
+      mutates: true,
+      enabled: editing,
+      run: withView((v) => void redo(v.state)),
+    }),
     keymap.register({ id: "editor.redo", command: "editor.redo", chords: ["mod+shift+z", "mod+y"], scope: "editor", whileTyping: true }),
-    commands.register({ id: "editor.moveUp", label: () => t("Move block up"), group: BLOCKS, enabled: editing, run: withView((v) => void moveBlock(v, -1)) }),
+    commands.register({
+      id: "editor.moveUp",
+      label: () => t("Move block up"),
+      group: BLOCKS,
+      description: "Swaps the block holding the cursor with the sibling block above it. Does nothing if it is already first. Needs the cursor in a block of an editable page.",
+      mutates: true,
+      enabled: editing,
+      run: withView((v) => void moveBlock(v, -1)),
+    }),
     keymap.register({ id: "editor.moveUp", command: "editor.moveUp", chords: ["alt+arrowup"], scope: "editor", whileTyping: true }),
-    commands.register({ id: "editor.moveDown", label: () => t("Move block down"), group: BLOCKS, enabled: editing, run: withView((v) => void moveBlock(v, 1)) }),
+    commands.register({
+      id: "editor.moveDown",
+      label: () => t("Move block down"),
+      group: BLOCKS,
+      description: "Swaps the block holding the cursor with the sibling block below it. Does nothing if it is already last. Needs the cursor in a block of an editable page.",
+      mutates: true,
+      enabled: editing,
+      run: withView((v) => void moveBlock(v, 1)),
+    }),
     keymap.register({ id: "editor.moveDown", command: "editor.moveDown", chords: ["alt+arrowdown"], scope: "editor", whileTyping: true }),
-    commands.register({ id: "editor.duplicate", label: () => t("Duplicate block"), group: BLOCKS, enabled: editing, run: withView((v) => void duplicateBlock(v)) }),
+    commands.register({
+      id: "editor.duplicate",
+      label: () => t("Duplicate block"),
+      group: BLOCKS,
+      description: "Inserts a copy of the block holding the cursor directly after it and moves the cursor into the copy. Needs the cursor in a block of an editable page.",
+      mutates: true,
+      enabled: editing,
+      run: withView((v) => void duplicateBlock(v)),
+    }),
     keymap.register({ id: "editor.duplicate", command: "editor.duplicate", chords: ["mod+d"], scope: "editor", whileTyping: true }),
     commands.register({
       id: "editor.toggleCheck",
       label: () => t("Tick or untick a to-do"),
       group: BLOCKS,
+      description: "Flips the checked state of the to-do item holding the cursor. Needs the cursor inside a to-do list item on an editable page.",
+      mutates: true,
       enabled: () => {
         const v = host?.view();
         if (!v || !editing()) return false;
@@ -133,6 +203,8 @@ function setup(engine: Engine): void {
       id: "page.copyMarkdown",
       label: () => t("Copy page as Markdown"),
       group: () => t("Pages"),
+      description: "Copies the whole open page to the clipboard as Markdown and shows a confirmation toast. Needs a page open in the editor. Does not change the page.",
+      mutates: false,
       enabled: () => !!host?.view() && !!host.current(),
       run: () => {
         const v = host?.view();

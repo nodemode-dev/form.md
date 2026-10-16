@@ -136,6 +136,7 @@ function setup(engine: Engine): void {
       group,
       description: "Hides the sidebar, top bar, tabs and page controls so only the text remains, and shows the word count. Run again to leave.",
       params: { on: { type: "boolean" } },
+      mutates: false,
       run: (p) => setFocus(typeof p?.on === "boolean" ? p.on : !root.hasAttribute("data-focus")),
     }),
     commands.register({
@@ -143,6 +144,7 @@ function setup(engine: Engine): void {
       label: () => t("Typewriter scrolling in focus mode"),
       group,
       description: "In focus mode the line being typed stays near the middle of the screen; this turns that on or off.",
+      mutates: false,
       run: () => {
         const off = !read(TYPEWRITER_OFF_KEY);
         write(TYPEWRITER_OFF_KEY, off);
@@ -154,6 +156,7 @@ function setup(engine: Engine): void {
       label: () => t("Show or hide the word count"),
       group,
       description: "Words, characters and reading time for the page, the selection or the paragraph under the cursor.",
+      mutates: false,
       run: () => {
         write(COUNT_KEY, !read(COUNT_KEY));
         schedule();
@@ -165,6 +168,7 @@ function setup(engine: Engine): void {
       group,
       description: "Returns word, character and reading-time counts for the open page, the current selection or the paragraph under the cursor.",
       params: { scope: { type: "string", enum: ["page", "selection", "paragraph"] } },
+      mutates: false,
       run: (p) => countsFor((p?.scope as Counts["scope"]) ?? "page") ?? { error: "no document is open" },
     }),
     commands.register({
@@ -186,6 +190,7 @@ function setup(engine: Engine): void {
       label: () => t("Open the slash menu only at the start of a line"),
       group,
       description: "When on, typing a slash in the middle of a sentence stays a slash; the block menu opens only from an empty line or the start of a block.",
+      mutates: false,
       run: () => write(SLASH_KEY, !read(SLASH_KEY)),
     }),
     keymap.register({ id: "view.focus", command: "view.focus", chords: ["mod+shift+f"], scope: "global", whileTyping: true }),
