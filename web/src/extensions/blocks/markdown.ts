@@ -96,7 +96,13 @@ export class MarkdownWriter {
         return this.table(n);
       case "image": {
         const caption = String(n.attrs.caption ?? "");
-        return [`![${escapeText(String(n.attrs.alt ?? ""), false, false)}](${linkDest(fileUrl(String(n.attrs.src)))}${caption ? ` "${caption.replace(/"/g, '\\"')}"` : ""})`];
+        const line = `![${escapeText(String(n.attrs.alt ?? ""), false, false)}](${linkDest(fileUrl(String(n.attrs.src)))}${caption ? ` "${caption.replace(/"/g, '\\"')}"` : ""})`;
+        const marks = String(n.attrs.marks ?? "");
+        if (!marks) return [line];
+        const bytes = new TextEncoder().encode(marks);
+        let bin = "";
+        for (const b of bytes) bin += String.fromCharCode(b);
+        return [line, "", `<!-- marks:${btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")} -->`];
       }
       case "video":
       case "audio":

@@ -3,7 +3,9 @@ package transfer
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -22,6 +24,7 @@ import (
 	"golang.org/x/image/font/gofont/gomonobold"
 	"golang.org/x/image/font/gofont/goregular"
 
+	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/policy"
 )
 
@@ -49,6 +52,8 @@ type pdfR struct {
 	left   float64
 	right  float64
 	imgs   int
+
+	lastImg [4]float64
 }
 
 const (
@@ -269,6 +274,10 @@ func (r *pdfR) block(n ast.Node, left float64) {
 			b.Write(seg.Value(r.src))
 		}
 		raw := b.String()
+		if strings.HasPrefix(strings.TrimSpace(raw), "<!-- marks:") {
+			r.marks(raw)
+			return
+		}
 		if m := summaryText.FindStringSubmatch(raw); m != nil {
 			pdf.SetX(left)
 			r.font(true, false, false, false, r.size)
@@ -634,5 +643,66 @@ func (r *pdfR) image(dest, alt string) {
 		y = pdf.GetY()
 	}
 	pdf.ImageOptions(name, left, y, w, h, false, fpdf.ImageOptions{ImageType: kind}, 0, "")
+	r.lastImg = [4]float64{left, y, w, h}
 	pdf.SetXY(left, y+h+1)
+}
+
+func (r *pdfR) marks(raw string) {
+	mw, mh, items, ok := doc.MarksComment(raw)
+	box := r.lastImg
+	r.lastImg = [4]float64{}
+	if !ok || box[2] <= 0 || mw <= 0 || mh <= 0 {
+		return
+	}
+	pdf := r.pdf
+	sx, sy := box[2]/mw, box[3]/mh
+	at := func(x, y float64) (float64, float64) { return box[0] + x*sx, box[1] + y*sy }
+	x0, y0 := pdf.GetX(), pdf.GetY()
+	for _, m := range items {
+		var cr, cg, cb int
+		if _, err := fmt.Sscanf(m.C, "#%02x%02x%02x", &cr, &cg, &cb); err != nil {
+			continue
+		}
+		pdf.SetDrawColor(cr, cg, cb)
+		pdf.SetFillColor(cr, cg, cb)
+		pdf.SetLineWidth(math.Max(0.2, m.S*sx))
+		pdf.SetLineCapStyle("round")
+		pdf.SetLineJoinStyle("round")
+		p := func(i int) float64 {
+			if i < len(m.P) {
+				return m.P[i]
+			}
+			return 0
+		}
+		switch m.K {
+		case "arrow":
+			x1, y1 := at(p(0), p(1))
+			x2, y2 := at(p(2), p(3))
+			pdf.Line(x1, y1, x2, y2)
+			a := math.Atan2(y2-y1, x2-x1)
+			l := math.Max(10, m.S*4) * sx
+			pdf.Polygon([]fpdf.PointType{{X: x2, Y: y2}, {X: x2 - l*math.Cos(a-0.45), Y: y2 - l*math.Sin(a-0.45)}, {X: x2 - l*math.Cos(a+0.45), Y: y2 - l*math.Sin(a+0.45)}}, "F")
+		case "rect":
+			x1, y1 := at(math.Min(p(0), p(2)), math.Min(p(1), p(3)))
+			pdf.Rect(x1, y1, math.Abs(p(2)-p(0))*sx, math.Abs(p(3)-p(1))*sy, "D")
+		case "ellipse":
+			cx, cy := at((p(0)+p(2))/2, (p(1)+p(3))/2)
+			pdf.Ellipse(cx, cy, math.Abs(p(2)-p(0))/2*sx, math.Abs(p(3)-p(1))/2*sy, 0, "D")
+		case "pen":
+			for i := 0; i+3 < len(m.P); i += 2 {
+				x1, y1 := at(m.P[i], m.P[i+1])
+				x2, y2 := at(m.P[i+2], m.P[i+3])
+				pdf.Line(x1, y1, x2, y2)
+			}
+		case "text":
+			x, y := at(p(0), p(1))
+			r.font(true, false, false, false, math.Max(4, m.S*6*sy*72/25.4))
+			pdf.SetTextColor(cr, cg, cb)
+			pdf.Text(x, y, m.T)
+			pdf.SetTextColor(30, 30, 30)
+		}
+	}
+	pdf.SetLineWidth(0.2)
+	pdf.SetDrawColor(0, 0, 0)
+	pdf.SetXY(x0, y0)
 }

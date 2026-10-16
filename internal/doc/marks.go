@@ -1,6 +1,7 @@
 package doc
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"html"
 	"math"
@@ -47,6 +48,48 @@ func parseMarks(raw string) *marks {
 		return nil
 	}
 	return &m
+}
+
+func marksEncode(raw string) string {
+	m := parseMarks(raw)
+	if m == nil {
+		return ""
+	}
+	b, _ := json.Marshal(m)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func marksDecode(enc string) string {
+	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(enc))
+	if err != nil || len(raw) > 512<<10 || parseMarks(string(raw)) == nil {
+		return ""
+	}
+	return string(raw)
+}
+
+type MarkSpec struct {
+	K string
+	C string
+	S float64
+	P []float64
+	T string
+}
+
+func MarksComment(raw string) (w, h float64, items []MarkSpec, ok bool) {
+	enc, found := strings.CutPrefix(strings.TrimSpace(raw), "<!-- marks:")
+	if !found {
+		return 0, 0, nil, false
+	}
+	m := parseMarks(marksDecode(strings.TrimSuffix(enc, " -->")))
+	if m == nil {
+		return 0, 0, nil, false
+	}
+	for _, it := range m.Items {
+		if hexColor.MatchString(it.C) && it.S > 0 && it.S <= 200 {
+			items = append(items, MarkSpec{K: it.K, C: it.C, S: it.S, P: it.P, T: it.T})
+		}
+	}
+	return m.W, m.H, items, true
 }
 
 func marksSVG(raw string) string {

@@ -224,6 +224,9 @@ func (w *mdWriter) block(el *crdt.YXmlElement) []string {
 		if caption != "" {
 			line += ` "` + strings.ReplaceAll(caption, `"`, `\"`) + `"`
 		}
+		if enc := marksEncode(attrString(el, "marks")); enc != "" {
+			return []string{line + ")", "", "<!-- marks:" + enc + " -->"}
+		}
 		return []string{line + ")"}
 	case "video", "audio":
 		src := attrString(el, "src")

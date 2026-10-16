@@ -139,6 +139,20 @@ func (c *converter) blocks(parent gast.Node) []*pmNode {
 				emit(t)
 				continue
 			}
+			if enc, ok := strings.CutPrefix(raw, "<!-- marks:"); ok {
+				var last *pmNode
+				if len(stack) > 0 {
+					if k := stack[len(stack)-1].kids; len(k) > 0 {
+						last = k[len(k)-1]
+					}
+				} else if len(out) > 0 {
+					last = out[len(out)-1]
+				}
+				if m := marksDecode(strings.TrimSuffix(enc, " -->")); last != nil && last.name == "image" && m != "" {
+					last.attrs["marks"] = m
+				}
+				continue
+			}
 			emit(c.htmlBlock(raw))
 			continue
 		}
