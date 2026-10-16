@@ -37,6 +37,8 @@ type Document struct {
 	Boot     any
 	Redirect string
 	Preload  []string
+	Styles   []string
+	Fonts    []string
 }
 
 type Renderer func(r *http.Request) (Document, error)
@@ -252,6 +254,12 @@ func (h *Handler) serveDocument(w http.ResponseWriter, r *http.Request) {
 		for _, href := range h.preloads[name] {
 			links.WriteString(`<link rel="modulepreload" crossorigin href="` + html.EscapeString(href) + `" />`)
 		}
+	}
+	for _, href := range doc.Styles {
+		links.WriteString(`<link rel="stylesheet" href="` + html.EscapeString(href) + `" data-fonts="" />`)
+	}
+	for _, href := range doc.Fonts {
+		links.WriteString(`<link rel="preload" as="font" crossorigin href="` + html.EscapeString(href) + `" />`)
 	}
 	if links.Len() > 0 {
 		if doc.HTML == nil {

@@ -46,10 +46,16 @@ export interface Workspace {
   rules_updated_at: number;
   ai_enabled?: boolean;
   page_style?: PageStyle;
+  fonts?: WorkspaceFont[];
+}
+
+export interface WorkspaceFont {
+  file: string;
+  family: string;
 }
 
 export interface PageStyle {
-  font?: "sans" | "serif" | "mono" | "rounded" | "slab" | "humanist";
+  font?: "sans" | "serif" | "mono" | "rounded" | "slab" | "humanist" | `f:${string}`;
   size?: "small" | "default" | "large";
   width?: "default" | "wide" | "full";
   spacing?: "compact" | "default" | "relaxed";
@@ -1066,7 +1072,7 @@ export interface TrashItem extends Page {
   pages: number;
 }
 
-export type FilePurpose = "attachment" | "cover" | "icon" | "avatar" | "workspace";
+export type FilePurpose = "attachment" | "cover" | "icon" | "avatar" | "workspace" | "font";
 
 export interface FileInfo {
   id: string;

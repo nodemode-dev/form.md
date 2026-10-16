@@ -45,19 +45,57 @@ async function makeDefault(engine: Engine, p: Page): Promise<void> {
   await engine.refreshMe();
 }
 
+export function syncFonts(engine: Engine, workspaceId: string): void {
+  const fonts = engine.workspaceById(workspaceId)?.fonts ?? [];
+  const href = fonts.length ? `/api/workspaces/${encodeURIComponent(workspaceId)}/fonts.css?v=${fonts.map((f) => f.file.slice(2, 8)).join("")}` : "";
+  const links = [...document.querySelectorAll<HTMLLinkElement>("link[data-fonts]")];
+  if (href && links.some((l) => l.getAttribute("href") === href || l.getAttribute("href") === href.split("?")[0])) return;
+  if (!href) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  link.dataset.fonts = "";
+  link.addEventListener("load", () => {
+    for (const old of links) old.remove();
+  }, { once: true });
+  document.head.appendChild(link);
+}
+
+async function uploadFont(engine: Engine, p: Page): Promise<void> {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf";
+  const file = await new Promise<File | null>((resolve) => {
+    input.addEventListener("change", () => resolve(input.files?.[0] ?? null), { once: true });
+    input.click();
+  });
+  if (!file) return;
+  const up = await engine.api.files.upload(file, "font", { workspace_id: p.workspace_id, name: file.name });
+  const family = file.name.replace(/\.(woff2?|ttf|otf)$/i, "").replace(/[^\p{L}\p{N} ._-]+/gu, " ").trim().slice(0, 60) || "Font";
+  const fonts = [...(engine.workspaceById(p.workspace_id)?.fonts ?? []), { file: `f:${up.file.id}`, family }];
+  await engine.api.workspaces.update(p.workspace_id, { fonts });
+  await engine.refreshMe();
+  syncFonts(engine, p.workspace_id);
+  setStyle(engine, engine.pages.get(p.id) ?? p, { font: `f:${up.file.id}` });
+}
+
 export function openStyleMenu(engine: Engine, anchor: HTMLElement, p: Page): void {
   const cur = effectiveStyle(engine, p);
   const entries: MenuEntry[] = [];
+  const ws = engine.workspaceById(p.workspace_id);
   for (const o of OPTIONS) {
     entries.push({ kind: "heading", label: t(o.title) });
     for (const [v, label] of o.values) {
       const on = (cur[o.key] ?? (o.key === "font" ? "sans" : o.key === "align" ? "start" : "default")) === v;
       entries.push({ label: t(label), checked: on, run: () => setStyle(engine, p, { [o.key]: v } as PageStyle) });
     }
+    if (o.key === "font") {
+      for (const f of ws?.fonts ?? []) entries.push({ label: f.family, checked: cur.font === f.file, run: () => setStyle(engine, p, { font: f.file as `f:${string}` }) });
+      if (ws?.role === "admin") entries.push({ label: t("Upload a font..."), icon: "upload", run: () => void uploadFont(engine, p).catch(engine.reportError) });
+    }
   }
   entries.push({ kind: "separator" });
   entries.push({ label: t("Reset this page to the workspace style"), run: () => engine.pages.edit(p.id, { style: {} }, false) });
-  const ws = engine.workspaceById(p.workspace_id);
   if (ws && ws.role === "admin") entries.push({ label: t("Use this style for every page in the workspace"), run: () => void makeDefault(engine, p).catch(engine.reportError) });
   openMenu(anchor, entries, { side: "bottom", align: "end", label: t("Page style") });
 }

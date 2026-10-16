@@ -80,6 +80,7 @@ import type {
   TrashItem,
   Visibility,
   Workspace,
+  WorkspaceFont,
   WorkspaceRole,
 } from "./types";
 
@@ -200,7 +201,7 @@ export function createClient(f: FetchFn) {
     workspaces: {
       list: () => get<{ workspaces: Workspace[]; withheld: number }>("/api/workspaces"),
       create: (name: string, icon = "") => post<{ workspace: Workspace }>("/api/workspaces", { name, icon }),
-      update: (id: string, body: Partial<Pick<Workspace, "name" | "icon" | "image" | "sidebar_mode" | "agent_access" | "auto_join">> & { page_style?: PageStyle }) =>
+      update: (id: string, body: Partial<Pick<Workspace, "name" | "icon" | "image" | "sidebar_mode" | "agent_access" | "auto_join">> & { page_style?: PageStyle; fonts?: WorkspaceFont[] }) =>
         patch<{ workspace: Workspace }>(`/api/workspaces/${enc(id)}`, body),
       remove: (id: string) => del(`/api/workspaces/${enc(id)}`),
       members: (id: string) => get<{ members: Member[] }>(`/api/workspaces/${enc(id)}/members`),

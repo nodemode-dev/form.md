@@ -6,6 +6,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/pagestyle"
 	"github.com/nodemode-ai/form.md/internal/policy"
 )
 
@@ -49,6 +50,16 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 			return err
 		}
 		httpx.JSON(w, http.StatusOK, map[string]any{"workspace": ws})
+		return nil
+	}))
+	r.HandleFunc("GET /api/workspaces/{id}/fonts.css", a.Require(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		ws, _, err := s.Get(r.Context(), p, r.PathValue("id"))
+		if err != nil {
+			return err
+		}
+		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		w.Header().Set("Cache-Control", "private, no-cache")
+		_, _ = w.Write([]byte(pagestyle.FontsCSS(ws.Fonts)))
 		return nil
 	}))
 	r.HandleFunc("PATCH /api/workspaces/{id}", a.Require(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {

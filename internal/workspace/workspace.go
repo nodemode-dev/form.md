@@ -30,11 +30,16 @@ type Service struct {
 
 	mayCreate  func(p *policy.Principal) bool
 	imageCheck func(ctx context.Context, ref, workspaceID string) bool
+	fontCheck  func(ctx context.Context, ref, workspaceID string) bool
 	notifier   Notifier
 }
 
 func (s *Service) SetImageCheck(fn func(ctx context.Context, ref, workspaceID string) bool) {
 	s.imageCheck = fn
+}
+
+func (s *Service) SetFontCheck(fn func(ctx context.Context, ref, workspaceID string) bool) {
+	s.fontCheck = fn
 }
 
 type Notifier interface {
@@ -100,23 +105,25 @@ type Workspace struct {
 	RulesUpdatedAt int64  `json:"rules_updated_at"`
 	AIEnabled      bool   `json:"ai_enabled"`
 
-	PageStyle json.RawMessage `json:"page_style,omitempty"`
+	PageStyle json.RawMessage  `json:"page_style,omitempty"`
+	Fonts     []pagestyle.Font `json:"fonts,omitempty"`
 }
 
 const wsColumns = `w.id, w.name, w.icon, w.image, w.personal, w.auto_join, w.sidebar_mode, w.agent_access,
 	w.rules != '', w.rules_proposal != '', COALESCE(w.owner_id, ''), w.rules_updated_at,
-	(SELECT COUNT(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id), w.ai_enabled, w.page_style`
+	(SELECT COUNT(*) FROM workspace_members m2 WHERE m2.workspace_id = w.id), w.ai_enabled, w.page_style, w.fonts`
 
 func scanWorkspace(row interface{ Scan(...any) error }, extra ...any) (*Workspace, error) {
 	w := &Workspace{}
 	var personal, autoJoin, hasRules, proposal, aiOn int
-	var pageStyle string
+	var pageStyle, fonts string
 	dest := append([]any{&w.ID, &w.Name, &w.Icon, &w.Image, &personal, &autoJoin, &w.SidebarMode, &w.AgentAccess,
-		&hasRules, &proposal, &w.OwnerID, &w.RulesUpdatedAt, &w.MemberCount, &aiOn, &pageStyle}, extra...)
+		&hasRules, &proposal, &w.OwnerID, &w.RulesUpdatedAt, &w.MemberCount, &aiOn, &pageStyle, &fonts}, extra...)
 	if err := row.Scan(dest...); err != nil {
 		return nil, store.NoRows(err)
 	}
 	w.PageStyle = pagestyle.Raw(pageStyle)
+	w.Fonts = pagestyle.ParseFonts(fonts)
 	w.Personal, w.AutoJoin, w.HasRules, w.ProposalWaits, w.AIEnabled = personal == 1, autoJoin == 1, hasRules == 1, proposal == 1, aiOn == 1
 	return w, nil
 }
@@ -302,7 +309,8 @@ type Update struct {
 	AgentAccess *string `json:"agent_access"`
 	AutoJoin    *bool   `json:"auto_join"`
 
-	PageStyle *json.RawMessage `json:"page_style"`
+	PageStyle *json.RawMessage  `json:"page_style"`
+	Fonts     *[]pagestyle.Font `json:"fonts"`
 }
 
 func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in Update) (*Workspace, error) {
@@ -353,6 +361,14 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 		}
 		sets, args = append(sets, "page_style = ?"), append(args, st)
 		changes = append(changes, audit.Change{Field: "page_style", Before: string(cur.PageStyle), After: st})
+	}
+	if in.Fonts != nil {
+		list, err := pagestyle.CleanFonts(*in.Fonts, func(ref string) bool { return s.fontCheck != nil && s.fontCheck(ctx, ref, id) })
+		if err != nil {
+			return nil, err
+		}
+		sets, args = append(sets, "fonts = ?"), append(args, list)
+		changes = append(changes, audit.Change{Field: "fonts", After: list})
 	}
 	if in.AgentAccess != nil {
 		if !p.IsSession() {

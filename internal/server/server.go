@@ -187,6 +187,9 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	ws.SetImageCheck(func(ctx context.Context, ref, workspaceID string) bool {
 		return fsvc.InWorkspace(ctx, ref, workspaceID, "workspace")
 	})
+	ws.SetFontCheck(func(ctx context.Context, ref, workspaceID string) bool {
+		return fsvc.FontInWorkspace(ctx, ref, workspaceID)
+	})
 	authSvc.SetAvatarCheck(func(ctx context.Context, ref, userID string) bool {
 		return fsvc.Owned(ctx, ref, userID, "avatar")
 	})
@@ -357,6 +360,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 	userLang := ""
 	slots := map[string]string{"instance-name": s.Settings.Get("instance.name"), "saml-name": s.Auth.SAMLName(), "version": app.Version}
 	htmlSlots := map[string]string{}
+	var fontCSS, fontFiles []string
 	if signedIn {
 		me, err := s.Auth.Me(ctx, p)
 		if err != nil {
@@ -410,6 +414,14 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 					for k, v := range st {
 						if v != "" && v != "default" && !(k == "font" && v == "sans") && !(k == "align" && v == "start") {
 							attrs["style-"+k] = v
+						}
+					}
+					if id, ok := strings.CutPrefix(st["font"], "f:"); ok && cur != nil && cur.ID == d.WorkspaceID {
+						for _, f := range cur.Fonts {
+							if f.File == st["font"] {
+								fontCSS = append(fontCSS, "/api/workspaces/"+cur.ID+"/fonts.css")
+								fontFiles = append(fontFiles, "/files/"+id)
+							}
 						}
 					}
 				}
@@ -495,7 +507,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 	if attrs["auth"] == "form" || boot["collection"] != nil || boot["row"] != nil || strings.Contains(htmlSlots["doc-body"], `class="dbblock"`) {
 		preload = append(preload, "database")
 	}
-	return static.Document{Attrs: attrs, Slots: slots, HTML: htmlSlots, Lang: preferredLang(r, userLang), Boot: boot, Preload: preload}, nil
+	return static.Document{Attrs: attrs, Slots: slots, HTML: htmlSlots, Lang: preferredLang(r, userLang), Boot: boot, Preload: preload, Styles: fontCSS, Fonts: fontFiles}, nil
 }
 
 func (s *Server) bootCollection(ctx context.Context, p *policy.Principal, d *page.Detail, boot map[string]any) {

@@ -36,6 +36,13 @@ var imageTypes = map[string]string{
 	"image/webp": ".webp",
 }
 
+var fontTypes = map[string]string{
+	"font/woff2": ".woff2",
+	"font/woff":  ".woff",
+	"font/ttf":   ".ttf",
+	"font/otf":   ".otf",
+}
+
 var inlineTypes = map[string]bool{
 	"image/png": true, "image/jpeg": true, "image/gif": true, "image/webp": true, "image/svg+xml": true,
 	"application/pdf": true, "audio/mpeg": true, "audio/ogg": true, "audio/wav": true, "video/mp4": true, "video/webm": true,
@@ -144,7 +151,7 @@ func (s *Service) authorize(ctx context.Context, p *policy.Principal, purpose, w
 			return target{}, httpx.ErrSessionOnly
 		}
 		return target{}, nil
-	case "workspace":
+	case "workspace", "font":
 		a, err := s.gate.Workspace(ctx, p, workspaceID)
 		if err != nil {
 			return target{}, err
@@ -170,7 +177,7 @@ func (s *Service) authorize(ctx context.Context, p *policy.Principal, purpose, w
 		}
 		return target{workspaceID: workspaceID}, nil
 	}
-	return target{}, httpx.Fail(http.StatusBadRequest, "bad_purpose", "purpose is attachment, cover, icon, avatar or workspace")
+	return target{}, httpx.Fail(http.StatusBadRequest, "bad_purpose", "purpose is attachment, cover, icon, avatar, workspace or font")
 }
 
 func (s *Service) Upload(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
@@ -254,7 +261,14 @@ func (s *Service) store(ctx context.Context, p *policy.Principal, part io.Reader
 		return nil, err
 	}
 	ctype := sniff(head.b, ext)
-	if purpose != "attachment" {
+	if purpose == "font" {
+		e, ok := fontTypes[ctype]
+		if !ok {
+			return nil, httpx.Fail(http.StatusBadRequest, "not_a_font", "use a WOFF2, WOFF, TTF or OTF font file")
+		}
+		ext = e
+		purpose = "workspace"
+	} else if purpose != "attachment" {
 		if e, ok := imageTypes[ctype]; ok {
 			ext = e
 		} else if ctype == "image/svg+xml" && (purpose == "icon" || purpose == "workspace") {
@@ -437,6 +451,18 @@ func (s *Service) Owned(ctx context.Context, ref, ownerID, purpose string) bool 
 	}
 	var n int
 	if err := s.st.R.QueryRowContext(ctx, "SELECT COUNT(*) FROM files WHERE id = ? AND owner_id = ? AND purpose = ?", id, ownerID, purpose).Scan(&n); err != nil {
+		return false
+	}
+	return n > 0
+}
+
+func (s *Service) FontInWorkspace(ctx context.Context, ref, workspaceID string) bool {
+	id, ok := strings.CutPrefix(ref, "f:")
+	if !ok {
+		return false
+	}
+	var n int
+	if err := s.st.R.QueryRowContext(ctx, "SELECT COUNT(*) FROM files WHERE id = ? AND workspace_id = ? AND purpose = 'workspace' AND mime LIKE 'font/%'", id, workspaceID).Scan(&n); err != nil {
 		return false
 	}
 	return n > 0
