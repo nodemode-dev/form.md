@@ -19,6 +19,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/collection"
 	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/page"
+	"github.com/nodemode-ai/form.md/internal/pagestyle"
 )
 
 type assets struct {
@@ -97,6 +98,8 @@ type node struct {
 	Row         bool
 	Inline      bool
 	UpdatedAt   int64
+
+	Style string
 }
 
 type scope struct {
@@ -115,6 +118,8 @@ type scope struct {
 	hrefFn   func(id string) string
 	fileFn   func(id string) string
 	export   bool
+
+	wsStyle string
 }
 
 func (s *Service) load(ctx context.Context, sc *scope, subpages bool) error {
@@ -124,7 +129,7 @@ func (s *Service) load(ctx context.Context, sc *scope, subpages bool) error {
 			SELECT p.id, t.depth + 1 FROM pages p JOIN tree t ON p.parent_id = t.id LEFT JOIN collections c ON c.page_id = p.id
 			WHERE p.trashed_at = 0 AND p.visibility = 'workspace' AND t.depth < 64 AND (? OR p.is_row = 1 OR c.inline = 1)
 		)
-		SELECT p.id, COALESCE(p.parent_id, ''), p.title, p.icon, p.cover, p.kind, p.description, p.snippet, p.sort_key, p.is_row, COALESCE(c.inline, 0), p.updated_at
+		SELECT p.id, COALESCE(p.parent_id, ''), p.title, p.icon, p.cover, p.kind, p.description, p.snippet, p.sort_key, p.is_row, COALESCE(c.inline, 0), p.updated_at, p.style
 		FROM tree t JOIN pages p ON p.id = t.id LEFT JOIN collections c ON c.page_id = p.id LIMIT 5000`, sc.root, subpages)
 	if err != nil {
 		return err
@@ -134,7 +139,7 @@ func (s *Service) load(ctx context.Context, sc *scope, subpages bool) error {
 	for rows.Next() {
 		var n node
 		var row, inline int
-		if err := rows.Scan(&n.ID, &n.Parent, &n.Title, &n.Icon, &n.Cover, &n.Kind, &n.Description, &n.Snippet, &n.SortKey, &row, &inline, &n.UpdatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.Parent, &n.Title, &n.Icon, &n.Cover, &n.Kind, &n.Description, &n.Snippet, &n.SortKey, &row, &inline, &n.UpdatedAt, &n.Style); err != nil {
 			return err
 		}
 		n.Row, n.Inline = row == 1, inline == 1
@@ -151,6 +156,7 @@ func (s *Service) load(ctx context.Context, sc *scope, subpages bool) error {
 	for _, list := range sc.kids {
 		sort.Slice(list, func(i, j int) bool { return list[i].SortKey < list[j].SortKey })
 	}
+	_ = s.st.R.QueryRowContext(ctx, "SELECT page_style FROM workspaces WHERE id = ?", sc.ws).Scan(&sc.wsStyle)
 	return nil
 }
 
@@ -443,6 +449,11 @@ func (s *Service) renderPage(ctx context.Context, sc *scope, id string) (string,
 	wide := ""
 	if n.Kind == "collection" {
 		wide = " data-wide"
+	}
+	for _, kv := range pagestyle.Merge(sc.wsStyle, n.Style).Attrs() {
+		if !strings.HasPrefix(kv[1], "f:") {
+			wide += ` data-style-` + kv[0] + `="` + esc(kv[1]) + `"`
+		}
 	}
 	b.WriteString(`<main class="site-main"` + wide + `><header class="site-head">`)
 	if n.Icon != "" {

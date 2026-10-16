@@ -4,6 +4,7 @@
 @import "../styles/base.css";
 @import "../styles/covers.css";
 @import "../styles/editor.css";
+@import "../styles/page-style.css";
 @import "../styles/align.css";
 @import "../styles/annotate.css";
 @import "../styles/board.css";
@@ -155,6 +156,20 @@ a.site-crumb:hover {
 [data-font="mono"] .site-main {
   font-family: var(--font-mono);
 }
+
+.site-main[data-style-font="serif"] { font-family: var(--font-serif-stack); }
+.site-main[data-style-font="mono"] { font-family: var(--font-mono); }
+.site-main[data-style-font="rounded"] { font-family: var(--font-rounded-stack); }
+.site-main[data-style-font="slab"] { font-family: var(--font-slab-stack); }
+.site-main[data-style-font="humanist"] { font-family: var(--font-humanist-stack); }
+.site-main[data-style-size="small"] .doc-body { --doc-text: 14px; }
+.site-main[data-style-size="large"] .doc-body { --doc-text: 18px; }
+.site-main[data-style-width="wide"] { --doc-w: 960px; }
+.site-main[data-style-width="full"] { --doc-w: 100%; }
+.site-main[data-style-spacing="compact"] .doc-body { line-height: 1.45; --block-gap: 1px; }
+.site-main[data-style-spacing="relaxed"] .doc-body { line-height: 1.9; --block-gap: 6px; }
+.site-main[data-style-align="justify"] .doc-body :is(p, li, blockquote):not([data-align]) { text-align: justify; hyphens: auto; }
+.site-main[data-style-align="center"] .doc-body :is(p, h1, h2, h3, h4, h5, h6, blockquote):not([data-align]) { text-align: center; }
 
 .has-cover .site-main {
   padding-block-start: var(--space-6);

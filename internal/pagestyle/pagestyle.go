@@ -105,6 +105,29 @@ func FontsCSS(fonts []Font) string {
 	return b.String()
 }
 
+func Merge(base, over string) Style {
+	var b, o Style
+	_ = json.Unmarshal([]byte(base), &b)
+	_ = json.Unmarshal([]byte(over), &o)
+	pick := func(x, y string) string {
+		if y != "" {
+			return y
+		}
+		return x
+	}
+	return Style{Font: pick(b.Font, o.Font), Size: pick(b.Size, o.Size), Width: pick(b.Width, o.Width), Spacing: pick(b.Spacing, o.Spacing), Align: pick(b.Align, o.Align)}
+}
+
+func (s Style) Attrs() [][2]string {
+	var out [][2]string
+	for _, kv := range [][2]string{{"font", s.Font}, {"size", s.Size}, {"width", s.Width}, {"spacing", s.Spacing}, {"align", s.Align}} {
+		if kv[1] != "" && kv[1] != "default" && kv[1] != "start" && kv[1] != "sans" && (allowed[kv[0]][kv[1]] || (kv[0] == "font" && fontRef.MatchString(kv[1]))) {
+			out = append(out, kv)
+		}
+	}
+	return out
+}
+
 func Raw(stored string) json.RawMessage {
 	if stored == "" {
 		return nil
