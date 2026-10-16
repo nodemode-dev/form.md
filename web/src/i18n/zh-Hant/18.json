@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} 項資料庫變更已儲存在此裝置上，連線恢復後將傳送",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "{count} 項資料庫變更已儲存在此裝置上，連線恢復後將傳送",
+  "Database changes made offline were sent": "離線時所做的資料庫變更已傳送",
+  "Open the block menu only at the start of a line": "僅在行首開啟區塊選單",
+  "Typing / in the middle of a sentence then stays a slash.": "在句子中間輸入 / 時將保持為斜線。",
+  "Remembered on this device.": "在此裝置上記住。"
+}

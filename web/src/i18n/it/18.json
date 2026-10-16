@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} modifica al database è salvata su questo dispositivo e verrà inviata quando torna la connessione",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "{count} modifiche al database sono salvate su questo dispositivo e verranno inviate quando torna la connessione",
+  "Database changes made offline were sent": "Le modifiche al database fatte offline sono state inviate",
+  "Open the block menu only at the start of a line": "Apri il menu dei blocchi solo a inizio riga",
+  "Typing / in the middle of a sentence then stays a slash.": "Una / a metà frase resta allora una barra.",
+  "Remembered on this device.": "Ricordato su questo dispositivo."
+}

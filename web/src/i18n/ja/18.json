@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} 件のデータベースの変更がこのデバイスに保存され、接続が戻ると送信されます",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "{count} 件のデータベースの変更がこのデバイスに保存され、接続が戻ると送信されます",
+  "Database changes made offline were sent": "オフラインで行ったデータベースの変更を送信しました",
+  "Open the block menu only at the start of a line": "ブロックメニューは行頭でのみ開く",
+  "Typing / in the middle of a sentence then stays a slash.": "文の途中で入力した / はスラッシュのままになります。",
+  "Remembered on this device.": "このデバイスに記憶されます。"
+}

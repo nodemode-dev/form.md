@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} databaseændring er gemt på denne enhed og sendes, når forbindelsen er tilbage",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "{count} databaseændringer er gemt på denne enhed og sendes, når forbindelsen er tilbage",
+  "Database changes made offline were sent": "Databaseændringer foretaget offline er sendt",
+  "Open the block menu only at the start of a line": "Åbn blokmenuen kun i starten af en linje",
+  "Typing / in the middle of a sentence then stays a slash.": "En / midt i en sætning forbliver så en skråstreg.",
+  "Remembered on this device.": "Huskes på denne enhed."
+}

@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} 项数据库更改已保存在此设备上，连接恢复后将发送",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "{count} 项数据库更改已保存在此设备上，连接恢复后将发送",
+  "Database changes made offline were sent": "离线时所做的数据库更改已发送",
+  "Open the block menu only at the start of a line": "仅在行首打开块菜单",
+  "Typing / in the middle of a sentence then stays a slash.": "在句子中间输入 / 时将保持为斜杠。",
+  "Remembered on this device.": "在此设备上记住。"
+}

@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} veritabanı değişikliği bu cihazda kayıtlı ve bağlantı geri geldiğinde gönderilecek",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "{count} veritabanı değişikliği bu cihazda kayıtlı ve bağlantı geri geldiğinde gönderilecek",
+  "Database changes made offline were sent": "Çevrimdışı yapılan veritabanı değişiklikleri gönderildi",
+  "Open the block menu only at the start of a line": "Blok menüsünü yalnızca satır başında aç",
+  "Typing / in the middle of a sentence then stays a slash.": "Cümle ortasında yazılan / o zaman eğik çizgi olarak kalır.",
+  "Remembered on this device.": "Bu cihazda hatırlanır."
+}

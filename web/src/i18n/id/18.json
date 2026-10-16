@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} perubahan basis data disimpan di perangkat ini dan akan dikirim saat koneksi kembali",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "{count} perubahan basis data disimpan di perangkat ini dan akan dikirim saat koneksi kembali",
+  "Database changes made offline were sent": "Perubahan basis data yang dibuat saat offline telah dikirim",
+  "Open the block menu only at the start of a line": "Buka menu blok hanya di awal baris",
+  "Typing / in the middle of a sentence then stays a slash.": "Mengetik / di tengah kalimat akan tetap menjadi garis miring.",
+  "Remembered on this device.": "Diingat di perangkat ini."
+}

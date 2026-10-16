@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} zmiana bazy danych jest zapisana na tym urządzeniu i zostanie wysłana po przywróceniu połączenia",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "Zmiany bazy danych ({count}) są zapisane na tym urządzeniu i zostaną wysłane po przywróceniu połączenia",
+  "Database changes made offline were sent": "Wysłano zmiany bazy danych wprowadzone offline",
+  "Open the block menu only at the start of a line": "Otwieraj menu bloków tylko na początku wiersza",
+  "Typing / in the middle of a sentence then stays a slash.": "Ukośnik / w środku zdania pozostanie wtedy ukośnikiem.",
+  "Remembered on this device.": "Zapamiętywane na tym urządzeniu."
+}

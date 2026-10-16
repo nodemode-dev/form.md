@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} tietokantamuutos on tallennettu tälle laitteelle ja lähetetään, kun yhteys palaa",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "{count} tietokantamuutosta on tallennettu tälle laitteelle ja lähetetään, kun yhteys palaa",
+  "Database changes made offline were sent": "Offline-tilassa tehdyt tietokantamuutokset lähetettiin",
+  "Open the block menu only at the start of a line": "Avaa lohkovalikko vain rivin alussa",
+  "Typing / in the middle of a sentence then stays a slash.": "Lauseen keskellä kirjoitettu / jää silloin vinoviivaksi.",
+  "Remembered on this device.": "Muistetaan tällä laitteella."
+}

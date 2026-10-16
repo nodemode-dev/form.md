@@ -1,0 +1,8 @@
+{
+  "{count} database change is saved on this device and will be sent when the connection is back": "{count} зміна бази даних збережена на цьому пристрої й буде надіслана, коли з'єднання повернеться",
+  "{count} database changes are saved on this device and will be sent when the connection is back": "Зміни бази даних ({count}) збережено на цьому пристрої, їх буде надіслано, коли з'єднання повернеться",
+  "Database changes made offline were sent": "Зміни бази даних, зроблені офлайн, надіслано",
+  "Open the block menu only at the start of a line": "Відкривати меню блоків лише на початку рядка",
+  "Typing / in the middle of a sentence then stays a slash.": "Символ / посеред речення тоді залишиться скісною рискою.",
+  "Remembered on this device.": "Запам'ятовується на цьому пристрої."
+}
