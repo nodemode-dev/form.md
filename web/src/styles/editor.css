@@ -1547,6 +1547,38 @@ a.mention:hover {
   pointer-events: auto;
 }
 
+.block-phonebar {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .block-phonebar {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: var(--keyboard-h, 0px);
+    z-index: var(--z-sticky);
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3) calc(var(--space-1) + env(safe-area-inset-bottom));
+    border-block-start: 1px solid var(--border);
+    background: var(--sheet);
+  }
+
+  :has(.ProseMirror-focused) > .block-phonebar,
+  .block-phonebar:has([aria-expanded="true"]) {
+    display: flex;
+  }
+
+  .block-phonebar__btn {
+    inline-size: var(--hit-touch);
+    block-size: var(--hit-touch);
+  }
+
+  .ProseMirror-focused {
+    padding-block-end: calc(var(--hit-touch) + var(--space-6));
+  }
+}
+
 .block-handle__btn {
   display: grid;
   place-items: center;

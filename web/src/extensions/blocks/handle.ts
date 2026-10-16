@@ -28,6 +28,7 @@ export class BlockHandle {
   private frame = 0;
   private lastY = 0;
   private lastX = 0;
+  private phone: HTMLElement;
 
   constructor(
     private readonly ctx: EditorCtx,
@@ -51,6 +52,46 @@ export class BlockHandle {
     this.grip.addEventListener("click", () => this.menu());
     this.grip.addEventListener("dragstart", (e) => this.dragStart(e));
     this.grip.addEventListener("dragend", () => this.hide());
+    const tool = (icon: Parameters<typeof iconNode>[0], label: string, run: (b: HTMLButtonElement) => void): HTMLButtonElement => {
+      const b = h("button", { class: "icon-btn block-phonebar__btn", attrs: { type: "button", "aria-label": label } }, iconNode(icon));
+      b.addEventListener("pointerdown", (e) => e.preventDefault());
+      b.addEventListener("click", () => {
+        if (this.caretBlock()) run(b);
+      });
+      return b;
+    };
+    this.phone = h(
+      "div",
+      { class: "block-phonebar", attrs: { role: "toolbar", "aria-label": t("Block"), contenteditable: "false" } },
+      tool("plus", t("Add a block below"), () => this.addBelow()),
+      tool("grip", t("Block options"), (b) => this.menu(b)),
+      tool("arrow-up", t("Move up"), () => this.moveCaretBlock(-1)),
+      tool("arrow-down", t("Move down"), () => this.moveCaretBlock(1)),
+    );
+    wrap.append(this.phone);
+    const vv = window.visualViewport;
+    if (vv) {
+      const keyboard = () => document.documentElement.style.setProperty("--keyboard-h", `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`);
+      vv.addEventListener("resize", keyboard);
+      vv.addEventListener("scroll", keyboard);
+    }
+  }
+
+  private caretBlock(): BlockRef | null {
+    const view = this.ctx.view();
+    if (!view || !view.editable) return null;
+    let ref = blockAt(view.state.selection.$head);
+    if (!ref) return null;
+    const $ref = view.state.doc.resolve(ref.pos);
+    if (ITEMS.has($ref.parent.type.name) && $ref.index() === 0) ref = { node: $ref.parent, pos: $ref.before(), depth: $ref.depth };
+    if ($ref.parent.type.name === "toggle" && ref.node.type.name === "toggle_title") ref = { node: $ref.parent, pos: $ref.before(), depth: $ref.depth };
+    this.target = ref;
+    return ref;
+  }
+
+  private moveCaretBlock(dir: -1 | 1): void {
+    const view = this.ctx.view();
+    if (view) moveBlock(view, dir);
   }
 
   hide(): void {
@@ -120,7 +161,7 @@ export class BlockHandle {
     view.dragging = { slice, move: true };
   }
 
-  private menu(): void {
+  private menu(anchor: HTMLElement = this.grip): void {
     const view = this.ctx.view();
     const b = this.target;
     if (!view || !b) return;
@@ -190,7 +231,7 @@ export class BlockHandle {
       { kind: "separator" },
       { label: t("Delete"), icon: "trash", danger: true, run: () => deleteBlock(view, ref) },
     );
-    openMenu(this.grip, entries, { side: "bottom", align: "start", label: t("Block") });
+    openMenu(anchor, entries, { side: anchor === this.grip ? "bottom" : "top", align: "start", label: t("Block") });
   }
 
   private makeSynced(view: EditorView, ref: BlockRef): void {
