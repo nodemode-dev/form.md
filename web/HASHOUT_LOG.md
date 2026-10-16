@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.14.0
-Last updated: 2026-10-16 · Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages, the canvas engine core
+Current build version: v0.14.1
+Last updated: 2026-10-16 · v0.14.1: the vector canvas engine removed; Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages
 
 ---
 
@@ -47,8 +47,6 @@ web/
     │       ├── schema.ts            ProseMirror schema, block ids, embed and href rules (DOM matches the server)
     │       ├── sync.ts              DocSync: one socket for every open page, frames, watchdog, backoff
     │       └── docs.ts              DocSession (Y.Doc, IndexedDB, awareness, generation) and DocStore cache
-    ├── canvas/
-    │   └── engine/                  DOM-free vector engine: geometry.ts (anchors, Live Corners, SVG d, bounds), ops.ts (shapes, path ops)
     ├── extensions/
     │   ├── registry.ts              register, activateAll, disposeAll
     │   ├── harness/                 dock and Claude Code commands and keys, catalogue mirroring to the server
@@ -1583,7 +1581,7 @@ Old widgets with `wide` read as size `l`. A KPI asks the chart endpoint twice (t
 
 The labels are product and file names, so they are not run through `t()`. Codex starts MCP servers as commands, so its snippet runs the binary's `form-md mcp` bridge with `--url` set to this origin (the bridge appends `/mcp`) and a placeholder token, written as TOML that `~/.codex/config.toml` accepts as is. The snippets are built once when the tab renders and never change, so the tab cannot shift.
 
-## Phase 14 · agent harness, commands, languages, canvas engine
+## Phase 14 · agent harness, commands, languages
 
 ### src/ui/agent-dock.ts · the bottom panel
 - refers-to: src/ui/agent-dock.ts :: `mountAgentDock`, `TermView`, `buildChat`; src/extensions/harness/index.ts
@@ -1606,9 +1604,9 @@ The command shape follows formvis's: description, a "use when" sentence, typed p
 
 Catalogue folders are named by BCP 47 tag (`es-MX`, `pt-BR`, `zh-Hant`), and each holds `01.json` to `08.json` (the interface strings in the canonical order) plus `server.json` (mail and notification strings the Go side reads from the same embedded tree). Resolution is exact tag first, then aliases (zh-TW and zh-HK to zh-Hant, zh-CN to zh-Hans, pt to pt-BR, es-419 to es-MX, no and nn to nb), then the base language; Go and TypeScript use the same table. German keeps its older 01 to 10 files and gains 11.json with this release's strings.
 
-### src/canvas/engine/geometry.ts · Live Corners
-- refers-to: src/canvas/engine/geometry.ts :: `expandCorners`, `maxCornerRadius`, `segments`
-- kind: explainer
-- logged: v0.14.0 · 2026-10-16
+### src/canvas/ · removed
+- refers-to: src/canvas/engine/geometry.ts, src/canvas/engine/ops.ts (deleted in v0.14.1)
+- kind: removed-code
+- logged: v0.14.1 · 2026-10-16
 
-A corner radius is stored on the anchor and expanded only when segments are produced, so the path's own points never move and a radius can be changed or removed later. For a corner with incoming and outgoing tangents u and v at angle theta, the arc meets the edges at distance r / tan(theta / 2) from the corner and is drawn as one cubic with handles of (4/3) tan(turn / 4) r, which is exact to within 0.03 percent for a quarter turn. The radius is clamped so the two tangent points use at most half of each neighbouring segment. Inverted corners swing the handles perpendicular to the edges toward the bisector; chamfers join the two tangent points with a line. Tangents follow the handles when they exist, so rounding works between curves too.
+A DOM-free vector engine (anchors with handles, per-point corner rounding, shapes and path operations) landed in v0.14.0 as the start of an Illustrator-parity canvas. Your instruction of 2026-10-16: Illustrator parity does not belong in form.md, so the engine is deleted and no canvas page, block or route exists. The code stays reachable in history at commit `2680de4` if a vector surface is ever wanted for another form* product.

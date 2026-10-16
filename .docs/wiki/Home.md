@@ -14,7 +14,6 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 | Context packs, the knowledge bank, `form-md mcp`, Claude Code, Codex and Cursor connections | Working since v0.13.0; the client configs are checked by parsing, not yet inside each app · see [[Context-and-knowledge]] |
 | Terminal, Claude Code and its chat in the app, window commands for agents, `form-md cli` | Working since v0.14.0; checked with a real Claude Code turn, not yet under browser throttling · see [[Terminal-and-Claude-Code]] |
 | Interface and mail in 26 languages | Since v0.14.0; es-MX and fr-CA want a native read |
-| Vector canvas at Illustrator parity | Started in v0.14.0: engine core with Live Corners; no surface yet |
 | At-rest encryption, `form-md encrypt` | Working since v0.11.0, independently audited · see [[Encryption]] |
 | Built-in ACME certificates | Working, **in testing**: checked against a test CA (Pebble), not yet against Let's Encrypt production · see [[TLS-and-ACME]] |
 | `backup`, `restore`, `doctor`, `admin reset-owner` | Working since v0.11.0 · see [[Backup-and-restore]] and [[Operations]] |
