@@ -101,17 +101,24 @@ export function startAnnotating(host: AnnotatorHost, done: () => void): () => vo
   let marks: Marks = host.read() ?? { v: 1, w, h: hgt, items: [] };
   const sx = marks.w / w;
   const sy = marks.h / hgt;
-  let kind: MarkKind = "arrow";
+  let kind: MarkKind | "select" = "arrow";
   let color = COLORS[0]!;
   const stroke = Math.max(2, Math.round(Math.max(marks.w, marks.h) / 250));
+  let sel = -1;
+  let outline: SVGElement | null = null;
+  let dragging: { x: number; y: number; orig: number[]; moved: boolean; was: boolean } | null = null;
 
   const bar = h("div", { class: "annot__bar", attrs: { role: "toolbar", "aria-label": t("Annotate") } });
-  const tools: [MarkKind, string][] = [["arrow", "Arrow"], ["rect", "Box"], ["ellipse", "Ellipse"], ["pen", "Draw"], ["text", "Text"]];
+  const tools: [MarkKind | "select", string][] = [["select", "Pick a mark"], ["arrow", "Arrow"], ["rect", "Box"], ["ellipse", "Ellipse"], ["pen", "Draw"], ["text", "Text"]];
   const toolBtns = tools.map(([k, label]) => {
     const b = h("button", { class: "btn btn--sm annot__tool", attrs: { type: "button", "aria-pressed": k === kind ? "true" : "false" }, text: t(label) });
     b.addEventListener("click", () => {
       kind = k;
       for (const x of toolBtns) x.setAttribute("aria-pressed", x === b ? "true" : "false");
+      if (k !== "select") {
+        sel = -1;
+        showSel();
+      }
     });
     return b;
   });
@@ -121,22 +128,96 @@ export function startAnnotating(host: AnnotatorHost, done: () => void): () => vo
     b.addEventListener("click", () => {
       color = c;
       for (const x of swatches) x.setAttribute("aria-pressed", x === b ? "true" : "false");
+      const cur = marks.items[sel];
+      if (cur) {
+        marks = { ...marks, items: marks.items.map((m, i) => (i === sel ? { ...m, c } : m)) };
+        commit();
+      }
     });
     return b;
   });
+  const del = h("button", { class: "btn btn--sm", attrs: { type: "button", disabled: "" }, text: t("Delete") });
   const undo = h("button", { class: "btn btn--sm", attrs: { type: "button" }, text: t("Undo") });
   const clear = h("button", { class: "btn btn--sm", attrs: { type: "button" }, text: t("Clear") });
   const finish = h("button", { class: "btn btn--primary btn--sm", attrs: { type: "button" }, text: t("Done") });
-  bar.append(...toolBtns, h("span", { class: "annot__sep" }), ...swatches, h("span", { class: "annot__sep" }), undo, clear, finish);
+  bar.append(...toolBtns, h("span", { class: "annot__sep" }), ...swatches, h("span", { class: "annot__sep" }), del, undo, clear, finish);
   frame.appendChild(bar);
   frame.classList.add("is-annotating");
   svg.removeAttribute("hidden");
   if (!svg.getAttribute("viewBox")) svg.setAttribute("viewBox", `0 0 ${marks.w} ${marks.h}`);
 
+  const bbox = (m: Mark): [number, number, number, number] => {
+    if (m.k === "text") {
+      const fs = m.s * 6;
+      const x = m.p[0] ?? 0;
+      const y = m.p[1] ?? 0;
+      return [x, y - fs, x + (m.t?.length ?? 1) * fs * 0.6, y + fs * 0.25];
+    }
+    const xs = m.p.filter((_, i) => i % 2 === 0);
+    const ys = m.p.filter((_, i) => i % 2 === 1);
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  };
+  function showSel(): void {
+    outline?.remove();
+    outline = null;
+    const m = marks.items[sel];
+    if (!m) {
+      sel = -1;
+      del.setAttribute("disabled", "");
+      return;
+    }
+    del.removeAttribute("disabled");
+    const [a, b, c, d] = bbox(m);
+    const pad = stroke * 2;
+    outline = el("rect", { class: "annot__selected", x: a - pad, y: b - pad, width: c - a + pad * 2, height: d - b + pad * 2, fill: "none", stroke: "#3b82f6", "stroke-width": Math.max(1, stroke / 2), "stroke-dasharray": `${stroke * 2} ${stroke * 2}` });
+    svg.append(outline);
+  }
+  const hit = (x: number, y: number): number => {
+    const pad = stroke * 3;
+    for (let i = marks.items.length - 1; i >= 0; i--) {
+      const [a, b, c, d] = bbox(marks.items[i]!);
+      if (x >= a - pad && x <= c + pad && y >= b - pad && y <= d + pad) return i;
+    }
+    return -1;
+  };
   const commit = () => {
     host.write(marks.items.length ? marks : null);
     paintMarks(svg, marks);
     svg.removeAttribute("hidden");
+    showSel();
+  };
+  const remove = () => {
+    if (sel < 0) return;
+    marks = { ...marks, items: marks.items.filter((_, i) => i !== sel) };
+    sel = -1;
+    commit();
+  };
+  del.addEventListener("click", remove);
+  const keys = (e: KeyboardEvent) => {
+    if (sel < 0 || (e.key !== "Delete" && e.key !== "Backspace")) return;
+    if (e.target instanceof HTMLElement && e.target.closest("input, textarea")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    remove();
+  };
+  document.addEventListener("keydown", keys, true);
+  const editText = (i: number) => {
+    const m = marks.items[i];
+    if (!m || m.k !== "text") return;
+    const r = svg.getBoundingClientRect();
+    openPrompt({
+      label: t("Text"),
+      placeholder: t("Text"),
+      value: m.t ?? "",
+      action: t("Save"),
+      rect: () => ({ x: r.left + ((m.p[0] ?? 0) / marks.w) * r.width, y: r.top + ((m.p[1] ?? 0) / marks.h) * r.height, width: 0, height: 0 }),
+      onSubmit: (value) => {
+        const label = value.trim().slice(0, 200);
+        if (!label) return;
+        marks = { ...marks, items: marks.items.map((x, j) => (j === i ? { ...x, t: label } : x)) };
+        commit();
+      },
+    });
   };
   undo.addEventListener("click", () => {
     marks = { ...marks, items: marks.items.slice(0, -1) };
@@ -144,6 +225,7 @@ export function startAnnotating(host: AnnotatorHost, done: () => void): () => vo
   });
   clear.addEventListener("click", () => {
     marks = { ...marks, items: [] };
+    sel = -1;
     commit();
   });
 
@@ -163,6 +245,17 @@ export function startAnnotating(host: AnnotatorHost, done: () => void): () => vo
     e.preventDefault();
     e.stopPropagation();
     const [x, y] = at(e);
+    if (kind === "select") {
+      const i = hit(x, y);
+      const was = i >= 0 && i === sel;
+      sel = i;
+      showSel();
+      const m = marks.items[i];
+      if (!m) return;
+      svg.setPointerCapture(e.pointerId);
+      dragging = { x, y, orig: [...m.p], moved: false, was };
+      return;
+    }
     if (kind === "text") {
       const at = { x: e.clientX, y: e.clientY };
       const c = color;
@@ -185,6 +278,18 @@ export function startAnnotating(host: AnnotatorHost, done: () => void): () => vo
     redraft();
   };
   const move = (e: PointerEvent) => {
+    if (dragging) {
+      const d = dragging;
+      const [x, y] = at(e);
+      const dx = x - d.x;
+      const dy = y - d.y;
+      if (!d.moved && Math.hypot(dx, dy) < stroke) return;
+      d.moved = true;
+      marks = { ...marks, items: marks.items.map((m, i) => (i === sel ? { ...m, p: d.orig.map((v, j) => v + (j % 2 ? dy : dx)) } : m)) };
+      paintMarks(svg, marks);
+      showSel();
+      return;
+    }
     if (!draft) return;
     const [x, y] = at(e);
     if (draft.k === "pen") draft.p.push(x, y);
@@ -195,6 +300,13 @@ export function startAnnotating(host: AnnotatorHost, done: () => void): () => vo
     redraft();
   };
   const up = () => {
+    if (dragging) {
+      const d = dragging;
+      dragging = null;
+      if (d.moved) commit();
+      else if (d.was) editText(sel);
+      return;
+    }
     if (!draft) return;
     const d = draft;
     draft = null;
@@ -212,6 +324,9 @@ export function startAnnotating(host: AnnotatorHost, done: () => void): () => vo
     svg.removeEventListener("pointerdown", down);
     svg.removeEventListener("pointermove", move);
     svg.removeEventListener("pointerup", up);
+    document.removeEventListener("keydown", keys, true);
+    outline?.remove();
+    outline = null;
     bar.remove();
     frame.classList.remove("is-annotating");
     paintMarks(svg, host.read());
