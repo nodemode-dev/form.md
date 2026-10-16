@@ -1914,7 +1914,7 @@ Inserts merge with typing, but a replace deletes and recreates the block, so it 
 - kind: explainer
 - logged: v0.22.0 · 2026-10-16
 
-The page's main element carries `data-style-*` for every non-default field of the merged style, written by the server so the first paint is styled. `Attrs` re-checks each value against the allowed sets before it reaches HTML. Uploaded fonts (`f:` refs) are skipped on public pages: serving them would need a public fonts stylesheet and an allow rule for font files no page references. The export merges the workspace default itself because the export scope has no workspace id.
+The page's main element carries `data-style-*` for every non-default field of the merged style, written by the server so the first paint is styled. `Attrs` re-checks each value against the allowed sets before it reaches HTML. Since v0.23.0 uploaded fonts are served too: `scope.fontFor` resolves a page's merged font to an `f:` ref only when the workspace font list has it, `fontsCSS` writes one @font-face and one `.site-main[data-style-font]` rule per font a page in scope uses, served at `<base>/fonts.css` (the public CSP forbids inline styles), and `fileAllowed` lets exactly those font files through. The HTML export still skips uploaded fonts because its scope has no workspace font list. The export merges the workspace default itself because the export scope has no workspace id.
 
 ### internal/claudecode/bridge.go · CommandSpec decode
 - refers-to: internal/claudecode/bridge.go :: `CommandSpec.UnmarshalJSON`

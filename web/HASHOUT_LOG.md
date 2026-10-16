@@ -1692,6 +1692,20 @@ The entries show only for admins and only when the page uses an uploaded font, s
 
 A row update that fails with status 0 (no network) is merged into `formmd.rowOutbox` in localStorage per row id, values last-wins, keeping the oldest time for ordering. `QuerySession.absorb` passes every row through `overlay`, so cached views and offline reloads show the queued values; the outbox is cached in memory after the first read. `replay` runs on the online event, on resync (before views refresh, so a refresh cannot paint old values) and at start when online; it stops at the first network failure and drops an entry the server refuses, reporting it. Only cell and title edits are queued: creating, deleting and moving rows still need the server because they change row ids and order.
 
+### src/extensions/blocks/annotate.ts · picking single marks
+- refers-to: src/extensions/blocks/annotate.ts :: `startAnnotating` (bbox, hit, showSel, remove, editText, keys)
+- kind: explainer
+- logged: v0.23.0 · 2026-10-16
+
+Hit testing uses each mark's bounding box widened by three stroke widths, newest first, which is generous for thin lines and good enough for annotations; a text mark's box is estimated from its length and font size. A drag rewrites the picked mark's points from a copy taken at press time and repaints without writing; the write happens once on release. The Delete and Backspace listener is on the document in the capture phase and stops the event, because the picture sits inside the editor and the editor would otherwise delete the image block. The dashed outline is a separate rect with class `annot__selected`, appended after each repaint and removed when annotating stops.
+
+### src/extensions/database/views/timeline.ts · bar windowing
+- refers-to: src/extensions/database/views/timeline.ts :: `rowWindow`, `paint` (shown), scroll listener
+- kind: explainer
+- logged: v0.23.0 · 2026-10-16
+
+Above 200 rows only bars within 30 rows of the visible area are reconciled into the canvas; `reconcile` keys them by row id, so bars that stay in the window are not touched when it moves. The scroll handler compares the window on an animation frame and repaints only when it changes. The canvas height and dependency paths still use every row.
+
 ### src/ui/account.ts · Writing section
 - refers-to: src/ui/account.ts :: profileTab (Writing); src/extensions/blocks/triggers.ts :: `SLASH_KEY`
 - kind: explainer
