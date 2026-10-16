@@ -10,6 +10,7 @@ import { iconNode } from "./icons";
 import { reconcile } from "./list";
 import { uploadPicture } from "./pickers";
 import { currentSubscription, disablePush, enablePush, pushSupported } from "./push";
+import { SLASH_KEY } from "../extensions/blocks/triggers";
 import { toast } from "./toast";
 
 const COLOR_LABEL: Record<string, () => string> = {
@@ -217,8 +218,25 @@ function profileTab(engine: Engine): Tab {
       });
       const appearance = section(t("Appearance"), t("The theme is remembered on this device."));
       appearance.append(field(t("Theme"), theme.el), font.el, fontStatus.el);
+      let slashOn = false;
+      try {
+        slashOn = localStorage.getItem(SLASH_KEY) === "1";
+      } catch {
+        slashOn = false;
+      }
+      const slash = toggle(t("Open the block menu only at the start of a line"), slashOn, t("Typing / in the middle of a sentence then stays a slash."));
+      slash.input.addEventListener("change", () => {
+        try {
+          if (slash.input.checked) localStorage.setItem(SLASH_KEY, "1");
+          else localStorage.removeItem(SLASH_KEY);
+        } catch {
+          slash.input.checked = !slash.input.checked;
+        }
+      });
+      const writing = section(t("Writing"), t("Remembered on this device."));
+      writing.append(slash.el);
 
-      panel.append(identity, appearance, email, password);
+      panel.append(identity, appearance, writing, email, password);
       return () => {
         paintEmail();
         updateAvatar(preview, me(engine).user.name, me(engine).user.color);
