@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the web client in `web/`. Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to `web/`.
 
-Current build version: v0.16.0
-Last updated: 2026-10-16 · v0.16.0: image annotations, block alignment; v0.15.0: page styles, focus mode, word counts; v0.14.1: the vector canvas engine removed; Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages
+Current build version: v0.17.0
+Last updated: 2026-10-16 · v0.17.0: custom fonts, typewriter scrolling; v0.16.0: image annotations, block alignment; v0.15.0: page styles, focus mode, word counts; v0.14.1: the vector canvas engine removed; Phase 14: the terminal and Claude Code dock, the command catalogue, 26 languages
 
 ---
 
@@ -1642,3 +1642,10 @@ Marks are stored in the picture's own pixel space (`w`, `h` at the time of the f
 - logged: v0.16.0 · 2026-10-16
 
 Alignment is an attribute on paragraphs and headings only, empty for left so existing documents are unchanged. Its CSS rule sits after the page-style rules with the same specificity, so a block's own alignment wins over the page's. `right` maps to `text-align: end` so right-to-left text behaves.
+
+### src/ui/page-style.ts and src/extensions/writing · custom fonts and typewriter scrolling
+- refers-to: page-style.ts :: `syncFonts`, `uploadFont`; writing/index.ts :: `centerCaret`; styles/writing.css; index.html (boot script)
+- kind: explainer
+- logged: v0.17.0 · 2026-10-16
+
+`syncFonts` adds the workspace's fonts stylesheet as a link only when a page uses a custom font, with a version made from the font ids so a new upload is fetched, and removes the older link once the new one has loaded so nothing unstyles in between. Typewriter scrolling acts only after keystrokes in the document (a pointer press clears the flag), finds the nearest scrolling ancestor and moves it so the caret sits at 45 percent; focus mode adds 55vh of space under the page so the last line can reach that point. `data-typewriter-off` is restored by the boot script like `data-focus`.

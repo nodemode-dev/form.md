@@ -2,7 +2,7 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.16.0
+Current build version: v0.17.0
 Last updated: 2026-10-16 · Phase 14: terminals, Claude Code and its chat, window commands, form-md cli, 26 languages
 
 ---
@@ -1866,4 +1866,11 @@ The window owns its commands, so the server only keeps the last catalogue each a
 - logged: v0.15.0 · 2026-10-16
 
 A style is five closed choices (font, size, width, spacing, align); `Clean` refuses anything else and stores an empty string for an all-default style, so the column never holds noise. A page's own style overlays the workspace default field by field. The first response for `/p/{id}` merges both and writes `data-style-*` attributes on the html element, skipping defaults, and the client writes the same attributes when it paints the page, so the first frame already has the final font and width. Fonts are system stacks in CSS, never fetched.
+
+### workspace fonts
+- refers-to: internal/pagestyle/pagestyle.go :: `CleanFonts`, `FontsCSS`; internal/workspace/module.go (GET fonts.css); internal/files/files.go :: `fontTypes`, `FontInWorkspace`; internal/static/static.go (Styles, Fonts); migrations/0027_fonts.sql
+- kind: rationale
+- logged: v0.17.0 · 2026-10-16
+
+The content security policy allows styles only from this origin, so custom faces cannot be injected as an inline style; each workspace gets a small generated stylesheet instead, with one @font-face and one `data-style-font` rule per font, and the first response links it (and preloads the font file) only when the page's style uses a custom font. Font uploads are stored under the existing `workspace` purpose because `files.purpose` carries a CHECK constraint that a migration cannot widen without rebuilding the table; the upload's bytes must sniff as font/woff2, font/woff, font/ttf or font/otf, and `FontInWorkspace` checks that MIME type when a font list is saved. Families are limited to letters, digits, spaces, dots, dashes and underscores, which keeps them safe inside the generated CSS. `font-display: block` hides text for up to three seconds instead of swapping fonts mid-read. The system-font account setting strips every font preload, this one included.
 

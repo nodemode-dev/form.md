@@ -7,7 +7,7 @@
 <p align="center"><b>One workspace for people & agents: documents, databases & realtime editing in a single binary.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.16.0-9a8cff" alt="version v0.16.0" />
+  <img src="https://img.shields.io/badge/version-v0.17.0-9a8cff" alt="version v0.17.0" />
   <img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+" />
   <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
@@ -21,10 +21,10 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 
 - **Claude Code inside the workspace** · a bottom panel with real terminals, Claude Code tabs already connected to this form.md's MCP tools, and a Claude Code chat that shows each tool call as it runs; hand a chat to a terminal tab or bring one back (Mod+J, Mod+Alt+J, Mod+Alt+K)
 - **Agents drive the window** · every command carries a description, typed parameters & whether it changes anything; agents list & run them through MCP (`window_commands`, `window_command_run`), REST or `form-md cli`
-- **Page styles** · six fonts (sans, serif, mono, rounded, slab, humanist), three text sizes & widths, line spacing & justified or centred text per page, w/ a workspace default; styled pages paint styled from the first frame
+- **Page styles** · six fonts (sans, serif, mono, rounded, slab, humanist) plus fonts you upload to the workspace (WOFF2, WOFF, TTF, OTF), three text sizes & widths, line spacing & justified or centred text per page, w/ a workspace default; styled pages paint styled from the first frame
 - **Image annotations** · arrows, boxes, ellipses, freehand lines & text drawn over any picture in a page, kept editable, synced live & present in the first frame, public pages & HTML export
 - **Block alignment** · left, centred, right or justified per paragraph & heading from the format bar
-- **Writing tools** · focus mode that hides everything but the text, live word, character & reading-time counts for the page, the selection or the paragraph, & an option that keeps the slash menu out of sentences
+- **Writing tools** · focus mode that hides everything but the text & keeps the line you type mid-screen, live word, character & reading-time counts for the page, the selection or the paragraph, & an option that keeps the slash menu out of sentences
 - **26 languages** · the whole window & its mail in English (default), Spanish (Spain & Mexico), Brazilian Portuguese, French (France & Canada), German, Italian, Dutch, Danish, Finnish, Norwegian Bokmål, Swedish, Russian, Polish, Czech, Hungarian, Ukrainian, Turkish, Simplified & Traditional Chinese, Japanese, Korean, Indonesian, Thai & Vietnamese
 - **The server owns the document** · every page body is a CRDT the server applies & reads itself, so a Markdown write over the API merges w/ what people are typing; one socket carries every open page w/ state-vector sync, a write check on every frame & cursors named by the server
 - **Offline that survives closing the tab** · edits made without a connection are kept in the browser & merge when it comes back, in any browser
