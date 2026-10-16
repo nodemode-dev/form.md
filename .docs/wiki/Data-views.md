@@ -70,6 +70,21 @@ Widgets sit on a four-column grid and are small (one column), medium (two) or fu
 
 The board's layout menu adds a **column total** (a count, or the sum or average of a number property) and a **progress bar** (the share of rows with a checkbox ticked, or the average of a number property against its maximum or 100). Each column's menu can collapse it to a narrow strip, which stays collapsed for everyone using the view, and set a card limit; a column over its limit shows "count / limit" in red. The pencil on a card edits its title in place; while editing, clicking a property shown on the card edits it in place too. The plus in a column header adds a card at the top, New at the bottom.
 
+## Speed at scale
+
+Measured on v0.19.0 with a 10,000-row database of a title, a status, a number, a text and a date property, on one development machine:
+
+| What | Result |
+|---|---|
+| Query for the first 100 rows, sorted by a number, from the end (offset 9,900), and a title search | 7 to 14 ms each on the server |
+| Opening the database in Chrome with the CPU slowed 4x and a 500 kbps, 400 ms network | first rows visible after 2.9 s |
+| Row elements in the page while showing the table | 27 to 42 at any scroll position, out of 10,000 |
+| Jumping to the middle and to the end of the table | painted in 25 and 34 ms; the last row appears once its window loads |
+| Longest main-thread task seen with the CPU slowed 4x | 281 ms, during the first load |
+| Adding rows through MCP `add_rows` | about 1.2 s per call of 100 rows |
+
+The table renders only the rows near the viewport and asks the server for each window as it scrolls, so the cost of a view does not grow with the row count; the server keeps each database's rows in memory after the first read, which is why sorting and searching stay in milliseconds.
+
 ## The API
 
 `POST /api/collections/{id}/chart` takes `{"chart": {...}, "view_id": "...", "search": "...", "pick": {"x": "...", "series": "..."}}`. The chart object has `kind`, `x` and `series` groupings (`prop`, `by`, `step`), `fn`, `prop`, `target`, `window`, `scale`, `filter`, `limit` and the style flags. A `pick` answers with `picked`, the ids of up to 500 rows behind that mark, instead of values. A `dots` chart answers with `points` (`id`, `title`, `group`, `value`). Calendar charts return up to 1,100 days.
