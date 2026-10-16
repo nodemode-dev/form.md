@@ -423,6 +423,23 @@ func (s *Service) Render(ctx context.Context, p *policy.Principal, id string) (s
 	return out, err
 }
 
+func (s *Service) LiveFile(pageID, fileID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	r := s.rooms[pageID]
+	if r == nil {
+		return false
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, f := range r.summary(nil).Files {
+		if f == fileID {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) Markdown(ctx context.Context, p *policy.Principal, id string) (string, error) {
 	if err := s.pages.CanRead(ctx, p, id); err != nil {
 		return "", err

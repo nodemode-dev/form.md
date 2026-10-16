@@ -281,6 +281,11 @@ func (s *Service) fileAllowed(ctx context.Context, sc *scope, f *files.File) boo
 			}
 		}
 	}
+	for id := range sc.pages {
+		if s.docs.LiveFile(id, f.ID) {
+			return true
+		}
+	}
 	return false
 }
 
