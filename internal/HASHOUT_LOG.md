@@ -1937,6 +1937,15 @@ The audit flagged the linear scan in `put` and `drop`. A binary search was tried
 
 `Get` lists a database's row templates and runs several times per row update, so the lookup must not depend on the row count. The query starts from the workspace's template pages through the partial index `pages_templates (workspace_id, is_template) WHERE is_template = 1` and joins the few hits to `collection_rows`; `CROSS JOIN` keeps SQLite from starting at `collection_rows_collection`, which visited every row. Found with a CPU profile of a throwaway build; 3000 updates of a 5000-row database went from 53.8 s to 19.1 s.
 
+### internal/collection/service.go · client-made row ids
+- refers-to: internal/collection/service.go :: `RowInput.ID`, `clientRowID`, `CreateRow`, `createRow`
+- kind: rationale
+- logged: v0.26.0 · 2026-10-16
+
+Offline clients make the row id so later edits and deletes can refer to it before the server has seen the row. The id must have the form of server ids; a repeat in the same database returns the existing row (the replay may follow a create whose answer was lost), and an id held by any other page answers 409, which also stops one database's id being reused in another. Permission checks are unchanged: the caller still needs write access to the database.
+
+The next cost in bulk updates is permission checking (about 37 percent of a profile): every row update walks the page's ancestor chain several times. A memo of chain results within one request would cut it without caching permissions across requests.
+
 ### internal/pagestyle · saved styles
 - refers-to: internal/pagestyle/pagestyle.go :: `Preset`, `CleanPresets`, `ParsePresets`; internal/workspace/workspace.go (StylePresets); migrations/0028_style_presets.sql
 - kind: explainer

@@ -1720,6 +1720,13 @@ The observer only presses the existing Load more button, so loading has one code
 
 A delete that fails for lack of a network records each row id with its database in `formmd.rowDeletes`, drops any queued edits for those rows, and hides them from every open session (`hide` removes them from slots, groups and lanes and lowers the total). `apply` filters them out of every later result, which covers cached reads after an offline reload. `replay` sends deletes after edits, grouped per database, and refreshes those views.
 
+### src/engine/collections.ts · offline row creates
+- refers-to: src/engine/collections.ts :: `createRow`, `creates`, `localRows`, `newRowId`, `localRow`, `QuerySession.insertLocal`, `apply`, `replay`
+- kind: explainer
+- logged: v0.26.0 · 2026-10-16
+
+`newRowId` encodes 16 random bytes as lowercase base32 without padding, 26 characters, which is what the server's `ids.New` makes. The new row is inserted into open sessions on a zero-delay timer, after the promise has resolved, because views record which row to focus in the promise's `then` and focus it on the next paint. `apply` appends this database's local rows when the result reaches the end of the list, so they appear after an offline reload; offline edits to them go through the normal edit outbox and the overlay. A delete of a row that exists only in `formmd.rowCreates` removes it there instead of queuing a delete.
+
 ### src/ui/account.ts · Writing section
 - refers-to: src/ui/account.ts :: profileTab (Writing); src/extensions/blocks/triggers.ts :: `SLASH_KEY`
 - kind: explainer
