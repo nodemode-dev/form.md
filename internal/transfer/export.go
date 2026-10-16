@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"mime"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/nodemode-ai/form.md/internal/collection"
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/pagestyle"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/site"
 )
@@ -30,6 +32,8 @@ type exNode struct {
 	updated                                             int64
 	file                                                string
 	kids                                                []*exNode
+
+	style string
 }
 
 type exportSet struct {
@@ -55,7 +59,7 @@ func (s *Service) collect(ctx context.Context, p *policy.Principal, rootID, work
 	set := &exportSet{byID: map[string]*exNode{}, ws: ws}
 	byParent := map[string][]*exNode{}
 	for _, m := range tree {
-		n := &exNode{id: m.ID, parent: m.ParentID, title: m.Title, icon: m.Icon, cover: m.Cover, kind: m.Kind, desc: m.Description, sortKey: m.SortKey, updated: m.UpdatedAt}
+		n := &exNode{id: m.ID, parent: m.ParentID, title: m.Title, icon: m.Icon, cover: m.Cover, kind: m.Kind, desc: m.Description, sortKey: m.SortKey, updated: m.UpdatedAt, style: string(m.Style)}
 		set.byID[m.ID] = n
 		byParent[m.ParentID] = append(byParent[m.ParentID], n)
 	}
@@ -65,7 +69,7 @@ func (s *Service) collect(ctx context.Context, p *policy.Principal, rootID, work
 			if err != nil {
 				return nil, err
 			}
-			n := &exNode{id: m.ID, parent: m.ParentID, title: m.Title, icon: m.Icon, cover: m.Cover, kind: m.Kind, desc: m.Description, sortKey: m.SortKey, updated: m.UpdatedAt, row: m.Row}
+			n := &exNode{id: m.ID, parent: m.ParentID, title: m.Title, icon: m.Icon, cover: m.Cover, kind: m.Kind, desc: m.Description, sortKey: m.SortKey, updated: m.UpdatedAt, row: m.Row, style: string(m.Style)}
 			set.byID[m.ID] = n
 		}
 	}
@@ -314,8 +318,11 @@ func (s *Service) exportMarkdown(ctx context.Context, p *policy.Principal, set *
 func (s *Service) exportHTML(ctx context.Context, p *policy.Principal, set *exportSet, origin, theme string, w io.Writer, single bool) error {
 	e := &exporter{s: s, p: p, set: set, origin: origin, files: map[string]*fileCopy{}}
 	nodes := make([]site.ExportNode, 0, len(set.all))
+	var wsStyle string
+	_ = s.st.R.QueryRowContext(ctx, "SELECT page_style FROM workspaces WHERE id = ?", set.ws).Scan(&wsStyle)
 	for _, n := range set.all {
-		nodes = append(nodes, site.ExportNode{ID: n.id, Parent: n.parent, Title: n.title, Icon: n.icon, Cover: n.cover, Kind: n.kind, Description: n.desc, SortKey: n.sortKey, Row: n.row, Inline: n.inline, UpdatedAt: n.updated})
+		style, _ := json.Marshal(pagestyle.Merge(wsStyle, n.style))
+		nodes = append(nodes, site.ExportNode{ID: n.id, Parent: n.parent, Title: n.title, Icon: n.icon, Cover: n.cover, Kind: n.kind, Description: n.desc, SortKey: n.sortKey, Row: n.row, Inline: n.inline, UpdatedAt: n.updated, Style: string(style)})
 	}
 	var current *exNode
 	root := ""

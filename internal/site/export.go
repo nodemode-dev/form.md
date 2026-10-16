@@ -18,6 +18,8 @@ type ExportNode struct {
 	Row         bool
 	Inline      bool
 	UpdatedAt   int64
+
+	Style string
 }
 
 type Export struct {
@@ -30,7 +32,7 @@ const exportScript = `document.addEventListener("click",function(e){var b=e.targ
 func (s *Service) NewExport(nodes []ExportNode, root, theme string, href, file func(id string) string) *Export {
 	sc := &scope{root: root, theme: theme, pages: map[string]*node{}, kids: map[string][]*node{}, hrefFn: href, fileFn: file, export: true}
 	for _, n := range nodes {
-		sc.pages[n.ID] = &node{ID: n.ID, Parent: n.Parent, Title: n.Title, Icon: n.Icon, Cover: n.Cover, Kind: n.Kind, Description: n.Description, SortKey: n.SortKey, Row: n.Row, Inline: n.Inline, UpdatedAt: n.UpdatedAt}
+		sc.pages[n.ID] = &node{ID: n.ID, Parent: n.Parent, Title: n.Title, Icon: n.Icon, Cover: n.Cover, Kind: n.Kind, Description: n.Description, SortKey: n.SortKey, Row: n.Row, Inline: n.Inline, UpdatedAt: n.UpdatedAt, Style: n.Style}
 	}
 	for _, n := range sc.pages {
 		if n.ID != root {
