@@ -25,6 +25,16 @@ const MARK: Record<TriggerKind, string> = { slash: "/", mention: "@", link: "[["
 
 export const triggerKey = new PluginKey<TriggerState>("formmd-trigger");
 
+export const SLASH_KEY = "formmd.slashAtStart";
+
+function slashAtStartOnly(): boolean {
+  try {
+    return localStorage.getItem(SLASH_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function boundaryBefore(state: EditorState, pos: number): boolean {
   const $pos = state.doc.resolve(pos);
   if (!$pos.parent.isTextblock || $pos.parent.type.spec.code) return false;
@@ -62,7 +72,7 @@ export function triggerPlugin(ctx: EditorCtx): Plugin<TriggerState> {
         if (st?.active || !view.editable) return false;
         let kind: TriggerKind | null = null;
         let start = from;
-        if (text === "/" && boundaryBefore(view.state, from)) kind = "slash";
+        if (text === "/" && boundaryBefore(view.state, from) && (!slashAtStartOnly() || view.state.doc.resolve(from).parentOffset === 0)) kind = "slash";
         else if (text === "@" && boundaryBefore(view.state, from)) kind = "mention";
         else if (text === "[" && from > 0 && view.state.doc.textBetween(from - 1, from) === "[" && boundaryBefore(view.state, from - 1)) {
           kind = "link";

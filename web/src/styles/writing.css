@@ -1,0 +1,49 @@
+:root[data-focus] .app {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+:root[data-focus] .sidebar {
+  visibility: hidden;
+}
+
+:root[data-focus] .sheet {
+  margin-inline-start: 0;
+}
+
+:root[data-focus] .topbar,
+:root[data-focus] .tabbar,
+:root[data-focus] .page-head__adders,
+:root[data-focus] .subpages,
+:root[data-focus] .page-body__title,
+:root[data-focus] .adder--row {
+  visibility: hidden;
+}
+
+:root[data-focus] .topbar,
+:root[data-focus] .tabbar {
+  pointer-events: none;
+}
+
+.wcount {
+  position: fixed;
+  inset-block-end: var(--space-3);
+  inset-inline-end: var(--space-4);
+  z-index: var(--z-sticky);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--sheet);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.wcount[hidden] {
+  display: none;
+}
+
+:root[data-dock] .wcount {
+  visibility: hidden;
+}

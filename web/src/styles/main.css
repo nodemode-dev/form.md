@@ -20,4 +20,6 @@
 @import "./settings.css";
 @import "./agent.css";
 @import "./dock.css";
+@import "./page-style.css";
+@import "./writing.css";
 @import "./auth.css";
