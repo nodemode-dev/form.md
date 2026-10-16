@@ -1,0 +1,23 @@
+{
+  "Someone": "누군가",
+  "Untitled": "제목 없음",
+  "%s mentioned you in %s": "%s님이 %s에서 나를 멘션했어요",
+  "%s commented on %s": "%s님이 %s에 댓글을 남겼어요",
+  "%s replied in %s": "%s님이 %s에 답글을 남겼어요",
+  "%s suggested an edit to %s": "%s님이 %s에 편집을 제안했어요",
+  "%s decided on your suggestion in %s": "%s님이 %s에서 내 제안을 처리했어요",
+  "%s shared %s with you": "%s님이 %s을(를) 나와 공유했어요",
+  "%s assigned you to %s": "%s님이 나를 %s에 할당했어요",
+  "Reminder in %s": "%s의 알림",
+  "%s ran on %s": "%s이(가) %s에서 실행됐어요",
+  "%d new notifications": "새 알림 %d개",
+  "Open your inbox: %s": "받은 편지함 열기: %s",
+  "Emergency access to %s": "%s 긴급 접근",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s님이 %q 워크스페이스(%s)에 대한 긴급 읽기 접근을 2시간 동안 사용했어요.\n\n입력된 사유:\n%s\n",
+  "Test message": "테스트 메시지",
+  "This is a test message from %s. Mail sending works.\n": "%s에서 보낸 테스트 메시지예요. 메일 전송이 정상적으로 작동해요.\n",
+  "You are invited to %s": "%s에 초대되었어요",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s님이 %q 워크스페이스(%s)에 나를 초대했어요.\n\n초대 수락하기:\n%s\n\n링크는 14일 동안 유효해요.\n",
+  "%s shared a page with you": "%s님이 페이지를 공유했어요",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s님이 %q을(를) 나와 공유했어요. (%s)\n\n열기:\n%s%s\n\n링크는 14일 동안 유효해요.\n"
+}

@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "Terminal i Claude Code działają tylko w form.md na tym komputerze, dla właściciela instancji. Ustaw FORMMD_TERMINAL=on, aby zezwolić na nie na serwerze.",
+  "Trend": "Trend",
+  "Trend for a number": "Trend dla liczby",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "Poczekaj, aż Claude skończy, lub naciśnij Zatrzymaj, zanim przeniesiesz rozmowę",
+  "[process ended: restart or close this tab]": "[proces zakończony: uruchom ponownie lub zamknij tę kartę]",
+  "steps": "kroki",
+  "tokens": "tokeny",
+  "{n} in range": "{n} w zakresie",
+  "{n} rows, {m} links": "Wiersze: {n}, linki: {m}"
+}

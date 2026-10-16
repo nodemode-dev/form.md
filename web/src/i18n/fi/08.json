@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "Pääte ja Claude Code toimivat vain tällä tietokoneella olevassa form.md:ssä, instanssin omistajalle. Aseta FORMMD_TERMINAL=on sallidaksesi ne palvelimella.",
+  "Trend": "Trendi",
+  "Trend for a number": "Luvun trendi",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "Odota, että Claude valmistuu, tai paina Pysäytä, ennen kuin siirrät keskustelun",
+  "[process ended: restart or close this tab]": "[prosessi päättyi: käynnistä uudelleen tai sulje tämä välilehti]",
+  "steps": "vaihetta",
+  "tokens": "tunnistetta",
+  "{n} in range": "{n} välillä",
+  "{n} rows, {m} links": "{n} riviä, {m} linkkiä"
+}

@@ -1,0 +1,23 @@
+{
+  "Someone": "Iemand",
+  "Untitled": "Zonder titel",
+  "%s mentioned you in %s": "%s heeft je vermeld in %s",
+  "%s commented on %s": "%s heeft gereageerd op %s",
+  "%s replied in %s": "%s heeft geantwoord in %s",
+  "%s suggested an edit to %s": "%s heeft een bewerking voorgesteld voor %s",
+  "%s decided on your suggestion in %s": "%s heeft een besluit genomen over je suggestie in %s",
+  "%s shared %s with you": "%s heeft %s met je gedeeld",
+  "%s assigned you to %s": "%s heeft je toegewezen aan %s",
+  "Reminder in %s": "Herinnering in %s",
+  "%s ran on %s": "%s is uitgevoerd op %s",
+  "%d new notifications": "%d nieuwe meldingen",
+  "Open your inbox: %s": "Open je inbox: %s",
+  "Emergency access to %s": "Noodtoegang tot %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s heeft op %s twee uur lang noodleestoegang gebruikt voor de werkruimte %q.\n\nOpgegeven reden:\n%s\n",
+  "Test message": "Testbericht",
+  "This is a test message from %s. Mail sending works.\n": "Dit is een testbericht van %s. Het versturen van e-mail werkt.\n",
+  "You are invited to %s": "Je bent uitgenodigd voor %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s heeft je uitgenodigd voor de werkruimte %q op %s.\n\nAccepteer de uitnodiging:\n%s\n\nDe link werkt 14 dagen.\n",
+  "%s shared a page with you": "%s heeft een pagina met je gedeeld",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s heeft %q met je gedeeld op %s.\n\nOpen het:\n%s%s\n\nDe link werkt 14 dagen.\n"
+}

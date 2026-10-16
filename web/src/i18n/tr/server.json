@@ -1,0 +1,23 @@
+{
+  "Someone": "Biri",
+  "Untitled": "Başlıksız",
+  "%s mentioned you in %s": "%s, %s içinde senden bahsetti",
+  "%s commented on %s": "%s, %s üzerine yorum yaptı",
+  "%s replied in %s": "%s, %s içinde yanıt verdi",
+  "%s suggested an edit to %s": "%s, %s için düzenleme önerdi",
+  "%s decided on your suggestion in %s": "%s, %s içindeki önerin hakkında karar verdi",
+  "%s shared %s with you": "%s, %s sayfasını seninle paylaştı",
+  "%s assigned you to %s": "%s, seni %s içinde atadı",
+  "Reminder in %s": "%s içinde hatırlatıcı",
+  "%s ran on %s": "%s, %s üzerinde çalıştı",
+  "%d new notifications": "%d yeni bildirim",
+  "Open your inbox: %s": "Gelen kutunu aç: %s",
+  "Emergency access to %s": "%s için acil erişim",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s, %s tarihinde %q çalışma alanına iki saatliğine acil okuma erişimi kullandı.\n\nBelirtilen gerekçe:\n%s\n",
+  "Test message": "Test iletisi",
+  "This is a test message from %s. Mail sending works.\n": "Bu, %s tarafından gönderilen bir test iletisidir. Posta gönderimi çalışıyor.\n",
+  "You are invited to %s": "%s alanına davet edildin",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s, seni %s üzerindeki %q çalışma alanına davet etti.\n\nDaveti kabul et:\n%s\n\nBağlantı 14 gün geçerlidir.\n",
+  "%s shared a page with you": "%s seninle bir sayfa paylaştı",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s, %s üzerinde seninle %q sayfasını paylaştı.\n\nAç:\n%s%s\n\nBağlantı 14 gün geçerlidir.\n"
+}

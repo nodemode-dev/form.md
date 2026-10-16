@@ -1,0 +1,23 @@
+{
+  "Someone": "ใครบางคน",
+  "Untitled": "ไม่มีชื่อ",
+  "%s mentioned you in %s": "%s กล่าวถึงคุณใน %s",
+  "%s commented on %s": "%s แสดงความคิดเห็นใน %s",
+  "%s replied in %s": "%s ตอบกลับใน %s",
+  "%s suggested an edit to %s": "%s เสนอการแก้ไขให้ %s",
+  "%s decided on your suggestion in %s": "%s ตัดสินข้อเสนอของคุณใน %s",
+  "%s shared %s with you": "%s แชร์ %s กับคุณ",
+  "%s assigned you to %s": "%s มอบหมายคุณให้ %s",
+  "Reminder in %s": "การเตือนใน %s",
+  "%s ran on %s": "%s ทำงานบน %s",
+  "%d new notifications": "%d การแจ้งเตือนใหม่",
+  "Open your inbox: %s": "เปิดกล่องข้อความของคุณ: %s",
+  "Emergency access to %s": "การเข้าถึงฉุกเฉินสำหรับ %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s ใช้การเข้าถึงฉุกเฉินแบบอ่านอย่างเดียวกับพื้นที่ทำงาน %q เมื่อ %s เป็นเวลาสองชั่วโมง\n\nเหตุผลที่ระบุ:\n%s\n",
+  "Test message": "ข้อความทดสอบ",
+  "This is a test message from %s. Mail sending works.\n": "นี่คือข้อความทดสอบจาก %s การส่งอีเมลใช้งานได้\n",
+  "You are invited to %s": "คุณได้รับเชิญให้เข้าร่วม %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s เชิญคุณเข้าร่วมพื้นที่ทำงาน %q บน %s\n\nตอบรับคำเชิญ:\n%s\n\nลิงก์ใช้ได้ 14 วัน\n",
+  "%s shared a page with you": "%s แชร์หน้าหนึ่งกับคุณ",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s แชร์ %q กับคุณบน %s\n\nเปิดดู:\n%s%s\n\nลิงก์ใช้ได้ 14 วัน\n"
+}

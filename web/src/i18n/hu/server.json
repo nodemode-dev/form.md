@@ -1,0 +1,23 @@
+{
+  "Someone": "Valaki",
+  "Untitled": "Névtelen",
+  "%s mentioned you in %s": "%s megemlített itt: %s",
+  "%s commented on %s": "%s megjegyzést fűzött ehhez: %s",
+  "%s replied in %s": "%s válaszolt itt: %s",
+  "%s suggested an edit to %s": "%s szerkesztést javasolt ehhez: %s",
+  "%s decided on your suggestion in %s": "%s döntött a javaslatodról itt: %s",
+  "%s shared %s with you": "%s megosztotta veled: %s",
+  "%s assigned you to %s": "%s hozzád rendelte itt: %s",
+  "Reminder in %s": "Emlékeztető itt: %s",
+  "%s ran on %s": "%s lefutott ezen: %s",
+  "%d new notifications": "%d új értesítés",
+  "Open your inbox: %s": "Nyisd meg a postaládádat: %s",
+  "Emergency access to %s": "Vészhozzáférés ide: %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s vészhelyzeti olvasási hozzáférést használt a(z) %q munkaterülethez ekkor: %s, két órára.\n\nMegadott indoklás:\n%s\n",
+  "Test message": "Tesztüzenet",
+  "This is a test message from %s. Mail sending works.\n": "Ez egy tesztüzenet innen: %s. Az e-mail-küldés működik.\n",
+  "You are invited to %s": "Meghívást kaptál ide: %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s meghívott a(z) %q munkaterületre itt: %s.\n\nFogadd el a meghívást:\n%s\n\nA hivatkozás 14 napig érvényes.\n",
+  "%s shared a page with you": "%s megosztott veled egy oldalt",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s megosztotta veled a(z) %q oldalt itt: %s.\n\nNyisd meg:\n%s%s\n\nA hivatkozás 14 napig érvényes.\n"
+}

@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "Terminál a Claude Code běží jen ve form.md na tomto počítači, pro vlastníka instance. Nastavte FORMMD_TERMINAL=on, abyste je povolili na serveru.",
+  "Trend": "Trend",
+  "Trend for a number": "Trend pro číslo",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "Než konverzaci přesunete, počkejte, až Claude skončí, nebo stiskněte Zastavit",
+  "[process ended: restart or close this tab]": "[proces skončil: restartujte nebo zavřete tuto kartu]",
+  "steps": "kroky",
+  "tokens": "tokeny",
+  "{n} in range": "{n} v rozsahu",
+  "{n} rows, {m} links": "Řádky: {n}, odkazy: {m}"
+}

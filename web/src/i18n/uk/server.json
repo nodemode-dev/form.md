@@ -1,0 +1,23 @@
+{
+  "Someone": "Хтось",
+  "Untitled": "Без назви",
+  "%s mentioned you in %s": "%s згадав(-ла) вас у %s",
+  "%s commented on %s": "%s прокоментував(-ла) у %s",
+  "%s replied in %s": "%s відповів(-ла) у %s",
+  "%s suggested an edit to %s": "%s запропонував(-ла) правку в %s",
+  "%s decided on your suggestion in %s": "%s ухвалив(-ла) рішення щодо вашої пропозиції в %s",
+  "%s shared %s with you": "%s поділився(-лася) з вами: %s",
+  "%s assigned you to %s": "%s призначив(-ла) вас у %s",
+  "Reminder in %s": "Нагадування в %s",
+  "%s ran on %s": "%s виконано в %s",
+  "%d new notifications": "Нових сповіщень: %d",
+  "Open your inbox: %s": "Відкрийте вхідні: %s",
+  "Emergency access to %s": "Екстрений доступ до %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s скористався(-лася) екстреним доступом на читання до робочого простору %q у %s на дві години.\n\nВказана причина:\n%s\n",
+  "Test message": "Тестове повідомлення",
+  "This is a test message from %s. Mail sending works.\n": "Це тестове повідомлення від %s. Надсилання пошти працює.\n",
+  "You are invited to %s": "Вас запрошують до %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s запрошує вас до робочого простору %q у %s.\n\nПрийміть запрошення:\n%s\n\nПосилання діє 14 днів.\n",
+  "%s shared a page with you": "%s поділився(-лася) з вами сторінкою",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s поділився(-лася) з вами сторінкою %q у %s.\n\nВідкрийте її:\n%s%s\n\nПосилання діє 14 днів.\n"
+}

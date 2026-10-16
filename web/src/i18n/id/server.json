@@ -1,0 +1,23 @@
+{
+  "Someone": "Seseorang",
+  "Untitled": "Tanpa judul",
+  "%s mentioned you in %s": "%s menyebut Anda di %s",
+  "%s commented on %s": "%s berkomentar di %s",
+  "%s replied in %s": "%s membalas di %s",
+  "%s suggested an edit to %s": "%s menyarankan suntingan pada %s",
+  "%s decided on your suggestion in %s": "%s memutuskan saran Anda di %s",
+  "%s shared %s with you": "%s membagikan %s kepada Anda",
+  "%s assigned you to %s": "%s menugaskan Anda ke %s",
+  "Reminder in %s": "Pengingat di %s",
+  "%s ran on %s": "%s dijalankan pada %s",
+  "%d new notifications": "%d notifikasi baru",
+  "Open your inbox: %s": "Buka kotak masuk Anda: %s",
+  "Emergency access to %s": "Akses darurat ke %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s menggunakan akses baca darurat ke ruang kerja %q di %s selama dua jam.\n\nAlasan yang diberikan:\n%s\n",
+  "Test message": "Pesan tes",
+  "This is a test message from %s. Mail sending works.\n": "Ini adalah pesan tes dari %s. Pengiriman email berfungsi.\n",
+  "You are invited to %s": "Anda diundang ke %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s mengundang Anda ke ruang kerja %q di %s.\n\nTerima undangan:\n%s\n\nTautan berlaku selama 14 hari.\n",
+  "%s shared a page with you": "%s membagikan sebuah halaman kepada Anda",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s membagikan %q kepada Anda di %s.\n\nBuka:\n%s%s\n\nTautan berlaku selama 14 hari.\n"
+}

@@ -34,6 +34,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/files"
 	"github.com/nodemode-ai/form.md/internal/graph"
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/i18n"
 	"github.com/nodemode-ai/form.md/internal/inbox"
 	"github.com/nodemode-ai/form.md/internal/mail"
 	"github.com/nodemode-ai/form.md/internal/mcp"
@@ -301,14 +302,13 @@ func (s *Server) housekeeping(ctx context.Context) {
 }
 
 func preferredLang(r *http.Request, userLang string) string {
-	if userLang == "en" || userLang == "de" {
-		return userLang
+	if name, ok := i18n.Resolve(userLang); ok {
+		return name
 	}
 	for _, part := range strings.Split(r.Header.Get("Accept-Language"), ",") {
 		tag, _, _ := strings.Cut(strings.TrimSpace(part), ";")
-		base, _, _ := strings.Cut(strings.ToLower(tag), "-")
-		if base == "de" || base == "en" {
-			return base
+		if name, ok := i18n.Resolve(tag); ok {
+			return name
 		}
 	}
 	return "en"

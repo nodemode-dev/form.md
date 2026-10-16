@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "터미널과 Claude Code는 이 컴퓨터의 form.md에서 인스턴스 소유자만 사용할 수 있어요. 서버에서 허용하려면 FORMMD_TERMINAL=on을 설정하세요.",
+  "Trend": "추세",
+  "Trend for a number": "숫자 추세",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "대화를 옮기기 전에 Claude가 끝날 때까지 기다리거나 중지를 누르세요",
+  "[process ended: restart or close this tab]": "[프로세스가 종료됨: 이 탭을 다시 시작하거나 닫으세요]",
+  "steps": "단계",
+  "tokens": "토큰",
+  "{n} in range": "범위 내 {n}개",
+  "{n} rows, {m} links": "행 {n}개, 링크 {m}개"
+}

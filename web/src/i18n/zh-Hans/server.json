@@ -1,0 +1,23 @@
+{
+  "Someone": "某人",
+  "Untitled": "无标题",
+  "%s mentioned you in %s": "%s 在 %s 中提到了你",
+  "%s commented on %s": "%s 评论了 %s",
+  "%s replied in %s": "%s 在 %s 中回复了",
+  "%s suggested an edit to %s": "%s 建议修改 %s",
+  "%s decided on your suggestion in %s": "%s 处理了你在 %s 中的建议",
+  "%s shared %s with you": "%s 与你分享了 %s",
+  "%s assigned you to %s": "%s 将你分配到 %s",
+  "Reminder in %s": "%s 中的提醒",
+  "%s ran on %s": "%s 已在 %s 上运行",
+  "%d new notifications": "%d 条新通知",
+  "Open your inbox: %s": "打开你的收件箱：%s",
+  "Emergency access to %s": "紧急访问 %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s 于 %s 使用紧急只读访问权限查看了 %q 工作区，为期两小时。\n\n所述原因：\n%s\n",
+  "Test message": "测试消息",
+  "This is a test message from %s. Mail sending works.\n": "这是来自 %s 的测试消息。邮件发送正常。\n",
+  "You are invited to %s": "你被邀请加入 %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s 邀请你加入 %s 上的 %q 工作区。\n\n接受邀请：\n%s\n\n该链接 14 天内有效。\n",
+  "%s shared a page with you": "%s 与你分享了一个页面",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s 于 %s 与你分享了 %q。\n\n打开它：\n%s%s\n\n该链接 14 天内有效。\n"
+}

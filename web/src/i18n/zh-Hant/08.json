@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "終端機與 Claude Code 只能在本機執行的 form.md 上使用，且僅限執行個體擁有者。設定 FORMMD_TERMINAL=on 可在伺服器上允許使用。",
+  "Trend": "趨勢",
+  "Trend for a number": "數字的趨勢",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "移動對話前，請等待 Claude 完成，或按「停止」",
+  "[process ended: restart or close this tab]": "[處理程序已結束：請重新啟動或關閉此分頁]",
+  "steps": "步驟",
+  "tokens": "token",
+  "{n} in range": "範圍內 {n} 項",
+  "{n} rows, {m} links": "{n} 列，{m} 個連結"
+}

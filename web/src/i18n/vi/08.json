@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "Terminal và Claude Code chỉ chạy trên form.md ở máy tính này, dành cho chủ sở hữu instance. Đặt FORMMD_TERMINAL=on để cho phép chúng trên máy chủ.",
+  "Trend": "Xu hướng",
+  "Trend for a number": "Xu hướng cho một số",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "Hãy chờ Claude xong, hoặc nhấn Dừng, trước khi chuyển cuộc hội thoại",
+  "[process ended: restart or close this tab]": "[tiến trình đã kết thúc: hãy khởi động lại hoặc đóng tab này]",
+  "steps": "bước",
+  "tokens": "token",
+  "{n} in range": "{n} trong phạm vi",
+  "{n} rows, {m} links": "{n} hàng, {m} liên kết"
+}

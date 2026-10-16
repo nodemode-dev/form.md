@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "Terminal ve Claude Code yalnızca bu bilgisayardaki bir form.md üzerinde, örnek sahibi için çalışır. Bir sunucuda izin vermek için FORMMD_TERMINAL=on ayarla.",
+  "Trend": "Eğilim",
+  "Trend for a number": "Bir sayı için eğilim",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "Konuşmayı taşımadan önce Claude'un bitirmesini bekle veya Durdur'a bas",
+  "[process ended: restart or close this tab]": "[işlem sona erdi: yeniden başlat veya bu sekmeyi kapat]",
+  "steps": "adım",
+  "tokens": "belirteç",
+  "{n} in range": "Aralıkta {n}",
+  "{n} rows, {m} links": "{n} satır, {m} bağlantı"
+}

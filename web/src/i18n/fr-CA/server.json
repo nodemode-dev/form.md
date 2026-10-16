@@ -1,0 +1,23 @@
+{
+  "Someone": "Quelqu’un",
+  "Untitled": "Sans titre",
+  "%s mentioned you in %s": "%s vous a mentionné dans %s",
+  "%s commented on %s": "%s a commenté %s",
+  "%s replied in %s": "%s a répondu dans %s",
+  "%s suggested an edit to %s": "%s a suggéré une modification de %s",
+  "%s decided on your suggestion in %s": "%s a statué sur votre suggestion dans %s",
+  "%s shared %s with you": "%s a partagé %s avec vous",
+  "%s assigned you to %s": "%s vous a assigné à %s",
+  "Reminder in %s": "Rappel dans %s",
+  "%s ran on %s": "%s s’est exécuté sur %s",
+  "%d new notifications": "%d nouvelles notifications",
+  "Open your inbox: %s": "Ouvrez votre boîte de réception : %s",
+  "Emergency access to %s": "Accès d’urgence à %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s a utilisé l’accès d’urgence en lecture à l’espace de travail %q sur %s pendant deux heures.\n\nMotif indiqué :\n%s\n",
+  "Test message": "Message de test",
+  "This is a test message from %s. Mail sending works.\n": "Ceci est un message de test de %s. L’envoi de courriels fonctionne.\n",
+  "You are invited to %s": "Vous êtes invité à %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s vous a invité à l’espace de travail %q sur %s.\n\nAcceptez l’invitation :\n%s\n\nLe lien est valable 14 jours.\n",
+  "%s shared a page with you": "%s a partagé une page avec vous",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s a partagé %q avec vous sur %s.\n\nOuvrez-la :\n%s%s\n\nLe lien est valable 14 jours.\n"
+}

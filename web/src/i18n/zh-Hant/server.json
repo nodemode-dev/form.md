@@ -1,0 +1,23 @@
+{
+  "Someone": "某人",
+  "Untitled": "無標題",
+  "%s mentioned you in %s": "%s 在 %s 中提到了你",
+  "%s commented on %s": "%s 在 %s 留言",
+  "%s replied in %s": "%s 在 %s 中回覆",
+  "%s suggested an edit to %s": "%s 建議修改 %s",
+  "%s decided on your suggestion in %s": "%s 處理了你在 %s 中的建議",
+  "%s shared %s with you": "%s 與你分享了 %s",
+  "%s assigned you to %s": "%s 將你指派到 %s",
+  "Reminder in %s": "%s 中的提醒",
+  "%s ran on %s": "%s 已在 %s 上執行",
+  "%d new notifications": "%d 則新通知",
+  "Open your inbox: %s": "開啟你的收件匣：%s",
+  "Emergency access to %s": "緊急存取 %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s 於 %s 使用緊急唯讀存取權限查看了 %q 工作區，為期兩小時。\n\n所述原因：\n%s\n",
+  "Test message": "測試訊息",
+  "This is a test message from %s. Mail sending works.\n": "這是來自 %s 的測試訊息。郵件寄送正常。\n",
+  "You are invited to %s": "你受邀加入 %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s 邀請你加入 %s 上的 %q 工作區。\n\n接受邀請：\n%s\n\n該連結 14 天內有效。\n",
+  "%s shared a page with you": "%s 與你分享了一個頁面",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s 於 %s 與你分享了 %q。\n\n開啟它：\n%s%s\n\n該連結 14 天內有效。\n"
+}

@@ -1,0 +1,23 @@
+{
+  "Someone": "Någon",
+  "Untitled": "Namnlös",
+  "%s mentioned you in %s": "%s nämnde dig i %s",
+  "%s commented on %s": "%s kommenterade i %s",
+  "%s replied in %s": "%s svarade i %s",
+  "%s suggested an edit to %s": "%s föreslog en ändring i %s",
+  "%s decided on your suggestion in %s": "%s tog ställning till ditt förslag i %s",
+  "%s shared %s with you": "%s delade %s med dig",
+  "%s assigned you to %s": "%s tilldelade dig i %s",
+  "Reminder in %s": "Påminnelse i %s",
+  "%s ran on %s": "%s kördes på %s",
+  "%d new notifications": "%d nya aviseringar",
+  "Open your inbox: %s": "Öppna din inkorg: %s",
+  "Emergency access to %s": "Nödåtkomst till %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s använde nödåtkomst med läsbehörighet till arbetsytan %q den %s i två timmar.\n\nAngiven orsak:\n%s\n",
+  "Test message": "Testmeddelande",
+  "This is a test message from %s. Mail sending works.\n": "Det här är ett testmeddelande från %s. E-postutskick fungerar.\n",
+  "You are invited to %s": "Du är inbjuden till %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s bjöd in dig till arbetsytan %q på %s.\n\nGodkänn inbjudan:\n%s\n\nLänken fungerar i 14 dagar.\n",
+  "%s shared a page with you": "%s delade en sida med dig",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s delade %q med dig på %s.\n\nÖppna den:\n%s%s\n\nLänken fungerar i 14 dagar.\n"
+}

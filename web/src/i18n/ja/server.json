@@ -1,0 +1,23 @@
+{
+  "Someone": "誰か",
+  "Untitled": "無題",
+  "%s mentioned you in %s": "%s さんが %s であなたをメンションしました",
+  "%s commented on %s": "%s さんが %s にコメントしました",
+  "%s replied in %s": "%s さんが %s で返信しました",
+  "%s suggested an edit to %s": "%s さんが %s の編集を提案しました",
+  "%s decided on your suggestion in %s": "%s さんが %s のあなたの提案に対応しました",
+  "%s shared %s with you": "%s さんが %s をあなたと共有しました",
+  "%s assigned you to %s": "%s さんが %s にあなたを割り当てました",
+  "Reminder in %s": "%s のリマインダー",
+  "%s ran on %s": "%s が %s で実行されました",
+  "%d new notifications": "新しい通知が %d 件あります",
+  "Open your inbox: %s": "受信トレイを開く: %s",
+  "Emergency access to %s": "%s への緊急アクセス",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s が %q ワークスペース(%s)に対して、2 時間の緊急読み取りアクセスを使用しました。\n\n入力された理由:\n%s\n",
+  "Test message": "テストメッセージ",
+  "This is a test message from %s. Mail sending works.\n": "%s からのテストメッセージです。メール送信は正常に動作しています。\n",
+  "You are invited to %s": "%s に招待されました",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s さんが %q ワークスペース(%s)にあなたを招待しました。\n\n招待を承諾するには:\n%s\n\nリンクは 14 日間有効です。\n",
+  "%s shared a page with you": "%s さんがページを共有しました",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s さんが %q を %s であなたと共有しました。\n\n開く:\n%s%s\n\nリンクは 14 日間有効です。\n"
+}

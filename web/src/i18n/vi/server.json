@@ -1,0 +1,23 @@
+{
+  "Someone": "Ai đó",
+  "Untitled": "Chưa có tiêu đề",
+  "%s mentioned you in %s": "%s đã nhắc đến bạn trong %s",
+  "%s commented on %s": "%s đã bình luận về %s",
+  "%s replied in %s": "%s đã trả lời trong %s",
+  "%s suggested an edit to %s": "%s đã đề xuất chỉnh sửa cho %s",
+  "%s decided on your suggestion in %s": "%s đã quyết định về đề xuất của bạn trong %s",
+  "%s shared %s with you": "%s đã chia sẻ %s với bạn",
+  "%s assigned you to %s": "%s đã phân công bạn vào %s",
+  "Reminder in %s": "Nhắc nhở trong %s",
+  "%s ran on %s": "%s đã chạy trên %s",
+  "%d new notifications": "%d thông báo mới",
+  "Open your inbox: %s": "Mở hộp thư của bạn: %s",
+  "Emergency access to %s": "Truy cập khẩn cấp vào %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s đã dùng quyền đọc khẩn cấp vào không gian làm việc %q trên %s trong hai giờ.\n\nLý do đã nêu:\n%s\n",
+  "Test message": "Tin nhắn thử",
+  "This is a test message from %s. Mail sending works.\n": "Đây là tin nhắn thử từ %s. Việc gửi email hoạt động.\n",
+  "You are invited to %s": "Bạn được mời vào %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s đã mời bạn vào không gian làm việc %q trên %s.\n\nChấp nhận lời mời:\n%s\n\nLiên kết có hiệu lực trong 14 ngày.\n",
+  "%s shared a page with you": "%s đã chia sẻ một trang với bạn",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s đã chia sẻ %q với bạn trên %s.\n\nMở nó:\n%s%s\n\nLiên kết có hiệu lực trong 14 ngày.\n"
+}

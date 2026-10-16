@@ -1,0 +1,23 @@
+{
+  "Someone": "Кто-то",
+  "Untitled": "Без названия",
+  "%s mentioned you in %s": "%s упомянул(а) вас в %s",
+  "%s commented on %s": "%s прокомментировал(а) в %s",
+  "%s replied in %s": "%s ответил(а) в %s",
+  "%s suggested an edit to %s": "%s предложил(а) правку в %s",
+  "%s decided on your suggestion in %s": "%s принял(а) решение по вашему предложению в %s",
+  "%s shared %s with you": "%s поделился(-ась) с вами: %s",
+  "%s assigned you to %s": "%s назначил(а) вас в %s",
+  "Reminder in %s": "Напоминание в %s",
+  "%s ran on %s": "%s выполнено в %s",
+  "%d new notifications": "Новых уведомлений: %d",
+  "Open your inbox: %s": "Откройте входящие: %s",
+  "Emergency access to %s": "Экстренный доступ к %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s использовал(а) экстренный доступ на чтение к рабочему пространству %q в %s на два часа.\n\nУказанная причина:\n%s\n",
+  "Test message": "Тестовое сообщение",
+  "This is a test message from %s. Mail sending works.\n": "Это тестовое сообщение от %s. Отправка почты работает.\n",
+  "You are invited to %s": "Вас приглашают в %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s приглашает вас в рабочее пространство %q в %s.\n\nПримите приглашение:\n%s\n\nСсылка действует 14 дней.\n",
+  "%s shared a page with you": "%s поделился(-ась) с вами страницей",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s поделился(-ась) с вами страницей %q в %s.\n\nОткройте её:\n%s%s\n\nСсылка действует 14 дней.\n"
+}

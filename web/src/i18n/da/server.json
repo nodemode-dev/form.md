@@ -1,0 +1,23 @@
+{
+  "Someone": "Nogen",
+  "Untitled": "Uden titel",
+  "%s mentioned you in %s": "%s nævnte dig i %s",
+  "%s commented on %s": "%s kommenterede på %s",
+  "%s replied in %s": "%s svarede i %s",
+  "%s suggested an edit to %s": "%s foreslog en redigering af %s",
+  "%s decided on your suggestion in %s": "%s tog stilling til dit forslag i %s",
+  "%s shared %s with you": "%s delte %s med dig",
+  "%s assigned you to %s": "%s tildelte dig til %s",
+  "Reminder in %s": "Påmindelse i %s",
+  "%s ran on %s": "%s kørte på %s",
+  "%d new notifications": "%d nye notifikationer",
+  "Open your inbox: %s": "Åbn din indbakke: %s",
+  "Emergency access to %s": "Nødadgang til %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s brugte nødadgang med læserettighed til arbejdsområdet %q den %s i to timer.\n\nOplyst begrundelse:\n%s\n",
+  "Test message": "Testbesked",
+  "This is a test message from %s. Mail sending works.\n": "Dette er en testbesked fra %s. Afsendelse af mail virker.\n",
+  "You are invited to %s": "Du er inviteret til %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s inviterede dig til arbejdsområdet %q på %s.\n\nAccepter invitationen:\n%s\n\nLinket virker i 14 dage.\n",
+  "%s shared a page with you": "%s delte en side med dig",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s delte %q med dig på %s.\n\nÅbn den:\n%s%s\n\nLinket virker i 14 dage.\n"
+}

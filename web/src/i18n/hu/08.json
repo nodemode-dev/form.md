@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "A terminál és a Claude Code csak az ezen a számítógépen futó form.md-ben működik, a példány tulajdonosa számára. Állítsd a FORMMD_TERMINAL=on értéket, hogy kiszolgálón is engedélyezd őket.",
+  "Trend": "Trend",
+  "Trend for a number": "Egy szám trendje",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "Várd meg, amíg Claude befejezi, vagy nyomd meg a Leállítás gombot, mielőtt áthelyezed a beszélgetést",
+  "[process ended: restart or close this tab]": "[a folyamat befejeződött: indítsd újra, vagy zárd be ezt a lapot]",
+  "steps": "lépés",
+  "tokens": "token",
+  "{n} in range": "{n} a tartományban",
+  "{n} rows, {m} links": "{n} sor, {m} hivatkozás"
+}

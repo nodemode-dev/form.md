@@ -1,0 +1,23 @@
+{
+  "Someone": "Joku",
+  "Untitled": "Nimetön",
+  "%s mentioned you in %s": "%s mainitsi sinut kohteessa %s",
+  "%s commented on %s": "%s kommentoi kohdetta %s",
+  "%s replied in %s": "%s vastasi kohteessa %s",
+  "%s suggested an edit to %s": "%s ehdotti muokkausta kohteeseen %s",
+  "%s decided on your suggestion in %s": "%s ratkaisi ehdotuksesi kohteessa %s",
+  "%s shared %s with you": "%s jakoi kanssasi: %s",
+  "%s assigned you to %s": "%s määräsi sinut kohteeseen %s",
+  "Reminder in %s": "Muistutus kohteessa %s",
+  "%s ran on %s": "%s suoritettiin kohteessa %s",
+  "%d new notifications": "%d uutta ilmoitusta",
+  "Open your inbox: %s": "Avaa saapuneet: %s",
+  "Emergency access to %s": "Hätäkäyttö: %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s käytti hätälukuoikeutta työtilaan %q kaksi tuntia, %s.\n\nAnnettu syy:\n%s\n",
+  "Test message": "Testiviesti",
+  "This is a test message from %s. Mail sending works.\n": "Tämä on testiviesti palvelusta %s. Sähköpostin lähetys toimii.\n",
+  "You are invited to %s": "Sinut on kutsuttu: %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s kutsui sinut työtilaan %q palvelussa %s.\n\nHyväksy kutsu:\n%s\n\nLinkki toimii 14 päivää.\n",
+  "%s shared a page with you": "%s jakoi kanssasi sivun",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s jakoi kanssasi sivun %q palvelussa %s.\n\nAvaa se:\n%s%s\n\nLinkki toimii 14 päivää.\n"
+}

@@ -1,6 +1,6 @@
 import type { Engine, Me, NotifyPrefs, Prefs, SessionInfo, ThemePref, Token } from "../engine";
 import { formatDateTime, formatRelative, weekStart } from "../engine/format";
-import { currentLang, t } from "../engine/i18n";
+import { currentLang, LANGUAGES, t } from "../engine/i18n";
 import { agentsTab } from "./account-agents";
 import { avatar, COLORS, updateAvatar } from "./avatar";
 import { confirmDialog, overlayDialog, type Tab } from "./dialog";
@@ -680,12 +680,8 @@ function languageTab(engine: Engine): Tab {
       const zones: string[] = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.("timeZone") ?? [detectedZone];
 
       const lang = select(
-        [
-          ["", t("Automatic (browser)")],
-          ["en", "English"],
-          ["de", "Deutsch"],
-        ] as const,
-        prefs().lang as "" | "en" | "de",
+        [["", t("Automatic (browser)")], ...LANGUAGES] as ReadonlyArray<readonly [string, string]>,
+        prefs().lang,
       );
       const region = select(
         [["", t("Automatic (from language)")] as const, ...REGIONS.map((r) => [r, regionNames.of(r) ?? r] as const).sort((a, b) => a[1].localeCompare(b[1]))],

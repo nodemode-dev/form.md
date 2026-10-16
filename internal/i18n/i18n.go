@@ -53,10 +53,41 @@ func Has(lang, msg string) (string, bool) {
 	return v, ok
 }
 
-func Base(lang string) string {
-	base, _, _ := strings.Cut(strings.ToLower(strings.TrimSpace(lang)), "-")
+var aliases = map[string]string{
+	"zh": "zh-Hans", "zh-cn": "zh-Hans", "zh-sg": "zh-Hans", "zh-hans-cn": "zh-Hans",
+	"zh-tw": "zh-Hant", "zh-hk": "zh-Hant", "zh-mo": "zh-Hant", "zh-hant-tw": "zh-Hant",
+	"pt": "pt-BR", "pt-pt": "pt-BR", "es-419": "es-MX", "es-us": "es-MX", "no": "nb", "nn": "nb", "nb-no": "nb",
+}
+
+func Resolve(lang string) (string, bool) {
+	tag := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(lang), "_", "-"))
+	if tag == "" {
+		return "", false
+	}
+	if tag == "en" || strings.HasPrefix(tag, "en-") {
+		return "en", true
+	}
+	if a, ok := aliases[tag]; ok {
+		return a, true
+	}
+	for name := range catalogs {
+		if strings.ToLower(name) == tag {
+			return name, true
+		}
+	}
+	base, _, _ := strings.Cut(tag, "-")
+	if a, ok := aliases[base]; ok {
+		return a, true
+	}
 	if _, ok := catalogs[base]; ok {
-		return base
+		return base, true
+	}
+	return "", false
+}
+
+func Base(lang string) string {
+	if name, ok := Resolve(lang); ok {
+		return name
 	}
 	return "en"
 }

@@ -1,0 +1,23 @@
+{
+  "Someone": "Alguien",
+  "Untitled": "Sin título",
+  "%s mentioned you in %s": "%s te mencionó en %s",
+  "%s commented on %s": "%s comentó en %s",
+  "%s replied in %s": "%s respondió en %s",
+  "%s suggested an edit to %s": "%s sugirió una edición en %s",
+  "%s decided on your suggestion in %s": "%s resolvió tu sugerencia en %s",
+  "%s shared %s with you": "%s compartió %s contigo",
+  "%s assigned you to %s": "%s te asignó a %s",
+  "Reminder in %s": "Recordatorio en %s",
+  "%s ran on %s": "%s se ejecutó en %s",
+  "%d new notifications": "%d notificaciones nuevas",
+  "Open your inbox: %s": "Abre tu bandeja de entrada: %s",
+  "Emergency access to %s": "Acceso de emergencia a %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s usó el acceso de emergencia de lectura al espacio de trabajo %q en %s durante dos horas.\n\nMotivo indicado:\n%s\n",
+  "Test message": "Mensaje de prueba",
+  "This is a test message from %s. Mail sending works.\n": "Este es un mensaje de prueba de %s. El envío de correo funciona.\n",
+  "You are invited to %s": "Te han invitado a %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s te invitó al espacio de trabajo %q en %s.\n\nAcepta la invitación:\n%s\n\nEl enlace funciona durante 14 días.\n",
+  "%s shared a page with you": "%s compartió una página contigo",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s compartió %q contigo en %s.\n\nÁbrela:\n%s%s\n\nEl enlace funciona durante 14 días.\n"
+}

@@ -1,0 +1,23 @@
+{
+  "Someone": "Někdo",
+  "Untitled": "Bez názvu",
+  "%s mentioned you in %s": "%s vás zmínil(a) v: %s",
+  "%s commented on %s": "%s okomentoval(a) v: %s",
+  "%s replied in %s": "%s odpověděl(a) v: %s",
+  "%s suggested an edit to %s": "%s navrhl(a) úpravu v: %s",
+  "%s decided on your suggestion in %s": "%s rozhodl(a) o vašem návrhu v: %s",
+  "%s shared %s with you": "%s s vámi sdílel(a): %s",
+  "%s assigned you to %s": "%s vás přiřadil(a) v: %s",
+  "Reminder in %s": "Připomenutí v: %s",
+  "%s ran on %s": "%s spuštěno v: %s",
+  "%d new notifications": "Nová oznámení: %d",
+  "Open your inbox: %s": "Otevřete doručenou poštu: %s",
+  "Emergency access to %s": "Nouzový přístup k: %s",
+  "%s used emergency read access to the %q workspace on %s for two hours.\n\nReason given:\n%s\n": "%s použil(a) nouzový přístup ke čtení pracovního prostoru %q dne %s na dvě hodiny.\n\nUvedený důvod:\n%s\n",
+  "Test message": "Zkušební zpráva",
+  "This is a test message from %s. Mail sending works.\n": "Toto je zkušební zpráva z %s. Odesílání pošty funguje.\n",
+  "You are invited to %s": "Byli jste pozváni do: %s",
+  "%s invited you to the %q workspace on %s.\n\nAccept the invitation:\n%s\n\nThe link works for 14 days.\n": "%s vás pozval(a) do pracovního prostoru %q v %s.\n\nPřijměte pozvánku:\n%s\n\nOdkaz platí 14 dní.\n",
+  "%s shared a page with you": "%s s vámi sdílel(a) stránku",
+  "%s shared %q with you on %s.\n\nOpen it:\n%s%s\n\nThe link works for 14 days.\n": "%s s vámi sdílel(a) %q v %s.\n\nOtevřete ji:\n%s%s\n\nOdkaz platí 14 dní.\n"
+}

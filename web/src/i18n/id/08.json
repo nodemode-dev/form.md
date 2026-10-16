@@ -1,0 +1,11 @@
+{
+  "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.": "Terminal dan Claude Code hanya berjalan pada form.md di komputer ini, untuk pemilik instans. Atur FORMMD_TERMINAL=on untuk mengizinkannya di server.",
+  "Trend": "Tren",
+  "Trend for a number": "Tren untuk angka",
+  "Wait for Claude to finish, or press Stop, before moving the conversation": "Tunggu Claude selesai, atau tekan Berhenti, sebelum memindahkan percakapan",
+  "[process ended: restart or close this tab]": "[proses berakhir: mulai ulang atau tutup tab ini]",
+  "steps": "langkah",
+  "tokens": "token",
+  "{n} in range": "{n} dalam rentang",
+  "{n} rows, {m} links": "{n} baris, {m} tautan"
+}
