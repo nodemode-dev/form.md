@@ -21,6 +21,8 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 
 - **Claude Code inside the workspace** · a bottom panel with real terminals, Claude Code tabs already connected to this form.md's MCP tools, and a Claude Code chat that shows each tool call as it runs; hand a chat to a terminal tab or bring one back (Mod+J, Mod+Alt+J, Mod+Alt+K)
 - **Agents drive the window** · every command carries a description, typed parameters & whether it changes anything; agents list & run them through MCP (`window_commands`, `window_command_run`), REST or `form-md cli`
+- **Page styles** · six fonts (sans, serif, mono, rounded, slab, humanist), three text sizes & widths, line spacing & justified or centred text per page, w/ a workspace default; styled pages paint styled from the first frame
+- **Writing tools** · focus mode that hides everything but the text, live word, character & reading-time counts for the page, the selection or the paragraph, & an option that keeps the slash menu out of sentences
 - **26 languages** · the whole window & its mail in English (default), Spanish (Spain & Mexico), Brazilian Portuguese, French (France & Canada), German, Italian, Dutch, Danish, Finnish, Norwegian Bokmål, Swedish, Russian, Polish, Czech, Hungarian, Ukrainian, Turkish, Simplified & Traditional Chinese, Japanese, Korean, Indonesian, Thai & Vietnamese
 - **The server owns the document** · every page body is a CRDT the server applies & reads itself, so a Markdown write over the API merges w/ what people are typing; one socket carries every open page w/ state-vector sync, a write check on every frame & cursors named by the server
 - **Offline that survives closing the tab** · edits made without a connection are kept in the browser & merge when it comes back, in any browser
@@ -248,6 +250,7 @@ form.md/
 | Keys | Action |
 |---|---|
 | `Alt+N` | New page |
+| `Ctrl+Shift+F` | Focus mode on or off (`Esc` leaves) |
 | `Ctrl+J` | Terminal & Claude Code panel (owner, on this computer) |
 | `Ctrl+Alt+J` · `Ctrl+Alt+K` | Claude Code in a terminal tab · Claude Code chat |
 | `F` | Add or remove the open page from favorites |

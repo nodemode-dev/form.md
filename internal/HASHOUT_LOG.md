@@ -138,6 +138,7 @@ form.md/
 │   │   └── netguard.go              the outbound HTTP client that only reaches public addresses
 │   ├── order/
 │   │   └── order.go                 fractional base62 sort keys: Between, After, Before, Valid
+│   ├── pagestyle/                   page style validation shared by pages and the workspace default
 │   ├── page/
 │   │   ├── access.go                levels, the chain walk, viewer, Reach
 │   │   ├── shares.go                shares, share links (resolve, grant, revoke), guest invitations, shared with me
@@ -1856,3 +1857,13 @@ Only the hash of an API token is stored, so the plain token for Claude Code insi
 - logged: v0.14.0 · 2026-10-16
 
 The window owns its commands, so the server only keeps the last catalogue each account's window sent and relays calls: `Run` publishes a `command.run` event with a call id to that account's sessions, waits up to a minute, and returns what the window posts to `/api/commands/result`. A credential that cannot write may still run commands whose spec says they change nothing. With no window online the call fails at once with a message telling the agent to ask the person to open form.md.
+
+## Phase 15 · creative wishlist
+
+### internal/pagestyle · page styles
+- refers-to: internal/pagestyle/pagestyle.go :: `Clean`; internal/page/write.go :: `Update` (style); internal/workspace/workspace.go :: `Update` (page_style); internal/server/server.go :: `renderDocument` (style attrs); migrations/0026_page_style.sql
+- kind: explainer
+- logged: v0.15.0 · 2026-10-16
+
+A style is five closed choices (font, size, width, spacing, align); `Clean` refuses anything else and stores an empty string for an all-default style, so the column never holds noise. A page's own style overlays the workspace default field by field. The first response for `/p/{id}` merges both and writes `data-style-*` attributes on the html element, skipping defaults, and the client writes the same attributes when it paints the page, so the first frame already has the final font and width. Fonts are system stacks in CSS, never fetched.
+

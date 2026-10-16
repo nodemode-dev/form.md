@@ -50,6 +50,7 @@ web/
     ├── extensions/
     │   ├── registry.ts              register, activateAll, disposeAll
     │   ├── harness/                 dock and Claude Code commands and keys, catalogue mirroring to the server
+    │   ├── writing/                 focus mode, word and reading-time counts, the slash-at-start option
     │   ├── shell/
     │   │   └── index.ts             shell commands and their shortcuts
     │   ├── account/
@@ -94,6 +95,7 @@ web/
     │   ├── topbar.ts                breadcrumb, page actions, tab strip, update notice
     │   ├── page-view.ts             page header: cover, icon, title, description, tags, pages inside
     │   ├── page-actions.ts          the shared page menu and its actions
+    │   ├── page-style.ts            page style menu, commands and the html attributes they set
     │   ├── share-dialog.ts          people, groups, guests, links and the publish entry
     │   ├── teamspace-dialog.ts      teamspace create and settings
     │   ├── publish-dialog.ts        publish to the web: address, SEO, picture, theme, font, password, domain
@@ -1610,3 +1612,19 @@ Catalogue folders are named by BCP 47 tag (`es-MX`, `pt-BR`, `zh-Hant`), and eac
 - logged: v0.14.1 · 2026-10-16
 
 A DOM-free vector engine (anchors with handles, per-point corner rounding, shapes and path operations) landed in v0.14.0 as the start of an Illustrator-parity canvas. Your instruction of 2026-10-16: Illustrator parity does not belong in form.md, so the engine is deleted and no canvas page, block or route exists. The code stays reachable in history at commit `2680de4` if a vector surface is ever wanted for another form* product.
+
+## Phase 15 · creative wishlist
+
+### src/ui/page-style.ts · the Style menu
+- refers-to: src/ui/page-style.ts :: `effectiveStyle`, `applyStyle`, `openStyleMenu`, `registerStyleCommands`; src/styles/page-style.css
+- kind: explainer
+- logged: v0.15.0 · 2026-10-16
+
+Attributes go on the html element, not the page view, because the server writes them there for the first frame and the client must agree with it; a default value removes the attribute. Width works through `--doc-w` on `.view--page`, size through `--doc-text`, spacing through line height and `--block-gap`, alignment on paragraphs, list items and quotes only, so tables, code and databases keep their own alignment. The Style entry opens its own menu on the next frame from the page menu's anchor, after the page menu has closed.
+
+### src/extensions/writing · focus mode and counts
+- refers-to: src/extensions/writing/index.ts :: `countWords`, `countsFor`, `setup`; src/extensions/blocks/triggers.ts :: `slashAtStartOnly`; index.html (boot script)
+- kind: explainer
+- logged: v0.15.0 · 2026-10-16
+
+Focus mode is `data-focus` on the html element, restored by the boot script before first paint, and hides chrome with `visibility` so nothing reflows; the app grid closes the sidebar column the same way the collapsed sidebar does. Counts run on the next animation frame after input in the document body or any selection change, never on a timer, and read the ProseMirror document rather than the DOM; `Intl.Segmenter` gives word counts for languages without spaces. The counter is hidden while the terminal panel is open so the two never overlap. The slash rule reads localStorage each time, so the setting applies without reloading the editor.
