@@ -29,6 +29,8 @@ form.md opens without a connection to the server. A service worker keeps the bui
 
 Every page you open is kept in IndexedDB on that device, and every database you open while the service worker controls the tab is kept in the worker's API cache (`formmd-api`: the reads `GET /api/pages/<id>`, `GET /api/collections/<id>` and `GET /api/rows/<id>`). To keep pages you have not opened, use the page menu item **Available offline** (shown for document and database pages you can view, not for database rows, in browsers with service workers). It keeps that page and all of its subpages synced into IndexedDB, the first view of each database among them in the API cache together with the row pages in its first window (their details and bodies), and the pictures and files those pages show in the file cache, now, shows how many were saved, and re-syncs them about 30 seconds after each start while online. Choosing it again stops keeping them.
 
+A kept database keeps up to 1000 rows: the worker caches `GET /api/collections/<id>?view=<view>&rows=1000` for every table and list view, answers an offline read of that database from that copy first, and the row pages of the first 1000 rows are synced. Without any marking, the 20 pages and databases this account opened most recently (on any device, from `GET /api/recent`) are kept the same way at each start. The command **Keep recent pages offline** (`offline.recent`) turns that off or on again for this browser.
+
 ## What works and what does not
 
 | Works offline | Needs the server |
