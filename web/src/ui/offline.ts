@@ -46,6 +46,19 @@ export function startOffline(engine: Engine): Promise<ServiceWorkerRegistration 
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
     if (!saveData) idle(() => post(reg, { type: "offline-precache" }), 20_000);
     idle(() => void refreshKept(engine), 30_000);
+    const opened = new Set<string>();
+    engine.state.watch(
+      "route",
+      (r) => {
+        if (r.name !== "page" || opened.has(r.id)) return;
+        idle(() => {
+          if (opened.has(r.id) || recentOff() || !navigator.onLine || engine.pages.get(r.id)?.kind !== "collection") return;
+          opened.add(r.id);
+          void keep(engine, r.id);
+        }, 2000);
+      },
+      { immediate: true },
+    );
     return reg;
   }));
 }
@@ -115,14 +128,25 @@ async function keepRows(engine: Engine, rows: string[]): Promise<void> {
   await Promise.all([worker(), worker(), worker(), worker()]);
 }
 
-async function warmView(engine: Engine, col: Collection, v: CollectionView): Promise<void> {
+async function warmView(col: Collection, v: CollectionView): Promise<void> {
   if (!navigator.onLine) return;
-  const api = engine.api.collections;
+  const base = `/api/collections/${encodeURIComponent(col.id)}`;
+  const items: { url: string; body: string }[] = [];
+  const add = (path: string, body: object) => items.push({ url: `${base}/${path}`, body: JSON.stringify(body) });
   if (v.type === "chart") {
     const { chartOf } = await import("../extensions/database/views/chart");
-    await api.chart(col.id, { view_id: v.id, chart: chartOf(col, v.config.layout) });
-  } else if (v.type === "board" || v.type === "gallery") await api.query(col.id, { view_id: v.id, offset: 0, limit: 100, group_limit: 50 });
-  else if (v.type === "calendar" || v.type === "timeline" || v.type === "map") await api.query(col.id, { view_id: v.id, offset: 0, limit: ROWS_KEPT, no_groups: true });
+    add("chart", { view_id: v.id, chart: chartOf(col, v.config.layout) });
+  } else if (v.type === "dashboard") {
+    const { sparkSpecOf, widgetsOf } = await import("../extensions/database/views/dashboard");
+    for (const w of widgetsOf(v.config.layout)) {
+      add("chart", { view_id: v.id, chart: w.chart });
+      const spark = sparkSpecOf(w);
+      if (spark) add("chart", { view_id: v.id, chart: spark });
+    }
+  } else if (v.type === "feed") add("feed", { view_id: v.id, offset: 0, limit: 10 });
+  else if (v.type === "board" || v.type === "gallery") add("query", { view_id: v.id, offset: 0, limit: 100, group_limit: 50 });
+  else if (v.type === "calendar" || v.type === "timeline" || v.type === "map" || v.type === "graph") add("query", { view_id: v.id, offset: 0, limit: ROWS_KEPT, no_groups: true });
+  if (items.length) void started?.then((reg) => reg && post(reg, { type: "offline-query", items } as { type: string }));
 }
 
 function keep(engine: Engine, id: string): Promise<boolean> {
@@ -133,7 +157,7 @@ function keep(engine: Engine, id: string): Promise<boolean> {
       async (r) => {
         const views = r.collection.views.filter((v) => v.type === "table" || v.type === "list");
         postApi([`${base}?view=&rows=${ROWS_KEPT}`, ...views.map((v) => `${base}?view=${encodeURIComponent(v.id)}&rows=${ROWS_KEPT}`)]);
-        for (const v of r.collection.views) await warmView(engine, r.collection, v).catch(() => undefined);
+        for (const v of r.collection.views) await warmView(r.collection, v).catch(() => undefined);
         const first = r.collection.views[0]?.id;
         const q = await engine.api.collections.query(id, { ...(first ? { view_id: first } : {}), limit: ROWS_KEPT, no_groups: true });
         await keepRows(engine, q.order);

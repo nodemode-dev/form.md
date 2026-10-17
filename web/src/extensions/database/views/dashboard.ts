@@ -60,6 +60,15 @@ interface Card {
   sig: string;
 }
 
+export function widgetsOf(layout: Record<string, unknown> | undefined): Widget[] {
+  const w = layout?.widgets as Widget[] | undefined;
+  return Array.isArray(w) ? w : [];
+}
+
+export function sparkSpecOf(w: Widget): ChartSpec | null {
+  return w.kpi && w.chart.kind === "number" ? { kind: "line", x: { prop: w.kpi.date, by: w.kpi.by }, fn: w.chart.fn ?? "count", ...(w.chart.prop ? { prop: w.chart.prop } : {}), ...(w.chart.filter ? { filter: w.chart.filter } : {}), limit: 500 } : null;
+}
+
 export function dashboardView(host: ViewHost): ViewRenderer {
   const engine = host.engine;
   let destroyed = false;
@@ -74,10 +83,7 @@ export function dashboardView(host: ViewHost): ViewRenderer {
   const cards = new Map<string, Card>();
   let refocus = "";
 
-  const widgets = (): Widget[] => {
-    const w = host.view().config.layout?.widgets as Widget[] | undefined;
-    return Array.isArray(w) ? w : [];
-  };
+  const widgets = (): Widget[] => widgetsOf(host.view().config.layout);
   const save = (next: Widget[]) => saveConfig(ctx, host.viewId, (cfg) => ({ ...cfg, layout: { ...(cfg.layout ?? {}), widgets: next } }), 150);
 
   const draw = (c: Card) => {
@@ -100,7 +106,7 @@ export function dashboardView(host: ViewHost): ViewRenderer {
     try {
       const w = c.w;
       const search = host.search() || undefined;
-      const sparkSpec: ChartSpec | null = w.kpi && w.chart.kind === "number" ? { kind: "line", x: { prop: w.kpi.date, by: w.kpi.by }, fn: w.chart.fn ?? "count", ...(w.chart.prop ? { prop: w.chart.prop } : {}), ...(w.chart.filter ? { filter: w.chart.filter } : {}), limit: 500 } : null;
+      const sparkSpec = sparkSpecOf(w);
       const [r, s] = await Promise.all([engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: w.chart, search }, c.abort.signal), sparkSpec ? engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: sparkSpec, search }, c.abort.signal) : Promise.resolve(null)]);
       if (mine !== c.seq || destroyed) return;
       c.result = r;

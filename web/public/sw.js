@@ -3,7 +3,8 @@ const SHELL = "formmd-shell";
 const SHELL_URL = "/offline-shell";
 const API = "formmd-api";
 const API_READS = /^\/api\/(collections\/[^/]+|rows\/[^/]+|pages\/[^/]+)$/;
-const QUERY_READS = /^\/api\/collections\/[^/]+\/(query|chart)$/;
+const QUERY_READS = /^\/api\/collections\/[^/]+\/(query|chart|feed)$/;
+const SHAPED = ["group_key", "lane_key", "tree", "expanded", "filter", "pick"];
 const FILES = "formmd-files";
 
 async function queryKey(request) {
@@ -18,7 +19,8 @@ async function queryKey(request) {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body)));
   const hex = [...digest].map((b) => b.toString(16).padStart(2, "0")).join("");
   const path = new URL(request.url).pathname;
-  return { exact: new Request(`${path}?q=${hex}`), view: typeof q.view_id === "string" && q.view_id ? new Request(`${path}?view=${encodeURIComponent(q.view_id)}`) : null };
+  const plain = path.endsWith("/query") && typeof q.view_id === "string" && q.view_id && !SHAPED.some((k) => k in q);
+  return { exact: new Request(`${path}?q=${hex}`), view: plain ? new Request(`${path}?view=${encodeURIComponent(q.view_id)}`) : null };
 }
 
 async function queryRead(request) {
@@ -127,6 +129,10 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
@@ -150,6 +156,16 @@ self.addEventListener("message", (event) => {
         event.data.urls
           .filter((u) => typeof u === "string" && API_READS.test(new URL(u, self.location.origin).pathname))
           .map((u) => apiRead(new Request(new URL(u, self.location.origin).href, { credentials: "same-origin" })).catch(() => undefined)),
+      ),
+    );
+  else if (type === "offline-query" && Array.isArray(event.data.items))
+    event.waitUntil(
+      Promise.all(
+        event.data.items
+          .filter((it) => it && typeof it.url === "string" && typeof it.body === "string" && QUERY_READS.test(new URL(it.url, self.location.origin).pathname))
+          .map((it) =>
+            queryRead(new Request(new URL(it.url, self.location.origin).href, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: it.body })).catch(() => undefined),
+          ),
       ),
     );
   else if (type === "offline-files" && Array.isArray(event.data.urls))
