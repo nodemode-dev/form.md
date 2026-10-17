@@ -1537,6 +1537,13 @@ Whole `200` responses for `/files/<id>` are kept network-first, so pictures on k
 
 Board, gallery, calendar, timeline, map and chart views read through `POST .../query` and `.../chart`, each with its own body (group limits, a month range, aggregates), so a server-side first window like the table's would have had to copy every view's query and drift from it. The worker instead keeps the answer to the view's own request: Cache API entries must be GET requests, so the key is a synthetic GET of the same path with `?q=` and the hex SHA-256 of the body. Searches, later windows (`offset` above 0) and `ids` lookups are not kept, which bounds the entries to roughly one per view and calendar month visited. Answers are network-first and served only when `fetch` throws, and they live in the same `formmd-api` cache that a `401` on session end deletes. The keeper does not open these views itself, so only views opened online in this browser work offline.
 
+### src/ui/offline.ts, public/sw.js, internal/static/offline.go · the keeper warms views
+- refers-to: src/ui/offline.ts :: `warmView`, `keep`; public/sw.js :: `queryKey` (the `view` key), `queryRead`, the `/maps/` branch; internal/static/offline.go :: `offline`
+- kind: rationale
+- logged: v0.33.0 · 2026-10-17
+
+The keeper cannot send the exact body a view would (the calendar's month range, the board's search state), so the worker also stores each answer under `?view=<view_id>` and falls back to it after the exact key. The keeper then asks once per board and gallery view (100 rows, 50 per group, as a grouped answer) and per calendar, timeline and map view (1000 rows, no groups), and builds a chart's request with the chart view's own `chartOf`, loaded by dynamic import so the up-front bundle does not carry it. Feed, dashboard, heatmap and graph views make several requests each and are not warmed. The map draws nothing without `/maps/world-110m.json`, a public file outside `/assets/`, so the manifest lists `.json` files under `/maps/` and the worker serves that path cache-first like the built assets.
+
 ### src/ui/session.ts · the offline shell's workspace
 - refers-to: src/ui/session.ts :: `mountSession` (`rememberWorkspace(startWs)`)
 - kind: bug-context

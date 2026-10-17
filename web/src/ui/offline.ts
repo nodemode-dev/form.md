@@ -1,5 +1,6 @@
 import * as Y from "yjs";
 import type { Engine } from "../engine";
+import type { Collection, CollectionView } from "../engine/types";
 import { plural, t } from "../engine/i18n";
 import { offlineIds, setOfflineIds } from "./offline-list";
 import { toast } from "./toast";
@@ -114,6 +115,16 @@ async function keepRows(engine: Engine, rows: string[]): Promise<void> {
   await Promise.all([worker(), worker(), worker(), worker()]);
 }
 
+async function warmView(engine: Engine, col: Collection, v: CollectionView): Promise<void> {
+  if (!navigator.onLine) return;
+  const api = engine.api.collections;
+  if (v.type === "chart") {
+    const { chartOf } = await import("../extensions/database/views/chart");
+    await api.chart(col.id, { view_id: v.id, chart: chartOf(col, v.config.layout) });
+  } else if (v.type === "board" || v.type === "gallery") await api.query(col.id, { view_id: v.id, offset: 0, limit: 100, group_limit: 50 });
+  else if (v.type === "calendar" || v.type === "timeline" || v.type === "map") await api.query(col.id, { view_id: v.id, offset: 0, limit: ROWS_KEPT, no_groups: true });
+}
+
 function keep(engine: Engine, id: string): Promise<boolean> {
   postApi([`/api/pages/${encodeURIComponent(id)}`]);
   if (engine.pages.get(id)?.kind === "collection") {
@@ -122,6 +133,7 @@ function keep(engine: Engine, id: string): Promise<boolean> {
       async (r) => {
         const views = r.collection.views.filter((v) => v.type === "table" || v.type === "list");
         postApi([`${base}?view=&rows=${ROWS_KEPT}`, ...views.map((v) => `${base}?view=${encodeURIComponent(v.id)}&rows=${ROWS_KEPT}`)]);
+        for (const v of r.collection.views) await warmView(engine, r.collection, v).catch(() => undefined);
         const first = r.collection.views[0]?.id;
         const q = await engine.api.collections.query(id, { ...(first ? { view_id: first } : {}), limit: ROWS_KEPT, no_groups: true });
         await keepRows(engine, q.order);

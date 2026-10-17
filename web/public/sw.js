@@ -17,17 +17,23 @@ async function queryKey(request) {
   if (q.search || q.offset > 0 || (Array.isArray(q.ids) && q.ids.length)) return null;
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body)));
   const hex = [...digest].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return new Request(`${new URL(request.url).pathname}?q=${hex}`);
+  const path = new URL(request.url).pathname;
+  return { exact: new Request(`${path}?q=${hex}`), view: typeof q.view_id === "string" && q.view_id ? new Request(`${path}?view=${encodeURIComponent(q.view_id)}`) : null };
 }
 
 async function queryRead(request) {
   const key = await queryKey(request);
   try {
     const res = await fetch(request);
-    if (res.ok && key) await (await caches.open(API)).put(key, res.clone());
+    if (res.ok && key) {
+      const cache = await caches.open(API);
+      await cache.put(key.exact, res.clone());
+      if (key.view) await cache.put(key.view, res.clone());
+    }
     return res;
   } catch (err) {
-    const hit = key ? await (await caches.open(API)).match(key, { ignoreVary: true }) : undefined;
+    const cache = await caches.open(API);
+    const hit = key ? ((await cache.match(key.exact, { ignoreVary: true })) ?? (key.view ? await cache.match(key.view, { ignoreVary: true }) : undefined)) : undefined;
     if (hit) return hit;
     throw err;
   }
@@ -128,7 +134,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (request.method === "POST" && QUERY_READS.test(url.pathname)) return event.respondWith(queryRead(request));
   if (request.method !== "GET") return;
-  if (url.pathname.startsWith("/assets/")) event.respondWith(fromCache(request));
+  if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/maps/")) event.respondWith(fromCache(request));
   else if (request.mode === "navigate" && APP_ROUTES.test(url.pathname)) event.respondWith(navigate(request));
   else if (API_READS.test(url.pathname)) event.respondWith(apiRead(request));
   else if (FILE_READS.test(url.pathname)) event.respondWith(fileRead(request));

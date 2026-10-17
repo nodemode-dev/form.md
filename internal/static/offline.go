@@ -38,7 +38,7 @@ func (h *Handler) offline() []byte {
 			}
 		}
 		for p := range h.files {
-			if strings.HasPrefix(p, "/assets/") {
+			if strings.HasPrefix(p, "/assets/") || (strings.HasPrefix(p, "/maps/") && strings.HasSuffix(p, ".json")) {
 				m.Assets = append(m.Assets, p)
 			}
 		}

@@ -31,7 +31,7 @@ Every page you open is kept in IndexedDB on that device, and every database you 
 
 A kept database keeps up to 1000 rows: the worker caches `GET /api/collections/<id>?view=<view>&rows=1000` for every table and list view, answers an offline read of that database from that copy first, and the row pages of the first 1000 rows are synced. Without any marking, the 20 pages and databases this account opened most recently (on any device, from `GET /api/recent`) are kept the same way at each start. The command **Keep recent pages offline** (`offline.recent`) turns that off or on again for this browser.
 
-Other views ask the server with `POST /api/collections/<id>/query` or `/chart`, which the browser cache cannot hold as such. The worker keeps each successful first-page answer (no search text, offset 0) under a key made from the collection path and a SHA-256 of the request body, and answers the same request from it only when the network fails. A view therefore works offline as it last looked when it was opened online in this browser; the keeper does not open views on its own.
+Other views ask the server with `POST /api/collections/<id>/query` or `/chart`, which the browser cache cannot hold as such. The worker keeps each successful first-page answer (no search text, offset 0) under a key made from the collection path and a SHA-256 of the request body, and answers the same request from it only when the network fails. The same answer is also kept under a key for its view, used when the exact request was never made (another calendar month, say). For kept and recent databases the keeper asks once for every board, gallery, calendar, timeline, map and chart view at its pass, so those views open offline even if they were never opened in this browser. The map's land outline (`/maps/world-110m.json`) is in `/offline.json` and cached with the built assets.
 
 A row added offline gets an id made in the browser, in the same form as server ids. `POST /api/collections/<id>/rows` accepts that `id`: sending the same id again to the same database returns the row already made, so a replay that had already arrived does no harm, and an id any other page uses answers `409 id_taken`.
 
@@ -41,8 +41,8 @@ A row added offline gets an id made in the browser, in the same form as server i
 |---|---|
 | Opening the app at `/`, a page, the library, the trash or the inbox route | Moving rows, schema changes, filters, searches, more rows and forms |
 | Adding rows, editing cells and row titles, and deleting rows, in kept or opened databases: kept in this browser and sent when the connection is back (creates, then edits, then deletes; last write wins) | |
-| Kept or opened databases, read-only, with the first window of rows of the view they opened with, when that view is a table or a list | Board, gallery, calendar, timeline, map and chart views that were never opened online in this browser show their title and no rows |
-| Board, gallery, calendar (the months viewed), timeline, map and chart views as they last looked when opened online in this browser | |
+| Kept or opened databases, read-only, with the first window of rows of the view they opened with, when that view is a table or a list | Feed, dashboard, heatmap and graph views, and views of databases that are neither kept, recent nor opened in this browser |
+| Board, gallery, calendar, timeline, map and chart views of kept, recent or opened databases, as of the keeper's last pass or the last time they were opened online | |
 | The sidebar (page tree, favorites, tags) of the workspace that was current at the last shell refresh | Search and the command palette's answers; the trees of other workspaces |
 | Reading pages saved on this device | Comments, the inbox contents, sharing, history |
 | Typing in those pages; edits are kept in IndexedDB and sync when the server is back | Uploads, and files or pictures that are neither on a kept page nor loaded before |
