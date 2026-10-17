@@ -61,7 +61,7 @@ It prints `KEY = VALUE; a running server picks this up at its next start`, so re
 
 ## form-md admin reset-owner
 
-For an owner locked out of their account:
+For an owner locked out of their account. Stop the server first: the command takes the data directory lock and refuses with `the data directory is in use by a running server: stop it first` while one runs, so no editor, terminal or event stream stays attached to a session it signs out.
 
 ```sh
 fm admin reset-owner

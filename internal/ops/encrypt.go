@@ -188,6 +188,11 @@ func ResetOwner(ctx context.Context, dataDir, keyFile string) (string, string, e
 	if err != nil {
 		return "", "", err
 	}
+	unlock, err := Lock(dataDir)
+	if err != nil {
+		return "", "", err
+	}
+	defer unlock()
 	db, err := openDB(filepath.Join(dataDir, store.FileName), key, nil)
 	if err != nil {
 		return "", "", err

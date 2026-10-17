@@ -191,7 +191,19 @@ func (s *Service) RevokeCredentials(ctx context.Context, userID, keepSessionID s
 }
 
 func (s *Service) SweepSessions(ctx context.Context) {
-	_, _ = s.st.W.ExecContext(ctx, "DELETE FROM sessions WHERE expires_at < ?", store.NowMS())
+	rows, err := s.st.W.QueryContext(ctx, "DELETE FROM sessions WHERE expires_at < ? RETURNING id", store.NowMS())
+	if err != nil {
+		return
+	}
+	var gone []string
+	for rows.Next() {
+		var id string
+		if rows.Scan(&id) == nil {
+			gone = append(gone, id)
+		}
+	}
+	rows.Close()
+	s.CredentialRevoked(gone...)
 }
 
 func (s *Service) PrincipalFor(ctx context.Context, userID string) (*policy.Principal, error) {
@@ -230,6 +242,7 @@ func (s *Service) fromSession(ctx context.Context, r *http.Request) (*policy.Pri
 	now := store.NowMS()
 	if expires < now {
 		_, _ = s.st.W.ExecContext(ctx, "DELETE FROM sessions WHERE id = ?", id)
+		s.CredentialRevoked(id)
 		return nil, nil
 	}
 	p, err := s.principalForUser(ctx, userID)

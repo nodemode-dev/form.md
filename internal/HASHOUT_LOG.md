@@ -2004,3 +2004,10 @@ The note sits outside `sections` on purpose: giving it a share would take budget
 
 Before this, only a whole-user revoke closed live connections, and terminal attachments were not closed even then: a session signed out from another device kept its event stream, its sync socket and a live shell until the browser closed them. Every principal already carries one `CredentialID` (the session id, the API token id, or the OAuth grant id), so each revoke path names the id it removed and the three connection owners close what was opened with it. Session deletes use `DELETE ... RETURNING id` so the ids closed are exactly the rows removed, including "sign out other sessions". Revoking one OAuth access token closes its grant's streams too: they are keyed by grant, and the client reconnects with a fresh token if the grant still stands. Terminals are only detached, never killed, because the shell belongs to the owner, not to the session. Cancelling the attach context closes the socket at once (coder/websocket closes on a cancelled read), so no close frame is sent; the client sees the drop and its reconnect is refused.
 
+
+### internal/auth/service.go · expiry closes live connections
+- refers-to: internal/auth/service.go (SweepSessions, session resolution expiry branch), internal/server/server.go (sessionSweep), internal/auth/account.go (handleDeleteSession), internal/ops/encrypt.go (ResetOwner)
+- kind: rationale
+- logged: v0.39.0 · 2026-10-17
+
+The v0.30.0 revoke covered sign-out and deletes but not expiry: a session that ran past `auth.session_days` kept its event stream, sync socket and terminal attachment, because the sweep deleted rows without naming them and ran only every 30 minutes. The sweep now uses `DELETE ... RETURNING id`, runs on its own one-minute ticker, and passes the ids to `CredentialRevoked`; the lazy expiry delete on a request does the same. `handleDeleteSession` runs the hooks before returning a row error, so ids already removed are still closed. `admin reset-owner` runs in another process and cannot reach the server's hooks, so it takes the data directory lock and refuses while a server runs.

@@ -284,6 +284,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 
 func (s *Server) Run(ctx context.Context) error {
 	go s.housekeeping(ctx)
+	go s.sessionSweep(ctx)
 	go s.Docs.Recover(ctx)
 	go app.CheckUpdates(ctx, s.Deps.Config.UpdateURL, func() bool { return s.Settings.Bool("update.check") }, s.Deps.Log)
 	go s.Inbox.Run(ctx)
@@ -294,11 +295,23 @@ func (s *Server) Run(ctx context.Context) error {
 	return app.Run(ctx, s.Deps, s.Modules)
 }
 
+func (s *Server) sessionSweep(ctx context.Context) {
+	t := time.NewTicker(time.Minute)
+	defer t.Stop()
+	for {
+		s.Auth.SweepSessions(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
+}
+
 func (s *Server) housekeeping(ctx context.Context) {
 	t := time.NewTicker(30 * time.Minute)
 	defer t.Stop()
 	for {
-		s.Auth.SweepSessions(ctx)
 		_, _ = s.Deps.Store.W.ExecContext(ctx, "DELETE FROM invites WHERE accepted_at = 0 AND expires_at < ?", store.NowMS()-int64(30*24*time.Hour/time.Millisecond))
 		if n, err := s.Pages.Purge(ctx); err != nil {
 			s.Deps.Log.Warn("trash purge failed", "err", err)

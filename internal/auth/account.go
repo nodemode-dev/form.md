@@ -279,13 +279,13 @@ func (s *Service) handleDeleteSession(w http.ResponseWriter, r *http.Request, p 
 	}
 	err = rows.Err()
 	rows.Close()
+	s.CredentialRevoked(gone...)
 	if err != nil {
 		return err
 	}
 	if id != "others" && len(gone) == 0 {
 		return httpx.ErrNotFound
 	}
-	s.CredentialRevoked(gone...)
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
