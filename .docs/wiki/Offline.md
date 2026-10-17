@@ -35,6 +35,8 @@ Other views ask the server with `POST /api/collections/<id>/query`, `/chart` or 
 
 The keeper asks the worker to fetch these itself (the `offline-query` message, like the row and page reads), so it works even before the worker controls the page, and the worker claims open pages when it activates. For kept and recent databases at the keeper's pass, and for any database opened while online (about two seconds after opening, once per session, unless **Keep recent pages offline** is off), it keeps the database and asks once for every board, gallery, calendar, timeline, map, graph, chart and feed view and every dashboard widget (with its sparkline). A heatmap's request depends on the day and is kept when the heatmap is opened online. The map's land outline (`/maps/world-110m.json`) is in `/offline.json` and cached with the built assets.
 
+Queued database changes are sent when the browser comes back online, when the app's live connection to the server is re-established (a server restart or a dropped link, where the browser itself never went offline), and at start.
+
 A row added offline gets an id made in the browser, in the same form as server ids. `POST /api/collections/<id>/rows` accepts that `id`: sending the same id again to the same database returns the row already made, so a replay that had already arrived does no harm, and an id any other page uses answers `409 id_taken`.
 
 ## What works and what does not

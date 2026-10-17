@@ -1565,6 +1565,13 @@ The keeper cannot send the exact body a view would (the calendar's month range, 
 
 v0.32.0 and v0.33.0 were checked with Playwright's offline switch, which does not reach the service worker; the worker kept fetching from the server, so those checks passed whether or not the cache worked. With the server process stopped instead, none of the views opened offline. Two causes: the keeper's warm requests went from the page, which is not controlled by the worker on a first visit (registration, then a page load before activation), so they bypassed the worker and were never stored; and a database opened after the keeper's pass was never kept at all, so its own GET, which online arrives embedded in the page read, was missing offline. The keeper now hands each request to the worker (`offline-query`, the same route as `offline-api`), the worker claims pages on activation, and opening a database online keeps it two seconds later, once per session. The per-view fallback key is limited to plain `/query` bodies: a dashboard's widgets share a `view_id`, and a chart mark's `pick` request shares the `/chart` path, so a view-level fallback there served one widget's numbers to another and a chart's totals as a pick (an empty row list). Dashboard warming uses `widgetsOf` and `sparkSpecOf` from the dashboard module so the keeper sends byte-identical bodies. Offline checks for anything the worker serves must stop the server, not use the browser's offline switch.
 
+### src/main.ts · the row outbox replays on reconnect
+- refers-to: src/main.ts (the `live` watcher next to the `online` listener); src/engine/collections.ts :: `replay`, `queued`
+- kind: rationale
+- logged: v0.38.0 · 2026-10-17
+
+The outbox replayed on the window `online` event and at start, which covers a device losing its network but not the commoner self-hosted case of the server restarting: the browser stays online, no event fires, and queued creates and edits waited for a reload. Probe p31, with the server process stopped and restarted, showed a row added during the outage still missing on the server 25 s after it was back; replaying when the `live` state returns to `live` fixed it. The same probe rechecked, with the server really stopped, what v0.11.0 to v0.26.0 had verified with a browser offline switch: the app starts, a kept page shows its text and picture and accepts typing, the typed text reaches the server once it is back (the sync socket reconnects on its own), and a kept database shows its rows.
+
 ### src/ui/session.ts · the offline shell's workspace
 - refers-to: src/ui/session.ts :: `mountSession` (`rememberWorkspace(startWs)`)
 - kind: bug-context

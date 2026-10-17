@@ -148,6 +148,9 @@ async function start(): Promise<void> {
     window.addEventListener("online", () => {
       if (engine.collections.queued()) void engine.collections.replay();
     });
+    engine.state.watch("live", (s) => {
+      if (s === "live" && app.collections.queued()) void app.collections.replay();
+    });
     setTimeout(() => void import("./ui/offline").then((m) => m.startOffline(app)).catch(() => undefined), 2500);
     if (matchMedia("(display-mode: standalone)").matches && "ontouchstart" in window) void import("./ui/pull").then((m) => m.mountPullToRefresh(app));
     const settingsOverlays = new Set<string | null>(["account", "workspace", "new-workspace", "admin"]);
