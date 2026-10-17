@@ -98,11 +98,16 @@ async function start(): Promise<void> {
     let last: string | null = null;
     try {
       last = localStorage.getItem(LAST_USER_KEY);
-      localStorage.setItem(LAST_USER_KEY, uid);
+      if (last && last !== uid) for (const k of ["formmd.rowOutbox", "formmd.rowCreates", "formmd.rowDeletes"]) localStorage.removeItem(k);
     } catch {
       last = null;
     }
     if (last && last !== uid) await wipeLocalData();
+    try {
+      localStorage.setItem(LAST_USER_KEY, uid);
+    } catch {
+      last = null;
+    }
   }
 
   engine = createEngine({
