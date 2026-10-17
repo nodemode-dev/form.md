@@ -210,7 +210,6 @@ export const CATALOG: CatalogEntry[] = [
     section: AI,
     icon: "sparkle",
     keywords: "ai write continue summarize translate assistant generate draft",
-    hint: "Ctrl+J",
     run: (view, ctx) => {
       requestAnimationFrame(() => openAI(ctx, view));
     },

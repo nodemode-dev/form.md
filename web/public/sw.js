@@ -20,7 +20,8 @@ async function queryKey(request) {
   const hex = [...digest].map((b) => b.toString(16).padStart(2, "0")).join("");
   const path = new URL(request.url).pathname;
   const plain = path.endsWith("/query") && typeof q.view_id === "string" && q.view_id && !SHAPED.some((k) => k in q);
-  return { exact: new Request(`${path}?q=${hex}`), view: plain ? new Request(`${path}?view=${encodeURIComponent(q.view_id)}`) : null };
+  const canonical = plain && !("range" in q) && !("sorts" in q);
+  return { exact: new Request(`${path}?q=${hex}`), view: plain ? new Request(`${path}?view=${encodeURIComponent(q.view_id)}`) : null, canonical };
 }
 
 async function queryRead(request) {
@@ -30,7 +31,7 @@ async function queryRead(request) {
     if (res.ok && key) {
       const cache = await caches.open(API);
       await cache.put(key.exact, res.clone());
-      if (key.view) await cache.put(key.view, res.clone());
+      if (key.view && key.canonical) await cache.put(key.view, res.clone());
     }
     return res;
   } catch (err) {
@@ -154,7 +155,7 @@ self.addEventListener("message", (event) => {
     event.waitUntil(
       Promise.all(
         event.data.urls
-          .filter((u) => typeof u === "string" && API_READS.test(new URL(u, self.location.origin).pathname))
+          .filter((u) => typeof u === "string" && new URL(u, self.location.origin).origin === self.location.origin && API_READS.test(new URL(u, self.location.origin).pathname))
           .map((u) => apiRead(new Request(new URL(u, self.location.origin).href, { credentials: "same-origin" })).catch(() => undefined)),
       ),
     );
@@ -162,7 +163,7 @@ self.addEventListener("message", (event) => {
     event.waitUntil(
       Promise.all(
         event.data.items
-          .filter((it) => it && typeof it.url === "string" && typeof it.body === "string" && QUERY_READS.test(new URL(it.url, self.location.origin).pathname))
+          .filter((it) => it && typeof it.url === "string" && typeof it.body === "string" && new URL(it.url, self.location.origin).origin === self.location.origin && QUERY_READS.test(new URL(it.url, self.location.origin).pathname))
           .map((it) =>
             queryRead(new Request(new URL(it.url, self.location.origin).href, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: it.body })).catch(() => undefined),
           ),
@@ -173,7 +174,7 @@ self.addEventListener("message", (event) => {
       caches.open(FILES).then((cache) =>
         Promise.all(
           event.data.urls
-            .filter((u) => typeof u === "string" && FILE_READS.test(new URL(u, self.location.origin).pathname))
+            .filter((u) => typeof u === "string" && new URL(u, self.location.origin).origin === self.location.origin && FILE_READS.test(new URL(u, self.location.origin).pathname))
             .map(async (u) => {
               const req = new Request(new URL(u, self.location.origin).href, { credentials: "same-origin" });
               if (await cache.match(req, { ignoreVary: true, ignoreSearch: true })) return;

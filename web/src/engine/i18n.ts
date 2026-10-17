@@ -34,12 +34,12 @@ export function resolveLang(pref: string, fallback: string): string {
     const exact = SUPPORTED.find((c) => c.toLowerCase() === tag);
     if (exact) return exact;
     const prefix = tag.split("-").slice(0, 2).join("-");
-    if (ALIASES[tag]) return ALIASES[tag];
-    if (ALIASES[prefix]) return ALIASES[prefix];
+    if (Object.hasOwn(ALIASES, tag)) return ALIASES[tag] as string;
+    if (Object.hasOwn(ALIASES, prefix)) return ALIASES[prefix] as string;
     if (tag.startsWith("zh-hant")) return "zh-Hant";
     if (tag.startsWith("zh-hans")) return "zh-Hans";
     const base = tag.split("-")[0] ?? "";
-    if (ALIASES[base]) return ALIASES[base];
+    if (Object.hasOwn(ALIASES, base)) return ALIASES[base] as string;
     const hit = SUPPORTED.find((c) => c.toLowerCase() === base);
     if (hit) return hit;
   }
@@ -48,7 +48,7 @@ export function resolveLang(pref: string, fallback: string): string {
 
 export async function setLang(next: string): Promise<void> {
   if (next === lang && (next === "en" || Object.keys(catalog).length > 0)) return;
-  const load = next === "en" ? undefined : loaders[next];
+  const load = next === "en" || !Object.hasOwn(loaders, next) ? undefined : loaders[next];
   const found = load !== undefined;
   catalog = load ? { ...(await load()).default } : {};
   lang = found ? next : "en";

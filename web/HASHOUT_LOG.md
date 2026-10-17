@@ -1572,6 +1572,27 @@ v0.32.0 and v0.33.0 were checked with Playwright's offline switch, which does no
 
 The outbox replayed on the window `online` event and at start, which covers a device losing its network but not the commoner self-hosted case of the server restarting: the browser stays online, no event fires, and queued creates and edits waited for a reload. Probe p31, with the server process stopped and restarted, showed a row added during the outage still missing on the server 25 s after it was back; replaying when the `live` state returns to `live` fixed it. The same probe rechecked, with the server really stopped, what v0.11.0 to v0.26.0 had verified with a browser offline switch: the app starts, a kept page shows its text and picture and accepts typing, the typed text reaches the server once it is back (the sync socket reconnects on its own), and a kept database shows its rows.
 
+### src/engine/collections.ts · the row outbox belongs to one account
+- refers-to: src/engine/collections.ts :: `setOwner`, `key`; src/engine/index.ts (the `me` watcher); src/main.ts (`LAST_USER_KEY`); src/engine/doc/docs.ts :: `wipeLocalData`
+- kind: rationale
+- logged: v0.39.0 · 2026-10-17
+
+The outbox, create and delete queues sat under fixed `localStorage` keys, so changes queued by one account on a shared browser were replayed under the next account's session after a sign-in. Each key now carries the user id; a legacy unsuffixed queue is moved to the first owner set, the one whose session the app starts with. The app also remembers the last user id and, when a different one starts it, deletes the caches and document databases first, because the session guard only clears them on a 401 and a fresh sign-in from the login page never passes through it. The queues are kept, not wiped, so an account that signs back in still sends what it queued.
+
+### public/sw.js · view fallback and message origins
+- refers-to: public/sw.js :: `queryKey` (`canonical`), `queryRead`, the `offline-api`, `offline-query` and `offline-files` message filters
+- kind: rationale
+- logged: v0.39.0 · 2026-10-17
+
+The per-view fallback key was overwritten by every plain `/query` answer, so the last calendar month or a sort override seen online became what every other request for that view got offline. Only a canonical body (no range and no sorts, the keeper's own warm request) now writes it; any plain body may still read it. The message handlers resolved page-supplied URLs against the worker's origin but only tested the path, so an absolute URL to another origin with a matching path would be fetched; each filter now requires the worker's own origin.
+
+### src/engine/i18n.ts · own-property lookups
+- refers-to: src/engine/i18n.ts :: `resolveLang`, `setLang`
+- kind: rationale
+- logged: v0.39.0 · 2026-10-17
+
+The language tag comes from a saved preference or the browser; `ALIASES[tag]` and `loaders[next]` on plain objects would return `Object.prototype` members for tags such as `constructor`. `Object.hasOwn` limits both to the listed languages.
+
 ### src/ui/session.ts · the offline shell's workspace
 - refers-to: src/ui/session.ts :: `mountSession` (`rememberWorkspace(startWs)`)
 - kind: bug-context
