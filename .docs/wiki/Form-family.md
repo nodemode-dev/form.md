@@ -22,7 +22,7 @@ Neither sibling serves a descriptor of its own, so form.md reads what they alrea
 | formlit | `http://127.0.0.1:8390` | `GET /api/health` (`version`) | `GET /api/mcp/status` (`endpoint`) | `POST /mcp` `tools/list` |
 | formvis | `http://127.0.0.1:8190` | `GET /version` (`version`) | `GET /api/mcp/status` (`endpoint`) | `POST /mcp` `tools/list` |
 
-A member reports `reachable`, `version`, `mcp`, `tool_count`, `connect` (how an agent attaches: each app's own `mcp` command or plugin) and `problem` when it is not running or its tool list could not be read. Results are kept for `family.cache_seconds` (30); each request waits at most `family.timeout_ms` (2000) and follows no redirects.
+A member reports `reachable`, `version`, `mcp`, `tool_count`, `connect` (how an agent attaches: each app's own `mcp` command or plugin) and `problem` when it is not running or its tool list could not be read. Results are kept for `family.cache_seconds` (30); each request waits at most `family.timeout_ms` (2000) and follows no redirects. Requests that arrive while a sibling is being looked up wait for that lookup instead of starting their own, and a lookup cut short because its caller went away is not cached.
 
 ## Routing a task
 

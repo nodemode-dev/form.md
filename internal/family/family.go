@@ -100,8 +100,9 @@ type Service struct {
 	client  *http.Client
 	tune    Tuning
 
-	mu    sync.Mutex
-	cache map[string]cached
+	mu     sync.Mutex
+	cache  map[string]cached
+	flight map[string]chan struct{}
 }
 
 type cached struct {
@@ -110,7 +111,7 @@ type cached struct {
 }
 
 func New(a *auth.Service, version, spec string, t Tuning) *Service {
-	s := &Service{auth: a, version: version, bases: map[string]string{}, cache: map[string]cached{}, tune: t,
+	s := &Service{auth: a, version: version, bases: map[string]string{}, cache: map[string]cached{}, flight: map[string]chan struct{}{}, tune: t,
 		client: &http.Client{Timeout: t.Timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 	spec = strings.TrimSpace(spec)
 	if spec == "off" {
@@ -223,11 +224,33 @@ func (s *Service) probe(ctx context.Context, p product) Member {
 		return m
 	}
 	s.mu.Lock()
-	if c, ok := s.cache[p.ID]; ok && time.Since(c.at) < s.tune.Cache {
+	for {
+		if c, ok := s.cache[p.ID]; ok && time.Since(c.at) < s.tune.Cache {
+			s.mu.Unlock()
+			return c.m
+		}
+		wait, busy := s.flight[p.ID]
+		if !busy {
+			break
+		}
 		s.mu.Unlock()
-		return c.m
+		select {
+		case <-wait:
+		case <-ctx.Done():
+			m.Problem = "the lookup was cancelled"
+			return m
+		}
+		s.mu.Lock()
 	}
+	done := make(chan struct{})
+	s.flight[p.ID] = done
 	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		delete(s.flight, p.ID)
+		close(done)
+		s.mu.Unlock()
+	}()
 	var health struct {
 		Version string `json:"version"`
 	}
@@ -255,9 +278,11 @@ func (s *Service) probe(ctx context.Context, p product) Member {
 			m.Problem = "running, but its tool list could not be read"
 		}
 	}
-	s.mu.Lock()
-	s.cache[p.ID] = cached{m: m, at: time.Now()}
-	s.mu.Unlock()
+	if ctx.Err() == nil {
+		s.mu.Lock()
+		s.cache[p.ID] = cached{m: m, at: time.Now()}
+		s.mu.Unlock()
+	}
 	return m
 }
 
