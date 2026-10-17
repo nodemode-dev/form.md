@@ -2,7 +2,7 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.37.0
+Current build version: v0.38.0
 Last updated: 2026-10-16 · Phase 14: terminals, Claude Code and its chat, window commands, form-md cli, 26 languages
 
 ---
