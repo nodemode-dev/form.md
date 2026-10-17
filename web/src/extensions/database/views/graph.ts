@@ -2,6 +2,7 @@ import { t } from "../../../engine/i18n";
 import type { Property, RowData, RowRef } from "../../../engine/types";
 import { h, setAttr, setText } from "../../../ui/dom";
 import { iconNode } from "../../../ui/icons";
+import { reconcile } from "../../../ui/list";
 import { type MenuEntry, openMenu } from "../../../ui/menu";
 import { toast } from "../../../ui/toast";
 import { openPanel } from "../panel";
@@ -90,7 +91,8 @@ export function graphView(host: ViewHost): ViewRenderer {
   const anchor = h("span", { class: "graphv__anchor", attrs: { "aria-hidden": "true" } });
   const side = h("aside", { class: "graphv__side", attrs: { "aria-label": t("Selected row") } });
   side.hidden = true;
-  const frame = h("div", { class: "graphv__frame" }, canvas, probe, anchor, side);
+  const a11y = h("ul", { class: "graphv__a11y", attrs: { "aria-label": t("Rows in this graph") } });
+  const frame = h("div", { class: "graphv__frame" }, canvas, probe, anchor, side, a11y);
   const search = h("input", { class: "input input--sm graphv__search", attrs: { type: "search", placeholder: t("Find a row"), "aria-label": t("Find a row") } });
   const moveBtn = h("button", { class: "segmented__btn", attrs: { type: "button", "aria-pressed": "true", title: t("Move nodes"), "aria-label": t("Move nodes") } }, iconNode("grip"));
   const linkBtn = h("button", { class: "segmented__btn", attrs: { type: "button", "aria-pressed": "false", title: t("Draw links: drag from one row to another"), "aria-label": t("Draw links") } }, iconNode("relation"));
@@ -386,6 +388,27 @@ export function graphView(host: ViewHost): ViewRenderer {
     hover = -1;
     setText(count, more ? t("First {n} rows, {m} links", { n: rows.length, m: edges.length }) : t("{n} rows, {m} links", { n: rows.length, m: edges.length }));
     paintLegend(colorProp);
+    paintList();
+  };
+
+  const paintList = () => {
+    reconcile(
+      a11y,
+      nodes.map((n, i) => ({ n, i })),
+      (x) => x.n.id,
+      () => {
+        const b = h("button", { class: "graphv__a11y-row", attrs: { type: "button" } });
+        const li = h("li", {}, b);
+        b.addEventListener("click", () => showNode(index.get(li.dataset.key ?? "") ?? -1));
+        return li;
+      },
+      (li, { n, i }) => {
+        const near = (adj[i] ?? []).map((j) => nodes[j]?.title || t("Untitled"));
+        const title = n.title || t("Untitled");
+        const names = near.slice(0, 5).join(", ") + (near.length > 5 ? ` ${t("and {n} more", { n: near.length - 5 })}` : "");
+        setText(li.firstElementChild as HTMLElement, near.length ? t("{title}: linked to {names}", { title, names }) : t("{title}: no links", { title }));
+      },
+    );
   };
 
   const paintLegend = (p: Property | undefined) => {
@@ -734,10 +757,7 @@ export function graphView(host: ViewHost): ViewRenderer {
     query = search.value;
     redraw();
   });
-  search.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
-    const q = search.value.trim().toLowerCase();
-    const i = nodes.findIndex((n) => q && n.title.toLowerCase().includes(q));
+  const showNode = (i: number) => {
     const n = nodes[i];
     if (!n) return;
     selected = i;
@@ -748,6 +768,11 @@ export function graphView(host: ViewHost): ViewRenderer {
     userView = true;
     paintSide();
     redraw();
+  };
+  search.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const q = search.value.trim().toLowerCase();
+    showNode(nodes.findIndex((n) => q && n.title.toLowerCase().includes(q)));
   });
 
   const theme = new MutationObserver(() => {

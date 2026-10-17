@@ -289,6 +289,54 @@
   display: none;
 }
 
+.graphv__a11y {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.graphv__a11y:not(:focus-within) {
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.graphv__a11y:focus-within {
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  display: grid;
+  row-gap: 2px;
+  inline-size: 300px;
+  max-block-size: calc(100% - 2 * var(--space-2));
+  padding: var(--space-2);
+  overflow-y: auto;
+  background: var(--sheet);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+}
+
+.graphv__a11y-row {
+  inline-size: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.graphv__a11y-row:hover,
+.graphv__a11y-row:focus-visible {
+  background: var(--hover);
+}
+
 .graphv__sidehead {
   display: flex;
   align-items: center;
