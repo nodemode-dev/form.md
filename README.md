@@ -7,7 +7,7 @@
 <p align="center"><b>One workspace for people & agents: documents, databases & realtime editing in a single binary.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.32.0-9a8cff" alt="version v0.32.0" />
+  <img src="https://img.shields.io/badge/version-v0.33.0-9a8cff" alt="version v0.33.0" />
   <img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+" />
   <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
@@ -27,7 +27,7 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 - **Boards** · a moodboard block where pictures, notes & link cards sit anywhere on a dotted surface; drop pictures straight onto it, drag & resize cards, & the board scales w/ the column on public pages too
 - **Phone editing** · a block toolbar above the on-screen keyboard to add, move, turn into, duplicate & delete blocks
 - **Agents never overwrite your typing** · an agent's replace or delete of the block you are typing in is refused until you move on, & inserts merge live
-- **Offline by default** · the 20 pages & databases you opened most recently are kept on the device w/o marking them, a database kept offline keeps up to 1000 rows & their row pages, & rows added, edited or deleted offline are kept & sent when you are back; boards, galleries, calendars, timelines & charts open offline as you last saw them
+- **Offline by default** · the 20 pages & databases you opened most recently are kept on the device w/o marking them, a database kept offline keeps up to 1000 rows & their row pages, & rows added, edited or deleted offline are kept & sent when you are back; boards, galleries, calendars, timelines, maps & charts of those databases open offline too
 - **Creative embeds** · Canva, Behance, Sketchfab, Pinterest & Apple Music join Figma, Miro, YouTube, Vimeo, Spotify, SoundCloud, Google Docs & Maps & the rest; pictures on freshly published pages load at once
 - **Writing tools** · focus mode that hides everything but the text & keeps the line you type mid-screen, live word, character & reading-time counts for the page, the selection or the paragraph, & an option that keeps the slash menu out of sentences
 - **26 languages** · the whole window & its mail in English (default), Spanish (Spain & Mexico), Brazilian Portuguese, French (France & Canada), German, Italian, Dutch, Danish, Finnish, Norwegian Bokmål, Swedish, Russian, Polish, Czech, Hungarian, Ukrainian, Turkish, Simplified & Traditional Chinese, Japanese, Korean, Indonesian, Thai & Vietnamese
