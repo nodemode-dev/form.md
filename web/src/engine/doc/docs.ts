@@ -292,19 +292,23 @@ export class DocStore {
     for (const s of this.sessions.values()) s.destroy();
     this.sessions.clear();
     this.sync.stop();
-    if (typeof caches !== "undefined") await Promise.all(["formmd-shell", "formmd-api", "formmd-files"].map((name) => caches.delete(name).catch(() => false)));
-    if (typeof indexedDB === "undefined" || !indexedDB.databases) return;
-    const dbs = await indexedDB.databases().catch(() => []);
-    await Promise.all(
-      dbs
-        .filter((d) => d.name?.startsWith(DB_PREFIX))
-        .map(
-          (d) =>
-            new Promise<void>((resolve) => {
-              const req = indexedDB.deleteDatabase(d.name as string);
-              req.onsuccess = req.onerror = req.onblocked = () => resolve();
-            }),
-        ),
-    );
+    await wipeLocalData();
   }
+}
+
+export async function wipeLocalData(): Promise<void> {
+  if (typeof caches !== "undefined") await Promise.all(["formmd-shell", "formmd-api", "formmd-files"].map((name) => caches.delete(name).catch(() => false)));
+  if (typeof indexedDB === "undefined" || !indexedDB.databases) return;
+  const dbs = await indexedDB.databases().catch(() => []);
+  await Promise.all(
+    dbs
+      .filter((d) => d.name?.startsWith(DB_PREFIX))
+      .map(
+        (d) =>
+          new Promise<void>((resolve) => {
+            const req = indexedDB.deleteDatabase(d.name as string);
+            req.onsuccess = req.onerror = req.onblocked = () => resolve();
+          }),
+      ),
+  );
 }

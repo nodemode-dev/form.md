@@ -4,7 +4,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 
 | Component | Version | License |
 | --- | --- | --- |
-| Go standard library | go1.26.0 | BSD-3-Clause |
+| Go standard library | go1.26.9 | BSD-3-Clause |
 | @antfu/install-pkg | 2.1.0 | MIT |
 | @braintree/sanitize-url | 7.1.2 | MIT |
 | @chevrotain/types | 11.1.2 | Apache-2.0 |
@@ -114,11 +114,11 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | github.com/russellhaering/gosaml2 | v0.12.0 | Apache-2.0 |
 | github.com/russellhaering/goxmldsig | v1.6.1 | Apache-2.0 |
 | github.com/yuin/goldmark | v1.8.6 | MIT |
-| golang.org/x/crypto | v0.57.0 | BSD-3-Clause |
+| golang.org/x/crypto | v0.58.0 | BSD-3-Clause |
 | golang.org/x/image | v0.46.0 | BSD-3-Clause |
-| golang.org/x/net | v0.59.0 | BSD-3-Clause |
-| golang.org/x/sys | v0.48.0 | BSD-3-Clause |
-| golang.org/x/text | v0.42.0 | BSD-3-Clause |
+| golang.org/x/net | v0.61.0 | BSD-3-Clause |
+| golang.org/x/sys | v0.49.0 | BSD-3-Clause |
+| golang.org/x/text | v0.43.0 | BSD-3-Clause |
 | hachure-fill | 0.5.2 | MIT |
 | highlight.js | 11.12.0 | BSD-3-Clause |
 | iconv-lite | 0.6.3 | MIT |
@@ -176,7 +176,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | y-protocols | 1.0.7 | MIT |
 | yjs | 13.6.33 | MIT |
 
-## Go standard library go1.26.0
+## Go standard library go1.26.9
 
 ```text
 Copyright 2009 The Go Authors.
@@ -4063,7 +4063,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## golang.org/x/crypto v0.57.0
+## golang.org/x/crypto v0.58.0
 
 ```text
 Copyright 2009 The Go Authors.
@@ -4127,7 +4127,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/net v0.59.0
+## golang.org/x/net v0.61.0
 
 ```text
 Copyright 2009 The Go Authors.
@@ -4159,7 +4159,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/sys v0.48.0
+## golang.org/x/sys v0.49.0
 
 ```text
 Copyright 2009 The Go Authors.
@@ -4191,7 +4191,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/text v0.42.0
+## golang.org/x/text v0.43.0
 
 ```text
 Copyright 2009 The Go Authors.

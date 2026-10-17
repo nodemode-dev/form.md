@@ -185,6 +185,7 @@ export function createEngine(deps: EngineDeps): Engine {
   };
   const pages = new PageStore(api, reportError);
   const collections = new CollectionStore(api, reportError);
+  state.watch("me", (me) => collections.setOwner(me?.user.id ?? ""), { immediate: true });
   const comments = new CommentStore(api, reportError);
   const inbox = new InboxStore(api, reportError, () => typeof document !== "undefined" && document.visibilityState === "visible", deps.boot.inbox_unread ?? 0);
   if (bootPage && deps.boot.comments) comments.seed(bootPage.id, deps.boot.comments);

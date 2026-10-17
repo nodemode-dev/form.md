@@ -25,6 +25,9 @@ import { toast } from "./ui/toast";
 import { mountTopbar } from "./ui/topbar";
 import { mountTrashView } from "./ui/trash-view";
 import { mountTree } from "./ui/tree";
+import { wipeLocalData } from "./engine/doc/docs";
+
+const LAST_USER_KEY = "formmd.lastUser";
 
 const AUTH_STATES: readonly AuthState[] = ["pending", "setup", "signed-out", "signup", "invite", "app", "form", "consent"];
 
@@ -89,6 +92,18 @@ async function start(): Promise<void> {
   if (auth === "pending") ({ auth, boot } = await devBoot(fetchFn));
 
   await setLang(resolveLang(boot.me?.user.prefs.lang ?? "", document.documentElement.lang || navigator.language));
+
+  const uid = boot.me?.user.id ?? "";
+  if (uid) {
+    let last: string | null = null;
+    try {
+      last = localStorage.getItem(LAST_USER_KEY);
+      localStorage.setItem(LAST_USER_KEY, uid);
+    } catch {
+      last = null;
+    }
+    if (last && last !== uid) await wipeLocalData();
+  }
 
   engine = createEngine({
     storage: storageAdapter(),

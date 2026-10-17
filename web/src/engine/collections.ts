@@ -665,10 +665,36 @@ export class CollectionStore {
     }
   }
 
+  private owner = "";
+
+  setOwner(userId: string): void {
+    if (userId === this.owner) return;
+    this.owner = userId;
+    this.box = null;
+    this.made = null;
+    this.dels = null;
+    if (!userId) return;
+    try {
+      for (const k of [OUTBOX_KEY, CREATE_KEY, DELETE_KEY]) {
+        const legacy = localStorage.getItem(k);
+        if (legacy === null) continue;
+        if (localStorage.getItem(this.key(k)) === null) localStorage.setItem(this.key(k), legacy);
+        localStorage.removeItem(k);
+      }
+    } catch {
+      return;
+    }
+  }
+
+  private key(base: string): string {
+    return `${base}:${this.owner}`;
+  }
+
   private outbox(): Record<string, OutboxEntry> {
     if (this.box) return { ...this.box };
+    if (!this.owner) return {};
     try {
-      const v = JSON.parse(localStorage.getItem(OUTBOX_KEY) ?? "{}");
+      const v = JSON.parse(localStorage.getItem(this.key(OUTBOX_KEY)) ?? "{}");
       this.box = v && typeof v === "object" ? (v as Record<string, OutboxEntry>) : {};
     } catch {
       this.box = {};
@@ -678,9 +704,10 @@ export class CollectionStore {
 
   private saveOutbox(box: Record<string, OutboxEntry>): void {
     this.box = { ...box };
+    if (!this.owner) return;
     try {
-      if (Object.keys(box).length) localStorage.setItem(OUTBOX_KEY, JSON.stringify(box));
-      else localStorage.removeItem(OUTBOX_KEY);
+      if (Object.keys(box).length) localStorage.setItem(this.key(OUTBOX_KEY), JSON.stringify(box));
+      else localStorage.removeItem(this.key(OUTBOX_KEY));
     } catch {
       return;
     }
@@ -809,7 +836,7 @@ export class CollectionStore {
   private creates(): Record<string, CreateEntry> {
     if (!this.made) {
       try {
-        const v = JSON.parse(localStorage.getItem(CREATE_KEY) ?? "{}");
+        const v = this.owner ? JSON.parse(localStorage.getItem(this.key(CREATE_KEY)) ?? "{}") : {};
         this.made = v && typeof v === "object" ? (v as Record<string, CreateEntry>) : {};
       } catch {
         this.made = {};
@@ -819,10 +846,11 @@ export class CollectionStore {
   }
 
   private saveCreates(): void {
+    if (!this.owner) return;
     try {
       const c = this.creates();
-      if (Object.keys(c).length) localStorage.setItem(CREATE_KEY, JSON.stringify(c));
-      else localStorage.removeItem(CREATE_KEY);
+      if (Object.keys(c).length) localStorage.setItem(this.key(CREATE_KEY), JSON.stringify(c));
+      else localStorage.removeItem(this.key(CREATE_KEY));
     } catch {
       return;
     }
@@ -861,7 +889,7 @@ export class CollectionStore {
   private deletes(): Record<string, string> {
     if (!this.dels) {
       try {
-        const v = JSON.parse(localStorage.getItem(DELETE_KEY) ?? "{}");
+        const v = this.owner ? JSON.parse(localStorage.getItem(this.key(DELETE_KEY)) ?? "{}") : {};
         this.dels = v && typeof v === "object" ? (v as Record<string, string>) : {};
       } catch {
         this.dels = {};
@@ -871,10 +899,11 @@ export class CollectionStore {
   }
 
   private saveDeletes(): void {
+    if (!this.owner) return;
     try {
       const d = this.deletes();
-      if (Object.keys(d).length) localStorage.setItem(DELETE_KEY, JSON.stringify(d));
-      else localStorage.removeItem(DELETE_KEY);
+      if (Object.keys(d).length) localStorage.setItem(this.key(DELETE_KEY), JSON.stringify(d));
+      else localStorage.removeItem(this.key(DELETE_KEY));
     } catch {
       return;
     }
