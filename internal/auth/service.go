@@ -40,6 +40,7 @@ type Service struct {
 	mu        sync.RWMutex
 	resolvers []Resolver
 	onRevoke  []func(ctx context.Context, userID string)
+	onCred    []func(credentialID string)
 	accounts  AccountHooks
 	mailer    Mailer
 	meExtras  func(ctx context.Context, p *policy.Principal) (map[string]any, error)
@@ -93,6 +94,26 @@ func (s *Service) OnRevoke(fn func(ctx context.Context, userID string)) {
 	s.mu.Unlock()
 }
 
+func (s *Service) OnCredentialRevoke(fn func(credentialID string)) {
+	s.mu.Lock()
+	s.onCred = append(s.onCred, fn)
+	s.mu.Unlock()
+}
+
+func (s *Service) CredentialRevoked(ids ...string) {
+	s.mu.RLock()
+	hooks := append([]func(string){}, s.onCred...)
+	s.mu.RUnlock()
+	for _, id := range ids {
+		if id == "" {
+			continue
+		}
+		for _, fn := range hooks {
+			fn(id)
+		}
+	}
+}
+
 func (s *Service) Settings() *settings.Service { return s.settings }
 func (s *Service) Gate() *policy.Gate          { return s.gate }
 func (s *Service) TrustProxy() bool            { return s.settings.Bool("net.trust_proxy") }
@@ -141,7 +162,10 @@ func (s *Service) clearCookie(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) EndSession(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(SessionCookie); err == nil && c.Value != "" {
-		_, _ = s.st.W.ExecContext(ctx, "DELETE FROM sessions WHERE token_hash = ?", secrets.Hash(c.Value))
+		var id string
+		if s.st.W.QueryRowContext(ctx, "DELETE FROM sessions WHERE token_hash = ? RETURNING id", secrets.Hash(c.Value)).Scan(&id) == nil {
+			s.CredentialRevoked(id)
+		}
 	}
 	s.clearCookie(w, r)
 }

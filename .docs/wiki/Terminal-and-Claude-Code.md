@@ -4,7 +4,7 @@ Since v0.14.0 form.md has a bottom panel with terminals, Claude Code and a Claud
 
 ## Who can use it
 
-The instance owner, signed in, on a form.md that listens on this computer (`127.0.0.1`, the default for `./form-md` and the desktop case). A terminal is a shell as the user the server runs as, so on a server it is off unless you set `FORMMD_TERMINAL=on`; `FORMMD_TERMINAL=off` turns it off even locally. Agent tokens never reach it. Windows servers report that the terminal needs macOS or Linux.
+The instance owner, signed in, on a form.md that listens on this computer (`127.0.0.1`, the default for `./form-md` and the desktop case). A terminal is a shell as the user the server runs as, so on a server it is off unless you set `FORMMD_TERMINAL=on`; `FORMMD_TERMINAL=off` turns it off even locally. Agent tokens never reach it. A terminal tab is attached through the browser session that opened it: signing that session out (here, from another device in **Account settings, Sessions**, or by an admin) detaches it at once, while the shell keeps running for your other sessions. Windows servers report that the terminal needs macOS or Linux.
 
 ## The panel
 

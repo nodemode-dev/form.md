@@ -207,6 +207,12 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	authSvc.OnRevoke(func(_ context.Context, userID string) {
 		hub.CloseUser(userID)
 		docs.CloseUser(userID)
+		harness.CloseUser(userID)
+	})
+	authSvc.OnCredentialRevoke(func(id string) {
+		hub.CloseCredential(id)
+		docs.CloseCredential(id)
+		harness.CloseCredential(id)
 	})
 	authSvc.SetAccountHooks(ws)
 	authSvc.SetMailer(mailer)

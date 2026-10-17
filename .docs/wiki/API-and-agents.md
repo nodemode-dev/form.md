@@ -34,7 +34,7 @@ Create one in **Account settings, API tokens**: give it a name, choose **Read an
 curl -fsS -H "Authorization: Bearer fmd_..." https://notes.example.com/api/me
 ```
 
-A token can only narrow what its owner can do. A read-only token gets an error on any request that changes something. Some routes (instance administration, token management) accept only a signed-in browser session.
+A token can only narrow what its owner can do. A read-only token gets an error on any request that changes something. Revoking one credential ends everything it holds open: deleting a token, signing out or removing a session, and revoking an OAuth grant or token close that credential's event stream, live editing sockets and terminal attachments straight away, and leave the person's other credentials connected. Some routes (instance administration, token management) accept only a signed-in browser session.
 
 ## OAuth 2.1
 

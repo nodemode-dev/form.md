@@ -23,10 +23,36 @@ type Service struct {
 	Chats   *Chats
 	addr    string
 	dataDir string
+
+	mu       sync.Mutex
+	attached map[*attachment]bool
+}
+
+type attachment struct {
+	user, cred string
+	cancel     context.CancelFunc
 }
 
 func New(a *auth.Service, hub Sender, addr, dataDir string) *Service {
-	return &Service{Auth: a, Bridge: NewBridge(hub), Terms: newTerminals(), Chats: newChats(), addr: addr, dataDir: dataDir}
+	return &Service{Auth: a, Bridge: NewBridge(hub), Terms: newTerminals(), Chats: newChats(), addr: addr, dataDir: dataDir, attached: map[*attachment]bool{}}
+}
+
+func (s *Service) detachWhere(match func(*attachment) bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for at := range s.attached {
+		if match(at) {
+			at.cancel()
+		}
+	}
+}
+
+func (s *Service) CloseUser(userID string) {
+	s.detachWhere(func(at *attachment) bool { return at.user == userID })
+}
+
+func (s *Service) CloseCredential(id string) {
+	s.detachWhere(func(at *attachment) bool { return at.cred == id })
 }
 
 func (s *Service) Module() app.Module { return module{s} }
@@ -169,7 +195,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		if err != nil {
 			return nil
 		}
-		s.attach(r.Context(), c, sess)
+		s.attach(r.Context(), c, sess, p)
 		return nil
 	}))
 
@@ -386,12 +412,21 @@ func (s *Service) DescribeFor(p *policy.Principal, id string) (any, bool) {
 	return s.Bridge.Describe(p.UserID, id)
 }
 
-func (s *Service) attach(ctx context.Context, c *websocket.Conn, sess *Session) {
+func (s *Service) attach(ctx context.Context, c *websocket.Conn, sess *Session, p *policy.Principal) {
 	defer c.CloseNow()
 	ch, backlog, alive := sess.Attach()
 	defer sess.Detach(ch)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	at := &attachment{user: p.UserID, cred: p.CredentialID, cancel: cancel}
+	s.mu.Lock()
+	s.attached[at] = true
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		delete(s.attached, at)
+		s.mu.Unlock()
+	}()
 	if len(backlog) > 0 {
 		if c.Write(ctx, websocket.MessageBinary, backlog) != nil {
 			return

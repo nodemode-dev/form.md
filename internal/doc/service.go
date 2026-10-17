@@ -226,6 +226,20 @@ func (s *Service) CloseUser(userID string) {
 	}
 }
 
+func (s *Service) CloseCredential(id string) {
+	s.mu.Lock()
+	var list []*conn
+	for c := range s.conns {
+		if c.p.CredentialID == id {
+			list = append(list, c)
+		}
+	}
+	s.mu.Unlock()
+	for _, c := range list {
+		c.close(closeRevoked, "signed out")
+	}
+}
+
 func (s *Service) Stop() {
 	s.mu.Lock()
 	s.stopped = true

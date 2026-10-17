@@ -126,6 +126,17 @@ func (h *Hub) CloseUser(userID string) {
 	}
 }
 
+func (h *Hub) CloseCredential(id string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for s := range h.subs {
+		if s.p.CredentialID == id && !s.closed {
+			s.closed = true
+			close(s.ch)
+		}
+	}
+}
+
 func (h *Hub) publish(e Event) {
 	h.mu.Lock()
 	h.seq++

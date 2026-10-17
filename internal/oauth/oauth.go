@@ -618,6 +618,7 @@ func (s *Service) revokeGrant(ctx context.Context, grant string) {
 	now := store.NowMS()
 	_, _ = s.st.W.ExecContext(ctx, "UPDATE oauth_grants SET revoked_at = ? WHERE id = ? AND revoked_at = 0", now, grant)
 	_, _ = s.st.W.ExecContext(ctx, "DELETE FROM oauth_tokens WHERE grant_id = ?", grant)
+	s.auth.CredentialRevoked(grant)
 }
 
 func (s *Service) token(w http.ResponseWriter, r *http.Request) {
@@ -719,6 +720,7 @@ func (s *Service) revoke(w http.ResponseWriter, r *http.Request) {
 			s.revokeGrant(r.Context(), grant)
 		} else {
 			_, _ = s.st.W.ExecContext(r.Context(), "DELETE FROM oauth_tokens WHERE token_hash = ?", hash)
+			s.auth.CredentialRevoked(grant)
 		}
 	}
 	w.WriteHeader(http.StatusOK)

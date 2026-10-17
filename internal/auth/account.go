@@ -223,6 +223,7 @@ func (s *Service) handleDeleteToken(w http.ResponseWriter, r *http.Request, p *p
 	if n, _ := res.RowsAffected(); n == 0 {
 		return httpx.ErrNotFound
 	}
+	s.CredentialRevoked(r.PathValue("id"))
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
@@ -261,21 +262,30 @@ func (s *Service) handleListSessions(w http.ResponseWriter, r *http.Request, p *
 
 func (s *Service) handleDeleteSession(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 	id := r.PathValue("id")
-	var err error
+	q, args := "DELETE FROM sessions WHERE user_id = ? AND id = ? RETURNING id", []any{p.UserID, id}
 	if id == "others" {
-		_, err = s.st.W.ExecContext(r.Context(), "DELETE FROM sessions WHERE user_id = ? AND id != ?", p.UserID, p.CredentialID)
-	} else {
-		var res sql.Result
-		res, err = s.st.W.ExecContext(r.Context(), "DELETE FROM sessions WHERE user_id = ? AND id = ?", p.UserID, id)
-		if err == nil {
-			if n, _ := res.RowsAffected(); n == 0 {
-				return httpx.ErrNotFound
-			}
-		}
+		q, args = "DELETE FROM sessions WHERE user_id = ? AND id != ? RETURNING id", []any{p.UserID, p.CredentialID}
 	}
+	rows, err := s.st.W.QueryContext(r.Context(), q, args...)
 	if err != nil {
 		return err
 	}
+	var gone []string
+	for rows.Next() {
+		var sid string
+		if rows.Scan(&sid) == nil {
+			gone = append(gone, sid)
+		}
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return err
+	}
+	if id != "others" && len(gone) == 0 {
+		return httpx.ErrNotFound
+	}
+	s.CredentialRevoked(gone...)
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
