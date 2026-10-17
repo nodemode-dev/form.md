@@ -7,7 +7,6 @@ import { iconNode } from "./icons";
 import { openLayer } from "./layers";
 import { type MenuEntry, openMenu } from "./menu";
 import { fallbackGlyph, fileUrl, pageIcon, paintIcon } from "./pageicon";
-import { openCoverPicker, openIconPicker } from "./pickers";
 import { tagColorFor, focusTitleSoon } from "./tree";
 import { mountEditor } from "../extensions/blocks";
 import { mountDiscussion } from "./discussion";
@@ -458,23 +457,27 @@ export function mountPageView(engine: Engine): void {
   const chooseIcon = (anchor: HTMLElement) => {
     const p = current();
     if (!p || !writable(p)) return;
-    openIconPicker(engine, anchor, {
-      current: p.icon,
-      upload: { purpose: "icon", page_id: p.id },
-      allowRemove: !!p.icon,
-      onPick: (ref) => pages.edit(p.id, { icon: ref }, false),
-      onRemove: () => pages.edit(p.id, { icon: "" }, false),
-    });
+    void import("./pickers").then(({ openIconPicker }) =>
+      openIconPicker(engine, anchor, {
+        current: p.icon,
+        upload: { purpose: "icon", page_id: p.id },
+        allowRemove: !!p.icon,
+        onPick: (ref) => pages.edit(p.id, { icon: ref }, false),
+        onRemove: () => pages.edit(p.id, { icon: "" }, false),
+      }),
+    );
   };
   const chooseCover = (anchor: HTMLElement) => {
     const p = current();
     if (!p || !writable(p)) return;
-    openCoverPicker(engine, anchor, {
-      current: p.cover,
-      pageId: p.id,
-      onPick: (ref) => pages.edit(p.id, { cover: ref }, false),
-      onRemove: () => pages.edit(p.id, { cover: "" }, false),
-    });
+    void import("./pickers").then(({ openCoverPicker }) =>
+      openCoverPicker(engine, anchor, {
+        current: p.cover,
+        pageId: p.id,
+        onPick: (ref) => pages.edit(p.id, { cover: ref }, false),
+        onRemove: () => pages.edit(p.id, { cover: "" }, false),
+      }),
+    );
   };
 
   view.addEventListener("click", (e) => {

@@ -138,6 +138,7 @@ async function start(): Promise<void> {
       });
       setTimeout(() => (window.requestIdleCallback ?? ((f: () => void) => f()))(() => void loadLibrary()), 3000);
     }
+    setTimeout(() => (window.requestIdleCallback ?? ((f: () => void) => f()))(() => void import("./ui/pickers")), 3000);
     mountTrashView(engine);
     mountHome(engine);
     const app = engine;

@@ -587,6 +587,13 @@ Source strings are English and double as keys; catalogs live in `src/i18n/<lang>
 
 The library view is mounted from its own chunk: at once when the app starts on `/library`, on the first navigation there, or in idle time three seconds after start. `mountLibraryView` already draws the current route when mounted late. Throttled probe p26 found the library pane never shown empty on a cold `/library` load, a click right after start, or a click after idle; the pane only becomes visible with its content.
 
+### src/ui/page-view.ts, src/extensions/blocks/nodeviews.ts, src/extensions/blocks/board.ts · pickers on demand
+- refers-to: src/ui/pickers.ts :: `openIconPicker`, `openCoverPicker`, `pickFile`; src/main.ts (idle prefetch)
+- kind: rationale
+- logged: v0.35.0 · 2026-10-17
+
+The page icon and cover pickers, the callout icon picker and the board's picture button import `pickers.ts` when clicked, so it left the up-front script (about 1.6 KB gzip). `main.ts` prefetches it in idle time three seconds after start, so the first click rarely waits; the board's file chooser opens after that import, which matters because a file input needs a recent user activation. Other importers (account, workspace settings, CSV import, the file property editor) were already in on-demand chunks and keep their static imports.
+
 ### src/engine/format.ts · canonical
 - refers-to: src/engine/format.ts :: `canonical`, `locale`
 - kind: warning-context

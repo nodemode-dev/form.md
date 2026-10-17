@@ -10,7 +10,6 @@ import { iconNode } from "../../ui/icons";
 import { reconcile } from "../../ui/list";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { fallbackGlyph, paintIcon } from "../../ui/pageicon";
-import { openIconPicker } from "../../ui/pickers";
 import { marksSvg, paintMarks, parseMarks, startAnnotating } from "./annotate";
 import type { EditorCtx, Refreshable } from "./context";
 import { LANGUAGES, languageLabel } from "./languages";
@@ -299,16 +298,18 @@ class CalloutView implements NodeView {
 
   private pick(): void {
     if (!this.view.editable) return;
-    openIconPicker(this.ctx.engine, this.icon, {
-      current: String(this.node.attrs.icon ?? ""),
-      upload: { purpose: "icon", page_id: this.ctx.pageId() },
-      allowRemove: !!this.node.attrs.icon,
-      onPick: (ref) => {
-        const tint = ref.startsWith("i:") ? (ref.split(":")[2] ?? "") : "";
-        this.set({ icon: ref, tone: tint || this.node.attrs.tone });
-      },
-      onRemove: () => this.set({ icon: "" }),
-    });
+    void import("../../ui/pickers").then(({ openIconPicker }) =>
+      openIconPicker(this.ctx.engine, this.icon, {
+        current: String(this.node.attrs.icon ?? ""),
+        upload: { purpose: "icon", page_id: this.ctx.pageId() },
+        allowRemove: !!this.node.attrs.icon,
+        onPick: (ref) => {
+          const tint = ref.startsWith("i:") ? (ref.split(":")[2] ?? "") : "";
+          this.set({ icon: ref, tone: tint || this.node.attrs.tone });
+        },
+        onRemove: () => this.set({ icon: "" }),
+      }),
+    );
   }
 
   private set(attrs: Record<string, unknown>): void {

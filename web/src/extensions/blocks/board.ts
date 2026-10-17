@@ -4,7 +4,6 @@ import { newBlockId, schema } from "../../engine/doc/schema";
 import { t } from "../../engine/i18n";
 import { h, setAttr, setText } from "../../ui/dom";
 import { iconNode } from "../../ui/icons";
-import { pickFile } from "../../ui/pickers";
 import type { EditorCtx } from "./context";
 import { registerNodeView } from "./nodeviews";
 import { openPrompt } from "./popover";
@@ -313,6 +312,7 @@ class BoardView implements NodeView {
   }
 
   private async pickPicture(): Promise<void> {
+    const { pickFile } = await import("../../ui/pickers");
     const file = await pickFile("image/png,image/jpeg,image/gif,image/webp");
     if (file) await this.uploadPicture(file);
   }
