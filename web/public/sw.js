@@ -3,7 +3,35 @@ const SHELL = "formmd-shell";
 const SHELL_URL = "/offline-shell";
 const API = "formmd-api";
 const API_READS = /^\/api\/(collections\/[^/]+|rows\/[^/]+|pages\/[^/]+)$/;
+const QUERY_READS = /^\/api\/collections\/[^/]+\/(query|chart)$/;
 const FILES = "formmd-files";
+
+async function queryKey(request) {
+  const body = await request.clone().text();
+  let q;
+  try {
+    q = JSON.parse(body || "{}");
+  } catch {
+    return null;
+  }
+  if (q.search || q.offset > 0 || (Array.isArray(q.ids) && q.ids.length)) return null;
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body)));
+  const hex = [...digest].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return new Request(`${new URL(request.url).pathname}?q=${hex}`);
+}
+
+async function queryRead(request) {
+  const key = await queryKey(request);
+  try {
+    const res = await fetch(request);
+    if (res.ok && key) await (await caches.open(API)).put(key, res.clone());
+    return res;
+  } catch (err) {
+    const hit = key ? await (await caches.open(API)).match(key, { ignoreVary: true }) : undefined;
+    if (hit) return hit;
+    throw err;
+  }
+}
 const FILE_READS = /^\/files\/[a-z0-9]+$/;
 
 async function fileRead(request) {
@@ -96,9 +124,10 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (request.method === "POST" && QUERY_READS.test(url.pathname)) return event.respondWith(queryRead(request));
+  if (request.method !== "GET") return;
   if (url.pathname.startsWith("/assets/")) event.respondWith(fromCache(request));
   else if (request.mode === "navigate" && APP_ROUTES.test(url.pathname)) event.respondWith(navigate(request));
   else if (API_READS.test(url.pathname)) event.respondWith(apiRead(request));

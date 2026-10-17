@@ -1530,6 +1530,13 @@ Edit rights come from the server's `opened` frame, which never arrives offline, 
 
 Whole `200` responses for `/files/<id>` are kept network-first, so pictures on kept pages show offline; range responses are not stored. A `401 unauthorized` while in the app deletes the shell, API and file caches before the redirect to sign-in, so an expired session leaves no account data in the worker's caches.
 
+### public/sw.js · view queries kept for offline
+- refers-to: public/sw.js :: `QUERY_READS`, `queryKey`, `queryRead`, the fetch handler's POST branch
+- kind: rationale
+- logged: v0.32.0 · 2026-10-17
+
+Board, gallery, calendar, timeline, map and chart views read through `POST .../query` and `.../chart`, each with its own body (group limits, a month range, aggregates), so a server-side first window like the table's would have had to copy every view's query and drift from it. The worker instead keeps the answer to the view's own request: Cache API entries must be GET requests, so the key is a synthetic GET of the same path with `?q=` and the hex SHA-256 of the body. Searches, later windows (`offset` above 0) and `ids` lookups are not kept, which bounds the entries to roughly one per view and calendar month visited. Answers are network-first and served only when `fetch` throws, and they live in the same `formmd-api` cache that a `401` on session end deletes. The keeper does not open these views itself, so only views opened online in this browser work offline.
+
 ### src/ui/session.ts · the offline shell's workspace
 - refers-to: src/ui/session.ts :: `mountSession` (`rememberWorkspace(startWs)`)
 - kind: bug-context
