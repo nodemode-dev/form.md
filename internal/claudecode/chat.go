@@ -90,7 +90,7 @@ func (c *chat) snapshot() ChatState {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	out := c.state
-	out.Messages = append([]Message(nil), c.state.Messages...)
+	out.Messages = append([]Message{}, c.state.Messages...)
 	return out
 }
 
