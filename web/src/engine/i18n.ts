@@ -1,7 +1,7 @@
+import { loaders } from "virtual:i18n";
+
 type Catalog = Record<string, string>;
 type Params = Record<string, string | number>;
-
-const loaders = import.meta.glob<Catalog>("../i18n/*/*.json", { import: "default" });
 
 let lang = "en";
 let catalog: Catalog = {};
@@ -48,9 +48,9 @@ export function resolveLang(pref: string, fallback: string): string {
 
 export async function setLang(next: string): Promise<void> {
   if (next === lang && (next === "en" || Object.keys(catalog).length > 0)) return;
-  const parts = Object.keys(loaders).filter((path) => path.startsWith(`../i18n/${next}/`));
-  const found = next !== "en" && parts.length > 0;
-  catalog = found ? Object.assign({}, ...(await Promise.all(parts.map((path) => loaders[path]!())))) : {};
+  const load = next === "en" ? undefined : loaders[next];
+  const found = load !== undefined;
+  catalog = load ? { ...(await load()).default } : {};
   lang = found ? next : "en";
   rules = new Intl.PluralRules(lang);
   for (const fn of listeners) fn();
