@@ -2025,3 +2025,24 @@ A sibling's answers reach agents inside `context_pack` and `family_route`, so th
 - logged: v0.39.1 · 2026-10-17
 
 Streams opened with an OAuth access token are keyed by grant, not by token, so closing on each token's expiry would cut a client that already refreshed and opened its streams with the new token. `ExpireAccess` runs on the one-minute sweep, deletes expired access tokens with `RETURNING grant_id`, and revokes a grant's connections only when that grant has no unexpired access token left. A stream opened with an old token therefore lives on while the client holds a fresh one for the same grant; that is the same principal with the same scope and workspaces, so nothing is reachable that the live token could not reach. Refresh tokens are left to `Purge`, since deleting them does not end a connection.
+
+### internal/family/family.go · one lookup per sibling at a time
+- refers-to: internal/family/family.go (Service.flight, probe)
+- kind: rationale
+- logged: v0.39.2 · 2026-10-17
+
+Every `context_pack` with picture words and every `GET /api/family` probes both siblings when the 30-second cache is cold, and an agent fanning out calls could start one lookup per call against a sibling that answers slowly. `flight` holds a channel per sibling while a lookup runs; later callers wait on it (or on their own context) and then read the cache. golang.org/x/sync's singleflight would do the same but is not a dependency, and the loop is short. A lookup whose caller's context ended is not cached, since its "not running" would be wrong for the next 30 seconds.
+
+### internal/auth/apptoken.go · the in-app agent token
+- refers-to: internal/auth/apptoken.go (AppToken), internal/claudecode/module.go (claudeArgv, the chat route)
+- kind: rationale
+- logged: v0.39.2 · 2026-10-17
+
+The token was cached in a `sync.Map` for the life of the process with no check, so revoking it in Account settings cut the in-app agent off until a restart, and two Claude tabs opened at once could each mint a token, leaving the cache holding the one the database had already deleted. A mutex now serialises minting, and a cache hit is checked against `api_tokens` by hash; a missing row mints a new token under the same name. The map holds one string per owner who used the agent, so it needs no pruning.
+
+### internal/collection/formula/funcs.go · bounded pattern cache
+- refers-to: internal/collection/formula/funcs.go (reCache, reCount, compileRe)
+- kind: rationale
+- logged: v0.39.2 · 2026-10-17
+
+`test`, `match`, `replace` and `replaceall` patterns can be built from row values, so the compiled-pattern cache had no bound. It is cleared once it passes 512 entries; a clear costs at most a recompile of the patterns in use, which is cheap next to an unbounded map in a long-running server.

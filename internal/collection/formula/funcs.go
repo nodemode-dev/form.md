@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 )
@@ -116,7 +117,12 @@ func date(v Value) (Value, error) {
 	return Empty, fmt.Errorf("needs a date, not a %s", v.K)
 }
 
-var reCache sync.Map
+var (
+	reCache sync.Map
+	reCount atomic.Int64
+)
+
+const reCacheMax = 512
 
 func compileRe(pattern string) (*regexp.Regexp, error) {
 	if re, ok := reCache.Load(pattern); ok {
@@ -128,6 +134,10 @@ func compileRe(pattern string) (*regexp.Regexp, error) {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, fmt.Errorf("the pattern is not valid: %v", err)
+	}
+	if reCount.Add(1) > reCacheMax {
+		reCache.Clear()
+		reCount.Store(1)
 	}
 	reCache.Store(pattern, re)
 	return re, nil
