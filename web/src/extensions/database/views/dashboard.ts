@@ -69,8 +69,10 @@ export function dashboardView(host: ViewHost): ViewRenderer {
   const add = h("button", { class: "dash__add", attrs: { type: "button" } }, iconNode("plus"), h("span", { text: t("Add a chart") }));
   const addKpi = h("button", { class: "dash__add", attrs: { type: "button" } }, iconNode("hash"), h("span", { text: t("Add a KPI") }));
   const adds = h("div", { class: "dash__adds" }, add, addKpi);
-  const el = h("div", { class: "dash", attrs: { "data-inline": host.inline ? "true" : "false" } }, grid, adds);
+  const announce = h("p", { class: "visually-hidden", attrs: { "aria-live": "polite" } });
+  const el = h("div", { class: "dash", attrs: { "data-inline": host.inline ? "true" : "false" } }, grid, adds, announce);
   const cards = new Map<string, Card>();
+  let refocus = "";
 
   const widgets = (): Widget[] => {
     const w = host.view().config.layout?.widgets as Widget[] | undefined;
@@ -128,7 +130,7 @@ export function dashboardView(host: ViewHost): ViewRenderer {
     svg.setAttribute("role", "img");
     const title = h("div", { class: "dash__title" });
     const menu = h("button", { class: "icon-btn icon-btn--sm dash__menu", attrs: { type: "button", "aria-label": t("Chart options") } }, iconNode("more"));
-    const grip = h("button", { class: "icon-btn icon-btn--sm dash__grip", attrs: { type: "button", "aria-label": t("Drag to move") } }, iconNode("grip"));
+    const grip = h("button", { class: "icon-btn icon-btn--sm dash__grip", attrs: { type: "button", "aria-label": t("Drag to move"), "aria-keyshortcuts": "ArrowLeft ArrowRight" } }, iconNode("grip"));
     const body = h("div", { class: "dash__body" });
     body.append(svg);
     const card = h("section", { class: "dash__card", attrs: { "data-widget": w.id } }, h("header", { class: "dash__head" }, grip, title, menu), body);
@@ -137,6 +139,7 @@ export function dashboardView(host: ViewHost): ViewRenderer {
     ro.observe(body);
     menu.addEventListener("click", () => cardMenu(menu, w.id));
     grip.addEventListener("pointerdown", (e) => startMove(e, w.id, card));
+    grip.addEventListener("keydown", (e) => keyMove(e, w.id));
     chartClicks(svg, { engine, colId: host.colId, viewId: () => host.viewId, spec: () => cards.get(w.id)?.w?.chart ?? w.chart, search: host.search, openRow: host.openRow });
     return card;
   };
@@ -182,6 +185,18 @@ export function dashboardView(host: ViewHost): ViewRenderer {
     rest.splice(m.after ? at + 1 : at, 0, item);
     save(rest);
   };
+  const keyMove = (e: KeyboardEvent, id: string) => {
+    const d = e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : 0;
+    if (!d || !host.canDesign()) return;
+    e.preventDefault();
+    const list = widgets();
+    const i = list.findIndex((x) => x.id === id);
+    const j = i + d;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    refocus = id;
+    save(swap(list, i, j));
+    setText(announce, t("Moved to position {n} of {total}", { n: j + 1, total: list.length }));
+  };
   el.addEventListener("pointerup", endMove);
   el.addEventListener("pointercancel", endMove);
 
@@ -212,6 +227,11 @@ export function dashboardView(host: ViewHost): ViewRenderer {
       } else draw(c);
     });
     adds.hidden = !host.canDesign();
+    if (refocus) {
+      const g = cards.get(refocus)?.el.querySelector<HTMLElement>(".dash__grip");
+      refocus = "";
+      if (g && document.activeElement !== g) g.focus();
+    }
   };
 
   const edit = (anchor: HTMLElement, id: string) => {
