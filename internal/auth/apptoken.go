@@ -12,11 +12,24 @@ import (
 
 const AppTokenName = "Claude Code in form.md"
 
-var appTokens sync.Map
+var (
+	appMu     sync.Mutex
+	appTokens = map[string]string{}
+)
 
 func (s *Service) AppToken(ctx context.Context, userID string) (string, error) {
-	if v, ok := appTokens.Load(userID); ok {
-		return v.(string), nil
+	appMu.Lock()
+	defer appMu.Unlock()
+	if v, ok := appTokens[userID]; ok {
+		var n int
+		err := s.st.R.QueryRowContext(ctx, "SELECT COUNT(*) FROM api_tokens WHERE token_hash = ? AND user_id = ?", secrets.Hash(v), userID).Scan(&n)
+		if err != nil {
+			return "", err
+		}
+		if n == 1 {
+			return v, nil
+		}
+		delete(appTokens, userID)
 	}
 	plain := secrets.Token(TokenPrefix, 32)
 	err := s.st.Tx(ctx, func(tx *sql.Tx) error {
@@ -32,6 +45,6 @@ func (s *Service) AppToken(ctx context.Context, userID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	appTokens.Store(userID, plain)
+	appTokens[userID] = plain
 	return plain, nil
 }

@@ -18,7 +18,7 @@ Terminal tabs keep running when the panel is hidden or the page reloads; reopeni
 
 ## Claude Code
 
-Claude Code must be installed and signed in once (`claude` in any terminal). form.md finds it on the PATH, in the usual install folders, through your login shell, or at `FORMMD_CLAUDE_BIN`. Each tab starts in the data directory's `agent/` folder with this form.md's MCP endpoint attached through a token named "Claude Code in form.md" in your account's API tokens; revoking it there cuts the in-app agent off until the next server start.
+Claude Code must be installed and signed in once (`claude` in any terminal). form.md finds it on the PATH, in the usual install folders, through your login shell, or at `FORMMD_CLAUDE_BIN`. Each tab starts in the data directory's `agent/` folder with this form.md's MCP endpoint attached through a token named "Claude Code in form.md" in your account's API tokens; revoking it there cuts off the tabs already running, and the next Claude Code tab or chat turn gets a new token of the same name.
 
 The chat runs the same Claude Code non-interactively and shows its answer, every form.md tool it calls and the memory it uses. **Open in Claude Code** continues the conversation in a terminal tab; **From Claude Code** brings a tab's conversation into the chat.
 
