@@ -55,6 +55,7 @@ type Hub struct {
 	seq  int64
 	ring []Event
 	subs map[*subscriber]struct{}
+	live func(context.Context, *policy.Principal) bool
 }
 
 func New(st *store.Store, log *slog.Logger, version string) *Hub {
@@ -332,6 +333,7 @@ func (h *Hub) CloseAll() {
 }
 
 func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
+	m.h.live = m.auth.CredentialLive
 	r.HandleFunc("GET /api/events", m.auth.Require(m.h.Handler))
 	return nil
 }
@@ -359,6 +361,9 @@ func (h *Hub) Handler(w http.ResponseWriter, r *http.Request, p *policy.Principa
 
 	s, replay, reset := h.subscribe(p, after, hasAfter)
 	defer h.unsubscribe(s)
+	if h.live != nil && !h.live(r.Context(), p) {
+		return nil
+	}
 
 	if err := write(w, rc, 0, map[string]any{"type": "hello", "version": h.version, "seq": h.current(), "reset": reset}); err != nil {
 		return nil

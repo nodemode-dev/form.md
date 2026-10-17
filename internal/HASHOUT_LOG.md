@@ -2046,3 +2046,10 @@ The token was cached in a `sync.Map` for the life of the process with no check, 
 - logged: v0.39.2 · 2026-10-17
 
 `test`, `match`, `replace` and `replaceall` patterns can be built from row values, so the compiled-pattern cache had no bound. It is cleared once it passes 512 entries; a clear costs at most a recompile of the patterns in use, which is cheap next to an unbounded map in a long-running server.
+
+### internal/auth/service.go · the credential is checked again once a connection is registered
+- refers-to: internal/auth/service.go (CredentialLive), internal/events/events.go (Hub.live, Handler, Mount), internal/doc/conn.go (after register), internal/claudecode/module.go (attach)
+- kind: rationale
+- logged: v0.39.3 · 2026-10-17
+
+The middleware checks the credential when the request arrives, but a long-lived connection is only registered for revoke hooks a moment later, after the WebSocket handshake or the stream header. A sign-out, token delete, grant revoke or account disable landing in that gap fired its hooks before the connection was in any list, so the connection stayed open. Each of the three owners now asks `CredentialLive` after registering: the session row (unexpired), the API token row, or the grant (unrevoked, with an unexpired access token), plus the user not disabled. Any revoke after registration reaches the hooks; any before it fails this check. It costs two indexed reads per new connection. The event hub gets the check from its module's `Mount` because the hub itself has no auth service.

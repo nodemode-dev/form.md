@@ -108,6 +108,12 @@ func (s *Service) serveSync(w http.ResponseWriter, r *http.Request, p *policy.Pr
 		cancel()
 		return nil
 	}
+	if !s.auth.CredentialLive(ctx, p) {
+		s.unregister(c)
+		_ = ws.Close(closeRevoked, "signed out")
+		cancel()
+		return nil
+	}
 	go c.writer()
 	c.reader()
 	c.close(websocket.StatusNormalClosure, "")

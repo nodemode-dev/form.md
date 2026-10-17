@@ -100,6 +100,28 @@ func (s *Service) OnCredentialRevoke(fn func(credentialID string)) {
 	s.mu.Unlock()
 }
 
+func (s *Service) CredentialLive(ctx context.Context, p *policy.Principal) bool {
+	now := store.NowMS()
+	var q string
+	args := []any{p.CredentialID, p.UserID}
+	switch p.Kind {
+	case policy.KindSession:
+		q, args = "SELECT COUNT(*) FROM sessions WHERE id = ? AND user_id = ? AND expires_at > ?", append(args, now)
+	case policy.KindToken:
+		q = "SELECT COUNT(*) FROM api_tokens WHERE id = ? AND user_id = ?"
+	case policy.KindOAuth:
+		q, args = `SELECT COUNT(*) FROM oauth_grants g WHERE g.id = ? AND g.user_id = ? AND g.revoked_at = 0
+			AND EXISTS (SELECT 1 FROM oauth_tokens t WHERE t.grant_id = g.id AND t.kind = 'access' AND t.expires_at > ?)`, append(args, now)
+	default:
+		return false
+	}
+	var n, disabled int
+	if s.st.R.QueryRowContext(ctx, q, args...).Scan(&n) != nil || n != 1 {
+		return false
+	}
+	return s.st.R.QueryRowContext(ctx, "SELECT disabled FROM users WHERE id = ?", p.UserID).Scan(&disabled) == nil && disabled == 0
+}
+
 func (s *Service) CredentialRevoked(ids ...string) {
 	s.mu.RLock()
 	hooks := append([]func(string){}, s.onCred...)

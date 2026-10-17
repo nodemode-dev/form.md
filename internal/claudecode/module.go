@@ -427,6 +427,9 @@ func (s *Service) attach(ctx context.Context, c *websocket.Conn, sess *Session, 
 		delete(s.attached, at)
 		s.mu.Unlock()
 	}()
+	if !s.Auth.CredentialLive(ctx, p) {
+		return
+	}
 	if len(backlog) > 0 {
 		if c.Write(ctx, websocket.MessageBinary, backlog) != nil {
 			return
