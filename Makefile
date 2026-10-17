@@ -10,6 +10,7 @@ build: web notices server
 web:
 	test -d web/node_modules || ./web/oc_install
 	cd web && npm run build
+	go run ./tools/bundlecheck
 
 notices:
 	go run ./tools/notices

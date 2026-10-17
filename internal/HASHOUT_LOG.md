@@ -1983,6 +1983,13 @@ The first page of a table or list view stays at 100 rows for the window, which l
 
 formlit and formvis publish no descriptor and know nothing of form.md, so form.md reads what each already serves: formlit's `/api/health` and formvis's `/version` for the version, both apps' `/api/mcp/status` for the MCP endpoint, then `tools/list` on it. The `MCP-Protocol-Version: 2025-11-25` header is required by formlit for anything but initialize; the two identity headers are the ones each sibling logs callers by. Lookups are loopback-only (configured bases and reported endpoints alike), carry no credentials, wait 2 s, follow no redirects and are cached 30 s, so an agent asking repeatedly does not hammer a sibling and the route can never become an SSRF hop. form.md does not relay sibling tool calls: each sibling asks for consent in its own window, and a relay would hide which agent is calling. Routing is a plain keyword score (product vocabulary x3, plus one per word matched in each live tool's name and description) with a stopword list so words like "the" or "add" do not match every tool description. A configured entry that is not loopback falls back to the default base rather than failing, so a typo never points lookups off the machine.
 
+### tools/bundlecheck · the up-front budget
+- refers-to: tools/bundlecheck/main.go; Makefile (`web`)
+- kind: rationale
+- logged: v0.35.0 · 2026-10-17
+
+The budget was a number in the build notes (250 KB at v0.9.0) that nobody measured, and the up-front script grew to 261.7 KB by v0.33.0 unnoticed. The check sums every `/assets/*.js` that `dist/index.html` loads or modulepreloads, gzipped with Go's default level, and fails `make build` (and so CI) above 260 KB. Go's gzip comes out about 1 KB larger than the `gzip` command on the same files, so this tool's number is the reference. 260 KB was chosen at v0.35.0 with the build at 255.1 KB, after the catalogs, the library view and the picker dialogs left the entry; what remains is the editor (ProseMirror, Yjs, the block node views) that the first page needs. `build_app` does not run it: a size check is a development gate, not an install step.
+
 ### internal/contextpack/pack.go · the Form family note
 - refers-to: internal/contextpack/pack.go (FamilyHint, Pack, Render), internal/family/family.go (Suggest, Tuning), policy.json `family`
 - kind: rationale

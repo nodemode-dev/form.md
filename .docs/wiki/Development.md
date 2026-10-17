@@ -27,7 +27,7 @@ How the repository is laid out, how to run both halves while changing them, and 
 | `web/src/ui/` | The DOM layer: sidebar, top bar, page view, dialogs, settings, offline, tokens |
 | `web/src/styles/`, `web/src/site/`, `web/src/sandbox/` | Component styles; published-site script; the sandboxed Mermaid renderer |
 | `web/public/` | Served as is: `sw.js` (service worker), `maps/` |
-| `tools/` | `boot_backend`, `oc_install` (Go side), `notices/` (generates `NOTICES.md`) |
+| `tools/` | `boot_backend`, `oc_install` (Go side), `notices/` (generates `NOTICES.md`), `bundlecheck/` (fails `make build` when the JavaScript the first page loads, the entry plus its modulepreloads gzipped, passes 260 KB; `-budget` changes the limit) |
 | `deploy/`, `install.sh`, `Dockerfile` | Systemd unit, installer, container image |
 | `.github/workflows/` | `ci.yml` (every push to `main` and every pull request), `release.yml` (tags) |
 
