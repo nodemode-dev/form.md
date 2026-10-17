@@ -1599,6 +1599,13 @@ Loaded on first use as its own chunk with xterm.js 6 and its fit addon (both MIT
 
 xterm 6's DOM renderer and viewport write cell sizes, theme colours and scrollbar colours into `<style>` elements, which the app's `style-src 'self'` refuses, so terminals drew with the wrong cells since v0.14.0. Rather than loosening the policy or adding the WebGL renderer (which still injects the scrollbar style), each terminal adopts one constructable stylesheet: style elements xterm adds under its pane are detached, watched, and their text copied into the sheet, a CSSOM path the policy does not cover. Their first contents are set synchronously inside `term.open()`, before any observer runs, so each opening still logs about ten refused-style console messages; every later update is silent and nothing is lost. The font list is resolved from `--font-mono` because xterm measures cells on a canvas, where `var()` is not a font, and it measured 10px sans (11px rows, 1.66px letter spacing) instead; the font load runs in parallel with the first `/api/claude` request so the first measure sees the real font. `show()` opens the panel only once a terminal exists, so the first Mod+J no longer shows an empty panel for a round trip. Restart swaps the pane in place and keeps the tab element, where it used to remove the tab and append a new one at the end.
 
+### src/ui/agent-dock.ts · terminal colours follow `data-theme`
+- refers-to: src/ui/agent-dock.ts :: `mountAgentDock` (the theme observer), `TermView.restyle`, `themeOf`; src/ui/theme.ts
+- kind: rationale
+- logged: v0.31.1 · 2026-10-17
+
+Terminals re-read their colours when the root's `data-theme` attribute changes, not when `themePref` changes. With "Match the system theme" a system switch changes the resolved theme without touching the preference, so watching the preference left a dark terminal on a light page. The observer callback runs as a microtask before the next paint, so the terminal changes in the same frame as the page; `src/extensions/database/views/graph.ts` watches the same attribute for the same reason.
+
 ### src/engine/commands.ts · the catalogue
 - refers-to: src/engine/commands.ts :: `Command`, `invoke`, `catalogue`; src/engine/index.ts :: `dispatch` (command.run)
 - kind: explainer

@@ -174,9 +174,9 @@ export function mountAgentDock(engine: Engine): AgentDock {
 
   const ro = new ResizeObserver(() => views.get(active)?.resize());
   ro.observe(body);
-  engine.state.watch("themePref", () => {
+  new MutationObserver(() => {
     for (const v of views.values()) v.restyle();
-  });
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
   function select(id: string): void {
     active = id;
