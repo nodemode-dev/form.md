@@ -1946,6 +1946,13 @@ Offline clients make the row id so later edits and deletes can refer to it befor
 
 The next cost in bulk updates is permission checking (about 37 percent of a profile): every row update walks the page's ancestor chain several times. A memo of chain results within one request would cut it without caching permissions across requests.
 
+### internal/mcp/tools_write.go · bulk row tools
+- refers-to: internal/mcp/tools_write.go :: `updateRows`, `addRows`, `addsOptions`
+- kind: rationale
+- logged: v0.27.0 · 2026-10-17
+
+`update_rows` reads every row it was given with one `Query` by ids before the loop, both to check that each row belongs to the database and to capture the old values for the run's undo; write access is still checked per row by `UpdateRow`. Both bulk tools re-read the database description only when a row touched an option-bearing property, because the next row's option names must resolve to options the previous row may have just added. Together with the template lookup fix, 3000 updates of a 5000-row database went from 53.8 s (v0.24.0) to 8.6 s.
+
 ### internal/pagestyle · saved styles
 - refers-to: internal/pagestyle/pagestyle.go :: `Preset`, `CleanPresets`, `ParsePresets`; internal/workspace/workspace.go (StylePresets); migrations/0028_style_presets.sql
 - kind: explainer

@@ -81,7 +81,8 @@ Measured on v0.19.0 with a 10,000-row database of a title, a status, a number, a
 | Row elements in the page while showing the table | 27 to 42 at any scroll position, out of 10,000 |
 | Jumping to the middle and to the end of the table | painted in 25 and 34 ms; the last row appears once its window loads |
 | Longest main-thread task seen with the CPU slowed 4x | 281 ms, during the first load |
-| Adding rows through MCP `add_rows` | about 1.2 s per call of 100 rows |
+| Adding rows through MCP `add_rows` | about 1.2 s per call of 100 rows at v0.19.0; 5000 rows in 18.6 s at v0.27.0 |
+| Changing rows through MCP `update_rows` on a 5000-row database | 3000 rows in 53.8 s at v0.24.0, 19.1 s at v0.25.0, 8.6 s at v0.27.0 (the later figures measured with a second server running beside it) |
 
 The table renders only the rows near the viewport and asks the server for each window as it scrolls, so the cost of a view does not grow with the row count; the server keeps each database's rows in memory after the first read, which is why sorting and searching stay in milliseconds.
 
