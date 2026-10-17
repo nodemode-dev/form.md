@@ -17,7 +17,6 @@ import { mountCommentsPane } from "./ui/comments-pane";
 import { mountInboxView } from "./ui/inbox-view";
 import { listenForPushClicks } from "./ui/push";
 import { errorMessage } from "./ui/errors";
-import { mountLibraryView } from "./ui/library-view";
 import { prefetchPageDialogs } from "./ui/page-actions";
 import { mountPageView } from "./ui/page-view";
 import { mountHome, mountRoutes } from "./ui/routes";
@@ -130,7 +129,15 @@ async function start(): Promise<void> {
     mountCommentsPane(engine);
     mountInboxView(engine);
     listenForPushClicks(engine);
-    mountLibraryView(engine);
+    let library: Promise<void> | null = null;
+    const loadLibrary = () => (library ??= import("./ui/library-view").then((m) => m.mountLibraryView(live)));
+    if (engine.state.get("route").name === "library") void loadLibrary();
+    else {
+      engine.state.watch("route", (r) => {
+        if (r.name === "library") void loadLibrary();
+      });
+      setTimeout(() => (window.requestIdleCallback ?? ((f: () => void) => f()))(() => void loadLibrary()), 3000);
+    }
     mountTrashView(engine);
     mountHome(engine);
     const app = engine;

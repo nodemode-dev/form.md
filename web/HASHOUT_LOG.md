@@ -578,7 +578,14 @@ One namespace per server area (auth, me, workspaces, admin), every path in one p
 - kind: explainer
 - logged: v0.2.0 · 2026-10-07
 
-Source strings are English and double as keys; catalogs live in `src/i18n/<lang>/*.json` (several parts per language, merged on load) and load lazily through `import.meta.glob`, so English costs nothing. `plural` keys are `"one|other"` with the translation in the same form. Supported languages are English and German (since v0.11.0). The server embeds the same files to translate index.html, so a string shown before the client starts must be a catalog key too.
+Source strings are English and double as keys; catalogs live in `src/i18n/<lang>/*.json` (several parts per language) and load lazily, so English costs nothing. Since v0.34.0 the `form-md-i18n-catalogs` plugin in `vite.config.ts` serves `virtual:i18n` (a map of language to one dynamic import) and `virtual:i18n/<lang>` (that language's files merged in name order, the same order the old glob merged them); before, `import.meta.glob` put a loader per file (about 550) into a preloaded chunk, 38 KB raw, and a German start fetched 21 chunks. Types for the virtual module are in `src/i18n.d.ts`. `plural` keys are `"one|other"` with the translation in the same form. Supported languages are English and German (since v0.11.0). The server embeds the same files to translate index.html, so a string shown before the client starts must be a catalog key too.
+
+### src/main.ts · the library view loads on demand
+- refers-to: src/main.ts (`loadLibrary`); src/ui/library-view.ts :: `mountLibraryView`
+- kind: rationale
+- logged: v0.34.0 · 2026-10-17
+
+The library view is mounted from its own chunk: at once when the app starts on `/library`, on the first navigation there, or in idle time three seconds after start. `mountLibraryView` already draws the current route when mounted late. Throttled probe p26 found the library pane never shown empty on a cold `/library` load, a click right after start, or a click after idle; the pane only becomes visible with its content.
 
 ### src/engine/format.ts · canonical
 - refers-to: src/engine/format.ts :: `canonical`, `locale`
