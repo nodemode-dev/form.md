@@ -300,6 +300,7 @@ func (s *Server) sessionSweep(ctx context.Context) {
 	defer t.Stop()
 	for {
 		s.Auth.SweepSessions(ctx)
+		s.OAuth.ExpireAccess(ctx)
 		select {
 		case <-ctx.Done():
 			return

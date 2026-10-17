@@ -2018,3 +2018,10 @@ The v0.30.0 revoke covered sign-out and deletes but not expiry: a session that r
 - logged: v0.39.0 · 2026-10-17
 
 A sibling's answers reach agents inside `context_pack` and `family_route`, so they are treated as input from another program, not as trusted text. The reported MCP endpoint must sit on the host and port form.md looked the sibling up at, so a process on another loopback port cannot be named as the sibling's server. Tool names outside `[A-Za-z0-9_.-]{1,64}` are dropped because they are printed as identifiers an agent may call; versions are cut to 32 runes and descriptions to 200 runes so a byte cut never leaves broken UTF-8. The descriptor builds its URLs with `BaseURL`, which honours `instance.public_url`, and is sent `no-store` because it changes with the proxy and settings.
+
+### internal/oauth/oauth.go · access-token expiry closes the grant's streams
+- refers-to: internal/oauth/oauth.go (ExpireAccess, resolve, Purge), internal/server/server.go (sessionSweep)
+- kind: rationale
+- logged: v0.39.1 · 2026-10-17
+
+Streams opened with an OAuth access token are keyed by grant, not by token, so closing on each token's expiry would cut a client that already refreshed and opened its streams with the new token. `ExpireAccess` runs on the one-minute sweep, deletes expired access tokens with `RETURNING grant_id`, and revokes a grant's connections only when that grant has no unexpired access token left. A stream opened with an old token therefore lives on while the client holds a fresh one for the same grant; that is the same principal with the same scope and workspaces, so nothing is reachable that the live token could not reach. Refresh tokens are left to `Purge`, since deleting them does not end a connection.

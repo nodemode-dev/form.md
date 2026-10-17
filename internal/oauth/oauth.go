@@ -844,6 +844,28 @@ func (s *Service) Purge(ctx context.Context) {
 
 type module struct{ s *Service }
 
+func (s *Service) ExpireAccess(ctx context.Context) {
+	now := store.NowMS()
+	rows, err := s.st.W.QueryContext(ctx, "DELETE FROM oauth_tokens WHERE kind = 'access' AND expires_at < ? RETURNING grant_id", now)
+	if err != nil {
+		return
+	}
+	seen := map[string]bool{}
+	for rows.Next() {
+		var g string
+		if rows.Scan(&g) == nil {
+			seen[g] = true
+		}
+	}
+	rows.Close()
+	for g := range seen {
+		var live int
+		if s.st.R.QueryRowContext(ctx, "SELECT COUNT(*) FROM oauth_tokens WHERE grant_id = ? AND kind = 'access' AND expires_at >= ?", g, now).Scan(&live) == nil && live == 0 {
+			s.auth.CredentialRevoked(g)
+		}
+	}
+}
+
 func (s *Service) Module() app.Module { return module{s} }
 
 func (module) ID() string { return "oauth" }
