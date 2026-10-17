@@ -15,7 +15,7 @@
 
 form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 13 of 14**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, full-text search w/ a command palette & the rest of the editor, collaboration & identity (sharing w/ six access levels, teamspaces, comments, suggested edits, an inbox, history, publishing, analytics, webhooks, an audit log, SCIM & SAML), & now agents & AI: an MCP server w/ OAuth, AI providers w/ an allow-list, writing help, AI blocks, autofill, a workspace agent & custom agents, meeting notes & answers from the workspace, automations, charts & dashboards, buttons, templates, map & feed views, importers from a dozen tools, Markdown, HTML & PDF export, a documented REST API, visual data views, & now context packs & a knowledge bank for agents w/ ready connections for Claude Code, Codex & Cursor.
 
-**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 28 MB static binary, 246 KB JS & 29 KB CSS gzipped up front; database views & charts, automations, button editing, import & export, the sharing, publishing & history dialogs, search, settings, the agent pane, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
+**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 28 MB static binary, 255 KB JS & 29 KB CSS gzipped up front; database views & charts, automations, button editing, import & export, the sharing, publishing & history dialogs, search, settings, the agent pane, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
 
 ## Highlights
 
@@ -50,7 +50,7 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 - **Form family aware** · `/.well-known/form-family.json` describes the instance, & `family_list` / `family_route` tell an agent whether formlit (photos) or formvis (image editing) runs on the same computer, which app fits a task & which of its tools match, loopback only
 - **Claude Code, Codex & Cursor in one step** · copy-ready snippets in Connected apps, `form-md mcp` as a stdio bridge for command-based clients, the skill as MCP prompts & resources, & `CLAUDE.md`, `AGENTS.md`, `.mcp.json` & a Cursor rule in the repo
 - **Bring your own models** · Anthropic, OpenAI, Gemini or any OpenAI-compatible server (Ollama, vLLM); keys sealed in the database, an owner allow-list, a default & a transcription model, per-person hourly limits, usage per model, a switch per workspace
-- **AI in the editor** · Ctrl+J or the selection toolbar: rewrite, fix, shorten, change tone, explain, summarize, find action items, translate or any instruction, streamed into a preview & placed as real blocks; AI blocks that regenerate from their prompt; AI autofill properties that refill rows when they change
+- **AI in the editor** · `/ai` in the slash menu or the selection toolbar: rewrite, fix, shorten, change tone, explain, summarize, find action items, translate or any instruction, streamed into a preview & placed as real blocks; AI blocks that regenerate from their prompt; AI autofill properties that refill rows when they change
 - **A workspace agent & custom agents** · chat w/ an agent that searches, writes pages, builds databases & fills rows through the same tools, reads your instructions page & remembers what you tell it; custom agents run on a schedule, when a database gets or changes a row, or when a page changes, each run undoable
 - **Meeting notes & answers** · record the microphone & a tab or the system audio, get a transcript, summary & action items in the page; ask a question in the palette & get an answer cited from your pages
 - **Charts & dashboards** · bar, line, area, donut, radial, gauge, histogram, dot plot (diverging beeswarm), period comparison, matrix & calendar heatmaps, computed by the server from the same query engine, so filters & access rules hold; click any mark to list & open its rows; dashboards of small, medium & wide cards rearranged by drag, KPI cards w/ a sparkline & the change; PNG & SVG export
@@ -149,6 +149,8 @@ Start-up settings come from environment variables; there is no config file. `for
 | `FORMMD_ACME_DOMAINS` | Host names to get Let's Encrypt certificates for; w/ `FORMMD_ACME_EMAIL`, `FORMMD_ACME_DIRECTORY` & `FORMMD_HTTP_ADDR` |
 | `FORMMD_CLOUDFLARED` | Path to `cloudflared` for the public tunnel when it is not on `PATH` |
 | `FORMMD_UPDATE_URL` | Where the update check reads the latest release (a mirror on closed networks) |
+| `FORMMD_FAMILY` | Where formlit & formvis run on this computer (`product=url`, loopback only), or `off` to stop the lookups |
+| `FORMMD_TERMINAL` | `on` allows the terminal & Claude Code panel on a server, `off` turns it off locally too |
 | `FORMMD_FETCH_PRIVATE` | Set to `1` to let link previews & media imports reach private network addresses (intranet sites); off by default |
 | `FORMMD_TRUST_PROXY` | Default for trusting `X-Forwarded-*` headers behind a reverse proxy; a value saved in Instance settings wins |
 | `FORMMD_TRASH_DAYS` | Default for emptying the trash automatically, in days (0 disables); a value saved in Instance settings wins |
@@ -169,6 +171,7 @@ form.md/
 │   ├── policy/         the principal & the single workspace gate
 │   ├── workspace/      workspaces, members, agent policy & rules
 │   ├── page/           the page tree, privacy, moves, duplicates, trash, favorites, tags, recents
+│   ├── pagestyle/      page style checks shared by pages & the workspace default
 │   ├── order/          fractional sort keys
 │   ├── files/          uploads & access-checked file serving
 │   ├── doc/            page bodies: CRDT rooms, the sync socket, Markdown in & out, first-frame HTML
@@ -183,6 +186,8 @@ form.md/
 │   ├── scim/           SCIM 2.0 users & groups per workspace
 │   ├── mcp/            the MCP server & its tools; oauth/ signs agents in
 │   ├── contextpack/    context packs & the knowledge bank, driven by the skill's policy.json
+│   ├── family/         the form family descriptor, loopback lookups of formlit & formvis, task routing
+│   ├── claudecode/     terminals over WebSocket, Claude Code launch & chat, the window command bridge
 │   ├── agentrun/       agent runs, their inverses & undo
 │   ├── ai/             model providers, the allow-list, limits, writing help; aifill/ fills properties
 │   ├── agent/          the workspace agent, memory & custom agents; answer/ writes cited answers
@@ -218,8 +223,12 @@ form.md/
 │       ├── engine/     headless state, page & database stores, query sessions, live stream, document sync, router & tabs, commands, keymap, API client, i18n
 │       ├── extensions/ feature modules registered w/ the engine, incl. the block editor & the database views
 │       ├── ui/         DOM layer: sidebar tree, top bar, page header, library, trash, pickers, dialogs, settings, tokens
+│       ├── i18n/       UI catalogs, one folder per language, loaded on demand
+│       ├── site/       the published-site script & styles
+│       ├── sandbox/    the Mermaid sandbox script
+│       ├── fonts/      Inter & JetBrains Mono w/ their licenses
 │       └── styles/     component styles on the token system
-├── tools/              Go side install & boot scripts, NOTICES generator, the wiki check
+├── tools/              Go side install & boot scripts, NOTICES generator, the wiki, skill & bundle-size checks
 ├── deploy/             systemd unit, fail2ban filter & jail
 ├── install.sh          the one-line installer
 ├── Dockerfile          multi-arch distroless image
@@ -236,7 +245,7 @@ form.md/
 - **Accounts & sign-in:** built. HTTPS from built-in ACME (checked against a local Pebble), operator certificates, a reverse proxy or the Cloudflare tunnel.
 - **Mail:** SMTP, Gmail & Microsoft Graph. Gmail & Graph were checked against a stand-in provider, not yet against Google or Microsoft.
 - **German:** built: every client string, the server-rendered page & mail.
-- **Offline start:** built. Kept & visited databases open read-only w/ their first rows, & their row pages, pictures & files on kept pages open too; editing them, search & other server data need the server; text edits made offline sync when it is back.
+- **Offline start:** built. Kept & visited databases open w/ up to 1000 rows & every view, & their row pages, pictures & files on kept pages open too; rows added, edited or deleted offline are queued per account & sent when the server is back, & text edits made offline sync then too; schema & view changes, search & other server data need the server.
 - **Encryption at rest:** built. File sizes & WAL frame headers (w/ their checksums) stay visible; there is no key rotation yet.
 - **Operations & packaging:** built. The systemd branch of the installer, the arm64 image & the workflows were not run in this sandbox; the tunnel was checked w/ a stand-in for cloudflared.
 - **Pages & the shell:** built: tree, tabs, favorites, tags, notes mode, library, trash, covers, icons, uploads, live updates.
@@ -277,7 +286,6 @@ form.md/
 | `Alt+↑` · `Alt+↓` · `Ctrl+D` | Move the block up or down, duplicate it |
 | `Ctrl+Enter` | Tick or untick a to-do |
 | `Ctrl+Shift+C` | Copy the page as Markdown |
-| `Ctrl+J` | Ask AI about the selection or at the cursor |
 | `Ctrl+Shift+J` | Show or hide the agent |
 | `?` | Every shortcut that is live right now |
 

@@ -26,8 +26,9 @@ How the repository is laid out, how to run both halves while changing them, and 
 | `web/src/extensions/` | Feature modules registered with the engine: `account`, `automation`, `blocks` (the block editor), `database` (views), `pages`, `shell`; `registry.ts` |
 | `web/src/ui/` | The DOM layer: sidebar, top bar, page view, dialogs, settings, offline, tokens |
 | `web/src/styles/`, `web/src/site/`, `web/src/sandbox/` | Component styles; published-site script; the sandboxed Mermaid renderer |
+| `web/src/i18n/` | UI catalogs, one folder per language; the Vite i18n plugin bundles each language's files into one chunk loaded on demand |
 | `web/public/` | Served as is: `sw.js` (service worker), `maps/` |
-| `tools/` | `boot_backend`, `oc_install` (Go side), `notices/` (generates `NOTICES.md`), `bundlecheck/` (fails `make build` when the JavaScript the first page loads, the entry plus its modulepreloads gzipped, passes 260 KB; `-budget` changes the limit) |
+| `tools/` | `boot_backend`, `oc_install` (Go side), `notices/` (generates `NOTICES.md`), `wikicheck/` (checks this wiki against the code), `skillcheck/` (checks the skill's `policy.json`), `bundlecheck/` (fails `make build` when the JavaScript the first page loads, the entry plus its modulepreloads gzipped, passes 260 KB; `-budget` changes the limit) |
 | `deploy/`, `install.sh`, `Dockerfile` | Systemd unit, installer, container image |
 | `.github/workflows/` | `ci.yml` (every push to `main` and every pull request), `release.yml` (tags) |
 
