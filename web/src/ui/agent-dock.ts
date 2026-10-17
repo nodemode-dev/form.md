@@ -33,8 +33,11 @@ function tokens(n: number): string {
   return String(n);
 }
 
+let viewSeq = 0;
+
 class TermView {
   readonly pane: HTMLElement;
+  private readonly scope = `.dock__term[data-view="${++viewSeq}"]`;
   readonly term: Terminal;
   private readonly fit = new FitAddon();
   private ws: WebSocket | null = null;
@@ -46,7 +49,7 @@ class TermView {
     for (const m of ms) for (const n of m.addedNodes) if (n instanceof HTMLStyleElement) this.adoptStyle(n);
   });
   constructor(readonly info: TermInfo, private readonly onExit: (v: TermView) => void) {
-    this.pane = h("div", { class: "dock__term", attrs: { role: "tabpanel" } });
+    this.pane = h("div", { class: "dock__term", attrs: { role: "tabpanel", "data-view": String(viewSeq) } });
     this.term = new Terminal({
       cursorBlink: true,
       fontFamily: monoFamily(),
@@ -77,7 +80,13 @@ class TermView {
     this.syncSheet();
   }
   private syncSheet(): void {
-    this.sheet.replaceSync(this.styles.map((s) => s.textContent ?? "").join("\n"));
+    const raw = new CSSStyleSheet();
+    try {
+      raw.replaceSync(this.styles.map((s) => s.textContent ?? "").join("\n"));
+    } catch {
+      return;
+    }
+    this.sheet.replaceSync([...raw.cssRules].map((r) => (r instanceof CSSStyleRule ? `${this.scope} { ${r.cssText} }` : r.cssText)).join("\n"));
   }
   connect(): void {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
