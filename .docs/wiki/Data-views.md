@@ -61,10 +61,11 @@ Rows are nodes and relation properties are links. Settings: colour by a select o
 - **Move** mode drags nodes. **Link** mode (or Shift in Move mode) drags from one node to another to relate the two rows through the relation property that points at the second row's database; with several such properties a menu asks which.
 - Clicking a link offers Remove link. Double-clicking empty space adds a row there and puts the cursor in its title. Double-clicking a node opens its row.
 - Clicking a node opens a side panel with its title, its colour property and its links (each removable); Open goes to the row page.
+- For screen readers and keyboards, the graph carries a list of its rows after the canvas, each reading like "Alpha: linked to Beta, Gamma" (five names, then "and N more"). It is hidden until focus enters it: Tab from the canvas shows it as a panel in the corner, and Enter on a row selects it and centres the graph on it, as Find a row does.
 
 ## Dashboards
 
-Widgets sit on a four-column grid and are small (one column), medium (two) or full width; on narrow screens they stack. Drag a widget by its grip to move it. **Add a KPI** adds a number widget with a trend: pick a date property and day, week or month, and the card shows the value, a sparkline of the last 24 buckets and the change of the last bucket against the one before.
+Widgets sit on a four-column grid and are small (one column), medium (two) or full width; on narrow screens they stack. Drag a widget by its grip to move it, or focus the grip and press the left and right (or up and down) arrow keys; focus stays on the grip and a screen reader hears the new position. Move earlier and Move later are also in each widget's menu. **Add a KPI** adds a number widget with a trend: pick a date property and day, week or month, and the card shows the value, a sparkline of the last 24 buckets and the change of the last bucket against the one before.
 
 ## Boards
 

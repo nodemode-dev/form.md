@@ -1,0 +1,7 @@
+{
+  "Moved to position {n} of {total}": "Áthelyezve: {n}. hely a(z) {total} közül",
+  "Rows in this graph": "A gráf sorai",
+  "{title}: linked to {names}": "{title}: kapcsolódik ehhez: {names}",
+  "{title}: no links": "{title}: nincs kapcsolat",
+  "and {n} more": "és még {n}"
+}

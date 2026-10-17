@@ -1,0 +1,7 @@
+{
+  "Moved to position {n} of {total}": "{total} 件中 {n} 番目に移動しました",
+  "Rows in this graph": "このグラフの行",
+  "{title}: linked to {names}": "{title}：{names} にリンク",
+  "{title}: no links": "{title}：リンクなし",
+  "and {n} more": "ほか {n} 件"
+}

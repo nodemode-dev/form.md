@@ -1,0 +1,7 @@
+{
+  "Moved to position {n} of {total}": "{total} içinde {n}. konuma taşındı",
+  "Rows in this graph": "Bu grafikteki satırlar",
+  "{title}: linked to {names}": "{title}: {names} ile bağlantılı",
+  "{title}: no links": "{title}: bağlantı yok",
+  "and {n} more": "ve {n} tane daha"
+}

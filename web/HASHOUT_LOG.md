@@ -1602,6 +1602,13 @@ Rows are fetched in pages of 1,000 up to 2,000 with `no_groups`; relation values
 
 Old widgets with `wide` read as size `l`. A KPI asks the chart endpoint twice (the number and a line by the trend period) and shows the last 24 buckets. Board totals and progress come from one chart request each over the board's own grouping (and sub-grouping as series), so they count every row, not just the loaded window. Card editing is a mode: the pencil starts it, a click on a property inside an editing card opens that property's editor instead of the row page, and a press outside the card (but not inside an editor in the overlay root) ends it.
 
+### src/extensions/database/views/dashboard.ts, graph.ts · keyboard and screen readers
+- refers-to: dashboard.ts :: `keyMove`, `refocus`, `announce`; graph.ts :: `paintList`, `showNode`, `a11y`; styles/viz.css :: `.graphv__a11y`
+- kind: rationale
+- logged: v0.36.0 · 2026-10-17
+
+Arrow keys on a widget's grip swap it with its neighbour through the same `save` the menu uses. `reconcile` moves the card with `insertBefore`, and moving a focused node drops focus, so `paint` puts focus back on the moved card's grip; a polite live region says the new position. The graph's canvas cannot be read, so a list of its rows (built with `reconcile`, keyed by row id, after every `build`) sits after it. It is clipped while focus is outside it rather than `hidden`, so screen readers still read it, and appears as a corner panel on `:focus-within`, so a sighted keyboard user never has focus on something invisible. A row's button calls `showNode`, the code the Find box's Enter used, now shared. Five neighbour names are spelled out, then "and N more", to keep each entry short.
+
 ## Phase 13 · context for agents
 
 ### src/ui/account-agents.ts · client snippets

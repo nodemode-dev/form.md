@@ -1,0 +1,7 @@
+{
+  "Moved to position {n} of {total}": "Siirretty kohtaan {n}/{total}",
+  "Rows in this graph": "Tämän kaavion rivit",
+  "{title}: linked to {names}": "{title}: linkitetty kohteisiin {names}",
+  "{title}: no links": "{title}: ei linkkejä",
+  "and {n} more": "ja {n} muuta"
+}

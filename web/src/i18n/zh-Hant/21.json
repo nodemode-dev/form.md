@@ -1,0 +1,7 @@
+{
+  "Moved to position {n} of {total}": "已移到第 {n} 位，共 {total} 個",
+  "Rows in this graph": "此圖中的列",
+  "{title}: linked to {names}": "{title}：連結到 {names}",
+  "{title}: no links": "{title}：沒有連結",
+  "and {n} more": "以及另外 {n} 個"
+}

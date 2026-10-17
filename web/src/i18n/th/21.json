@@ -1,0 +1,7 @@
+{
+  "Moved to position {n} of {total}": "ย้ายไปที่ตำแหน่ง {n} จาก {total}",
+  "Rows in this graph": "แถวในกราฟนี้",
+  "{title}: linked to {names}": "{title}: ลิงก์กับ {names}",
+  "{title}: no links": "{title}: ไม่มีลิงก์",
+  "and {n} more": "และอีก {n} รายการ"
+}

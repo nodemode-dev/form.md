@@ -1,0 +1,7 @@
+{
+  "Moved to position {n} of {total}": "Перемещено на позицию {n} из {total}",
+  "Rows in this graph": "Строки этого графа",
+  "{title}: linked to {names}": "{title}: связано с {names}",
+  "{title}: no links": "{title}: нет связей",
+  "and {n} more": "и ещё {n}"
+}
