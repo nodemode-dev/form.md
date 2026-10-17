@@ -1592,6 +1592,13 @@ The labels are product and file names, so they are not run through `t()`. Codex 
 
 Loaded on first use as its own chunk with xterm.js 6 and its fit addon (both MIT). The panel is a fixed sheet at `--z-chrome` with a top grip whose height is kept in localStorage (wrapped in try). Each terminal tab owns one xterm and one WebSocket; panes are created once and toggled with `hidden`, never rebuilt, and fit only while visible. Theme colours are read from the CSS tokens and reapplied when the theme preference changes. The chat renders Markdown through the same `render` and `reconcile` pair the agent pane uses, so a growing reply patches its existing nodes instead of replacing them. Keys: Mod+J panel, Mod+Alt+J Claude Code, Mod+Alt+K chat (Mod+Shift+J stays the built-in agent).
 
+### src/ui/agent-dock.ts · xterm under the CSP, font, first open, restart
+- refers-to: src/ui/agent-dock.ts :: `TermView.mount`, `adoptStyle`, `syncSheet`, `monoFamily`, `ready`, `show`, `restart`
+- kind: rationale
+- logged: v0.31.0 · 2026-10-17
+
+xterm 6's DOM renderer and viewport write cell sizes, theme colours and scrollbar colours into `<style>` elements, which the app's `style-src 'self'` refuses, so terminals drew with the wrong cells since v0.14.0. Rather than loosening the policy or adding the WebGL renderer (which still injects the scrollbar style), each terminal adopts one constructable stylesheet: style elements xterm adds under its pane are detached, watched, and their text copied into the sheet, a CSSOM path the policy does not cover. Their first contents are set synchronously inside `term.open()`, before any observer runs, so each opening still logs about ten refused-style console messages; every later update is silent and nothing is lost. The font list is resolved from `--font-mono` because xterm measures cells on a canvas, where `var()` is not a font, and it measured 10px sans (11px rows, 1.66px letter spacing) instead; the font load runs in parallel with the first `/api/claude` request so the first measure sees the real font. `show()` opens the panel only once a terminal exists, so the first Mod+J no longer shows an empty panel for a round trip. Restart swaps the pane in place and keeps the tab element, where it used to remove the tab and append a new one at the end.
+
 ### src/engine/commands.ts · the catalogue
 - refers-to: src/engine/commands.ts :: `Command`, `invoke`, `catalogue`; src/engine/index.ts :: `dispatch` (command.run)
 - kind: explainer

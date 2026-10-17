@@ -39,11 +39,17 @@ class TermView {
   private readonly fit = new FitAddon();
   private ws: WebSocket | null = null;
   private opened = false;
+  private readonly sheet = new CSSStyleSheet();
+  private readonly styles: HTMLStyleElement[] = [];
+  private readonly restyler = new MutationObserver(() => this.syncSheet());
+  private readonly adopter = new MutationObserver((ms) => {
+    for (const m of ms) for (const n of m.addedNodes) if (n instanceof HTMLStyleElement) this.adoptStyle(n);
+  });
   constructor(readonly info: TermInfo, private readonly onExit: (v: TermView) => void) {
     this.pane = h("div", { class: "dock__term", attrs: { role: "tabpanel" } });
     this.term = new Terminal({
       cursorBlink: true,
-      fontFamily: "var(--font-mono), JetBrains Mono, monospace",
+      fontFamily: monoFamily(),
       fontSize: 13,
       scrollback: 5000,
       allowProposedApi: false,
@@ -56,9 +62,22 @@ class TermView {
   mount(): void {
     if (this.opened) return;
     this.opened = true;
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, this.sheet];
+    this.adopter.observe(this.pane, { childList: true, subtree: true });
     this.term.open(this.pane);
+    for (const s of this.pane.querySelectorAll("style")) this.adoptStyle(s);
     this.resize();
     this.connect();
+  }
+  private adoptStyle(s: HTMLStyleElement): void {
+    if (this.styles.includes(s)) return;
+    this.styles.push(s);
+    s.remove();
+    this.restyler.observe(s, { childList: true, characterData: true, subtree: true });
+    this.syncSheet();
+  }
+  private syncSheet(): void {
+    this.sheet.replaceSync(this.styles.map((s) => s.textContent ?? "").join("\n"));
   }
   connect(): void {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -98,9 +117,16 @@ class TermView {
   }
   dispose(): void {
     this.ws?.close();
+    this.adopter.disconnect();
+    this.restyler.disconnect();
     this.term.dispose();
     this.pane.remove();
+    document.adoptedStyleSheets = document.adoptedStyleSheets.filter((x) => x !== this.sheet);
   }
+}
+
+function monoFamily(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() || "JetBrains Mono, monospace";
 }
 
 function themeOf(): Record<string, string> {
@@ -212,15 +238,12 @@ export function mountAgentDock(engine: Engine): AgentDock {
       await request(fetchFn, "POST", `/api/terminal/${encodeURIComponent(id)}/restart`);
       const v = views.get(id);
       if (!v) return;
-      v.info.alive = true;
-      tabEls.get(id)?.classList.remove("is-ended");
-      v.term.reset();
+      const fresh = new TermView({ ...v.info, alive: true }, (x) => tabEls.get(x.info.id)?.classList.add("is-ended"));
+      fresh.pane.hidden = true;
+      body.insertBefore(fresh.pane, v.pane);
+      views.set(id, fresh);
       v.dispose();
-      views.delete(id);
-      const tab = tabEls.get(id);
-      tabEls.delete(id);
-      tab?.remove();
-      addView({ ...v.info, alive: true });
+      tabEls.get(id)?.classList.remove("is-ended");
       select(id);
     } catch (e) {
       fail(e);
@@ -234,7 +257,8 @@ export function mountAgentDock(engine: Engine): AgentDock {
 
   async function ready(): Promise<Harness> {
     if (harness) return harness;
-    harness = await request<Harness>(fetchFn, "GET", "/api/claude");
+    const [h] = await Promise.all([request<Harness>(fetchFn, "GET", "/api/claude"), document.fonts.load(`13px ${monoFamily()}`).catch(() => [])]);
+    harness = h;
     if (!harness.enabled) throw new Error(t("The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server."));
     const list = await request<{ terminals: TermInfo[] }>(fetchFn, "GET", "/api/terminal");
     for (const info of list.terminals) if (!views.has(info.id)) addView(info);
@@ -270,11 +294,10 @@ export function mountAgentDock(engine: Engine): AgentDock {
 
   async function show(): Promise<void> {
     await ready();
+    const first = active && (views.has(active) || active === "chat") ? active : [...views.keys()][0];
+    if (!first) return open("shell");
     setOpen(true);
-    if (active && (views.has(active) || active === "chat")) return select(active);
-    const first = [...views.keys()][0];
-    if (first) select(first);
-    else await open("shell");
+    select(first);
   }
 
   function buildChat() {
