@@ -1556,7 +1556,7 @@ Every reader builds the same tree: pages with Markdown bodies, databases as head
 - kind: warning-context
 - logged: v0.10.0 · 2026-10-09
 
-Uploads go to temp files under the data directory and zips are read in place. Limits: 50,000 entries, 4 GB declared, 256 MB per entry (also enforced while reading, since headers can lie), and entries over 50 MB that compress more than 200 to 1 are skipped. Zips inside the top zip (Notion's part files) are opened one level deep; paths are cleaned so `..` cannot escape. `__MACOSX` and dot-underscore files are ignored.
+Uploads go to temp files under the data directory and zips are read in place. Limits: 50,000 entries, 4 GB declared, 256 MB per entry (also enforced while reading, since headers can lie), and entries over 50 MB that compress more than 200 to 1 are skipped. Zips at the root of the top zip, or named like Notion's `-Part-N.zip` part files, are opened one level deep (since v0.40.0; zips inside page folders stay attachments); paths are cleaned so `..` cannot escape. `__MACOSX` and dot-underscore files are ignored.
 
 ### internal/transfer/markdown.go · Markdown, Notion and HTML trees
 - refers-to: internal/transfer/markdown.go :: `importTree`, `treeImporter.place`, `fillTable`, `convert`, `resolve`, `dropNotionProps`, `notionAsides`
@@ -1564,6 +1564,13 @@ Uploads go to temp files under the data directory and zips are read in place. Li
 - logged: v0.10.0 · 2026-10-09
 
 A file `A.md` owns the folder `A/`; a folder with no owner becomes a page of its own, and `index.md` or `README.md` inside a folder becomes that folder's body. Relative links are resolved against the file's folder, URL-decoded and matched case-insensitively to documents, CSVs or attachments. Notion mode strips the 32-hex ids from names, prefers the `_all.csv` twin, matches row pages to CSV rows by title in order (unmatched pages become extra rows), drops the `Key: value` lines Notion writes under a row's title, turns `<aside>` into a callout without its leading emoji, and keeps relation cells as plain titles.
+
+### internal/transfer · checked against real Notion exports
+- refers-to: internal/transfer/markdown.go :: `titleOf`, `rewriteLinks`, `resolve`, `resolvePath`, `deadPageLink`; internal/transfer/source.go :: `addZip`, `notionPart`; internal/transfer/tree.go :: `Bundle.used`; internal/transfer/transfer.go (the leftover-file warning)
+- kind: rationale
+- logged: v0.40.0 · 2026-10-17
+
+Until v0.40.0 the Notion importer was only exercised against hand-made samples. It was then run against eleven real Notion "Markdown & CSV" exports from AppFlowy-Collab's importer tests (AGPL-3.0, used as local test input only, never committed here) and the Blendle Employee Handbook export in hwchase17/notion-qa (MIT). They exposed six defects. (1) Notion leaves `#` unescaped in link paths (`#letstalkaboutstress%20…/page.md`), and `resolve` treated anything starting with `#` as an anchor and cut every link at the first `#`; it now tries the whole destination as a path first and falls back to anchor or fragment handling only when nothing matches. (2) Notion links a database as `Name id.md` although only the CSVs exist; a `.md` link that is not a document now also looks up the database that owns that path. (3) A page whose title ends in a space exports as a folder `name id /`, and the id stayed in its title because the pattern is anchored at the end; names are trimmed first. (4) Every zip one level inside the upload was opened, so zips attached to Notion pages were imported as extra copies (21 databases instead of 6 in one export); only zips at the upload's root, or named like Notion's `-Part-N.zip` split files, are opened now, and the rest stay attachments. (5) Files a page had already taken in as attachments, such as videos, were still reported as "Skipped … not imported"; `Bundle.used` records what links consumed and the warning skips those. (6) Notion writes the image path as the alt text; when the alt equals the link it becomes the file's name. In Notion mode a link to a `.md` or `.csv` page that is not in the export becomes its plain label rather than a dead relative link. Image references to files missing from an export are left as they are, since the export itself lacks them.
 
 ### internal/transfer/htmlmd.go · HTML to Markdown
 - refers-to: internal/transfer/htmlmd.go :: `htmlToMarkdown`, `container`, `paragraph`, `block`, `items`, `inline`, `joinBlocks`

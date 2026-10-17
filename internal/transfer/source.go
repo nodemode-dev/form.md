@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -49,6 +50,8 @@ func (v *vfs) close() {
 		os.Remove(t)
 	}
 }
+
+var notionPart = regexp.MustCompile(`(?i)-Part-\d+\.zip$`)
 
 func cleanPath(p string) string {
 	p = strings.ReplaceAll(p, "\\", "/")
@@ -111,7 +114,7 @@ func (v *vfs) addZip(diskPath, prefix string, depth int) error {
 			continue
 		}
 		entry := e
-		if strings.EqualFold(path.Ext(p), ".zip") && depth == 0 {
+		if strings.EqualFold(path.Ext(p), ".zip") && depth == 0 && (!strings.Contains(p, "/") || notionPart.MatchString(path.Base(p))) {
 			tmp, err := os.CreateTemp(v.dir, ".import-*.zip")
 			if err != nil {
 				return err

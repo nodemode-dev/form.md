@@ -43,12 +43,20 @@ type Bundle struct {
 	assets   []*Asset
 	pages    []*Node
 	warnings []string
+	consumed map[string]bool
 }
 
 func (b *Bundle) Warn(msg string) {
 	if len(b.warnings) < 200 {
 		b.warnings = append(b.warnings, msg)
 	}
+}
+
+func (b *Bundle) used(p string) {
+	if b.consumed == nil {
+		b.consumed = map[string]bool{}
+	}
+	b.consumed[p] = true
 }
 
 func (b *Bundle) AssetRef(a *Asset) string {

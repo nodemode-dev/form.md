@@ -35,7 +35,7 @@ type childAt struct {
 var notionID = regexp.MustCompile(`\s+[0-9a-f]{32}$`)
 
 func (t *treeImporter) titleOf(name string) string {
-	name = stripExt(name)
+	name = strings.TrimSpace(stripExt(name))
 	if t.notion {
 		name = notionID.ReplaceAllString(name, "")
 		name = strings.TrimSuffix(name, "_all")
@@ -422,19 +422,52 @@ func (t *treeImporter) rewriteLinks(dir, src string) string {
 		dest := strings.Trim(sub[2], "<>")
 		r := t.resolve(dir, dest)
 		if r == "" || r == dest {
+			if t.notion && !strings.HasPrefix(sub[1], "!") && deadPageLink(dest) {
+				return strings.TrimSuffix(strings.TrimPrefix(sub[1], "["), "](")
+			}
 			return m
+		}
+		if t.notion && sub[1] == "!["+dest+"](" {
+			alt, err := url.PathUnescape(dest)
+			if err != nil {
+				alt = dest
+			}
+			sub[1] = "![" + strings.TrimSpace(stripExt(path.Base(alt))) + "]("
 		}
 		return sub[1] + r + sub[3]
 	})
 }
 
+func deadPageLink(dest string) bool {
+	if strings.Contains(dest, "://") || strings.HasPrefix(dest, "mailto:") || strings.HasPrefix(dest, "/") {
+		return false
+	}
+	if i := strings.IndexAny(dest, "?"); i >= 0 {
+		dest = dest[:i]
+	}
+	e := strings.ToLower(path.Ext(dest))
+	return e == ".md" || e == ".csv"
+}
+
 func (t *treeImporter) resolve(dir, dest string) string {
-	if dest == "" || strings.HasPrefix(dest, "#") || strings.Contains(dest, "://") || strings.HasPrefix(dest, "mailto:") || strings.HasPrefix(dest, "data:") || strings.HasPrefix(dest, "/p/") || strings.HasPrefix(dest, "/files/") {
+	if dest == "" || strings.Contains(dest, "://") || strings.HasPrefix(dest, "mailto:") || strings.HasPrefix(dest, "data:") || strings.HasPrefix(dest, "/p/") || strings.HasPrefix(dest, "/files/") {
+		return dest
+	}
+	if r := t.resolvePath(dir, dest); r != "" {
+		return r
+	}
+	if strings.HasPrefix(dest, "#") {
 		return dest
 	}
 	if i := strings.IndexAny(dest, "?#"); i >= 0 {
-		dest = dest[:i]
+		if r := t.resolvePath(dir, dest[:i]); r != "" {
+			return r
+		}
 	}
+	return dest
+}
+
+func (t *treeImporter) resolvePath(dir, dest string) string {
 	dec, err := url.PathUnescape(dest)
 	if err != nil {
 		dec = dest
@@ -443,24 +476,25 @@ func (t *treeImporter) resolve(dir, dest string) string {
 	if n, ok := t.docs[strings.ToLower(full)]; ok {
 		return t.b.PageRef(n)
 	}
-	if strings.HasSuffix(strings.ToLower(full), ".csv") {
+	if e := strings.ToLower(path.Ext(full)); e == ".csv" || e == ".md" {
 		if n, ok := t.owners[strings.ToLower(strings.TrimSuffix(stripExt(full), "_all"))]; ok {
 			return t.b.PageRef(n)
 		}
 	}
 	f := t.v.lookup(full)
 	if f == nil {
-		return dest
+		return ""
 	}
 	a, ok := t.assets[f.path]
 	if !ok {
 		data, err := t.v.read(f)
 		if err != nil {
-			return dest
+			return ""
 		}
 		a = &Asset{Name: path.Base(f.path), Data: data}
 		t.assets[f.path] = a
 	}
+	t.b.used(f.path)
 	return t.b.AssetRef(a)
 }
 

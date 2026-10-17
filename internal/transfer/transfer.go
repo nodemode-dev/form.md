@@ -395,7 +395,7 @@ func readBundle(v *vfs, b *Bundle, format string) string {
 		}
 		known := map[string]bool{".opml": true, ".json": true, ".csv": true, ".tsv": true, ".docx": true, ".xlsx": true, ".pdf": true, ".md": true, ".markdown": true, ".html": true, ".htm": true, ".txt": true, ".xml": true}
 		if !known[e] {
-			if !treeDone || !isImageName(f.path) {
+			if !b.consumed[f.path] && (!treeDone || !isImageName(f.path)) {
 				b.Warn("Skipped " + f.path + ": this kind of file is not imported")
 			}
 			continue
