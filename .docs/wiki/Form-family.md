@@ -12,7 +12,7 @@ form.md is one of three apps that can run side by side on one computer: form.md 
 
 ## Discovery
 
-- `GET /.well-known/form-family.json` is public and describes this instance: `product`, `version`, `purpose`, `objects`, `rest`, `openapi`, `mcp`, `open` (the page URL pattern, `{id}` replaced by a page id), `auth` and `family` (the other product names).
+- `GET /.well-known/form-family.json` is public and describes this instance: `product`, `version`, `purpose`, `objects`, `rest`, `openapi`, `mcp`, `open` (the page URL pattern, `{id}` replaced by a page id), `auth` and `family` (the other product names). The URLs use `instance.public_url` when it is set, and the response is sent with `Cache-Control: no-store`.
 - `GET /api/family` needs a signed-in person or a token and returns `self` (the descriptor) and `members`, one per sibling.
 
 Neither sibling serves a descriptor of its own, so form.md reads what they already expose:
@@ -26,13 +26,14 @@ A member reports `reachable`, `version`, `mcp`, `tool_count`, `connect` (how an 
 
 ## Routing a task
 
-`family_route` takes a task in plain words and ranks all three apps, form.md included. Each app scores `family.vocabulary_weight` points per task word that matches its own vocabulary (photo, raw, cull and develop for formlit; layer, mask, background and generative for formvis; page, wiki, database and task for form.md), plus `family.tool_weight` per word matched in each of its live tools. Running siblings also return up to `family.max_tools` matching tools by name. Every `family.*` number lives in the contextual-compression skill's `policy.json`, with the lookup timeout and cache time.
+`family_route` takes a task in plain words and ranks all three apps, form.md included. Each app scores `family.vocabulary_weight` points per task word that matches its own vocabulary (photo, raw, cull and develop for formlit; layer, mask, background and generative for formvis; page, wiki, database and task for form.md), plus `family.tool_weight` per word matched in each of its best `family.max_tools` live tools, which are also returned by name. Every `family.*` number lives in the contextual-compression skill's `policy.json`, with the lookup timeout and cache time.
 
-`context_pack` adds a **Form family** note when a sibling scores at least `family.pack_min_score` and more than form.md for the task: the app, whether it is running, how to connect and up to `family.pack_max_tools` matching tools, marked untrusted like the rest of the pack. Tasks with no photo or picture words never contact the siblings. The skill's `family-routing` sub-skill tells agents what to do with the note. The agent then connects to that app's MCP server itself; the siblings ask in their own window before an outside agent's first call.
+`context_pack` adds a **Form family** note when a sibling scores at least `family.pack_min_score` and more than form.md for the task: the app, whether it is running, how to connect and up to `family.pack_max_tools` matching tools, marked untrusted like the rest of the pack. For a task with no word from either sibling's vocabulary, `context_pack` does not contact the siblings (`family_route` and `GET /api/family` always do). The skill's `family-routing` sub-skill tells agents what to do with the note. The agent then connects to that app's MCP server itself; the siblings ask in their own window before an outside agent's first call.
 
 ## Safety
 
-- Lookups only go to loopback addresses (`127.0.0.0/8`, `::1`, `localhost`). A non-loopback entry in `FORMMD_FAMILY`, or an MCP endpoint a sibling reports on another host, is ignored.
+- Lookups only go to loopback addresses (`127.0.0.0/8`, `::1`, `localhost`). A non-loopback entry in `FORMMD_FAMILY` is ignored, and so is an MCP endpoint a sibling reports on any host and port other than the base form.md looked it up at; form.md then uses `base/mcp`.
+- What a sibling returns is cut down before it reaches an agent: tool names that are not 1 to 64 of `A-Z a-z 0-9 _ . -` are dropped, versions are cut to 32 characters and descriptions to 200 characters, on character boundaries.
 - `FORMMD_FAMILY=off` stops every lookup; members then carry the reason in `problem`.
 - form.md sends no credentials to the siblings. It identifies itself with `X-Formlit-Agent: form.md` and `X-Formvis-Client: form.md`.
 

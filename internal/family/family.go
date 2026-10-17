@@ -8,10 +8,12 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/auth"
@@ -136,6 +138,24 @@ func loopback(raw string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
+func sameHost(base, raw string) bool {
+	if !loopback(raw) {
+		return false
+	}
+	b, err1 := url.Parse(base)
+	u, err2 := url.Parse(strings.TrimSpace(raw))
+	return err1 == nil && err2 == nil && b.Host == u.Host
+}
+
+var toolName = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,64}$`)
+
+func clip(s string, n int) string {
+	if utf8.RuneCountInString(s) <= n {
+		return s
+	}
+	return string([]rune(s)[:n])
+}
+
 func (s *Service) Descriptor(base string) map[string]any {
 	family := []string{}
 	for _, p := range siblings {
@@ -214,17 +234,23 @@ func (s *Service) probe(ctx context.Context, p product) Member {
 	if err := s.get(ctx, base+p.Health, &health); err != nil {
 		m.Problem = "not running at " + base
 	} else {
-		m.Reachable, m.Version = true, health.Version
+		m.Reachable, m.Version = true, clip(health.Version, 32)
 		var status struct {
 			Endpoint string `json:"endpoint"`
 		}
-		if s.get(ctx, base+p.Status, &status) == nil && status.Endpoint != "" && loopback(status.Endpoint) {
+		if s.get(ctx, base+p.Status, &status) == nil && status.Endpoint != "" && sameHost(base, status.Endpoint) {
 			m.MCP = status.Endpoint
 		} else {
 			m.MCP = base + "/mcp"
 		}
 		if tools, err := s.listTools(ctx, m.MCP); err == nil {
-			m.tools, m.ToolCount = tools, len(tools)
+			kept := tools[:0]
+			for _, t := range tools {
+				if toolName.MatchString(t.Name) {
+					kept = append(kept, t)
+				}
+			}
+			m.tools, m.ToolCount = kept, len(kept)
 		} else {
 			m.Problem = "running, but its tool list could not be read"
 		}
@@ -309,11 +335,7 @@ func (s *Service) Route(ctx context.Context, task string, selfBase string) []Rou
 			if i == s.tune.MaxTools {
 				break
 			}
-			d := h.t.Description
-			if len(d) > 200 {
-				d = d[:200]
-			}
-			r.Tools = append(r.Tools, Tool{Name: h.t.Name, Description: d})
+			r.Tools = append(r.Tools, Tool{Name: h.t.Name, Description: clip(h.t.Description, 200)})
 			r.Score += h.n * tw
 		}
 		out = append(out, r)
@@ -359,10 +381,11 @@ func (module) ID() string { return "family" }
 
 func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	r.HandleFunc("GET /.well-known/form-family.json", func(w http.ResponseWriter, req *http.Request) {
-		httpx.JSON(w, http.StatusOK, m.s.Descriptor(httpx.RequestOrigin(req, m.s.auth.TrustProxy())))
+		w.Header().Set("Cache-Control", "no-store")
+		httpx.JSON(w, http.StatusOK, m.s.Descriptor(m.s.auth.BaseURL(req)))
 	})
 	r.HandleFunc("GET /api/family", m.s.auth.Require(func(w http.ResponseWriter, req *http.Request, _ *policy.Principal) error {
-		httpx.JSON(w, http.StatusOK, map[string]any{"self": m.s.Descriptor(httpx.RequestOrigin(req, m.s.auth.TrustProxy())), "members": m.s.List(req.Context())})
+		httpx.JSON(w, http.StatusOK, map[string]any{"self": m.s.Descriptor(m.s.auth.BaseURL(req)), "members": m.s.List(req.Context())})
 		return nil
 	}))
 	return nil

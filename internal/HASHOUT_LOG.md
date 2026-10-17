@@ -2011,3 +2011,10 @@ Before this, only a whole-user revoke closed live connections, and terminal atta
 - logged: v0.39.0 · 2026-10-17
 
 The v0.30.0 revoke covered sign-out and deletes but not expiry: a session that ran past `auth.session_days` kept its event stream, sync socket and terminal attachment, because the sweep deleted rows without naming them and ran only every 30 minutes. The sweep now uses `DELETE ... RETURNING id`, runs on its own one-minute ticker, and passes the ids to `CredentialRevoked`; the lazy expiry delete on a request does the same. `handleDeleteSession` runs the hooks before returning a row error, so ids already removed are still closed. `admin reset-owner` runs in another process and cannot reach the server's hooks, so it takes the data directory lock and refuses while a server runs.
+
+### internal/family/family.go · sibling answers are cut down
+- refers-to: internal/family/family.go (sameHost, toolName, clip, probe, Route, Mount)
+- kind: rationale
+- logged: v0.39.0 · 2026-10-17
+
+A sibling's answers reach agents inside `context_pack` and `family_route`, so they are treated as input from another program, not as trusted text. The reported MCP endpoint must sit on the host and port form.md looked the sibling up at, so a process on another loopback port cannot be named as the sibling's server. Tool names outside `[A-Za-z0-9_.-]{1,64}` are dropped because they are printed as identifiers an agent may call; versions are cut to 32 runes and descriptions to 200 runes so a byte cut never leaves broken UTF-8. The descriptor builds its URLs with `BaseURL`, which honours `instance.public_url`, and is sent `no-store` because it changes with the proxy and settings.
