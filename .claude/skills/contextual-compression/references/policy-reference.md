@@ -12,6 +12,7 @@
 - compression
 - handoff
 - hygiene
+- family
 - Tuning
 
 ## tokens
@@ -62,6 +63,18 @@ An ordered list. Each entry has a `kind` (rules, knowledge, focus, passages, lin
 - `duplicate_similarity`: word-overlap ratio at or above which two items are the same.
 - `conflict_similarity`: same subject and at least this similar, but below the duplicate line, means they may disagree.
 - `stale_after_days`, `prune_below`, `review_batch`.
+
+## family
+
+How form.md ranks itself, formlit and formvis for a task (`family_route`) and when a pack mentions a sibling app.
+
+- `vocabulary_weight`: points per task word that matches an app's own vocabulary.
+- `tool_weight`: points per task word matched in each of a running sibling's tools.
+- `max_tools`: most matching tools `family_route` names per sibling.
+- `cache_seconds`: how long a sibling's status and tool list are reused before asking it again.
+- `timeout_ms`: how long form.md waits for a sibling (100 to 10000).
+- `pack_min_score`: a sibling is named in a pack only at this score or above, and only when it beats form.md's own score for the task.
+- `pack_max_tools`: matching tools listed per sibling in a pack, at most `max_tools`.
 
 ## Tuning
 

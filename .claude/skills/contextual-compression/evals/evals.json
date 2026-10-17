@@ -44,6 +44,17 @@
         "The rename is done with update_page without first building a context pack or recording knowledge",
         "No knowledge item is created for a rename"
       ]
+    },
+    {
+      "id": 5,
+      "name": "route-photo-work-to-formlit",
+      "prompt": "Cull yesterday's wedding shoot down to the best 200 and put the shot list for the album in the Wedding page.",
+      "files": [],
+      "expected_behavior": [
+        "family_route (or the pack's Form family section) is used before any photo work, and formlit is chosen for the culling",
+        "The culling is done through formlit's own MCP server after its consent prompt, or the person is told formlit must be open; no photo data is copied into form.md",
+        "The shot list is written to the Wedding page in form.md and names the formlit collection rather than holding the pictures"
+      ]
     }
   ],
   "trigger_evals": [

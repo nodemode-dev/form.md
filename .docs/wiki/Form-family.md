@@ -22,11 +22,13 @@ Neither sibling serves a descriptor of its own, so form.md reads what they alrea
 | formlit | `http://127.0.0.1:8390` | `GET /api/health` (`version`) | `GET /api/mcp/status` (`endpoint`) | `POST /mcp` `tools/list` |
 | formvis | `http://127.0.0.1:8190` | `GET /version` (`version`) | `GET /api/mcp/status` (`endpoint`) | `POST /mcp` `tools/list` |
 
-A member reports `reachable`, `version`, `mcp`, `tool_count`, `connect` (how an agent attaches: each app's own `mcp` command or plugin) and `problem` when it is not running or its tool list could not be read. Results are kept for 30 seconds; each request waits at most 2 seconds and follows no redirects.
+A member reports `reachable`, `version`, `mcp`, `tool_count`, `connect` (how an agent attaches: each app's own `mcp` command or plugin) and `problem` when it is not running or its tool list could not be read. Results are kept for `family.cache_seconds` (30); each request waits at most `family.timeout_ms` (2000) and follows no redirects.
 
 ## Routing a task
 
-`family_route` takes a task in plain words and ranks all three apps, form.md included. Each app scores three points per task word that matches its own vocabulary (photo, raw, cull and develop for formlit; layer, mask, background and generative for formvis; page, wiki, database and task for form.md), plus one point per word matched in each of its live tools. Running siblings also return up to five matching tools by name. The agent then connects to that app's MCP server itself; the siblings ask in their own window before an outside agent's first call.
+`family_route` takes a task in plain words and ranks all three apps, form.md included. Each app scores `family.vocabulary_weight` points per task word that matches its own vocabulary (photo, raw, cull and develop for formlit; layer, mask, background and generative for formvis; page, wiki, database and task for form.md), plus `family.tool_weight` per word matched in each of its live tools. Running siblings also return up to `family.max_tools` matching tools by name. Every `family.*` number lives in the contextual-compression skill's `policy.json`, with the lookup timeout and cache time.
+
+`context_pack` adds a **Form family** note when a sibling scores at least `family.pack_min_score` and more than form.md for the task: the app, whether it is running, how to connect and up to `family.pack_max_tools` matching tools, marked untrusted like the rest of the pack. Tasks with no photo or picture words never contact the siblings. The skill's `family-routing` sub-skill tells agents what to do with the note. The agent then connects to that app's MCP server itself; the siblings ask in their own window before an outside agent's first call.
 
 ## Safety
 

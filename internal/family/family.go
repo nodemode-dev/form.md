@@ -82,12 +82,21 @@ type Route struct {
 	Tools []Tool `json:"tools"`
 }
 
+type Tuning struct {
+	VocabularyWeight int
+	ToolWeight       int
+	MaxTools         int
+	Cache            time.Duration
+	Timeout          time.Duration
+}
+
 type Service struct {
 	auth    *auth.Service
 	version string
 	bases   map[string]string
 	off     bool
 	client  *http.Client
+	tune    Tuning
 
 	mu    sync.Mutex
 	cache map[string]cached
@@ -98,9 +107,9 @@ type cached struct {
 	at time.Time
 }
 
-func New(a *auth.Service, version, spec string) *Service {
-	s := &Service{auth: a, version: version, bases: map[string]string{}, cache: map[string]cached{},
-		client: &http.Client{Timeout: 2 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+func New(a *auth.Service, version, spec string, t Tuning) *Service {
+	s := &Service{auth: a, version: version, bases: map[string]string{}, cache: map[string]cached{}, tune: t,
+		client: &http.Client{Timeout: t.Timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 	spec = strings.TrimSpace(spec)
 	if spec == "off" {
 		s.off = true
@@ -194,7 +203,7 @@ func (s *Service) probe(ctx context.Context, p product) Member {
 		return m
 	}
 	s.mu.Lock()
-	if c, ok := s.cache[p.ID]; ok && time.Since(c.at) < 30*time.Second {
+	if c, ok := s.cache[p.ID]; ok && time.Since(c.at) < s.tune.Cache {
 		s.mu.Unlock()
 		return c.m
 	}
@@ -270,7 +279,12 @@ func score(task []string, keys []string) int {
 
 func (s *Service) Route(ctx context.Context, task string, selfBase string) []Route {
 	ws := words(task)
-	out := []Route{{Member: Member{Product: self.ID, Purpose: self.Purpose, Objects: self.Objects, Base: selfBase, MCP: selfBase + "/mcp", Version: s.version, Reachable: true}, Score: score(ws, self.Words) * 3}}
+	vw, tw := s.tune.VocabularyWeight, s.tune.ToolWeight
+	me := Member{Product: self.ID, Purpose: self.Purpose, Objects: self.Objects, Version: s.version, Reachable: true}
+	if selfBase != "" {
+		me.Base, me.MCP = selfBase, selfBase+"/mcp"
+	}
+	out := []Route{{Member: me, Score: score(ws, self.Words) * vw, Tools: []Tool{}}}
 	for _, m := range s.List(ctx) {
 		var keys []string
 		for _, p := range siblings {
@@ -278,7 +292,7 @@ func (s *Service) Route(ctx context.Context, task string, selfBase string) []Rou
 				keys = p.Words
 			}
 		}
-		r := Route{Member: m, Score: score(ws, keys) * 3, Tools: []Tool{}}
+		r := Route{Member: m, Score: score(ws, keys) * vw, Tools: []Tool{}}
 		type hit struct {
 			t Tool
 			n int
@@ -292,7 +306,7 @@ func (s *Service) Route(ctx context.Context, task string, selfBase string) []Rou
 		}
 		sort.SliceStable(hits, func(i, j int) bool { return hits[i].n > hits[j].n })
 		for i, h := range hits {
-			if i == 5 {
+			if i == s.tune.MaxTools {
 				break
 			}
 			d := h.t.Description
@@ -300,11 +314,40 @@ func (s *Service) Route(ctx context.Context, task string, selfBase string) []Rou
 				d = d[:200]
 			}
 			r.Tools = append(r.Tools, Tool{Name: h.t.Name, Description: d})
-			r.Score += h.n
+			r.Score += h.n * tw
 		}
 		out = append(out, r)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Score > out[j].Score })
+	return out
+}
+
+func (s *Service) Suggest(ctx context.Context, task string, minScore, maxTools int) []Route {
+	ws := words(task)
+	hit := false
+	for _, p := range siblings {
+		hit = hit || score(ws, p.Words) > 0
+	}
+	if !hit || s.off {
+		return nil
+	}
+	routes := s.Route(ctx, task, "")
+	mine := 0
+	for _, r := range routes {
+		if r.Product == self.ID {
+			mine = r.Score
+		}
+	}
+	var out []Route
+	for _, r := range routes {
+		if r.Product == self.ID || r.Score < minScore || r.Score <= mine {
+			continue
+		}
+		if len(r.Tools) > maxTools {
+			r.Tools = r.Tools[:maxTools]
+		}
+		out = append(out, r)
+	}
 	return out
 }
 

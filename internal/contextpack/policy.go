@@ -87,6 +87,15 @@ type Policy struct {
 		PruneBelow          float64 `json:"prune_below"`
 		ReviewBatch         int     `json:"review_batch"`
 	} `json:"hygiene"`
+	Family struct {
+		VocabularyWeight int `json:"vocabulary_weight"`
+		ToolWeight       int `json:"tool_weight"`
+		MaxTools         int `json:"max_tools"`
+		CacheSeconds     int `json:"cache_seconds"`
+		TimeoutMS        int `json:"timeout_ms"`
+		PackMinScore     int `json:"pack_min_score"`
+		PackMaxTools     int `json:"pack_max_tools"`
+	} `json:"family"`
 	stop map[string]bool
 }
 
@@ -188,6 +197,10 @@ func (p *Policy) Validate() error {
 	}
 	if h.StaleAfterDays <= 0 || h.ReviewBatch <= 0 || h.PruneBelow < 0 {
 		bad("hygiene: stale_after_days and review_batch must be above 0")
+	}
+	f := p.Family
+	if f.VocabularyWeight <= 0 || f.ToolWeight < 0 || f.MaxTools <= 0 || f.CacheSeconds < 0 || f.TimeoutMS < 100 || f.TimeoutMS > 10000 || f.PackMinScore <= 0 || f.PackMaxTools < 0 || f.PackMaxTools > f.MaxTools {
+		bad("family: need vocabulary_weight, max_tools and pack_min_score above 0, timeout_ms from 100 to 10000, and pack_max_tools at most max_tools")
 	}
 	return errors.Join(errs...)
 }

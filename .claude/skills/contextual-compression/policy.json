@@ -79,5 +79,14 @@
     "stale_after_days": 120,
     "prune_below": 0.2,
     "review_batch": 25
+  },
+  "family": {
+    "vocabulary_weight": 3,
+    "tool_weight": 1,
+    "max_tools": 5,
+    "cache_seconds": 30,
+    "timeout_ms": 2000,
+    "pack_min_score": 6,
+    "pack_max_tools": 3
   }
 }

@@ -165,10 +165,12 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		}
 		return d.WorkspaceID, md, nil
 	}
-	packer := contextpack.New(contextpack.Deps{Store: st, Gate: gate, Pages: pages, Docs: docs, Search: finder, Policy: packPolicy, Log: log})
+	ft := packPolicy.Family
+	fam := family.New(authSvc, app.Version, cfg.Family, family.Tuning{VocabularyWeight: ft.VocabularyWeight, ToolWeight: ft.ToolWeight, MaxTools: ft.MaxTools,
+		Cache: time.Duration(ft.CacheSeconds) * time.Second, Timeout: time.Duration(ft.TimeoutMS) * time.Millisecond})
+	packer := contextpack.New(contextpack.Deps{Store: st, Gate: gate, Pages: pages, Docs: docs, Search: finder, Policy: packPolicy, Log: log, Family: fam})
 	runs.Handle(contextpack.UndoKind, packer.Undo)
 	harness := claudecode.New(authSvc, hub, cfg.Addr, cfg.DataDir)
-	fam := family.New(authSvc, app.Version, cfg.Family)
 	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Context: packer, Skill: skill, Window: harness, Version: app.Version, Log: log, Family: fam})
 	crew := agent.New(agent.Deps{Store: st, Auth: authSvc, Gate: gate, AI: brain, Tools: agents, Docs: docs, Cols: cols, Runs: runs, Context: packer, Log: log})
 	hooks.OnEvent(crew.OnEvent)

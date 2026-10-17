@@ -21,6 +21,8 @@ How Claude Code, Codex, Cursor and other MCP clients reach a form.md workspace, 
 | `knowledge_review` | no | stale, weak, duplicate and conflicting items; `workspace_id` |
 | `knowledge_record` | yes | record an item; `workspace_id`, `kind`, `subject`, `text`, `source_page`, `source_block` |
 | `knowledge_confirm` | yes | `id` and `verdict` (confirm, contradict, supersede with `text`, retire) |
+| `family_list` | no | the other form family apps on this computer (formlit, formvis): purpose, running or not, MCP endpoint, tool count, how to connect |
+| `family_route` | no | rank form.md, formlit and formvis for a `task` and name the sibling tools that match; see `sub-skills/family-routing/SUB-SKILL.md` |
 
 They sit beside the form-md skill's page and database tools on the same server. A read-only credential sees only the first three.
 

@@ -25,6 +25,7 @@ contextual-compression/
     compression-formats/    digest, outline and delta
     handoff/                passing work between agents and sessions
     memory-hygiene/         staleness, duplicates, contradictions and pruning
+    family-routing/         when a task belongs in formlit or formvis instead, and how to reach them
   evals/evals.json          evaluations and trigger phrasings for this skill
 ```
 
@@ -40,6 +41,7 @@ A path named inside a `SUB-SKILL.md` is relative to that sub-skill's folder; `re
 | Something worth remembering was learned or decided | `sub-skills/knowledge-bank/SUB-SKILL.md` |
 | Handing work to another agent, or resuming after a break | `sub-skills/handoff/SUB-SKILL.md` |
 | Recorded knowledge looks old, duplicated or contradicted | `sub-skills/memory-hygiene/SUB-SKILL.md` |
+| A pack has a Form family section, or the task is photo or picture work | `sub-skills/family-routing/SUB-SKILL.md` |
 | Setting up a client, or a tool call fails to connect | `references/connecting.md` |
 | Changing a budget, weight or threshold | `references/policy-reference.md` |
 

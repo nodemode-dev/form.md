@@ -64,6 +64,34 @@ type Pack struct {
 	Sections    []Part   `json:"sections"`
 	Sources     []Source `json:"sources"`
 	Knowledge   []string `json:"knowledge_ids"`
+
+	Family []FamilyHint `json:"family,omitempty"`
+}
+
+type FamilyHint struct {
+	Product string   `json:"product"`
+	Purpose string   `json:"purpose"`
+	Running bool     `json:"running"`
+	MCP     string   `json:"mcp,omitempty"`
+	Connect string   `json:"connect,omitempty"`
+	Score   int      `json:"score"`
+	Tools   []string `json:"tools"`
+}
+
+func (h FamilyHint) line() string {
+	s := "- " + h.Product + ": " + h.Purpose
+	if h.Running {
+		s += " Running, MCP at " + h.MCP + "."
+	} else {
+		s += " Not running now."
+	}
+	if h.Connect != "" {
+		s += " Connect: " + h.Connect + "."
+	}
+	if len(h.Tools) > 0 {
+		s += " Matching tools: " + strings.Join(h.Tools, ", ") + "."
+	}
+	return s
 }
 
 type packing struct {
@@ -179,6 +207,16 @@ func (s *Service) Pack(ctx context.Context, p *policy.Principal, in PackInput) (
 		spent += len(text)
 		carry = base - len(text)
 		x.pack.Sections = append(x.pack.Sections, Part{Kind: sec.Kind, Budget: pol.Tokens(max(base, 0)), Used: pol.Tokens(len(text)), Dropped: dropped, Text: text})
+	}
+	if s.Family != nil && in.Task != "" {
+		for _, r := range s.Family.Suggest(ctx, in.Task, pol.Family.PackMinScore, pol.Family.PackMaxTools) {
+			h := FamilyHint{Product: r.Product, Purpose: r.Purpose, Running: r.Reachable, MCP: r.MCP, Connect: r.Connect, Score: r.Score, Tools: []string{}}
+			for _, t := range r.Tools {
+				h.Tools = append(h.Tools, t.Name)
+			}
+			x.pack.Family = append(x.pack.Family, h)
+			spent += len(h.line())
+		}
 	}
 	x.pack.Used = pol.Tokens(spent)
 	if err := x.record(ctx); err != nil {
@@ -584,6 +622,14 @@ func (pk *Pack) Render(frame func(label, text string) string) string {
 		}
 		b.WriteString("\n## " + sectionTitles[sec.Kind] + "\n")
 		b.WriteString(frame(sec.Kind, sec.Text) + "\n")
+	}
+	if len(pk.Family) > 0 {
+		lines := make([]string, len(pk.Family))
+		for i, h := range pk.Family {
+			lines[i] = h.line()
+		}
+		b.WriteString("\n## Form family (another app on this computer fits this task better than form.md; family_route has the detail)\n")
+		b.WriteString(frame("family", strings.Join(lines, "\n")) + "\n")
 	}
 	if dropped > 0 {
 		fmt.Fprintf(&b, "\n%d candidates were left out by the budget or the score floor; ask for a larger budget or a narrower task to see them.\n", dropped)

@@ -6,7 +6,7 @@ Agents do their best work when they start a task with exactly the context it nee
 
 | Path | What lives there |
 |---|---|
-| `.claude/skills/contextual-compression/` | The skill: router `SKILL.md`, six sub-skills, `policy.json`, references and evaluations |
+| `.claude/skills/contextual-compression/` | The skill: router `SKILL.md`, seven sub-skills (`family-routing` among them), `policy.json`, references and evaluations |
 | `embed.go` | Embeds the skill into the binary (`ContextSkill`) |
 | `internal/contextpack/` | Policy loading and validation, the knowledge bank, packing, ranking, compression, hygiene review, undo |
 | `internal/search/context.go` | Passages matching any word of a task, with rank and heading |
@@ -37,6 +37,7 @@ The server also offers the skill as MCP prompts (`contextual-compression` and on
 4. A focus page goes in whole when it fits, otherwise as a digest of each section, otherwise as an outline.
 5. Passages are scored by text match, title match, links to a focus page, recency, recorded knowledge naming the page, and sitting inside a focus page, weighted by `ranking.weights`. Below `ranking.min_score` they are dropped; one page keeps at most `ranking.per_page`.
 6. Related pages list what links to or from a focus page, the sources of the knowledge shown, and in a delta every page changed since the cutoff.
+7. When formlit or formvis fits the task better than form.md (at least `family.pack_min_score`), a short Form family note names it, says whether it is running and how to connect, and lists up to `family.pack_max_tools` of its matching tools. It sits outside the section budget and is counted in the pack's total. See [[Form-family]].
 
 Every pack has an id. Pass it later as `since` with `format` delta and the next pack holds only what changed. A pack only ever contains what the credential may read, and knowledge sourced from a page someone cannot open is hidden from them.
 
@@ -65,4 +66,4 @@ Edit `policy.json`, run `make check`, rebuild. The skill's `references/policy-re
 
 ## Related
 
-[[API-and-agents]] · [[Development]]
+[[API-and-agents]] · [[Form-family]] · [[Development]]

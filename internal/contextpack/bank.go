@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nodemode-ai/form.md/internal/doc"
+	"github.com/nodemode-ai/form.md/internal/family"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/ids"
 	"github.com/nodemode-ai/form.md/internal/page"
@@ -30,6 +31,12 @@ type Deps struct {
 	Search *search.Service
 	Policy *Policy
 	Log    *slog.Logger
+
+	Family Family
+}
+
+type Family interface {
+	Suggest(ctx context.Context, task string, minScore, maxTools int) []family.Route
 }
 
 type Service struct{ Deps }
