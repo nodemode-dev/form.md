@@ -226,6 +226,9 @@ type override struct {
 }
 
 var overrides = map[string]override{
+	"GET /.well-known/form-family.json": {summary: "This instance's form family descriptor: product, version, purpose, objects, REST, OpenAPI and MCP endpoints, page URL pattern and sign-in methods"},
+	"GET /api/family":                   {summary: "List the other form family apps on this computer: purpose, whether each is running, its MCP endpoint and tool count"},
+
 	"GET /api/me":                      {summary: "Get the signed-in person, their workspaces and preferences"},
 	"GET /api/workspaces/{id}/pages":   {summary: "List the pages a credential can read in a workspace", query: []string{"limit", "cursor"}, result: "PageList"},
 	"POST /api/pages":                  {summary: "Create a page or a database", body: "PageInput", result: "PageResult"},

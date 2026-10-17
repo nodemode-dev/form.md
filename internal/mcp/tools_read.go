@@ -44,6 +44,7 @@ func (s *Server) register() {
 		Props:       map[string]any{"limit": intp("Up to 100, default 20")}, Run: s.listRuns})
 	s.registerContext()
 	s.registerWindow()
+	s.registerFamily()
 	s.registerWrites()
 }
 

@@ -31,6 +31,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/contextpack"
 	"github.com/nodemode-ai/form.md/internal/doc"
 	"github.com/nodemode-ai/form.md/internal/events"
+	"github.com/nodemode-ai/form.md/internal/family"
 	"github.com/nodemode-ai/form.md/internal/feed"
 	"github.com/nodemode-ai/form.md/internal/files"
 	"github.com/nodemode-ai/form.md/internal/graph"
@@ -167,7 +168,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	packer := contextpack.New(contextpack.Deps{Store: st, Gate: gate, Pages: pages, Docs: docs, Search: finder, Policy: packPolicy, Log: log})
 	runs.Handle(contextpack.UndoKind, packer.Undo)
 	harness := claudecode.New(authSvc, hub, cfg.Addr, cfg.DataDir)
-	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Context: packer, Skill: skill, Window: harness, Version: app.Version, Log: log})
+	fam := family.New(authSvc, app.Version, cfg.Family)
+	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Context: packer, Skill: skill, Window: harness, Version: app.Version, Log: log, Family: fam})
 	crew := agent.New(agent.Deps{Store: st, Auth: authSvc, Gate: gate, AI: brain, Tools: agents, Docs: docs, Cols: cols, Runs: runs, Context: packer, Log: log})
 	hooks.OnEvent(crew.OnEvent)
 	flows := automation.New(automation.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Cols: cols, Inbox: notes, Mail: mailer, Hooks: hooks, Box: box, Public: func() string { return set.Get("instance.public_url") }, Log: log})
@@ -234,6 +236,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		app.Health(),
 		app.Notices(),
 		authSvc.Module(),
+		fam.Module(),
 		ws.Module(authSvc),
 		adm.Module(),
 		hub.Module(authSvc),

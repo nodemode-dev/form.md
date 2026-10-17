@@ -26,6 +26,8 @@ type Config struct {
 	HTTPAddr      string
 
 	FetchPrivate bool
+
+	Family string
 }
 
 type Var struct {
@@ -48,6 +50,7 @@ var Vars = []Var{
 	{"HTTP_ADDR", ":80", "with ACME on, the plain HTTP listener that answers challenges and redirects to HTTPS"},
 	{"CLOUDFLARED", "", "path to cloudflared for the public tunnel (looked up on PATH when unset)"},
 	{"UPDATE_URL", "", "where the daily update check reads the latest release (GitHub's API when unset); point it at a mirror on a closed network"},
+	{"FAMILY", "", "where the other form family apps run on this computer, as product=url pairs separated by commas (formlit=http://127.0.0.1:8390,formvis=http://127.0.0.1:8190 are assumed); loopback addresses only; off stops the lookups"},
 	{"FETCH_PRIVATE", "", "set to 1 to let link previews and media imports reach private network addresses such as intranet sites; off by default"},
 }
 
@@ -66,6 +69,8 @@ func Load() (Config, error) {
 		HTTPAddr:      get("HTTP_ADDR"),
 
 		FetchPrivate: get("FETCH_PRIVATE") == "1" || get("FETCH_PRIVATE") == "true",
+
+		Family: get("FAMILY"),
 	}
 	for _, d := range strings.Split(get("ACME_DOMAINS"), ",") {
 		if d = strings.ToLower(strings.TrimSpace(d)); d != "" {

@@ -54,6 +54,8 @@ type Deps struct {
 	Window    Window
 	Version   string
 	Log       *slog.Logger
+
+	Family Family
 }
 
 type Server struct {

@@ -104,6 +104,8 @@ form.md/
 │   │   └── public.go                the HTML writer's public mode for published pages
 │   ├── events/
 │   │   └── events.go                Hub: sequenced events, replay ring, audience filter, GET /api/events (SSE)
+│   ├── family/
+│   │   └── family.go                form family: descriptor, loopback lookups of formlit and formvis, task routing
 │   ├── files/
 │   │   ├── files.go                 uploads, sniffing, access-checked serving at /files/{id}, sweep
 │   │   └── fetch.go                 POST /api/files/import: a linked file brought in with its size
@@ -1973,4 +1975,11 @@ A catalogue entry without `mutates` decodes as true, matching the client default
 - logged: v0.19.0 · 2026-10-16
 
 The first page of a table or list view stays at 100 rows for the window, which loads the rest as it scrolls. `rows` (clamped to 1000, the query ceiling) exists for the offline keeper, which needs one cacheable GET per view because the service worker cannot cache the POST queries the table uses for later windows.
+
+### internal/family/family.go · form family bridge
+- refers-to: internal/family/family.go (New, probe, Route, Module), internal/mcp/tools_family.go
+- kind: rationale
+- logged: v0.28.0 · 2026-10-17
+
+formlit and formvis publish no descriptor and know nothing of form.md, so form.md reads what each already serves: formlit's `/api/health` and formvis's `/version` for the version, both apps' `/api/mcp/status` for the MCP endpoint, then `tools/list` on it. The `MCP-Protocol-Version: 2025-11-25` header is required by formlit for anything but initialize; the two identity headers are the ones each sibling logs callers by. Lookups are loopback-only (configured bases and reported endpoints alike), carry no credentials, wait 2 s, follow no redirects and are cached 30 s, so an agent asking repeatedly does not hammer a sibling and the route can never become an SSRF hop. form.md does not relay sibling tool calls: each sibling asks for consent in its own window, and a relay would hide which agent is calling. Routing is a plain keyword score (product vocabulary x3, plus one per word matched in each live tool's name and description) with a stopword list so words like "the" or "add" do not match every tool description. A configured entry that is not loopback falls back to the default base rather than failing, so a typo never points lookups off the machine.
 

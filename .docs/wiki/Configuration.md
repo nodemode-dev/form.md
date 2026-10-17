@@ -29,6 +29,7 @@ An empty value counts as unset and gives the default.
 | `FORMMD_HTTP_ADDR` | `:80` | With ACME on, the plain HTTP listener that answers challenges and redirects to HTTPS |
 | `FORMMD_CLOUDFLARED` | unset | Path to `cloudflared` for the public tunnel; looked up on `PATH` when unset. See [[Tunnel]] |
 | `FORMMD_UPDATE_URL` | unset | Where the daily update check reads the latest release; GitHub's releases API when unset. Point it at a mirror on a closed network. See [[Operations]] |
+| `FORMMD_FAMILY` | unset | Where the other form family apps run on this computer, as `product=url` pairs separated by commas. `formlit=http://127.0.0.1:8390,formvis=http://127.0.0.1:8190` are assumed. Loopback addresses only; anything else is ignored. `off` stops the lookups. See [Form family](Form-family) |
 | `FORMMD_FETCH_PRIVATE` | unset | Set to `1` (or `true`) to let link previews, media imports, webhooks and other outbound requests reach private network addresses such as intranet sites. Off by default |
 
 The server refuses to start (exit status 2, log line `config`) when:
