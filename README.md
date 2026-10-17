@@ -7,7 +7,7 @@
 <p align="center"><b>One workspace for people & agents: documents, databases & realtime editing in a single binary.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.27.0-9a8cff" alt="version v0.27.0" />
+  <img src="https://img.shields.io/badge/version-v0.28.0-9a8cff" alt="version v0.28.0" />
   <img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+" />
   <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
