@@ -1505,7 +1505,7 @@ Row templates are rows with `pages.is_template = 1`. They stay in the snapshot (
 - kind: explainer
 - logged: v0.9.0 · 2026-10-09
 
-Starters are Go values written for this project, not data from any other product. Row dates are offsets (`+3d`) and `@me` is the person using the starter, resolved at use time so samples always look current. Markdown in starters avoids `> [!NOTE]` alerts, which the importer does not yet turn into callouts.
+Starters are Go values written for this project, not data from any other product. Row dates are offsets (`+3d`) and `@me` is the person using the starter, resolved at use time so samples always look current. Since v0.38.1 the meeting notes and team wiki starters use `> [!TIP]` and `> [!NOTE]` alerts for their hints, which the Markdown parser turns into callouts (green and default); they had been plain quotes while alerts did not import as callouts.
 
 ### internal/doc/service.go · copying a page nobody has edited
 - refers-to: internal/doc/service.go :: `Copy`

@@ -53,7 +53,7 @@ var statusOpts = []opt{{ID: "todo", Name: "Not started", Color: "gray", Group: "
 var starters = []Starter{
 	{
 		ID: "meeting-notes", Name: "Meeting notes", Description: "Agenda, notes, decisions and action items for one meeting.", Icon: "i:chat:violet", Kind: "doc", Category: "Docs",
-		markdown: "**Date:** {{date}}\n\n**Attendees:** \n\n## Agenda\n\n1. \n2. \n3. \n\n## Notes\n\n- \n\n## Decisions\n\n> Write down what was agreed and who agreed it.\n\n## Action items\n\n- [ ] \n- [ ] \n",
+		markdown: "**Date:** {{date}}\n\n**Attendees:** \n\n## Agenda\n\n1. \n2. \n3. \n\n## Notes\n\n- \n\n## Decisions\n\n> [!TIP]\n> Write down what was agreed and who agreed it.\n\n## Action items\n\n- [ ] \n- [ ] \n",
 	},
 	{
 		ID: "project-brief", Name: "Project brief", Description: "Problem, goals, scope, milestones and risks on one page.", Icon: "i:rocket:blue", Kind: "doc", Category: "Docs",
@@ -65,7 +65,7 @@ var starters = []Starter{
 	},
 	{
 		ID: "team-wiki", Name: "Team wiki", Description: "A home page for a team: who we are, how we work, where things live.", Icon: "i:book:amber", Kind: "doc", Category: "Docs",
-		markdown: "<!-- toc -->\n\n## Who we are\n\nOne paragraph on what this team owns.\n\n## How we work\n\n- Planning happens on Mondays.\n- Decisions are written down in the project brief.\n\n## Where things live\n\n| What | Where |\n| --- | --- |\n| Roadmap |  |\n| Runbooks |  |\n\n## Getting help\n\n> Mention the team in a comment and someone will pick it up.\n",
+		markdown: "<!-- toc -->\n\n## Who we are\n\nOne paragraph on what this team owns.\n\n## How we work\n\n- Planning happens on Mondays.\n- Decisions are written down in the project brief.\n\n## Where things live\n\n| What | Where |\n| --- | --- |\n| Roadmap |  |\n| Runbooks |  |\n\n## Getting help\n\n> [!NOTE]\n> Mention the team in a comment and someone will pick it up.\n",
 	},
 	{
 		ID: "task-tracker", Name: "Task tracker", Description: "Tasks with status, owner, priority and due date, on a board, a table, a calendar and a chart.", Icon: "i:checklist:green", Kind: "database", Category: "Projects",
