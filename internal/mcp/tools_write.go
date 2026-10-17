@@ -488,6 +488,15 @@ func (s *Server) updateSchema(ctx context.Context, x *exec, raw json.RawMessage)
 	return map[string]any{"database_id": c.ID, "properties": schemaOut(sc)}, fmt.Sprintf("Changed the properties of %q", c.Title), nil
 }
 
+func addsOptions(c *collection.Out, vals map[string]json.RawMessage) bool {
+	for _, p := range c.Schema {
+		if _, ok := vals[p.ID]; ok && (p.Type == collection.TSelect || p.Type == collection.TMulti || p.Type == collection.TStatus) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) rowValues(ctx context.Context, x *exec, c *collection.Out, in map[string]json.RawMessage) (map[string]json.RawMessage, error) {
 	out := map[string]json.RawMessage{}
 	var people map[string]string
@@ -618,7 +627,9 @@ func (s *Server) addRows(ctx context.Context, x *exec, raw json.RawMessage) (any
 				return s.partialRows(ctx, x, c, made, err)
 			}
 		}
-		c, _ = s.Cols.Get(ctx, x.p, c.ID)
+		if addsOptions(c, vals) {
+			c, _ = s.Cols.Get(ctx, x.p, c.ID)
+		}
 	}
 	if err := x.record(ctx, "rows.add", c.ID, fmt.Sprintf("added %d rows to %s", len(made), c.Title), map[string]any{"rows": made}); err != nil {
 		return nil, "", err
@@ -653,13 +664,22 @@ func (s *Server) updateRows(ctx context.Context, x *exec, raw json.RawMessage) (
 	if err != nil {
 		return nil, "", err
 	}
+	ids := make([]string, 0, len(in.Rows))
+	for _, r := range in.Rows {
+		ids = append(ids, r.RowID)
+	}
+	found, err := s.Cols.Query(ctx, x.p, c.ID, collection.QueryInput{IDs: ids, Limit: len(ids)})
+	if err != nil {
+		return nil, "", err
+	}
+	current := map[string]collection.RowOut{}
+	for _, row := range found.Rows {
+		current[row.ID] = row
+	}
 	done := 0
 	for _, r := range in.Rows {
-		rd, err := s.Cols.Row(ctx, x.p, r.RowID)
-		if err != nil {
-			return nil, "", err
-		}
-		if rd.Collection.ID != c.ID {
+		before, ok := current[r.RowID]
+		if !ok {
 			return nil, "", fail(r.RowID + " is not a row of this database")
 		}
 		vals, err := s.rowValues(ctx, x, c, r.Values)
@@ -668,11 +688,11 @@ func (s *Server) updateRows(ctx context.Context, x *exec, raw json.RawMessage) (
 		}
 		old := map[string]any{}
 		for id := range vals {
-			old[id] = rd.Row.Values[id]
+			old[id] = before.Values[id]
 		}
 		undo := map[string]any{"values": old}
 		if r.Title != nil {
-			undo["title"] = rd.Row.Title
+			undo["title"] = before.Title
 		}
 		if _, err := s.Cols.UpdateRow(ctx, x.p, r.RowID, collection.RowPatch{Title: r.Title, Values: vals}); err != nil {
 			return nil, "", err
@@ -681,7 +701,9 @@ func (s *Server) updateRows(ctx context.Context, x *exec, raw json.RawMessage) (
 			return nil, "", err
 		}
 		done++
-		c, _ = s.Cols.Get(ctx, x.p, c.ID)
+		if addsOptions(c, vals) {
+			c, _ = s.Cols.Get(ctx, x.p, c.ID)
+		}
 	}
 	return map[string]any{"database_id": c.ID, "updated": done}, fmt.Sprintf("Changed %d rows of %q", done, c.Title), nil
 }
