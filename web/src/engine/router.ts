@@ -1,6 +1,6 @@
-export type LibraryView = "recent" | "favorites" | "shared" | "private" | "all" | "tree";
+export type LibraryView = "recent" | "favorites" | "shared" | "private" | "all" | "tree" | "graph";
 
-export const LIBRARY_VIEWS: readonly LibraryView[] = ["recent", "favorites", "shared", "private", "all", "tree"];
+export const LIBRARY_VIEWS: readonly LibraryView[] = ["recent", "favorites", "shared", "private", "all", "tree", "graph"];
 
 export type Route = { name: "home" } | { name: "page"; id: string } | { name: "library"; view: LibraryView } | { name: "trash" } | { name: "inbox" };
 

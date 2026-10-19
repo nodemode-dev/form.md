@@ -1463,6 +1463,17 @@
   row-gap: var(--space-3);
 }
 
+.lib-graph {
+  min-block-size: calc(min(62vh, 640px) + 32px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.lib-graph[hidden] {
+  display: none;
+}
+
 .lib-treebox__bar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

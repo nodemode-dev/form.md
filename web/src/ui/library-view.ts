@@ -17,6 +17,7 @@ const VIEWS: { id: LibraryView; label: () => string; icon: IconName }[] = [
   { id: "private", label: () => t("Private"), icon: "lock" },
   { id: "all", label: () => t("All pages"), icon: "library" },
   { id: "tree", label: () => t("Tree as agents read it"), icon: "list-tree" },
+  { id: "graph", label: () => t("Link graph"), icon: "diagram" },
 ];
 
 interface Row {
@@ -47,7 +48,33 @@ export function mountLibraryView(engine: Engine): void {
   const treeLead = h("p", { class: "section__lead", text: t("The outline an agent gets over MCP: one line per page with its id, indented by nesting.") });
   const treeBox = h("div", { class: "lib-treebox" }, h("div", { class: "lib-treebox__bar" }, treeLead, treeCopy), treeText);
   const table = h("div", { class: "lib-table" }, head, list, empty);
-  view.append(h("div", { class: "lib" }, h("h1", { class: "lib-title", text: t("Library") }), tabs, toolbar, count, table, treeBox));
+  const graphBox = h("div", { class: "lib-graph" });
+  graphBox.hidden = true;
+  view.append(h("div", { class: "lib" }, h("h1", { class: "lib-title", text: t("Library") }), tabs, toolbar, count, table, treeBox, graphBox));
+  let graphStop: (() => void) | null = null;
+  let graphWs = "";
+  let graphBusy = false;
+  const syncGraph = (on: boolean) => {
+    if (graphStop && (!on || graphWs !== state.get("workspaceId"))) {
+      graphStop();
+      graphStop = null;
+      graphBox.replaceChildren();
+    }
+    if (!on || graphStop || graphBusy) return;
+    graphBusy = true;
+    void import("./graph-view").then(
+      (m) => {
+        graphBusy = false;
+        if (state.get("route").name !== "library" || active() !== "graph" || graphStop) return;
+        graphWs = state.get("workspaceId");
+        graphStop = m.mountGraph(engine, graphBox, () => undefined);
+      },
+      (e: unknown) => {
+        graphBusy = false;
+        engine.reportError(e);
+      },
+    );
+  };
 
   let recent: Row[] = [];
   let recentLoaded = false;
@@ -146,10 +173,14 @@ export function mountLibraryView(engine: Engine): void {
       (b as HTMLElement).tabIndex = on ? 0 : -1;
     }
     const isTree = v === "tree";
-    toolbar.hidden = isTree;
-    table.hidden = isTree;
-    count.hidden = isTree;
+    const isGraph = v === "graph";
+    toolbar.hidden = isTree || isGraph;
+    table.hidden = isTree || isGraph;
+    count.hidden = isTree || isGraph;
     treeBox.hidden = !isTree;
+    graphBox.hidden = !isGraph;
+    syncGraph(isGraph);
+    if (isGraph) return;
     if (isTree) {
       const text = treeMarkdown() || t("Nothing to show here.");
       setText(treeText, text);
@@ -262,7 +293,10 @@ export function mountLibraryView(engine: Engine): void {
   sort.addEventListener("change", paint);
 
   state.watch("route", (r) => {
-    if (r.name !== "library") return;
+    if (r.name !== "library") {
+      syncGraph(false);
+      return;
+    }
     if (r.view === "recent") recentLoaded = false;
     ensureData();
     paint();

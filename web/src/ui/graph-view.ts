@@ -82,10 +82,14 @@ function layout(nodes: GNode[], edges: { a: GNode; b: GNode }[], ticks: number):
 }
 
 export function openGraph(engine: Engine): void {
+  const handle = simpleDialog(t("Link graph"), (body) => void mountGraph(engine, body, () => handle.close()), undefined, "md");
+  handle.body.closest(".dialog")?.classList.add("dialog--graph");
+}
+
+export function mountGraph(engine: Engine, host: HTMLElement, onOpen: () => void): () => void {
   const ws = engine.state.get("workspaceId");
-  const handle = simpleDialog(
-    t("Link graph"),
-    (body) => {
+  let dispose = (): void => undefined;
+  const build = (body: HTMLElement) => {
       const canvas = h("canvas", { class: "graphv__canvas", attrs: { role: "img", "aria-label": t("Pages and the links between them") } });
       const info = h("div", { class: "graphv__info" });
       const legend = h("div", { class: "graphv__legend" }, h("span", { class: "graphv__key graphv__key--link", text: t("Links") }), h("span", { class: "graphv__key graphv__key--child", text: t("Inside") }));
@@ -146,8 +150,9 @@ export function openGraph(engine: Engine): void {
           g.fillText(p.title || t("Untitled"), p.x, p.y - 12 / scale);
         }
       };
+      let gone = false;
       const paint = () => {
-        if (!raf) raf = requestAnimationFrame(draw);
+        if (!raf && !gone) raf = requestAnimationFrame(draw);
       };
       const toWorld = (cx: number, cy: number) => {
         const r = canvas.getBoundingClientRect();
@@ -221,7 +226,7 @@ export function openGraph(engine: Engine): void {
         const d = drag;
         drag = null;
         if (d.node && !d.moved) {
-          handle.close();
+          onOpen();
           engine.openPage(d.node.id);
         }
       };
@@ -244,6 +249,12 @@ export function openGraph(engine: Engine): void {
       );
       const ro = new ResizeObserver(paint);
       ro.observe(frame);
+      dispose = () => {
+        gone = true;
+        ro.disconnect();
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+      };
       setText(info, t("Loading"));
       engine.api.http
         .get<{ nodes: { id: string; title: string; kind: string }[]; edges: GEdge[]; truncated?: boolean }>(`/api/workspaces/${encodeURIComponent(ws)}/graph`)
@@ -288,9 +299,7 @@ export function openGraph(engine: Engine): void {
         .catch((e: unknown) => {
           setText(info, String((e as Error).message));
         });
-    },
-    undefined,
-    "md",
-  );
-  handle.body.closest(".dialog")?.classList.add("dialog--graph");
+  };
+  build(host);
+  return dispose;
 }
