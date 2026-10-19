@@ -652,7 +652,7 @@ func (s *Service) Query(ctx context.Context, p *policy.Principal, collectionID s
 			gout := GroupOut{Key: b.key, Label: b.label, Color: b.color, Count: len(b.rows), Rows: []string{}, Hidden: hidden[b.key]}
 			off, lim := 0, groupLimit
 			if in.GroupKey != nil && *in.GroupKey == b.key && (in.LaneKey == nil || *in.LaneKey == laneKey) {
-				off, lim = in.Offset, limit
+				off, lim = max(0, in.Offset), limit
 			} else if in.GroupKey != nil {
 				continue
 			}
