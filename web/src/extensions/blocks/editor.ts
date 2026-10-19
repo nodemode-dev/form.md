@@ -8,7 +8,7 @@ import type { DocSession } from "../../engine/doc/docs";
 import { embedProvider, newBlockId, schema } from "../../engine/doc/schema";
 import { t } from "../../engine/i18n";
 import { h } from "../../ui/dom";
-import type { EditorCtx, Refreshable } from "./context";
+import type { EditorCtx, NestedKit, Refreshable } from "./context";
 import { FormatBar } from "./formatbar";
 import { BlockHandle } from "./handle";
 import { looksLikeMarkdown, MarkdownWriter, parseMarkdownSlice, preloadMarkdown } from "./markdown";
@@ -16,6 +16,7 @@ import { pickFiles, uploadFiles } from "./media";
 import { nodeViews } from "./nodeviews";
 import { highlightPlugin, idsPlugin, keysPlugin, livePlugin, placeholderPlugin, structurePlugins, uploadsPlugin } from "./plugins";
 import { columnsPlugins } from "./columns";
+import { cursorBuilder, selectionBuilder } from "./cursors";
 import { commentsPlugin } from "./comments";
 import { suggestKey, suggestPlugin, suggestUI } from "./suggest";
 import { linksPlugin, offerLinkChoice } from "./links";
@@ -27,17 +28,6 @@ import { aiPlugins } from "./ai";
 const URL_ONLY = /^https?:\/\/\S+$/i;
 
 export type EditMode = "edit" | "suggest" | "view";
-
-function cursorBuilder(user: { name?: string; tint?: string }): HTMLElement {
-  const label = h("span", { class: "collab-cursor__label", text: user.name ?? "" });
-  const el = h("span", { class: "collab-cursor" }, document.createTextNode("⁠"), label, document.createTextNode("⁠"));
-  el.dataset.color = user.tint ?? "violet";
-  return el;
-}
-
-function selectionBuilder(user: { tint?: string }): { class: string; "data-color": string } {
-  return { class: "collab-selection", "data-color": user.tint ?? "violet" };
-}
 
 export class EditorHost implements EditorCtx {
   readonly openToggles = new Set<string>();
@@ -81,6 +71,25 @@ export class EditorHost implements EditorCtx {
 
   view(): EditorView | null {
     return this.ed;
+  }
+
+  nested(sub: EditorCtx): NestedKit {
+    const bar = new FormatBar(sub);
+    return {
+      plugins: [
+        triggerPlugin(sub),
+        ...aiPlugins(sub),
+        new Plugin({
+          key: new PluginKey("formmd-nested-chrome"),
+          view: () => ({
+            update: (view) => bar.update(view),
+            destroy: () => bar.hide(),
+          }),
+        }),
+      ],
+      attach: (view) => bar.attach(view),
+      dispose: () => bar.detach(),
+    };
   }
 
   formatBar(): FormatBar {

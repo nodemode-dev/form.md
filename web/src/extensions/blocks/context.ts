@@ -1,3 +1,4 @@
+import type { Plugin } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import type * as Y from "yjs";
 import type { Engine } from "../../engine";
@@ -7,8 +8,15 @@ export interface Refreshable {
   refresh(): void;
 }
 
+export interface NestedKit {
+  plugins: Plugin[];
+  attach(view: EditorView): void;
+  dispose(): void;
+}
+
 export interface EditorCtx {
   engine: Engine;
+  nested(sub: EditorCtx): NestedKit;
   view(): EditorView | null;
   pageId(): string;
   workspaceId(): string;

@@ -46,6 +46,7 @@ export class FormatBar {
   private place: { update: () => void; release: () => void } | null = null;
   private buttons = new Map<string, HTMLButtonElement>();
   private pointerDown = false;
+  private winOff: AbortController | null = null;
   private readonly tools: Tool[];
 
   constructor(private readonly ctx: EditorCtx) {
@@ -168,6 +169,8 @@ export class FormatBar {
       this.pointerDown = true;
       this.hide();
     });
+    this.winOff?.abort();
+    this.winOff = new AbortController();
     window.addEventListener("mouseup", () => {
       if (!this.pointerDown) return;
       this.pointerDown = false;
@@ -175,7 +178,7 @@ export class FormatBar {
         const v = this.ctx.view();
         if (v) this.update(v);
       });
-    });
+    }, { signal: this.winOff.signal });
     view.dom.addEventListener("focusout", (e) => {
       const to = e.relatedTarget as Node | null;
       if (to && this.el?.contains(to)) return;
@@ -184,6 +187,12 @@ export class FormatBar {
         if (v && !v.hasFocus() && !this.el?.contains(document.activeElement)) this.hide();
       }, 0);
     });
+  }
+
+  detach(): void {
+    this.winOff?.abort();
+    this.winOff = null;
+    this.hide();
   }
 
   private wanted(view: EditorView, state: EditorState): boolean {

@@ -3,7 +3,7 @@ import { keymap } from "prosemirror-keymap";
 import { Fragment, type Node as PMNode, type NodeType } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { EditorView, type NodeView } from "prosemirror-view";
-import { initProseMirrorDoc, prosemirrorToYXmlFragment, redo, undo, ySyncPlugin, yUndoPlugin } from "y-prosemirror";
+import { initProseMirrorDoc, prosemirrorToYXmlFragment, redo, undo, yCursorPlugin, ySyncPlugin, yUndoPlugin } from "y-prosemirror";
 import type * as Y from "yjs";
 import type { DocSession } from "../../engine/doc/docs";
 import { newBlockId, schema } from "../../engine/doc/schema";
@@ -13,9 +13,10 @@ import { iconNode } from "../../ui/icons";
 import { type MenuEntry, openMenu } from "../../ui/menu";
 import { toast } from "../../ui/toast";
 import { markCommand } from "./commands";
-import type { EditorCtx } from "./context";
+import type { EditorCtx, NestedKit } from "./context";
+import { cursorBuilder, selectionBuilder } from "./cursors";
 import { nodeViews } from "./nodeviews";
-import { highlightPlugin, idsPlugin, keysPlugin, placeholderPlugin, structurePlugins } from "./plugins";
+import { highlightPlugin, idsPlugin, keysPlugin, placeholderPlugin, structurePlugins, uploadsPlugin } from "./plugins";
 import { rulesPlugin } from "./rules";
 
 type GetPos = () => number | undefined;
@@ -61,6 +62,7 @@ export class SyncedView implements NodeView {
   private label: HTMLElement;
   private session: DocSession | null = null;
   private inner: EditorView | null = null;
+  private kit: NestedKit | null = null;
   private offSession: (() => void) | null = null;
   private offMeta: (() => void) | null = null;
   private boundDoc: Y.Doc | null = null;
@@ -146,14 +148,18 @@ export class SyncedView implements NodeView {
     const sub = Object.create(this.ctx, {
       pageId: { value: () => String(this.node.attrs.page) },
       view: { value: () => this.inner },
+      doc: { value: () => (this.session?.phase === "ready" ? this.session.doc : null) },
       writable: { value: () => this.writable() },
     }) as EditorCtx;
+    const kit = (this.kit ??= this.ctx.nested(sub));
     const state = EditorState.create({
       schema,
       doc,
       plugins: [
         ySyncPlugin(frag, mapping ? ({ mapping } as Parameters<typeof ySyncPlugin>[1]) : {}),
+        yCursorPlugin(s.awareness, { cursorBuilder, selectionBuilder }),
         yUndoPlugin(),
+        ...kit.plugins,
         keymap({
           "Mod-z": undo,
           "Mod-y": redo,
@@ -170,6 +176,7 @@ export class SyncedView implements NodeView {
         idsPlugin(),
         placeholderPlugin(),
         highlightPlugin(),
+        uploadsPlugin(),
         ...structurePlugins(),
       ],
     });
@@ -182,6 +189,7 @@ export class SyncedView implements NodeView {
         { mount: this.body },
         { state, nodeViews: nodeViews(sub), editable: () => this.writable(), attributes: { class: "synced__body", "aria-label": t("Synced block") } },
       );
+      kit.attach(this.inner);
     }
     this.checkReleased();
   }
@@ -253,6 +261,8 @@ export class SyncedView implements NodeView {
     this.offMeta?.();
     this.inner?.destroy();
     this.inner = null;
+    this.kit?.dispose();
+    this.kit = null;
     if (this.session) this.ctx.engine.docs.release(this.session);
     this.session = null;
   }
