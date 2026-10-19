@@ -59,21 +59,46 @@ function toDataUrl(svg: string): string {
   return `data:image/svg+xml;base64,${btoa(bin)}`;
 }
 
-export function drawDiagram(code: string): Promise<Drawing> {
-  const hit = cache.get(code);
+export function drawDiagram(code: string, dark = false): Promise<Drawing> {
+  const key = (dark ? "d" : "l") + code;
+  const hit = cache.get(key);
   if (hit) return hit;
   const job = boot().then(
     (win) =>
       new Promise<Drawing>((resolve, reject) => {
         const id = String(++seq);
         waiting.set(id, { resolve, reject });
-        win.postMessage({ type: "render", id, code }, "*");
+        win.postMessage({ type: "render", id, code, theme: dark ? "dark" : "neutral" }, "*");
       }),
   );
-  cache.set(code, job);
-  job.catch(() => cache.delete(code));
-  if (cache.size > 40) cache.delete(cache.keys().next().value as string);
+  cache.set(key, job);
+  job.catch(() => cache.delete(key));
+  if (cache.size > 80) cache.delete(cache.keys().next().value as string);
   return job;
+}
+
+export function darkAppearance(): boolean {
+  return document.documentElement.getAttribute("data-theme") !== "light";
+}
+
+const listeners = new Set<() => void>();
+let watching: MutationObserver | null = null;
+
+export function watchAppearance(fn: () => void): () => void {
+  listeners.add(fn);
+  if (!watching) {
+    watching = new MutationObserver(() => {
+      for (const f of listeners) f();
+    });
+    watching.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+  return () => {
+    listeners.delete(fn);
+    if (!listeners.size) {
+      watching?.disconnect();
+      watching = null;
+    }
+  };
 }
 
 export function sourceSum(code: string): string {

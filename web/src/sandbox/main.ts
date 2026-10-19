@@ -4,6 +4,7 @@ interface RenderRequest {
   type: "render";
   id: string;
   code: string;
+  theme?: string;
 }
 
 const stage = document.getElementById("stage") as HTMLElement;
@@ -11,19 +12,20 @@ let engine: Promise<Mermaid> | null = null;
 let queue: Promise<unknown> = Promise.resolve();
 let seq = 0;
 
+function settings(theme: "dark" | "neutral") {
+  return {
+    startOnLoad: false,
+    securityLevel: "strict",
+    theme,
+    deterministicIds: true,
+    fontFamily: "Arial, Helvetica, sans-serif",
+    htmlLabels: false,
+    flowchart: { htmlLabels: false },
+  } as const;
+}
+
 function load(): Promise<Mermaid> {
-  engine ??= import("mermaid").then((m) => {
-    m.default.initialize({
-      startOnLoad: false,
-      securityLevel: "strict",
-      theme: "neutral",
-      deterministicIds: true,
-      fontFamily: "Arial, Helvetica, sans-serif",
-      htmlLabels: false,
-      flowchart: { htmlLabels: false },
-    });
-    return m.default;
-  });
+  engine ??= import("mermaid").then((m) => m.default);
   return engine;
 }
 
@@ -44,6 +46,7 @@ async function render(req: RenderRequest): Promise<void> {
   const id = `diagram${++seq}`;
   try {
     const mermaid = await load();
+    mermaid.initialize(settings(req.theme === "dark" ? "dark" : "neutral"));
     const { svg } = await mermaid.render(id, req.code, stage);
     parent.postMessage({ type: "done", id: req.id, ...fit(svg) }, "*");
   } catch (e) {

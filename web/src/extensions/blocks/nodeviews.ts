@@ -16,7 +16,7 @@ import { LANGUAGES, languageLabel } from "./languages";
 import { openLightbox } from "./lightbox";
 import { importMedia, importPhase, watchImport } from "./links";
 import { ColumnView } from "./columns";
-import { drawDiagram, sourceSum } from "./diagram";
+import { darkAppearance, drawDiagram, sourceSum, watchAppearance } from "./diagram";
 import { MathView } from "./math";
 import { SyncedView } from "./synced";
 
@@ -65,6 +65,11 @@ class CodeView implements NodeView {
       this.modes?.remove();
       this.diagram = this.modes = null;
       this.drawn = "";
+      this.unwatch?.();
+      this.unwatch = null;
+      this.lightUrl = this.lightCode = this.shown = this.tone = "";
+      this.dark = null;
+      this.swaps++;
     }
   }
 
@@ -74,6 +79,16 @@ class CodeView implements NodeView {
   private fault: HTMLElement | null = null;
   private drawn = "";
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private lightUrl = "";
+  private lightCode = "";
+  private lightW = 0;
+  private lightH = 0;
+  private dark: { code: string; url: string } | null = null;
+  private darkFailed = "";
+  private shown = "";
+  private tone = "";
+  private swaps = 0;
+  private unwatch: (() => void) | null = null;
 
   private paintDiagram(): void {
     if (!this.diagram) {
@@ -89,6 +104,10 @@ class CodeView implements NodeView {
       };
       this.modes = h("div", { class: "code__modes", attrs: { role: "group", "aria-label": t("Diagram view") } }, mode("code", t("Code")), mode("preview", t("Preview")), mode("split", t("Split")));
       this.bar.insertBefore(this.modes, this.copy);
+      this.unwatch = watchAppearance(() => {
+        this.ensureDark();
+        this.apply();
+      });
     }
     const current = String(this.node.attrs.view || "split");
     for (const b of Array.from(this.modes?.children ?? []) as HTMLButtonElement[]) {
@@ -97,7 +116,7 @@ class CodeView implements NodeView {
     }
     const code = this.node.textContent;
     const stored = String(this.node.attrs.diagram ?? "");
-    if (stored.startsWith("data:image/svg+xml;base64,") && (this.node.attrs.dsum === sourceSum(code) || !this.drawn)) this.show(stored, Number(this.node.attrs.dw), Number(this.node.attrs.dh));
+    if (stored.startsWith("data:image/svg+xml;base64,") && (this.node.attrs.dsum === sourceSum(code) || !this.drawn)) this.setLight(stored, Number(this.node.attrs.dw), Number(this.node.attrs.dh), this.node.attrs.dsum === sourceSum(code) ? code : "");
     if (stored && this.node.attrs.dsum === sourceSum(code)) {
       this.drawn = code;
       return;
@@ -107,11 +126,65 @@ class CodeView implements NodeView {
     this.timer = setTimeout(() => this.draw(), this.drawn ? 350 : 0);
   }
 
-  private show(url: string, w: number, hgt: number): void {
-    if (!this.img) return;
-    if (this.img.getAttribute("src") !== url) this.img.setAttribute("src", url);
-    setAttr(this.img, "width", w ? String(w) : null);
-    setAttr(this.img, "height", hgt ? String(hgt) : null);
+  private setLight(url: string, w: number, hgt: number, code: string): void {
+    this.lightUrl = url;
+    this.lightW = w;
+    this.lightH = hgt;
+    this.lightCode = code;
+    this.ensureDark();
+    this.apply();
+  }
+
+  private ensureDark(): void {
+    const code = this.lightCode;
+    if (!code || !this.diagram || !darkAppearance() || this.dark?.code === code || this.darkFailed === code) return;
+    drawDiagram(code, true).then(
+      (d) => {
+        this.dark = { code, url: d.url };
+        this.apply();
+      },
+      () => {
+        this.darkFailed = code;
+        this.apply();
+      },
+    );
+  }
+
+  private apply(): void {
+    const img = this.img;
+    const box = this.diagram;
+    this.swaps++;
+    if (!img || !box || !this.lightUrl) return;
+    let url = this.lightUrl;
+    let tone = "";
+    if (darkAppearance()) {
+      if (this.dark && this.lightCode && this.dark.code === this.lightCode) {
+        url = this.dark.url;
+        tone = "dark";
+      } else if (this.tone === "dark" || (!this.shown && this.darkFailed !== this.lightCode)) {
+        if (!this.shown && this.lightH) box.style.setProperty("min-block-size", `calc(${this.lightH}px + var(--space-3) + var(--space-4) + 1px)`);
+        return;
+      }
+    }
+    if (url === this.shown && tone === this.tone) return;
+    const seq = this.swaps;
+    const commit = () => {
+      if (seq !== this.swaps) return;
+      if (img.getAttribute("src") !== url) img.setAttribute("src", url);
+      setAttr(img, "data-tone", tone || null);
+      setAttr(img, "width", this.lightW ? String(this.lightW) : null);
+      setAttr(img, "height", this.lightH ? String(this.lightH) : null);
+      box.style.removeProperty("min-block-size");
+      this.shown = url;
+      this.tone = tone;
+    };
+    if (!this.shown) {
+      commit();
+      return;
+    }
+    const probe = new Image();
+    probe.src = url;
+    probe.decode().then(commit, commit);
   }
 
   private draw(): void {
@@ -125,7 +198,7 @@ class CodeView implements NodeView {
       .then((d) => {
         if (this.node.textContent !== code || !this.diagram) return;
         if (this.fault) this.fault.hidden = true;
-        this.show(d.url, d.w, d.h);
+        this.setLight(d.url, d.w, d.h, code);
         const pos = this.getPos();
         if (!this.view.editable || pos === undefined || this.node.attrs.diagram === d.url) return;
         const attrs = { ...this.node.attrs, diagram: d.url, dw: d.w, dh: d.h, dsum: sourceSum(code) };
@@ -146,6 +219,10 @@ class CodeView implements NodeView {
 
   destroy(): void {
     clearTimeout(this.timer);
+    this.unwatch?.();
+    this.unwatch = null;
+    this.diagram = null;
+    this.swaps++;
   }
 
   private pickLanguage(): void {

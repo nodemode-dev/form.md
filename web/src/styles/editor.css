@@ -374,7 +374,7 @@
   display: none;
 }
 
-:root:not([data-theme="light"]) .diagram__img {
+:root:not([data-theme="light"]) .diagram__img:not([data-tone="dark"]) {
   filter: invert(1) hue-rotate(180deg);
 }
 
