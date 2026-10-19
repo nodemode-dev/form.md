@@ -728,6 +728,7 @@ function advancedTab(engine: Engine): Tab {
       });
 
       dev.input.addEventListener("change", () => {
+        document.documentElement.toggleAttribute("data-dev", dev.input.checked);
         try {
           if (dev.input.checked) localStorage.setItem(DEV_KEY, "1");
           else localStorage.removeItem(DEV_KEY);

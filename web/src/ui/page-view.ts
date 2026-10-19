@@ -428,7 +428,17 @@ export function mountPageView(engine: Engine): void {
     if (e.key === "Enter") {
       e.preventDefault();
       if (!desc.hidden) desc.focus();
-      else title.blur();
+      else {
+        const pm = editorWrap.querySelector<HTMLElement>('.ProseMirror[contenteditable="true"]');
+        if (!pm) return;
+        pm.focus({ preventScroll: true });
+        const sel = getSelection();
+        const first = document.createTreeWalker(pm, NodeFilter.SHOW_TEXT).nextNode();
+        if (sel) {
+          if (first) sel.collapse(first, 0);
+          else sel.collapse(pm, 0);
+        }
+      }
     } else if (e.key === "Escape") title.blur();
   });
   title.addEventListener("blur", () => {

@@ -1558,6 +1558,25 @@
   .tree-actions {
     display: inline-grid;
   }
+
+  .tree-row,
+  .flat-row,
+  .sb-trash,
+  .sb-head,
+  .sb-toggle,
+  .lib-row {
+    min-block-size: 44px;
+  }
+
+  .tree-actions {
+    block-size: 44px;
+  }
+
+  .sb-add,
+  .tree-act {
+    inline-size: 44px;
+    block-size: 44px;
+  }
 }
 
 @media (hover: none) {

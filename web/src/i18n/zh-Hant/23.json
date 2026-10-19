@@ -1,0 +1,21 @@
+{
+  "Start your first page": "建立你的第一個頁面",
+  "Welcome back": "歡迎回來",
+  "Start from a template": "從範本開始",
+  "Import a file": "匯入檔案",
+  "Recent pages": "最近的頁面",
+  "Shared spaces": "共享空間",
+  "New shared space": "新增共享空間",
+  "Shared space options": "共享空間選項",
+  "Shared space settings": "共享空間設定",
+  "Join shared space": "加入共享空間",
+  "Leave shared space": "離開共享空間",
+  "Move to": "移動到",
+  "Page outline": "頁面大綱",
+  "Terminal": "終端機",
+  "Welcome! Create your account. You will be the admin and can invite others later.": "歡迎！請建立你的帳號。你將成為管理員，之後可以邀請其他人。",
+  "Sign in with email and password instead": "改用電子郵件和密碼登入",
+  "form.md: pages and tables in one shared workspace.": "form.md：頁面和表格，盡在一個共享工作區。",
+  "You are offline. Pages saved on this device stay open and sync when you are back online.": "你已離線。儲存在此裝置上的頁面仍可開啟，恢復連線後會自動同步。",
+  "Write notes, plan a project or keep a table of things. Begin with a blank page, pick a template, or bring in what you already have.": "記筆記、規劃專案或維護表格。從空白頁面開始、選擇範本，或匯入你已有的內容。"
+}

@@ -1,0 +1,21 @@
+{
+  "Start your first page": "สร้างหน้าแรกของคุณ",
+  "Welcome back": "ยินดีต้อนรับกลับ",
+  "Start from a template": "เริ่มจากเทมเพลต",
+  "Import a file": "นำเข้าไฟล์",
+  "Recent pages": "หน้าล่าสุด",
+  "Shared spaces": "พื้นที่ร่วม",
+  "New shared space": "พื้นที่ร่วมใหม่",
+  "Shared space options": "ตัวเลือกพื้นที่ร่วม",
+  "Shared space settings": "การตั้งค่าพื้นที่ร่วม",
+  "Join shared space": "เข้าร่วมพื้นที่ร่วม",
+  "Leave shared space": "ออกจากพื้นที่ร่วม",
+  "Move to": "ย้ายไปที่",
+  "Page outline": "โครงร่างหน้า",
+  "Terminal": "เทอร์มินัล",
+  "Welcome! Create your account. You will be the admin and can invite others later.": "ยินดีต้อนรับ! สร้างบัญชีของคุณ คุณจะเป็นผู้ดูแลและเชิญคนอื่นได้ภายหลัง",
+  "Sign in with email and password instead": "เข้าสู่ระบบด้วยอีเมลและรหัสผ่านแทน",
+  "form.md: pages and tables in one shared workspace.": "form.md: หน้าและตารางในพื้นที่ทำงานร่วมกันแห่งเดียว",
+  "You are offline. Pages saved on this device stay open and sync when you are back online.": "คุณออฟไลน์อยู่ หน้าที่บันทึกไว้ในอุปกรณ์นี้ยังเปิดได้และจะซิงค์เมื่อกลับมาออนไลน์",
+  "Write notes, plan a project or keep a table of things. Begin with a blank page, pick a template, or bring in what you already have.": "จดบันทึก วางแผนโปรเจกต์ หรือทำตาราง เริ่มจากหน้าว่าง เลือกเทมเพลต หรือนำสิ่งที่คุณมีอยู่เข้ามา"
+}

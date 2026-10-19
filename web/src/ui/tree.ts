@@ -94,8 +94,8 @@ export function mountTree(engine: Engine): void {
   const favs = makeSection("favorites", t("Favorites"), "star");
   const tags = makeSection("tags", t("Tags"), "tag");
   const tree = makeSection("pages", t("Pages"), "page", t("New page"));
-  const notes = makeSection("notes", t("Notes"), "cards", t("New page"));
-  const teams = makeSection("teams", t("Teamspaces"), "users", t("New teamspace"));
+  const notes = makeSection("notes", t("Pages"), "cards", t("New page"));
+  const teams = makeSection("teams", t("Shared spaces"), "users", t("New shared space"));
   const shared = makeSection("shared", t("Shared with me"), "users");
   const dbs = makeSection("databases", t("Databases"), "database");
   const dbList = h("ul", { class: "sb-list", attrs: { role: "list" } });
@@ -103,7 +103,7 @@ export function mountTree(engine: Engine): void {
   const favList = h("ul", { class: "sb-list", attrs: { role: "list" } });
   const cloud = h("div", { class: "tag-cloud" });
   const root = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Pages") } });
-  const teamRoot = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Teamspaces") } });
+  const teamRoot = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Shared spaces") } });
   const sharedRoot = h("ul", { class: "tree", attrs: { role: "tree", "aria-label": t("Shared with me") } });
   const empty = h("p", { class: "sb-empty", text: t("Empty for now") });
   const filterLabel = h("span", { class: "sb-filter__tag" });
@@ -129,13 +129,6 @@ export function mountTree(engine: Engine): void {
     h("span", { class: "sb-label", text: t("Templates") }),
   );
   templatesRow.addEventListener("click", () => void import("./templates-dialog").then((m) => m.openTemplates(engine), engine.reportError));
-  const graphRow = h(
-    "button",
-    { class: "sb-trash sb-templates", attrs: { type: "button" } },
-    h("span", { class: "sb-icon" }, iconNode("diagram")),
-    h("span", { class: "sb-label", text: t("Link graph") }),
-  );
-  graphRow.addEventListener("click", () => void import("./graph-view").then((m) => m.openGraph(engine), engine.reportError));
   const importRow = h(
     "button",
     { class: "sb-trash sb-templates", attrs: { type: "button" } },
@@ -159,7 +152,7 @@ export function mountTree(engine: Engine): void {
   notes.body.append(noteChips, noteList, noteEmpty);
   const indicator = h("div", { class: "drop-indicator", attrs: { "aria-hidden": "true" } });
   indicator.hidden = true;
-  nav.append(inboxRow, favs.el, tags.el, filter, notes.el, teams.el, tree.el, shared.el, dbs.el, templatesRow, graphRow, importRow, trashRow, indicator);
+  nav.append(inboxRow, favs.el, tags.el, filter, notes.el, teams.el, tree.el, shared.el, dbs.el, templatesRow, importRow, trashRow, indicator);
 
   const nodes = new Map<string, HTMLLIElement>();
   const teamNodes = new Map<string, HTMLLIElement>();
@@ -271,7 +264,7 @@ export function mountTree(engine: Engine): void {
         "span",
         { class: "tree-actions" },
         h("button", { class: "tree-act", attrs: { type: "button", tabindex: "-1", "data-action": "team-add", "aria-label": t("Add a page"), "data-tip": t("Add a page") } }, iconNode("plus")),
-        h("button", { class: "tree-act", attrs: { type: "button", tabindex: "-1", "data-action": "team-more", "aria-label": t("Teamspace options"), "data-tip": t("Teamspace options") } }, iconNode("more")),
+        h("button", { class: "tree-act", attrs: { type: "button", tabindex: "-1", "data-action": "team-more", "aria-label": t("Shared space options"), "data-tip": t("Shared space options") } }, iconNode("more")),
       ),
     );
     const li = h("li", { class: "tree-node", attrs: { role: "none" } }, r);
@@ -547,8 +540,6 @@ export function mountTree(engine: Engine): void {
 
   const paintWritable = () => {
     const w = writable();
-    const split = engine.workspaceById(ws)?.sidebar_mode !== "tree";
-    setText(tree.el.querySelector(".sb-label") as HTMLElement, split ? t("Documents") : t("Pages"));
     setAttr(nav, "data-readonly", w ? null : "true");
     if (tree.add) tree.add.hidden = !w;
     if (notes.add) notes.add.hidden = !w;
@@ -706,14 +697,14 @@ export function mountTree(engine: Engine): void {
     const me = state.get("me")?.user.id ?? "";
     const entries: MenuEntry[] = [];
     if (teamWritable(team)) entries.push({ label: t("Add a page"), icon: "plus", run: () => void addInside("", teamId) });
-    entries.push({ label: team.can_manage ? t("Teamspace settings") : t("Members"), icon: team.can_manage ? "settings" : "users", run: () => openTeamspaceDialog(engine, ws, team) });
+    entries.push({ label: team.can_manage ? t("Shared space settings") : t("Members"), icon: team.can_manage ? "settings" : "users", run: () => openTeamspaceDialog(engine, ws, team) });
     if (!team.role && team.access === "open" && writable()) {
-      entries.push({ label: t("Join teamspace"), icon: "plus", run: () => void engine.api.teamspaces.setMember(teamId, me, "member").catch(engine.reportError) });
+      entries.push({ label: t("Join shared space"), icon: "plus", run: () => void engine.api.teamspaces.setMember(teamId, me, "member").catch(engine.reportError) });
     }
     if (team.role) {
-      entries.push({ kind: "separator" }, { label: t("Leave teamspace"), icon: "logout", danger: true, run: () => void engine.api.teamspaces.removeMember(teamId, me).catch(engine.reportError) });
+      entries.push({ kind: "separator" }, { label: t("Leave shared space"), icon: "logout", danger: true, run: () => void engine.api.teamspaces.removeMember(teamId, me).catch(engine.reportError) });
     }
-    openMenu(anchor, entries, { side: "bottom", align: "start", label: t("Teamspace options") });
+    openMenu(anchor, entries, { side: "bottom", align: "start", label: t("Shared space options") });
   };
 
   nav.addEventListener("click", (e) => {

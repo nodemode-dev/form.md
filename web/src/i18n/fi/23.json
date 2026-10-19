@@ -1,0 +1,21 @@
+{
+  "Start your first page": "Luo ensimmäinen sivusi",
+  "Welcome back": "Tervetuloa takaisin",
+  "Start from a template": "Aloita mallista",
+  "Import a file": "Tuo tiedosto",
+  "Recent pages": "Viimeisimmät sivut",
+  "Shared spaces": "Jaetut tilat",
+  "New shared space": "Uusi jaettu tila",
+  "Shared space options": "Jaetun tilan asetukset",
+  "Shared space settings": "Jaetun tilan asetukset",
+  "Join shared space": "Liity jaettuun tilaan",
+  "Leave shared space": "Poistu jaetusta tilasta",
+  "Move to": "Siirrä kohteeseen",
+  "Page outline": "Sivun rakenne",
+  "Terminal": "Pääte",
+  "Welcome! Create your account. You will be the admin and can invite others later.": "Tervetuloa! Luo tilisi. Sinusta tulee ylläpitäjä, ja voit kutsua muita myöhemmin.",
+  "Sign in with email and password instead": "Kirjaudu sen sijaan sähköpostilla ja salasanalla",
+  "form.md: pages and tables in one shared workspace.": "form.md: sivut ja taulukot yhdessä jaetussa työtilassa.",
+  "You are offline. Pages saved on this device stay open and sync when you are back online.": "Olet offline-tilassa. Tälle laitteelle tallennetut sivut pysyvät auki ja synkronoituvat, kun olet taas verkossa.",
+  "Write notes, plan a project or keep a table of things. Begin with a blank page, pick a template, or bring in what you already have.": "Kirjoita muistiinpanoja, suunnittele projekti tai pidä taulukkoa. Aloita tyhjältä sivulta, valitse malli tai tuo se, mitä sinulla jo on."
+}

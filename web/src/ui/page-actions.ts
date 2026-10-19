@@ -109,7 +109,7 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
     }
     const others = (engine.state.get("me")?.workspaces ?? []).filter((w) => w.id !== p.workspace_id && engine.canWrite(w.id));
     if (others.length) {
-      entries.push({ kind: "heading", label: t("Move to workspace") });
+      entries.push({ kind: "heading", label: t("Move to") });
       for (const w of others) entries.push({ label: w.name, lead: tile(w.name, w.icon, w.image), run: () => void moveToWorkspace(engine, id, w.id) });
     }
   }

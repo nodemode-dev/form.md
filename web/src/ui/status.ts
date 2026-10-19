@@ -1,24 +1,11 @@
-import type { Engine, HealthPhase } from "../engine";
+import type { Engine } from "../engine";
 import { t } from "../engine/i18n";
-import { delayedIndicator, ref, setAttr, setText } from "./dom";
+import { ref, setAttr, setText } from "./dom";
 import { toast } from "./toast";
-
-const LABEL: Record<HealthPhase, string> = {
-  idle: "Connecting",
-  ok: "Connected",
-  degraded: "Degraded",
-  down: "Unreachable",
-};
 
 const CONNECTION_TOAST = "connection";
 
 export function mountStatus(engine: Engine): void {
-  const card = ref("status");
-  const label = ref("status-label");
-  const server = ref("status-server");
-  const version = ref("status-version");
-  const storage = ref("status-storage");
-  const latency = ref("status-latency");
   const sidebarVersion = ref("version-text");
   const liveDot = ref("live-dot");
   engine.state.watch(
@@ -30,19 +17,14 @@ export function mountStatus(engine: Engine): void {
     { immediate: true },
   );
 
-  setText(server, location.host);
+  if (engine.state.get("auth") === "app") void import("./home-view").then((m) => m.mountHome(engine), engine.reportError);
 
   engine.state.watch("health", (health, previous) => {
-    setAttr(card, "data-state", health.phase);
-    setText(label, t(LABEL[health.phase]));
-    setText(version, health.version ?? "");
     if (health.version) setText(sidebarVersion, health.version);
     const role = engine.state.get("me")?.user.role;
     const update = health.latest && (role === "owner" || role === "admin") ? health.latest : "";
     setAttr(sidebarVersion, "data-update", update ? "true" : null);
     setAttr(sidebarVersion, "title", update ? t("{latest} is available", { latest: update }) : null);
-    setText(storage, health.storage === null ? "" : health.storage === "ok" ? "OK" : "Error");
-    setText(latency, health.latencyMs === null ? (health.phase === "down" ? "n/a" : "") : `${health.latencyMs} ms`);
 
     if (health.phase === previous.phase) return;
     if (health.phase === "down") {
@@ -57,19 +39,6 @@ export function mountStatus(engine: Engine): void {
       toast({ id: CONNECTION_TOAST, tone: "warning", message: t("The server is up, but its storage reports an error."), durationMs: 0 });
     } else if (health.phase === "ok" && (previous.phase === "down" || previous.phase === "degraded")) {
       toast({ id: CONNECTION_TOAST, tone: "success", message: t("Connection restored.") });
-    }
-  });
-
-  let stopIndicator: (() => void) | null = null;
-  engine.state.watch("checking", (checking) => {
-    if (checking && !stopIndicator) {
-      stopIndicator = delayedIndicator(
-        () => setAttr(card, "data-checking", "true"),
-        () => setAttr(card, "data-checking", null),
-      );
-    } else if (!checking && stopIndicator) {
-      stopIndicator();
-      stopIndicator = null;
     }
   });
 

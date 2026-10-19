@@ -16,7 +16,7 @@ const VIEWS: { id: LibraryView; label: () => string; icon: IconName }[] = [
   { id: "shared", label: () => t("Shared"), icon: "users" },
   { id: "private", label: () => t("Private"), icon: "lock" },
   { id: "all", label: () => t("All pages"), icon: "library" },
-  { id: "tree", label: () => t("Tree as agents read it"), icon: "list-tree" },
+  { id: "tree", label: () => t("Page outline"), icon: "list-tree" },
   { id: "graph", label: () => t("Link graph"), icon: "diagram" },
 ];
 

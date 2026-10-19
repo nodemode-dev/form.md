@@ -13,7 +13,7 @@ export const PREF_KEYS = {
 
 export function readThemePref(store: KeyValueStore): ThemePref {
   const v = store.get(PREF_KEYS.theme);
-  return v === "light" || v === "auto" || v === "dark" ? v : "dark";
+  return v === "light" || v === "auto" || v === "dark" ? v : "auto";
 }
 
 export function readSidebar(store: KeyValueStore): SidebarMode {

@@ -184,6 +184,23 @@ async function start(): Promise<void> {
           app.reportError(e);
         }));
     engine.state.watch("overlay", (v) => void (settingsOverlays.has(v) && ensureSettings()));
+    const rootEl = document.documentElement;
+    const syncDev = () => {
+      try {
+        rootEl.toggleAttribute("data-dev", localStorage.getItem("fm.dev") === "1");
+      } catch {
+        rootEl.removeAttribute("data-dev");
+      }
+    };
+    syncDev();
+    window.addEventListener("storage", (e) => (e.key === null || e.key === "fm.dev") && syncDev());
+    if (boot.me?.user.role === "owner") {
+      rootEl.setAttribute("data-owner", "");
+      fetchFn("/api/claude")
+        .then((r) => r.json())
+        .then((j: { enabled?: boolean }) => j.enabled === false && rootEl.setAttribute("data-harness", "off"))
+        .catch(() => undefined);
+    }
     const agentBtn = document.querySelector<HTMLButtonElement>("[data-ref='act-agent']");
     let agentJob: Promise<{ toggle(): void }> | null = null;
     const ensureAgent = () => {

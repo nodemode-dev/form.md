@@ -364,6 +364,13 @@
   column-gap: var(--space-1);
 }
 
+:root:not([data-dev]) .topbar .topbar__devonly,
+:root:not([data-owner]) .topbar .topbar__claude,
+:root[data-harness="off"] .topbar .topbar__claude,
+:root[data-harness="off"] .topbar .topbar__devonly {
+  display: none;
+}
+
 .scroller {
   min-block-size: 0;
   overflow: auto;
@@ -436,12 +443,48 @@
   }
 
   .crumbs {
+    flex: 1;
+    min-inline-size: 0;
     padding-inline-start: 0;
   }
 
-  .topbar__actions [data-command="dock.toggle"],
-  .topbar__actions [data-command="shell.showShortcuts"],
+  .crumbs__item:not([aria-current="page"]) {
+    display: none;
+  }
+
+  .crumbs__item {
+    flex: 1 1 auto;
+  }
+
+  .crumbs__sep {
+    display: none;
+  }
+
+  .topbar .topbar__dev,
+  .topbar .topbar__claude,
+  .topbar__actions [data-ref="act-agent"],
+  .topbar__actions [data-ref="act-visibility"],
   .topbar__mode > span {
     display: none;
+  }
+
+  .topbar .icon-btn,
+  .topbar__share,
+  .topbar__mode,
+  .sidebar__foot .segmented__btn,
+  .ws-switch,
+  .user-chip {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+
+  .topbar .icon-btn,
+  .topbar__share,
+  .topbar__mode {
+    block-size: 44px;
+  }
+
+  .topbar .icon-btn {
+    inline-size: 44px;
   }
 }

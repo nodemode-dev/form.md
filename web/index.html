@@ -4,18 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="description" content="form.md: one workspace for people and agents." />
+    <meta name="description" content="form.md: pages and tables in one shared workspace." />
     <title>form.md</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#08080a" />
-    <script>(function(){var d=document.documentElement,p="dark";try{var s=localStorage.getItem("formmd.theme");if(s==="light"||s==="dark"||s==="auto")p=s;if(localStorage.getItem("formmd.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed");if(localStorage.getItem("formmd.focus")==="1")d.setAttribute("data-focus","");if(localStorage.getItem("formmd.typewriterOff")==="1")d.setAttribute("data-typewriter-off","");var h=history.state,n=h&&h.tabs&&h.tabs.length,m=/^\/p\/([^/]+)\/?$/.exec(location.pathname);if(!n){var l=JSON.parse(localStorage.getItem("formmd.tabs")||"[]");n=Array.isArray(l)?l.length+(m&&l.indexOf(m[1])<0?1:0):0}if(n>1)d.setAttribute("data-tabbar","open")}catch(e){}var t=p==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):p;d.setAttribute("data-theme",t);d.setAttribute("data-theme-pref",p)})()</script>
+    <script>(function(){var d=document.documentElement,p="auto";try{var s=localStorage.getItem("formmd.theme");if(s==="light"||s==="dark"||s==="auto")p=s;if(localStorage.getItem("formmd.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed");if(localStorage.getItem("formmd.focus")==="1")d.setAttribute("data-focus","");if(localStorage.getItem("formmd.typewriterOff")==="1")d.setAttribute("data-typewriter-off","");var h=history.state,n=h&&h.tabs&&h.tabs.length,m=/^\/p\/([^/]+)\/?$/.exec(location.pathname);if(!n){var l=JSON.parse(localStorage.getItem("formmd.tabs")||"[]");n=Array.isArray(l)?l.length+(m&&l.indexOf(m[1])<0?1:0):0}if(n>1)d.setAttribute("data-tabbar","open")}catch(e){}var t=p==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):p;d.setAttribute("data-theme",t);d.setAttribute("data-theme-pref",p)})()</script>
     <link rel="preload" href="/src/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/src/styles/main.css" />
     <script type="module" src="/src/main.ts"></script>
     <!--html:preload-->
   </head>
   <body>
+    <script type="application/json" id="boot">null</script>
+    <script>(function(){try{var b=JSON.parse(document.getElementById("boot").textContent||"null"),p=b&&b.pages;document.documentElement.setAttribute("data-home",p&&p.length?"back":"new");if(b&&b.me&&b.me.user&&b.me.user.role==="owner")document.documentElement.setAttribute("data-owner","");if(localStorage.getItem("fm.dev")==="1")document.documentElement.setAttribute("data-dev","")}catch(e){}})()</script>
     <div id="app" class="app">
       <aside class="sidebar" id="sidebar" aria-label="Sidebar">
         <div class="sidebar__inner">
@@ -70,9 +72,10 @@
               <button class="icon-btn" type="button" data-ref="act-more" aria-haspopup="menu" aria-expanded="false" aria-label="More actions" data-tip="More actions"><i data-icon="more"></i></button>
             </span>
             <button class="icon-btn" type="button" data-ref="act-agent" aria-pressed="false" data-tip="Agent" aria-label="Agent"><i data-icon="bot"></i></button>
-            <button class="icon-btn" type="button" data-command="dock.toggle" data-tip="Terminal and Claude Code" aria-label="Terminal and Claude Code"><i data-icon="terminal"></i></button>
-            <button class="icon-btn topbar__sync" type="button" data-command="shell.sync" data-tip="Sync now" aria-label="Sync now"><i data-icon="refresh"></i></button>
-            <button class="icon-btn" type="button" data-command="shell.showShortcuts" data-tip="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+            <button class="icon-btn topbar__claude" type="button" data-command="dock.toggle" data-tip="Claude Code" aria-label="Claude Code"><i data-icon="agent"></i></button>
+            <button class="icon-btn topbar__dev topbar__devonly" type="button" data-command="dock.toggle" data-tip="Terminal" aria-label="Terminal"><i data-icon="terminal"></i></button>
+            <button class="icon-btn topbar__sync topbar__dev topbar__devonly" type="button" data-command="shell.sync" data-tip="Sync now" aria-label="Sync now"><i data-icon="refresh"></i></button>
+            <button class="icon-btn topbar__dev" type="button" data-command="shell.showShortcuts" data-tip="Keyboard shortcuts" aria-label="Keyboard shortcuts">
               <i data-icon="keyboard"></i>
             </button>
           </div>
@@ -85,26 +88,19 @@
           <section class="view view--trash" data-view="trash" data-ref="view-trash" aria-label="Trash"></section>
           <section class="view view--inbox" data-view="inbox" data-ref="view-inbox" aria-label="Inbox"></section>
           <article class="view doc" data-view="home" data-ref="view-home">
-            <p class="doc__eyebrow" data-ref="home-eyebrow">Welcome</p>
-            <h1 class="doc__title">form.md</h1>
-            <p class="doc__lead">One workspace where people and agents write documents, run databases and edit together in realtime. This workspace has no pages yet.</p>
-            <div class="doc__actions"><button class="btn btn--primary" type="button" data-command="page.new" data-ref="home-new"><i data-icon="plus"></i><span>New page</span></button></div>
-            <section class="status-card" aria-labelledby="status-title" data-ref="status" data-state="idle">
-              <header class="status-card__head">
-                <span class="status-dot" aria-hidden="true"></span>
-                <h2 class="status-card__title" id="status-title" data-ref="status-label">Connecting</h2>
-                <button class="text-btn" type="button" data-command="shell.checkConnection" data-tip="Check the connection now">
-                  <i data-icon="refresh"></i><span>Check</span>
-                </button>
-              </header>
-              <dl class="status-grid">
-                <div class="status-grid__item"><dt>Server</dt><dd data-ref="status-server"></dd></div>
-                <div class="status-grid__item"><dt>Version</dt><dd data-ref="status-version"></dd></div>
-                <div class="status-grid__item"><dt>Storage</dt><dd data-ref="status-storage"></dd></div>
-                <div class="status-grid__item"><dt>Latency</dt><dd data-ref="status-latency"></dd></div>
-              </dl>
+            <p class="doc__eyebrow" data-ref="home-eyebrow"><!--slot:ws-name--></p>
+            <h1 class="doc__title"><span data-when="new">Start your first page</span><span data-when="back">Welcome back</span></h1>
+            <p class="doc__lead" data-when="new">Write notes, plan a project or keep a table of things. Begin with a blank page, pick a template, or bring in what you already have.</p>
+            <div class="doc__actions">
+              <button class="btn btn--primary" type="button" data-command="page.new" data-ref="home-new"><i data-icon="plus"></i><span>New page</span></button>
+              <button class="btn" type="button" data-when="new" data-ref="home-templates"><i data-icon="gallery"></i><span>Start from a template</span></button>
+              <button class="btn" type="button" data-when="new" data-ref="home-import"><i data-icon="upload"></i><span>Import a file</span></button>
+            </div>
+            <section class="home-recent" data-when="back" aria-labelledby="home-recent-title">
+              <h2 class="home-recent__title" id="home-recent-title">Recent pages</h2>
+              <ul class="home-recent__list" data-ref="home-recent" role="list"></ul>
             </section>
-            <p class="doc__hint">Press <kbd>?</kbd> for keyboard shortcuts.</p>
+            <p class="home-offline" data-ref="home-offline" role="status" hidden>You are offline. Pages saved on this device stay open and sync when you are back online.</p>
           </article>
         </div>
       </main>
@@ -114,13 +110,13 @@
         <div class="auth__brand"><i data-icon="logo" class="auth__mark"></i><span><!--slot:instance-name--></span></div>
 
         <form class="auth__panel" data-panel="setup" novalidate>
-          <h1 class="auth__title">Set up form.md</h1>
-          <p class="auth__lead">Create the owner account. Everyone else joins by invitation afterwards.</p>
+          <h1 class="auth__title">Create your account</h1>
+          <p class="auth__lead">Welcome! Create your account. You will be the admin and can invite others later.</p>
           <label class="field"><span class="field__label">Name</span><input class="input" name="name" autocomplete="name" required /></label>
           <label class="field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="email" required /></label>
           <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required /><span class="field__hint">At least 8 characters.</span></label>
           <p class="form-status" role="alert"></p>
-          <button class="btn btn--primary btn--block" type="submit">Create owner account</button>
+          <button class="btn btn--primary btn--block" type="submit">Create account</button>
         </form>
 
         <form class="auth__panel" data-panel="login" data-step="password" novalidate>
@@ -136,7 +132,7 @@
             <button class="link-btn" type="button" data-ref="toggle-recovery">Use a recovery code instead</button>
           </div>
           <p class="form-status" role="alert"></p>
-          <button class="btn btn--primary btn--block" type="submit">Continue</button>
+          <button class="btn btn--primary btn--block" type="submit">Sign in</button>
           <div class="auth__sso">
             <p class="auth__divider"><span>or</span></p>
             <a class="btn btn--block auth__sso-btn" data-sso-id="saml" href="/api/auth/sso/saml/start" data-ref="saml-btn">Continue with <!--slot:saml-name--></a>
@@ -145,7 +141,7 @@
             <a class="btn btn--block auth__sso-btn" data-sso-id="oidc" href="/api/auth/sso/oidc/start" data-ref="oidc-btn">Continue with single sign-on</a>
           </div>
           <p class="auth__alt auth__alt--signup">No account yet? <a href="/signup">Create one</a></p>
-          <p class="auth__alt auth__alt--owner"><button class="link-btn" type="button" data-ref="owner-password">Instance owner? Sign in with your password</button></p>
+          <p class="auth__alt auth__alt--owner"><button class="link-btn" type="button" data-ref="owner-password">Sign in with email and password instead</button></p>
         </form>
 
         <form class="auth__panel" data-panel="signup" novalidate>
@@ -201,6 +197,5 @@
     </main>
     <div id="overlay-root"></div>
     <div id="toast-root" aria-live="polite" aria-relevant="additions"></div>
-    <script type="application/json" id="boot">null</script>
   </body>
 </html>
