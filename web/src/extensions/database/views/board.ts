@@ -56,7 +56,7 @@ export function paintCard(card: HTMLElement, row: RowData, ctx: ReturnType<ViewH
   if (!list) return;
   const shown = props.filter((p) => {
     const v = row.values[p.id];
-    return !(v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length)) || p.type === "checkbox";
+    return !(v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length)) || p.type === "checkbox" || isMeter(p);
   });
   reconcile(
     list,
@@ -65,9 +65,14 @@ export function paintCard(card: HTMLElement, row: RowData, ctx: ReturnType<ViewH
     () => h("div", { class: "card__prop" }),
     (el, p) => {
       el.dataset.prop = p.id;
+      setAttr(el, "data-meter", isMeter(p) ? "true" : null);
       paintCell(el, p, row, ctx, "card");
     },
   );
+}
+
+function isMeter(p: Property): boolean {
+  return p.type === "number" && (p.display === "bar" || p.display === "ring");
 }
 
 export function makeCard(withCover: boolean): HTMLElement {

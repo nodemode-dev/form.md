@@ -1525,6 +1525,14 @@
   color: var(--text-muted);
 }
 
+.card__prop[data-meter] {
+  min-block-size: 16px;
+}
+
+.card__prop[data-meter] .num {
+  min-block-size: 16px;
+}
+
 .card[data-size="small"] .card__cover {
   aspect-ratio: 2 / 1;
 }
