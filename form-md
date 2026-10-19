@@ -17,7 +17,7 @@ usage: ./form-md [command] [options]
   release              build every release target into release/ (same as ./build_app --all)
   serve                run the built binary (bin/form-md serve) on 127.0.0.1:8750
   claude [args]        Claude Code in this terminal with form.md's MCP tools attached (needs FORMMD_MCP_TOKEN)
-  mcp                  the MCP server over stdio for agents that start a command (Codex, Claude Desktop)
+  mcp                  the MCP server over stdio for agents that start a command (Codex, Claude Desktop); starts the local server when it is not running
   agents install       register form.md with Claude Code, Codex and Cursor (needs FORMMD_MCP_TOKEN)
   cli list|describe|run  the command catalogue of the open window: list [text], describe ID, run ID key=value ...
   doctor | backup | restore | admin | keygen | encrypt | version   the binary's own commands
@@ -50,7 +50,7 @@ case "$cmd" in
   claude)
     command -v claude >/dev/null 2>&1 || { printf '[form-md] Claude Code is not installed: https://claude.com/claude-code\n' >&2; exit 1; }
     [ -n "${FORMMD_MCP_TOKEN:-}" ] || { printf '[form-md] set FORMMD_MCP_TOKEN to a personal API token (Account settings, API tokens), or use the terminal panel inside form.md, which signs in for you\n' >&2; exit 1; }
-    exec claude --mcp-config "{\"mcpServers\":{\"formmd\":{\"type\":\"stdio\",\"command\":\"$PWD/form-md\",\"args\":[\"mcp\"]}}}" --allowedTools mcp__formmd "$@" ;;
+    exec claude --mcp-config "{\"mcpServers\":{\"form-md\":{\"type\":\"stdio\",\"command\":\"$PWD/form-md\",\"args\":[\"mcp\"]}}}" --allowedTools mcp__form-md "$@" ;;
   mcp) binary mcp "$@" ;;
   cli) binary cli "$@" ;;
   doctor|backup|restore|admin|keygen|encrypt|version) binary "$cmd" "$@" ;;
@@ -58,10 +58,13 @@ case "$cmd" in
     sub="${1:-install}"
     [ "$sub" = install ] || { usage; exit 2; }
     [ -n "${FORMMD_MCP_TOKEN:-}" ] || { printf '[form-md] set FORMMD_MCP_TOKEN to a personal API token first\n' >&2; exit 1; }
-    url="${FORMMD_MCP_URL:-http://127.0.0.1:8750/mcp}"
+    url="${FORMMD_MCP_URL:-http://127.0.0.1:8750}"
+    url="${url%/}"
+    url="${url%/mcp}/mcp"
     if command -v claude >/dev/null 2>&1; then
       claude mcp remove formmd -s user >/dev/null 2>&1 || true
-      claude mcp add --transport http -s user formmd "$url" --header "Authorization: Bearer $FORMMD_MCP_TOKEN" && printf '[form-md] Claude Code: formmd added for every project\n'
+      claude mcp remove form-md -s user >/dev/null 2>&1 || true
+      claude mcp add --transport http -s user form-md "$url" --header "Authorization: Bearer $FORMMD_MCP_TOKEN" && printf '[form-md] Claude Code: form-md added for every project\n'
     else
       printf '[form-md] Claude Code not found; skipped\n'
     fi

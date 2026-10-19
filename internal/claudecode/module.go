@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/coder/websocket"
 	"github.com/nodemode-ai/form.md/internal/app"
@@ -99,8 +101,39 @@ func (s *Service) claudeArgv(ctx context.Context, p *policy.Principal, extra ...
 	if err != nil {
 		return nil, err
 	}
-	argv := []string{info.Path, "--mcp-config", MCPConfig(EngineURL(s.addr), token), "--append-system-prompt", Note}
-	return append(argv, extra...), nil
+	argv := []string{info.Path, "--mcp-config", MCPConfig(EngineURL(s.addr), token), "--allowedTools", ToolPrefix, "--append-system-prompt", Note}
+	return Launch(append(argv, extra...)), nil
+}
+
+func (s *Service) openClaude(ctx context.Context, p *policy.Principal, prompt, resume, cwd string, cols, rows int) (*Session, error) {
+	extra := []string{}
+	title := "Claude Code"
+	if resume != "" {
+		extra = append(extra, "--resume", resume)
+		title = "Claude Code (from Chat)"
+	} else if prompt != "" {
+		extra = append(extra, prompt)
+	}
+	argv, err := s.claudeArgv(ctx, p, extra...)
+	if err != nil {
+		return nil, err
+	}
+	if cwd == "" {
+		cwd = agentDir(s.dataDir)
+	}
+	sess, err := s.Terms.Open(p.UserID, title, "claude", cwd, argv, s.env(), cols, rows)
+	if err != nil {
+		return nil, httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
+	}
+	return sess, nil
+}
+
+func (s *Service) terminalOf(p *policy.Principal, id string) (*Session, error) {
+	sess := s.Terms.Get(p.UserID, id)
+	if sess == nil {
+		return nil, httpx.Fail(http.StatusNotFound, "not_found", "no such terminal")
+	}
+	return sess, nil
 }
 
 func (m module) Mount(r *httpx.Router, d *app.Deps) error {
@@ -111,6 +144,10 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		out := map[string]any{"enabled": on, "windows": runtimeWindows(), "folder": agentDir(s.dataDir), "engine_url": EngineURL(s.addr)}
 		if on {
 			out["claude"] = Detect(s.env(), r.URL.Query().Get("fresh") == "1")
+			out["terminal"] = nil
+			if running := s.Terms.RunningClaude(p.UserID); running != nil {
+				out["terminal"] = running.Snapshot()
+			}
 		}
 		httpx.JSON(w, http.StatusOK, out)
 		return nil
@@ -137,32 +174,110 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		if err := httpx.Decode(r, &in); err != nil {
 			return err
 		}
-		var argv []string
-		title := ""
-		cwd := in.Cwd
 		if in.Kind == "claude" {
-			var extra []string
-			if in.Resume != "" {
-				extra = append(extra, "--resume", in.Resume)
-			} else if strings.TrimSpace(in.Context) != "" {
-				extra = append(extra, strings.TrimSpace(in.Context))
-			}
-			var err error
-			if argv, err = s.claudeArgv(r.Context(), p, extra...); err != nil {
+			sess, err := s.openClaude(r.Context(), p, strings.TrimSpace(in.Context), in.Resume, in.Cwd, in.Cols, in.Rows)
+			if err != nil {
 				return err
 			}
-			title = "Claude Code"
-			if cwd == "" {
-				cwd = agentDir(s.dataDir)
-			}
-		} else {
-			in.Kind = "shell"
+			httpx.JSON(w, http.StatusCreated, sess.Snapshot())
+			return nil
 		}
-		sess, err := s.Terms.Open(p.UserID, title, in.Kind, cwd, argv, s.env(), in.Cols, in.Rows)
+		sess, err := s.Terms.Open(p.UserID, "", "shell", in.Cwd, nil, s.env(), in.Cols, in.Rows)
 		if err != nil {
 			return httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
 		}
 		httpx.JSON(w, http.StatusCreated, sess.Snapshot())
+		return nil
+	}))
+	r.HandleFunc("POST /api/claude/open", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		if err := s.gate(p); err != nil {
+			return err
+		}
+		var in struct {
+			Prompt string `json:"prompt"`
+			Fresh  bool   `json:"fresh"`
+			Resume string `json:"resume"`
+			Cols   int    `json:"cols"`
+			Rows   int    `json:"rows"`
+		}
+		if err := httpx.Decode(r, &in); err != nil {
+			return err
+		}
+		prompt := strings.TrimSpace(in.Prompt)
+		if running := s.Terms.RunningClaude(p.UserID); running != nil && !in.Fresh && in.Resume == "" {
+			if prompt != "" {
+				running.Write([]byte(prompt + "\r"))
+			}
+			httpx.JSON(w, http.StatusOK, running.Snapshot())
+			return nil
+		}
+		sess, err := s.openClaude(r.Context(), p, prompt, in.Resume, "", in.Cols, in.Rows)
+		if err != nil {
+			return err
+		}
+		httpx.JSON(w, http.StatusCreated, sess.Snapshot())
+		return nil
+	}))
+	r.HandleFunc("POST /api/terminal/{id}/input", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		if err := s.gate(p); err != nil {
+			return err
+		}
+		sess, err := s.terminalOf(p, r.PathValue("id"))
+		if err != nil {
+			return err
+		}
+		var in struct {
+			Data string `json:"data"`
+		}
+		if err := httpx.Decode(r, &in); err != nil {
+			return err
+		}
+		if !sess.Snapshot().Alive {
+			return httpx.Fail(http.StatusConflict, "exited", "the terminal has exited; restart it or open a new one")
+		}
+		sess.Write([]byte(in.Data))
+		httpx.JSON(w, http.StatusOK, map[string]any{"written": len(in.Data)})
+		return nil
+	}))
+	r.HandleFunc("GET /api/terminal/{id}/read", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		if err := s.gate(p); err != nil {
+			return err
+		}
+		sess, err := s.terminalOf(p, r.PathValue("id"))
+		if err != nil {
+			return err
+		}
+		n, _ := strconv.Atoi(r.URL.Query().Get("chars"))
+		if n <= 0 {
+			n = 4000
+		}
+		if n > 200000 {
+			n = 200000
+		}
+		text := []rune(plainText(sess.Scrollback()))
+		if len(text) > n {
+			text = text[len(text)-n:]
+		}
+		httpx.JSON(w, http.StatusOK, map[string]any{"id": sess.ID, "alive": sess.Snapshot().Alive, "text": string(text)})
+		return nil
+	}))
+	r.HandleFunc("POST /api/terminal/{id}/resize", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		if err := s.gate(p); err != nil {
+			return err
+		}
+		sess, err := s.terminalOf(p, r.PathValue("id"))
+		if err != nil {
+			return err
+		}
+		var in struct {
+			Cols int `json:"cols"`
+			Rows int `json:"rows"`
+		}
+		if err := httpx.Decode(r, &in); err != nil {
+			return err
+		}
+		sess.Resize(in.Cols, in.Rows)
+		httpx.JSON(w, http.StatusOK, map[string]any{"id": sess.ID, "cols": in.Cols, "rows": in.Rows})
 		return nil
 	}))
 	r.HandleFunc("POST /api/terminal/{id}/restart", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
@@ -228,12 +343,11 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		}
 		ch := s.Chats.of(p.UserID)
 		ch.mu.Lock()
-		if ch.state.Busy {
-			ch.mu.Unlock()
+		busy := ch.state.Busy
+		ch.mu.Unlock()
+		if busy {
 			return httpx.Fail(http.StatusConflict, "busy", "Claude is still answering; wait or press Stop")
 		}
-		session := ch.state.Session
-		ch.mu.Unlock()
 		info := Detect(s.env(), true)
 		if !info.Installed {
 			return httpx.Fail(http.StatusBadRequest, "claude_missing", Install)
@@ -243,7 +357,13 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 			return err
 		}
 		ch.mu.Lock()
+		if ch.state.Busy {
+			ch.mu.Unlock()
+			return httpx.Fail(http.StatusConflict, "busy", "Claude is still answering; wait or press Stop")
+		}
+		session := ch.state.Session
 		ch.state.Busy = true
+		ch.state.Turn++
 		ch.state.Messages = append(ch.state.Messages, Message{Role: "user", Text: shown, Note: strings.TrimSpace(in.Note)})
 		ch.mu.Unlock()
 		h := w.Header()
@@ -254,7 +374,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		rc := http.NewResponseController(w)
 		var wmu sync.Mutex
 		gone := false
-		send := func(kind string, data map[string]any) {
+		write := func(kind string, data map[string]any) {
 			wmu.Lock()
 			defer wmu.Unlock()
 			if gone {
@@ -266,6 +386,10 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 				return
 			}
 			_ = rc.Flush()
+		}
+		send := func(kind string, data map[string]any) {
+			ch.fan(kind, data)
+			write(kind, data)
 		}
 		send("start", map[string]any{"text": shown, "note": strings.TrimSpace(in.Note)})
 		done := make(chan struct{})
@@ -296,17 +420,58 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		ch := s.Chats.of(p.UserID)
 		ch.cancel()
 		ch.mu.Lock()
-		ch.state = ChatState{Messages: []Message{}}
+		ch.state = ChatState{Messages: []Message{}, Turn: ch.state.Turn + 1}
 		ch.mu.Unlock()
+		ch.fan("reset", map[string]any{})
 		httpx.JSON(w, http.StatusOK, map[string]any{"reset": true})
 		return nil
+	}))
+	r.HandleFunc("GET /api/claude/chat/events", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		if err := s.gate(p); err != nil {
+			return err
+		}
+		ch := s.Chats.of(p.UserID)
+		sub, state := ch.subscribe()
+		defer ch.unsubscribe(sub)
+		h := w.Header()
+		h.Set("Content-Type", "text/event-stream")
+		h.Set("Cache-Control", "no-cache")
+		h.Set("X-Accel-Buffering", "no")
+		w.WriteHeader(http.StatusOK)
+		rc := http.NewResponseController(w)
+		emit := func(kind string, data any) bool {
+			raw, _ := json.Marshal(data)
+			if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", kind, raw); err != nil {
+				return false
+			}
+			return rc.Flush() == nil
+		}
+		if !emit("snapshot", state) {
+			return nil
+		}
+		beat := time.NewTicker(25 * time.Second)
+		defer beat.Stop()
+		for {
+			select {
+			case <-r.Context().Done():
+				return nil
+			case ev := <-sub:
+				if !emit(ev.Kind, ev.Data) {
+					return nil
+				}
+			case <-beat.C:
+				if _, err := fmt.Fprint(w, ": keep-alive\n\n"); err != nil || rc.Flush() != nil {
+					return nil
+				}
+			}
+		}
 	}))
 	r.HandleFunc("GET /api/claude/sessions", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 		if err := s.gate(p); err != nil {
 			return err
 		}
 		cur := s.Chats.of(p.UserID).snapshot().Session
-		httpx.JSON(w, http.StatusOK, map[string]any{"sessions": conversations(agentDir(s.dataDir), cur)})
+		httpx.JSON(w, http.StatusOK, map[string]any{"sessions": conversations(agentDir(s.dataDir), cur), "folder": agentDir(s.dataDir)})
 		return nil
 	}))
 	r.HandleFunc("POST /api/claude/adopt", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
@@ -336,8 +501,9 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 			ch.mu.Unlock()
 			return httpx.Fail(http.StatusConflict, "busy", "Claude is still answering; wait or press Stop")
 		}
-		ch.state = ChatState{Session: pick, Messages: msgs}
+		ch.state = ChatState{Session: pick, Messages: msgs, Turn: ch.state.Turn + 1}
 		ch.mu.Unlock()
+		ch.fan("adopted", map[string]any{"session": pick, "count": len(msgs)})
 		httpx.JSON(w, http.StatusOK, ch.snapshot())
 		return nil
 	}))

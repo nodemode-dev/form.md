@@ -126,7 +126,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "  admin set KEY VALUE   change an instance setting, for example https.auto false")
 	fmt.Fprintln(w, "  keygen                print a new at-rest encryption key")
 	fmt.Fprintln(w, "  encrypt               encrypt a plain data directory with FORMMD_KEY_FILE (server stopped)")
-	fmt.Fprintln(w, "  mcp                   bridge MCP between standard input and output and a form.md server, for Codex and other clients that start a command")
+	fmt.Fprintln(w, "  mcp                   bridge MCP between standard input and output and a form.md server, for Codex and other clients that start a command; a server on this computer that is not running is started")
 	fmt.Fprintln(w, "  cli list|describe|run  the command catalogue of the open window: list [text], describe ID, run ID key=value ...")
 	fmt.Fprintln(w, "  version               print the version")
 	fmt.Fprintln(w, "  help                  show this help")
@@ -141,6 +141,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "\nFor form-md mcp:")
 	fmt.Fprintf(w, "  %-19s server address (default: http://127.0.0.1:8750), or --url\n", bridgeURLEnv)
 	fmt.Fprintf(w, "  %-19s personal API token, or --token\n", bridgeTokenEnv)
+	fmt.Fprintf(w, "  %-19s set to 0 to stop form-md mcp from starting a local server that is not running\n", "FORMMD_MCP_AUTOSTART")
 	fmt.Fprintln(w, "\nInstance setting defaults (a value saved in Instance settings wins):")
 	for _, d := range settings.Defs {
 		if d.Env != "" {

@@ -6,7 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -127,6 +129,7 @@ func (s *Session) pump(f *os.File, cmd *exec.Cmd, gen int) {
 			s.mu.Lock()
 			if s.gen != gen {
 				s.mu.Unlock()
+				_ = cmd.Wait()
 				return
 			}
 			s.buf = append(s.buf, data...)
@@ -198,13 +201,17 @@ func (s *Session) Resize(cols, rows int) {
 	}
 }
 
-func (s *Session) stop() {
+func (s *Session) stop() { s.halt(true) }
+
+func (s *Session) halt(dropSubs bool) {
 	s.mu.Lock()
 	s.gen++
 	f, cmd := s.f, s.cmd
-	for ch := range s.subs {
-		close(ch)
-		delete(s.subs, ch)
+	if dropSubs {
+		for ch := range s.subs {
+			close(ch)
+			delete(s.subs, ch)
+		}
 	}
 	s.Alive = false
 	s.mu.Unlock()
@@ -227,11 +234,46 @@ func (t *Terminals) Restart(owner, id string) (*Session, error) {
 	if s == nil {
 		return nil, errNoTerminal
 	}
-	s.stop()
+	s.halt(false)
 	s.mu.Lock()
 	s.buf = []byte("\x1bc")
+	for ch := range s.subs {
+		select {
+		case ch <- []byte("\x1bc"):
+		default:
+		}
+	}
 	s.mu.Unlock()
 	return s, s.spawn()
+}
+
+var ansi = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(\x07|\x1b\\)|\x1b[@-_]`)
+
+func plainText(raw []byte) string {
+	text := ansi.ReplaceAllString(string(raw), "")
+	return strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "")
+}
+
+func (s *Session) Scrollback() []byte {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]byte(nil), s.buf...)
+}
+
+func (t *Terminals) RunningClaude(owner string) *Session {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for _, s := range t.sessions {
+		if s.owner == owner && s.Kind == "claude" {
+			s.mu.Lock()
+			alive := s.Alive
+			s.mu.Unlock()
+			if alive {
+				return s
+			}
+		}
+	}
+	return nil
 }
 
 var errNoTerminal = errors.New("no such terminal")
@@ -285,6 +327,12 @@ func runtimeWindows() bool { return runtime.GOOS == "windows" }
 
 func agentDir(dataDir string) string {
 	d := filepath.Join(dataDir, "agent")
-	_ = os.MkdirAll(d, 0o700)
+	if v := strings.TrimSpace(os.Getenv("FORMMD_AGENT_DIR")); v != "" {
+		d = v
+	}
+	if err := os.MkdirAll(d, 0o700); err != nil {
+		d = filepath.Join(dataDir, "agent")
+		_ = os.MkdirAll(d, 0o700)
+	}
 	return d
 }

@@ -12,9 +12,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nodemode-ai/form.md/internal/claudecode"
 )
 
 const (
@@ -51,6 +55,62 @@ func headerValue(v string) string {
 		}
 	}
 	return v
+}
+
+var (
+	startOnce sync.Once
+	started   bool
+)
+
+func autostart(endpoint string) bool {
+	startOnce.Do(func() { started = launchServer(endpoint) })
+	return started
+}
+
+func launchServer(endpoint string) bool {
+	if v := strings.ToLower(os.Getenv("FORMMD_MCP_AUTOSTART")); v == "0" || v == "off" || v == "false" {
+		return false
+	}
+	u, err := url.Parse(endpoint)
+	if err != nil || u.Scheme != "http" || !claudecode.Local(u.Host) {
+		return false
+	}
+	data := os.Getenv("FORMMD_DATA")
+	if data == "" {
+		if st, err := os.Stat("data"); err != nil || !st.IsDir() {
+			return false
+		}
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return false
+	}
+	logFile, err := os.OpenFile(filepath.Join(os.TempDir(), "form-md-server.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return false
+	}
+	defer logFile.Close()
+	fmt.Fprintf(os.Stderr, "form-md mcp: starting the server (form-md serve); its log: %s\n", logFile.Name())
+	cmd := exec.Command(exe, "serve")
+	cmd.Env = append(os.Environ(), "FORMMD_ADDR="+u.Host)
+	cmd.Stdout, cmd.Stderr = logFile, logFile
+	detach(cmd)
+	if cmd.Start() != nil {
+		return false
+	}
+	go func() { _ = cmd.Wait() }()
+	probe := &http.Client{Timeout: 2 * time.Second}
+	for i := 0; i < 120; i++ {
+		time.Sleep(500 * time.Millisecond)
+		res, err := probe.Get(u.Scheme + "://" + u.Host + "/healthz")
+		if err == nil {
+			res.Body.Close()
+			if res.StatusCode == http.StatusOK {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func bridge(args []string) int {
@@ -144,6 +204,12 @@ func forward(client *http.Client, endpoint, token string, msg []byte, out *bridg
 		}
 	}
 	resp, err := client.Do(hr)
+	if err != nil && autostart(endpoint) {
+		if body, e := hr.GetBody(); e == nil {
+			hr.Body = body
+			resp, err = client.Do(hr)
+		}
+	}
 	if err != nil {
 		out.fail(req.ID, -32603, "form.md is not reachable at "+endpoint+": "+err.Error())
 		return

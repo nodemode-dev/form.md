@@ -56,8 +56,10 @@ type Usage struct {
 
 type ChatState struct {
 	Busy     bool      `json:"busy"`
+	Turn     int       `json:"turn"`
 	Session  string    `json:"session"`
 	Messages []Message `json:"messages"`
+	Live     *Message  `json:"live,omitempty"`
 	Usage    Usage     `json:"usage"`
 }
 
@@ -66,6 +68,49 @@ type chat struct {
 	state     ChatState
 	proc      *exec.Cmd
 	cancelled bool
+	subs      map[chan chatEvent]struct{}
+}
+
+type chatEvent struct {
+	Kind string
+	Data map[string]any
+}
+
+func (c *chat) subscribe() (chan chatEvent, ChatState) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.subs == nil {
+		c.subs = map[chan chatEvent]struct{}{}
+	}
+	ch := make(chan chatEvent, 512)
+	c.subs[ch] = struct{}{}
+	out := c.state
+	out.Messages = append([]Message{}, c.state.Messages...)
+	return ch, out
+}
+
+func (c *chat) unsubscribe(ch chan chatEvent) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.subs, ch)
+}
+
+func (c *chat) fan(kind string, data map[string]any) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for ch := range c.subs {
+		select {
+		case ch <- chatEvent{kind, data}:
+		default:
+		}
+	}
+}
+
+func (c *chat) setLive(m *Message) {
+	cp := Message{Role: m.Role, Parts: append([]Part{}, m.Parts...)}
+	c.mu.Lock()
+	c.state.Live = &cp
+	c.mu.Unlock()
 }
 
 type Chats struct {
@@ -127,11 +172,11 @@ func usageOf(u map[string]any) (int, int) {
 
 func chatArgv(path, text, session, mcp string) []string {
 	argv := []string{path, "-p", text, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-		"--mcp-config", mcp, "--allowedTools", "mcp__formmd", "--append-system-prompt", chatNote}
+		"--mcp-config", mcp, "--allowedTools", ToolPrefix, "--append-system-prompt", chatNote}
 	if session != "" {
 		argv = append(argv, "--resume", session)
 	}
-	return argv
+	return Launch(argv)
 }
 
 type emit func(kind string, data map[string]any)
@@ -220,7 +265,8 @@ func (c *chat) run(argv []string, dir string, env []string, send emit) {
 					}
 					us := c.state.Usage
 					c.mu.Unlock()
-					send("usage", map[string]any{"context": us.Context, "window": us.Window, "output": doneOut + callOut, "model": us.Model})
+					send("usage", map[string]any{"context": us.Context, "window": us.Window, "output": doneOut + callOut, "model": us.Model,
+						"session": map[string]any{"input": us.Input, "output": us.Output, "cost_usd": us.CostUSD}})
 				case "content_block_delta":
 					if d["type"] == "text_delta" {
 						if t, _ := d["text"].(string); t != "" {
@@ -228,6 +274,7 @@ func (c *chat) run(argv []string, dir string, env []string, send emit) {
 								reply.Parts = append(reply.Parts, Part{Kind: "text"})
 							}
 							reply.Parts[len(reply.Parts)-1].Text += t
+							c.setLive(&reply)
 							send("delta", map[string]any{"text": t})
 						}
 					}
@@ -244,6 +291,7 @@ func (c *chat) run(argv []string, dir string, env []string, send emit) {
 					id, _ := b["id"].(string)
 					p := Part{Kind: "tool", ID: id, Name: toolName(name), Input: brief(b["input"]), Status: "running"}
 					reply.Parts = append(reply.Parts, p)
+					c.setLive(&reply)
 					send("tool", map[string]any{"id": p.ID, "name": p.Name, "input": p.Input})
 				}
 			case "user":
@@ -262,6 +310,7 @@ func (c *chat) run(argv []string, dir string, env []string, send emit) {
 					for i := range reply.Parts {
 						if reply.Parts[i].Kind == "tool" && reply.Parts[i].ID == id {
 							reply.Parts[i].Status = status
+							c.setLive(&reply)
 							send("toolDone", map[string]any{"id": id, "status": status})
 						}
 					}
@@ -340,6 +389,7 @@ func (c *chat) run(argv []string, dir string, env []string, send emit) {
 		c.state.Messages = c.state.Messages[n-maxMessages:]
 	}
 	c.state.Busy = false
+	c.state.Live = nil
 	c.cancelled = false
 	us := c.state.Usage
 	c.mu.Unlock()

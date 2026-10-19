@@ -28,9 +28,13 @@ Every number the method uses (budgets, weights, half-lives, thresholds) is in th
 
 - Codex: `~/.codex/config.toml`, see `examples/agents/codex.config.toml`. It runs `form-md mcp`, the stdio bridge, with `FORMMD_MCP_URL` and `FORMMD_MCP_TOKEN`.
 - Cursor: `.cursor/mcp.json` in this repo points at a local server; `.cursor/rules/contextual-compression.mdc` applies the method.
-- Claude Code: `.mcp.json` in this repo, or `claude mcp add --transport http form-md [address]/mcp`.
+- Claude Code: `.mcp.json` in this repo, `./form-md claude` (Claude Code with the tools attached), `./form-md agents install` (every project), or `claude mcp add --transport http form-md [address]/mcp`. In the app's terminal panel Claude Code is already connected and signed in.
 
-Make a personal API token in Account settings, Connected apps, and export it as `FORMMD_MCP_TOKEN`.
+Make a personal API token in Account settings, Connected apps, and export it as `FORMMD_MCP_TOKEN`. The server is named `form-md` in every client, so tools appear as `mcp__form-md__...`.
+
+## Working on a workspace
+
+When the person wants pages, documents, databases or comments read or changed, use the `form-md` MCP tools, not the source. Call `whoami` first and follow the workspace rules it returns, then `context_pack`; find before you create, edit blocks by id, and pass a write's `run_id` to later writes of the same task so the person can undo them together. A refused call means the credential is read-only or the workspace is not granted: say so and stop. `form-md cli list` shows what the open window can do; `form-md mcp` starts a local server that is not running (`FORMMD_MCP_AUTOSTART=0` stops that).
 
 ## Rules for changes
 
