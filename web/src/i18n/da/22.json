@@ -1,0 +1,12 @@
+{
+  "Include the web": "Medtag nettet",
+  "Reading the workspace and the web": "Læser arbejdsområdet og nettet",
+  "The web gave no usable pages; answering from the workspace": "Nettet gav ingen brugbare sider; svarer ud fra arbejdsområdet",
+  "Web search for answers": "Websøgning til svar",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "Lader folk sætte flueben i Medtag nettet, når de stiller et spørgsmål. Kun spørgsmålet sendes til søgetjenesten; de tre øverste resultater hentes og gives til modellen som kilder, der ikke er tillid til.",
+  "Search service": "Søgetjeneste",
+  "Search address": "Søgeadresse",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: adressen på dens søgeside med JSON-output tilladt. Brave: lad feltet stå tomt for det offentlige API, eller angiv en kompatibel adresse.",
+  "Search API key": "API-nøgle til søgning",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Kun Brave. Forseglet i databasen; lad feltet stå tomt for at beholde den gemte nøgle."
+}

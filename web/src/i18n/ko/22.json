@@ -1,0 +1,12 @@
+{
+  "Include the web": "웹 포함",
+  "Reading the workspace and the web": "워크스페이스와 웹을 읽는 중",
+  "The web gave no usable pages; answering from the workspace": "웹에서 쓸 만한 페이지를 찾지 못해 워크스페이스로 답합니다",
+  "Web search for answers": "답변용 웹 검색",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "질문할 때 웹 포함을 선택할 수 있게 합니다. 검색 서비스에는 질문만 보내며, 상위 세 결과를 가져와 신뢰할 수 없는 출처로 모델에 전달합니다.",
+  "Search service": "검색 서비스",
+  "Search address": "검색 주소",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: JSON 출력이 허용된 검색 페이지 주소. Brave: 공개 API를 쓰려면 비워 두거나 호환 주소를 입력하세요.",
+  "Search API key": "검색 API 키",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Brave 전용. 데이터베이스에 봉인되어 저장됩니다. 저장된 키를 유지하려면 비워 두세요."
+}

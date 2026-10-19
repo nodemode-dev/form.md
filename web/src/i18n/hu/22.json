@@ -1,0 +1,12 @@
+{
+  "Include the web": "A web bevonása",
+  "Reading the workspace and the web": "A munkaterület és a web olvasása",
+  "The web gave no usable pages; answering from the workspace": "A web nem adott használható oldalt; válasz a munkaterületből",
+  "Web search for answers": "Webes keresés a válaszokhoz",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "Kérdezéskor bejelölhető A web bevonása. A keresőszolgáltatás csak a kérdést kapja meg; az első három találatot letöltjük, és nem megbízható forrásként adjuk át a modellnek.",
+  "Search service": "Keresőszolgáltatás",
+  "Search address": "Keresési cím",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: a keresőoldalának címe, engedélyezett JSON-kimenettel. Brave: hagyja üresen a nyilvános API-hoz, vagy adjon meg egy kompatibilis címet.",
+  "Search API key": "Keresési API-kulcs",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Csak Brave. Lepecsételve az adatbázisban; hagyja üresen a mentett kulcs megtartásához."
+}

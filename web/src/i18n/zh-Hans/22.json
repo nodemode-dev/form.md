@@ -1,0 +1,12 @@
+{
+  "Include the web": "包括网络",
+  "Reading the workspace and the web": "正在读取工作区和网络",
+  "The web gave no usable pages; answering from the workspace": "网络没有可用的页面；改为根据工作区回答",
+  "Web search for answers": "用于回答的网络搜索",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "提问时可勾选“包括网络”。只有问题会发送给搜索服务；前三个结果会被获取，并作为不受信任的来源交给模型。",
+  "Search service": "搜索服务",
+  "Search address": "搜索地址",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG：其搜索页面的地址，需允许 JSON 输出。Brave：留空使用公共 API，或填写兼容的地址。",
+  "Search API key": "搜索 API 密钥",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "仅限 Brave。密封存储在数据库中；留空则保留已保存的密钥。"
+}

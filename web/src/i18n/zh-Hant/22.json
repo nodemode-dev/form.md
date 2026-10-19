@@ -1,0 +1,12 @@
+{
+  "Include the web": "納入網路",
+  "Reading the workspace and the web": "正在讀取工作區與網路",
+  "The web gave no usable pages; answering from the workspace": "網路沒有可用的頁面；改依工作區回答",
+  "Web search for answers": "用於回答的網路搜尋",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "提問時可勾選「納入網路」。只有問題會傳送給搜尋服務；前三筆結果會被擷取，並作為不受信任的來源交給模型。",
+  "Search service": "搜尋服務",
+  "Search address": "搜尋位址",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG：其搜尋頁面的位址，需允許 JSON 輸出。Brave：留空以使用公開 API，或填入相容的位址。",
+  "Search API key": "搜尋 API 金鑰",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "僅限 Brave。密封儲存在資料庫中；留空則保留已儲存的金鑰。"
+}

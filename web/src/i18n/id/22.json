@@ -1,0 +1,12 @@
+{
+  "Include the web": "Sertakan web",
+  "Reading the workspace and the web": "Membaca ruang kerja dan web",
+  "The web gave no usable pages; answering from the workspace": "Web tidak memberikan halaman yang bisa dipakai; menjawab dari ruang kerja",
+  "Web search for answers": "Pencarian web untuk jawaban",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "Memungkinkan orang mencentang Sertakan web saat bertanya. Hanya pertanyaan yang dikirim ke layanan pencarian; tiga hasil teratas diambil dan diberikan ke model sebagai sumber yang tidak tepercaya.",
+  "Search service": "Layanan pencarian",
+  "Search address": "Alamat pencarian",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: alamat halaman pencariannya, dengan keluaran JSON diizinkan. Brave: kosongkan untuk API publik, atau isi alamat yang kompatibel.",
+  "Search API key": "Kunci API pencarian",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Hanya Brave. Disegel di basis data; kosongkan untuk mempertahankan kunci yang tersimpan."
+}

@@ -1,0 +1,12 @@
+{
+  "Include the web": "Шукати в інтернеті",
+  "Reading the workspace and the web": "Читання робочого простору й інтернету",
+  "The web gave no usable pages; answering from the workspace": "В інтернеті не знайшлося придатних сторінок; відповідь із робочого простору",
+  "Web search for answers": "Пошук в інтернеті для відповідей",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "Дозволяє позначити «Шукати в інтернеті» під час запитання. До пошукової служби надсилається лише запитання; три найкращі результати завантажуються й передаються моделі як недовірені джерела.",
+  "Search service": "Пошукова служба",
+  "Search address": "Адреса пошуку",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: адреса його сторінки пошуку з дозволеним виводом JSON. Brave: залиште порожнім для публічного API або вкажіть сумісну адресу.",
+  "Search API key": "Ключ API пошуку",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Лише для Brave. Зберігається в базі даних у зашифрованому вигляді; залиште порожнім, щоб зберегти поточний ключ."
+}

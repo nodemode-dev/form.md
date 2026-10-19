@@ -1,0 +1,12 @@
+{
+  "Include the web": "ウェブも含める",
+  "Reading the workspace and the web": "ワークスペースとウェブを読み込み中",
+  "The web gave no usable pages; answering from the workspace": "ウェブから使えるページが得られませんでした。ワークスペースから回答します",
+  "Web search for answers": "回答のためのウェブ検索",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "質問するときに「ウェブも含める」を選べるようにします。検索サービスに送られるのは質問だけです。上位 3 件の結果を取得し、信頼できない情報源としてモデルに渡します。",
+  "Search service": "検索サービス",
+  "Search address": "検索アドレス",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: JSON 出力を許可した検索ページのアドレス。Brave: 公開 API を使う場合は空欄、または互換アドレスを指定します。",
+  "Search API key": "検索 API キー",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Brave のみ。データベースに封印して保存されます。空欄のままにすると保存済みのキーを使い続けます。"
+}

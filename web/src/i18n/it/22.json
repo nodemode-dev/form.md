@@ -1,0 +1,12 @@
+{
+  "Include the web": "Includi il web",
+  "Reading the workspace and the web": "Lettura dello spazio di lavoro e del web",
+  "The web gave no usable pages; answering from the workspace": "Il web non ha dato pagine utilizzabili; risposta dallo spazio di lavoro",
+  "Web search for answers": "Ricerca web per le risposte",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "Consente di spuntare Includi il web quando si pone una domanda. Al servizio di ricerca viene inviata solo la domanda; i primi tre risultati vengono scaricati e dati al modello come fonti non attendibili.",
+  "Search service": "Servizio di ricerca",
+  "Search address": "Indirizzo di ricerca",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: l’indirizzo della sua pagina di ricerca, con output JSON consentito. Brave: lascia vuoto per l’API pubblica o indica un indirizzo compatibile.",
+  "Search API key": "Chiave API di ricerca",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Solo Brave. Sigillata nel database; lascia vuoto per mantenere la chiave salvata."
+}

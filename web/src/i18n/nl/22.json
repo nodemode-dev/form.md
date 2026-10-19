@@ -1,0 +1,12 @@
+{
+  "Include the web": "Web meenemen",
+  "Reading the workspace and the web": "Werkruimte en web worden gelezen",
+  "The web gave no usable pages; answering from the workspace": "Het web gaf geen bruikbare pagina's; antwoord uit de werkruimte",
+  "Web search for answers": "Webzoeken voor antwoorden",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "Laat mensen bij een vraag Web meenemen aanvinken. Alleen de vraag gaat naar de zoekdienst; de drie beste resultaten worden opgehaald en als niet-vertrouwde bronnen aan het model gegeven.",
+  "Search service": "Zoekdienst",
+  "Search address": "Zoekadres",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: het adres van de zoekpagina, met JSON-uitvoer toegestaan. Brave: leeg laten voor de openbare API, of een compatibel adres opgeven.",
+  "Search API key": "API-sleutel voor zoeken",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Alleen Brave. Verzegeld in de database; leeg laten om de opgeslagen sleutel te houden."
+}

@@ -1,0 +1,12 @@
+{
+  "Include the web": "Bao gồm web",
+  "Reading the workspace and the web": "Đang đọc không gian làm việc và web",
+  "The web gave no usable pages; answering from the workspace": "Web không cho trang nào dùng được; trả lời từ không gian làm việc",
+  "Web search for answers": "Tìm kiếm web cho câu trả lời",
+  "Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources.": "Cho phép đánh dấu Bao gồm web khi đặt câu hỏi. Chỉ câu hỏi được gửi đến dịch vụ tìm kiếm; ba kết quả đầu được tải về và đưa cho mô hình như nguồn không đáng tin cậy.",
+  "Search service": "Dịch vụ tìm kiếm",
+  "Search address": "Địa chỉ tìm kiếm",
+  "SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.": "SearXNG: địa chỉ trang tìm kiếm của nó, cho phép xuất JSON. Brave: để trống để dùng API công khai, hoặc nhập một địa chỉ tương thích.",
+  "Search API key": "Khóa API tìm kiếm",
+  "Brave only. Sealed in the database; leave empty to keep the saved key.": "Chỉ dành cho Brave. Được niêm phong trong cơ sở dữ liệu; để trống để giữ khóa đã lưu."
+}
