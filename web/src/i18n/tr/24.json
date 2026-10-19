@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "Bağlantıya sahip herkes",
+  "view": "görüntüleyebilir",
+  "comment": "yorum yapabilir",
+  "Web address": "Web adresi",
+  "More options": "Daha fazla seçenek",
+  "Advanced": "Gelişmiş",
+  "Show developer tools": "Geliştirici araçlarını göster",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "form.md ile geliştirme yapanlar için terminali ve diğer araçları ekler. Bu cihazda hatırlanır.",
+  "For people who connect scripts and agents. Most people never need these.": "Komut dosyaları ve aracılar bağlayanlar içindir. Çoğu kişi buna hiç ihtiyaç duymaz.",
+  "Advanced: network": "Gelişmiş: ağ",
+  "Admin settings": "Yönetici ayarları",
+  "Show password": "Parolayı göster",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "E-posta veya parola doğru değil. Tekrar deneyin ya da çalışma alanı yöneticinizden sıfırlamasını isteyin."
+}

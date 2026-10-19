@@ -50,7 +50,7 @@ function setup(engine: Engine): void {
     }),
     commands.register({
       id: "admin.open",
-      label: () => t("Instance settings"),
+      label: () => t("Admin settings"),
       group: ACCOUNT,
       description: "Opens the instance settings dialog. Only owners and admins can run it.",
       mutates: false,

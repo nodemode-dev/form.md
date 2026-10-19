@@ -247,3 +247,134 @@
     inline-size: 100%;
   }
 }
+
+.disclosure {
+  border-block-start: 1px solid var(--border);
+  padding-block-start: var(--space-1);
+}
+
+.disclosure__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 40px;
+  padding-inline: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure__summary:hover {
+  color: var(--text);
+}
+
+.disclosure__summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.disclosure__summary > svg {
+  flex: none;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.disclosure[open] > .disclosure__summary > svg {
+  transform: rotate(90deg);
+}
+
+.disclosure__body {
+  display: grid;
+  row-gap: var(--space-4);
+  padding-block: var(--space-3) var(--space-1);
+}
+
+.share-who {
+  display: grid;
+  row-gap: var(--space-2);
+}
+
+.share-opts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.share-linklead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.share-linklead__text {
+  font-size: var(--text-md);
+}
+
+.share-linklead .select {
+  inline-size: auto;
+  min-inline-size: 128px;
+}
+
+.publish-top {
+  display: grid;
+}
+
+.publish-top > * {
+  grid-area: 1 / 1;
+  align-self: start;
+  min-inline-size: 0;
+}
+
+.publish-top > [data-off] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.publish-url .btn {
+  white-space: nowrap;
+}
+
+.publish-bar {
+  position: sticky;
+  inset-block-end: calc(-1 * var(--space-5));
+  margin-inline: calc(-1 * var(--space-5));
+  padding: var(--space-3) var(--space-5);
+  background: var(--sheet);
+  border-block-start: 1px solid var(--border);
+}
+
+.publish-bar > .btn--danger {
+  margin-inline-end: auto;
+}
+
+@media (max-width: 767px) {
+  .share-opts {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .share-opts > .btn {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .share-linkopts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .share-linklead .select {
+    flex: 1;
+  }
+
+  .publish-bar > .btn--primary {
+    flex: 1;
+    justify-content: center;
+  }
+}

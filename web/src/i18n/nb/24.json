@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "Alle med lenken kan",
+  "view": "se",
+  "comment": "kommentere",
+  "Web address": "Nettadresse",
+  "More options": "Flere valg",
+  "Advanced": "Avansert",
+  "Show developer tools": "Vis utviklerverktøy",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "Legger til terminalen og andre verktøy for dem som bygger med form.md. Huskes på denne enheten.",
+  "For people who connect scripts and agents. Most people never need these.": "For dem som kobler til skript og agenter. De fleste trenger aldri disse.",
+  "Advanced: network": "Avansert: nettverk",
+  "Admin settings": "Administratorinnstillinger",
+  "Show password": "Vis passord",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "E-postadressen eller passordet stemmer ikke. Prøv igjen, eller be administratoren av arbeidsområdet om å tilbakestille det."
+}

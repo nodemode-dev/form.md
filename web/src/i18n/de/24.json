@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "Jeder mit dem Link kann",
+  "view": "ansehen",
+  "comment": "kommentieren",
+  "Web address": "Webadresse",
+  "More options": "Weitere Optionen",
+  "Advanced": "Erweitert",
+  "Show developer tools": "Entwicklerwerkzeuge anzeigen",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "Blendet das Terminal und weitere Werkzeuge für alle ein, die mit form.md bauen. Wird auf diesem Gerät gespeichert.",
+  "For people who connect scripts and agents. Most people never need these.": "Für alle, die Skripte und Agenten anbinden. Die meisten brauchen das nie.",
+  "Advanced: network": "Erweitert: Netzwerk",
+  "Admin settings": "Admin-Einstellungen",
+  "Show password": "Passwort anzeigen",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "E-Mail oder Passwort stimmt nicht. Versuche es noch einmal oder bitte die Admins deines Arbeitsbereichs, es zurückzusetzen."
+}

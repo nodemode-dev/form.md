@@ -5,6 +5,15 @@ export function mountTheme(engine: Engine): void {
   const root = document.documentElement;
   const buttons = [...document.querySelectorAll<HTMLElement>("[data-theme-choice]")];
 
+  const fresh = (): boolean => {
+    try {
+      return localStorage.getItem("formmd.theme") === null;
+    } catch {
+      return false;
+    }
+  };
+  if (fresh()) engine.state.set("themePref", "auto");
+
   const apply = () => {
     const pref = engine.state.get("themePref");
     setAttr(root, "data-theme", engine.resolvedTheme());

@@ -1,9 +1,10 @@
 import type { Engine } from "../engine";
 import { t } from "../engine/i18n";
 import type { InviteInfo } from "../engine/types";
-import { setAttr, setText } from "./dom";
+import { h, setAttr, setText } from "./dom";
 import { errorCode } from "./errors";
 import { busy, status } from "./form";
+import { iconNode } from "./icons";
 
 const SSO_ERRORS: Record<string, () => string> = {
   denied: () => t("Sign-in was cancelled."),
@@ -48,6 +49,21 @@ function nextPath(): string {
 
 function go(path: string): void {
   location.assign(path);
+}
+
+function bindPasswordToggles(): void {
+  for (const pw of document.querySelectorAll<HTMLInputElement>('.auth__panel input[type="password"]')) {
+    const shown = h("button", { class: "auth__pw-toggle", attrs: { type: "button", "aria-pressed": "false", "aria-label": t("Show password") } }, iconNode("eye"));
+    const wrap = h("span", { class: "auth__pw" });
+    pw.before(wrap);
+    wrap.append(pw, shown);
+    shown.addEventListener("click", () => {
+      const on = pw.type === "password";
+      pw.type = on ? "text" : "password";
+      setAttr(shown, "aria-pressed", on ? "true" : "false");
+      shown.replaceChildren(iconNode(on ? "eye-off" : "eye"));
+    });
+  }
 }
 
 function bindSetup(engine: Engine): void {
@@ -105,6 +121,10 @@ function bindLogin(engine: Engine): void {
       if (errorCode(err) === "totp_required") {
         form.dataset.step = "totp";
         (form.elements.namedItem("code") as HTMLInputElement).focus();
+        return;
+      }
+      if (errorCode(err) === "bad_credentials") {
+        st.say(t("That email or password isn't right. Try again, or ask your workspace admin to reset it."), "error");
         return;
       }
       st.error(err);
@@ -223,6 +243,7 @@ function bindConsent(engine: Engine, request: string): void {
 }
 
 export function mountAuth(engine: Engine): void {
+  bindPasswordToggles();
   bindSetup(engine);
   bindLogin(engine);
   bindSignup(engine);

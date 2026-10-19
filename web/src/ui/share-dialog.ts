@@ -57,7 +57,7 @@ export function openShareDialog(engine: Engine, pageId: string): void {
       const invite = button(t("Invite"), "primary", undefined, "submit");
       const reveal = h("div", { class: "secret-box" });
       reveal.hidden = true;
-      const form = h("form", { class: "form-grid share-invite", attrs: { novalidate: "" } }, h("div", { class: "share-invite__row" }, who, level, until, invite), options, reveal, st.el);
+      const form = h("form", { class: "form-grid share-invite", attrs: { novalidate: "" } }, h("div", { class: "share-who" }, who, h("div", { class: "share-opts" }, level, until, invite)), options, reveal, st.el);
 
       const general = h("div", { class: "row share-general" }, iconNode("globe"), h("div", { class: "row__main" }, h("span", { class: "row__title" }), h("span", { class: "row__meta" })));
       const people = h("div", { class: "rows" });
@@ -67,8 +67,8 @@ export function openShareDialog(engine: Engine, pageId: string): void {
 
       const linkLevel = select<"view" | "comment">(
         [
-          ["view", t("Can view")],
-          ["comment", t("Can comment")],
+          ["view", t("view")],
+          ["comment", t("comment")],
         ],
         "view",
       );
@@ -83,7 +83,13 @@ export function openShareDialog(engine: Engine, pageId: string): void {
       const links = h("div", { class: "rows" });
       const linkStatus = status();
       const linkSection = section(t("Share links"), t("Anyone with the link can open this page without an account, with view or comment access."));
-      linkSection.append(h("div", { class: "share-invite__row" }, linkLevel, linkUntil, linkPassword, makeLink), linkReveal, links, linkStatus.el);
+      linkSection.append(
+        h("div", { class: "share-linklead" }, h("span", { class: "share-linklead__text", text: t("Anyone with the link can") }), linkLevel),
+        h("div", { class: "share-opts share-linkopts" }, linkUntil, linkPassword, makeLink),
+        linkReveal,
+        links,
+        linkStatus.el,
+      );
 
       let state: Sharing | null = null;
       let everyone: Member[] = [];
@@ -266,7 +272,7 @@ export function openShareDialog(engine: Engine, pageId: string): void {
           who.value = "";
           if (res.invite_url) {
             const url = `${location.origin}${res.invite_url}`;
-            const copy = iconButton("copy", t("Copy link"));
+            const copy = button(t("Copy link"), "primary", "copy");
             copy.addEventListener("click", async () => toast({ message: (await copyText(url)) ? t("Invitation link copied.") : t("Copying failed."), id: "copy" }));
             reveal.replaceChildren(h("span", { text: url }), copy);
             reveal.hidden = false;
@@ -291,7 +297,7 @@ export function openShareDialog(engine: Engine, pageId: string): void {
           const r = await busy(makeLink, () => engine.api.sharing.createLink(pageId, body));
           const url = shareUrl(r.link.token ?? "");
           const copied = await copyText(url);
-          const copy = iconButton("copy", t("Copy link"));
+          const copy = button(t("Copy link"), "primary", "copy");
           copy.addEventListener("click", async () => toast({ message: (await copyText(url)) ? t("Link copied") : t("Copying failed."), id: "copy" }));
           linkReveal.replaceChildren(h("span", { text: url }), copy);
           linkReveal.hidden = false;

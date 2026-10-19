@@ -5,6 +5,7 @@ import { plural, t } from "../engine/i18n";
 import { aiTab } from "./admin-ai";
 import { avatar, updateAvatar } from "./avatar";
 import { confirmDialog, confirmTyped, overlayDialog, simpleDialog, type Tab } from "./dialog";
+import { disclosure } from "./disclosure";
 import { h, setAttr, setText } from "./dom";
 import { actions, busy, button, choices, copyText, field, iconButton, input, section, select, status, textarea, toggle } from "./form";
 import { iconNode } from "./icons";
@@ -214,9 +215,6 @@ function generalTab(engine: Engine, store: SettingsStore): Tab {
     s1.append(
       f.text("instance.name", t("Instance name"), t("Shown on the sign-in page and in the browser title.")),
       f.text("instance.public_url", t("Public address"), t("The address people use, for links in mail, invitations and sign-in callbacks."), "url", "https://notes.example.com"),
-      f.bool("net.trust_proxy", t("Behind a reverse proxy"), t("Trust the X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers. Turn on only when a proxy you run sets them.")),
-      f.text("https.domain", t("Domain for automatic HTTPS"), t("The host name people reach this server at, for example notes.example.com."), "text", "notes.example.com"),
-      f.bool("https.auto", t("Automatic HTTPS"), t("Takes effect at the next start: the server gets a certificate from Let's Encrypt and listens on ports 443 and 80 itself. Ignored when TLS is set in the environment.")),
       f.bool("workspaces.member_create", t("Members may create workspaces"), t("When off, only admins create shared workspaces. Everyone keeps a personal space.")),
     );
     const s2 = section(t("Housekeeping"));
@@ -239,6 +237,14 @@ function generalTab(engine: Engine, store: SettingsStore): Tab {
       f.bool("update.check", t("Check for new versions"), t("Once a day, and only the version number is fetched.")),
     );
     const tokenRow = f.secret("tunnel.token", t("Tunnel token"));
+    const net = h(
+      "div",
+      { class: "form-grid" },
+      f.bool("net.trust_proxy", t("Behind a reverse proxy"), t("Trust the X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers. Turn on only when a proxy you run sets them.")),
+      f.text("https.domain", t("Domain for automatic HTTPS"), t("The host name people reach this server at, for example notes.example.com."), "text", "notes.example.com"),
+      f.bool("https.auto", t("Automatic HTTPS"), t("Takes effect at the next start: the server gets a certificate from Let's Encrypt and listens on ports 443 and 80 itself. Ignored when TLS is set in the environment.")),
+    );
+    const advanced = disclosure(t("Advanced: network"), net);
     const s3 = section(t("Public tunnel"), t("Reach this server from the internet through Cloudflare without opening a port. Needs cloudflared on the server."));
     s3.append(
       f.choice(
@@ -256,7 +262,8 @@ function generalTab(engine: Engine, store: SettingsStore): Tab {
       tokenRow,
       f.bool("tunnel.autostart", t("Start with the server"), t("Otherwise start it here when you need it.")),
     );
-    f.el.append(s1, s2, s3);
+    advanced.body.append(s3);
+    f.el.append(s1, s2, advanced.el);
     f.finish();
     const state = h("p", { class: "section__lead" });
     const start = button(t("Start the tunnel"), "default", "globe");
@@ -274,7 +281,8 @@ function generalTab(engine: Engine, store: SettingsStore): Tab {
     void engine.api.admin.tunnel().then(paintTunnel, () => undefined);
     const s4 = section(t("Tunnel status"), t("Save the settings above first."));
     s4.append(state, hint, h("div", { class: "form-actions form-actions--start" }, start, stop));
-    panel.append(f.el, s4);
+    advanced.body.append(s4);
+    panel.append(f.el);
   });
 }
 
@@ -1047,7 +1055,7 @@ function aboutTab(engine: Engine): Tab {
 
 export function mountAdmin(engine: Engine): void {
   const store = new SettingsStore(engine);
-  overlayDialog(engine, "admin", t("Instance settings"), [
+  overlayDialog(engine, "admin", t("Admin settings"), [
     generalTab(engine, store),
     signInTab(store),
     emailTab(engine, store),

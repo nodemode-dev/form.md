@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "Kuka tahansa linkin saanut voi",
+  "view": "katsella",
+  "comment": "kommentoida",
+  "Web address": "Verkko-osoite",
+  "More options": "Lisää asetuksia",
+  "Advanced": "Lisäasetukset",
+  "Show developer tools": "Näytä kehittäjätyökalut",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "Lisää pääteikkunan ja muita työkaluja form.md:llä rakentaville. Muistetaan tällä laitteella.",
+  "For people who connect scripts and agents. Most people never need these.": "Niille, jotka yhdistävät skriptejä ja agentteja. Useimmat eivät tarvitse näitä koskaan.",
+  "Advanced: network": "Lisäasetukset: verkko",
+  "Admin settings": "Ylläpitäjän asetukset",
+  "Show password": "Näytä salasana",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "Sähköpostiosoite tai salasana ei täsmää. Yritä uudelleen tai pyydä työtilan ylläpitäjää nollaamaan salasana."
+}

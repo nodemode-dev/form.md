@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "Будь-хто, хто має посилання, може",
+  "view": "переглядати",
+  "comment": "коментувати",
+  "Web address": "Вебадреса",
+  "More options": "Додаткові параметри",
+  "Advanced": "Додатково",
+  "Show developer tools": "Показувати інструменти розробника",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "Додає термінал та інші інструменти для тих, хто створює щось із form.md. Запам'ятовується на цьому пристрої.",
+  "For people who connect scripts and agents. Most people never need these.": "Для тих, хто підключає скрипти й агентів. Більшості це ніколи не потрібно.",
+  "Advanced: network": "Додатково: мережа",
+  "Admin settings": "Налаштування адміністратора",
+  "Show password": "Показати пароль",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "Адреса пошти або пароль неправильні. Спробуйте ще раз або попросіть адміністратора робочого простору скинути пароль."
+}

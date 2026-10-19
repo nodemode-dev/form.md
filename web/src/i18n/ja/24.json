@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "リンクを知っている全員ができること:",
+  "view": "閲覧",
+  "comment": "コメント",
+  "Web address": "ウェブアドレス",
+  "More options": "その他のオプション",
+  "Advanced": "詳細設定",
+  "Show developer tools": "開発者向けツールを表示",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "form.md で開発する人向けに、ターミナルなどのツールを追加します。この端末に記憶されます。",
+  "For people who connect scripts and agents. Most people never need these.": "スクリプトやエージェントを接続する人向けの設定です。ほとんどの方には必要ありません。",
+  "Advanced: network": "詳細設定: ネットワーク",
+  "Admin settings": "管理者設定",
+  "Show password": "パスワードを表示",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "メールアドレスまたはパスワードが正しくありません。もう一度お試しいただくか、ワークスペースの管理者にリセットを依頼してください。"
+}

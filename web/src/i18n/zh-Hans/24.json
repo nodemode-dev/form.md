@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "任何拥有链接的人都可以",
+  "view": "查看",
+  "comment": "评论",
+  "Web address": "网址",
+  "More options": "更多选项",
+  "Advanced": "高级",
+  "Show developer tools": "显示开发者工具",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "为使用 form.md 开发的人添加终端和其他工具。会记住在此设备上的选择。",
+  "For people who connect scripts and agents. Most people never need these.": "适用于连接脚本和智能体的用户。大多数人用不到这些。",
+  "Advanced: network": "高级：网络",
+  "Admin settings": "管理员设置",
+  "Show password": "显示密码",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "邮箱或密码不正确。请重试，或联系工作区管理员重置密码。"
+}

@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "Любой, у кого есть ссылка, может",
+  "view": "просматривать",
+  "comment": "комментировать",
+  "Web address": "Веб-адрес",
+  "More options": "Дополнительные параметры",
+  "Advanced": "Дополнительно",
+  "Show developer tools": "Показывать инструменты разработчика",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "Добавляет терминал и другие инструменты для тех, кто создаёт что-то с form.md. Запоминается на этом устройстве.",
+  "For people who connect scripts and agents. Most people never need these.": "Для тех, кто подключает скрипты и агентов. Большинству это никогда не нужно.",
+  "Advanced: network": "Дополнительно: сеть",
+  "Admin settings": "Настройки администратора",
+  "Show password": "Показать пароль",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "Неверный адрес почты или пароль. Попробуйте ещё раз или попросите администратора рабочего пространства сбросить пароль."
+}

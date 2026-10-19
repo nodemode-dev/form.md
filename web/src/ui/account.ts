@@ -4,6 +4,7 @@ import { currentLang, LANGUAGES, t } from "../engine/i18n";
 import { agentsTab } from "./account-agents";
 import { avatar, COLORS, updateAvatar } from "./avatar";
 import { confirmDialog, overlayDialog, type Tab } from "./dialog";
+import { disclosure } from "./disclosure";
 import { h, setAttr, setText } from "./dom";
 import { actions, busy, button, choices, copyText, field, iconButton, input, section, select, status, toggle } from "./form";
 import { iconNode } from "./icons";
@@ -686,6 +687,65 @@ function tokensTab(engine: Engine): Tab {
 
 const REGIONS = ["US", "GB", "IE", "CA", "AU", "NZ", "IN", "ZA", "SG", "DE", "AT", "CH", "FR", "BE", "NL", "LU", "ES", "PT", "IT", "SE", "NO", "DK", "FI", "PL", "CZ", "BR", "MX", "JP", "KR", "CN"];
 
+const DEV_KEY = "fm.dev";
+
+function devOn(): boolean {
+  try {
+    return localStorage.getItem(DEV_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function advancedTab(engine: Engine): Tab {
+  return {
+    id: "advanced",
+    label: t("Advanced"),
+    icon: "key",
+    render(panel) {
+      const on = devOn();
+      const dev = toggle(t("Show developer tools"), on, t("Adds the terminal and other tools for people who build with form.md. Remembered on this device."));
+      const intro = section(t("Advanced"), t("For people who connect scripts and agents. Most people never need these."));
+      intro.append(dev.el);
+
+      const parts = [tokensTab(engine), agentsTab(engine)].map((tab) => {
+        const holder = h("div", { class: "form-grid" });
+        const part = disclosure(tab.label, holder);
+        let refresh: (() => void) | undefined;
+        let drawn = false;
+        const draw = () => {
+          if (drawn) return;
+          drawn = true;
+          const r = tab.render(holder);
+          if (r) refresh = r;
+        };
+        part.el.open = on;
+        part.el.addEventListener("toggle", () => {
+          if (part.el.open) draw();
+        });
+        if (on) draw();
+        return { part, refresh: () => refresh?.() };
+      });
+
+      dev.input.addEventListener("change", () => {
+        try {
+          if (dev.input.checked) localStorage.setItem(DEV_KEY, "1");
+          else localStorage.removeItem(DEV_KEY);
+        } catch {
+          dev.input.checked = !dev.input.checked;
+          return;
+        }
+        for (const p of parts) p.part.el.open = dev.input.checked;
+      });
+
+      panel.append(intro, ...parts.map((p) => p.part.el));
+      return () => {
+        for (const p of parts) p.refresh();
+      };
+    },
+  };
+}
+
 function languageTab(engine: Engine): Tab {
   return {
     id: "language",
@@ -772,5 +832,5 @@ function languageTab(engine: Engine): Tab {
 }
 
 export function mountAccount(engine: Engine): void {
-  overlayDialog(engine, "account", t("Account settings"), [profileTab(engine), notificationsTab(engine), securityTab(engine), tokensTab(engine), agentsTab(engine), languageTab(engine)]);
+  overlayDialog(engine, "account", t("Account settings"), [profileTab(engine), notificationsTab(engine), securityTab(engine), languageTab(engine), advancedTab(engine)]);
 }

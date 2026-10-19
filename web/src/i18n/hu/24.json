@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "A hivatkozással rendelkezők bárkije",
+  "view": "megtekinthet",
+  "comment": "hozzászólhat",
+  "Web address": "Webcím",
+  "More options": "További beállítások",
+  "Advanced": "Speciális",
+  "Show developer tools": "Fejlesztői eszközök megjelenítése",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "Megjeleníti a terminált és más eszközöket azoknak, akik a form.md-vel építkeznek. Ezen az eszközön megjegyzi.",
+  "For people who connect scripts and agents. Most people never need these.": "Azoknak, akik szkripteket és ügynököket kapcsolnak be. A legtöbben soha nem használják.",
+  "Advanced: network": "Speciális: hálózat",
+  "Admin settings": "Rendszergazdai beállítások",
+  "Show password": "Jelszó megjelenítése",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "Az e-mail-cím vagy a jelszó nem helyes. Próbálja újra, vagy kérje meg a munkaterület rendszergazdáját a visszaállításra."
+}

@@ -1,6 +1,7 @@
 import type { Engine, Site, SiteInput, SiteStatus } from "../engine";
 import { t } from "../engine/i18n";
 import { confirmDialog, simpleDialog } from "./dialog";
+import { disclosure } from "./disclosure";
 import { h, setAttr, setText } from "./dom";
 import { errorMessage } from "./errors";
 import { actions, busy, button, choices, copyText, field, iconButton, input, status, textarea, toggle } from "./form";
@@ -26,12 +27,12 @@ export async function openPublishDialog(engine: Engine, pageId: string): Promise
       const lead = h("p", { class: "section__lead", text: t("Publishing makes this page, and the pages inside it if you choose, readable by anyone with the address. Nobody needs an account.") });
       const off = h("div", { class: "callout callout--warning" }, iconNode("alert"), h("span", { text: t("Publishing is turned off for this workspace. An admin can turn it on under Settings, Sites.") }));
       const link = h("a", { class: "publish-url__link", attrs: { target: "_blank", rel: "noopener" } });
-      const copy = iconButton("copy", t("Copy address"));
+      const copy = button(t("Copy link"), "primary", "copy");
       const open = iconButton("external", t("Open the site"));
       const live = h("div", { class: "publish-url" }, h("span", { class: "publish-url__dot", attrs: { "aria-hidden": "true" } }), link, copy, open);
 
       const slug = input({ autocomplete: "off", maxlength: 60, placeholder: st.suggested_slug });
-      const slugField = field(t("Address"), h("div", { class: "publish-slug" }, h("span", { class: "publish-slug__prefix", text: `${location.host}/s/` }), slug));
+      const slugField = field(t("Web address"), h("div", { class: "publish-slug" }, h("span", { class: "publish-slug__prefix", text: `${location.host}/s/` }), slug));
       const title = input({ maxlength: 120, placeholder: page?.title || t("Untitled") });
       const desc = textarea("", 3);
       desc.maxLength = 300;
@@ -62,10 +63,8 @@ export async function openPublishDialog(engine: Engine, pageId: string): Promise
       const st2 = status();
       const unpublish = button(t("Unpublish"), "danger");
       const save = button(t("Publish"), "primary", "globe", "submit");
-      const form = h(
-        "form",
-        { class: "form-grid", attrs: { novalidate: "" } },
-        slugField,
+      const more = disclosure(
+        t("More options"),
         field(t("Title for search and sharing"), title),
         field(t("Description"), desc),
         imageField,
@@ -76,15 +75,19 @@ export async function openPublishDialog(engine: Engine, pageId: string): Promise
         locked.el,
         passwordField,
         hostField,
-        st2.el,
-        actions(unpublish, save),
       );
-      body.append(lead, off, live, form);
+      const bar = actions(unpublish, save);
+      bar.classList.add("publish-bar");
+      const form = h("form", { class: "form-grid", attrs: { novalidate: "" } }, slugField, st2.el, more.el, bar);
+      body.append(h("div", { class: "publish-top" }, lead, live), off, form);
 
       let site: Site | null = st.site;
       const sync = () => {
-        live.hidden = !site;
-        lead.hidden = !!site;
+        setAttr(live, "data-off", site ? null : "");
+        setAttr(live, "aria-hidden", site ? null : "true");
+        setAttr(lead, "data-off", site ? "" : null);
+        setAttr(lead, "aria-hidden", site ? "true" : null);
+        live.inert = !site;
         off.hidden = st.allowed;
         unpublish.hidden = !site || !st.can_publish;
         save.hidden = !st.can_publish || !st.allowed;
@@ -162,7 +165,8 @@ export async function openPublishDialog(engine: Engine, pageId: string): Promise
           req.password = password.value;
         } else if (!site?.password) {
           st2.say(t("Type a password, or turn the password off."), "error");
-          password.focus();
+          more.el.open = true;
+          password.focus({ preventScroll: false });
           return;
         }
         if (st.can_host && host.value.trim() !== (site?.hostname ?? "")) req.hostname = host.value.trim();
@@ -190,10 +194,7 @@ export async function openPublishDialog(engine: Engine, pageId: string): Promise
           st2.error(err);
         }
       });
-      const done = button(t("Done"), "ghost");
-      done.addEventListener("click", close);
-      body.append(actions(done));
-      return site ? copy : slug;
+      return site ? copy : save;
     },
     undefined,
     "md",

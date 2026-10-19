@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "링크가 있는 모든 사용자는",
+  "view": "보기",
+  "comment": "댓글 작성",
+  "Web address": "웹 주소",
+  "More options": "옵션 더 보기",
+  "Advanced": "고급",
+  "Show developer tools": "개발자 도구 표시",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "form.md로 개발하는 사람을 위한 터미널과 기타 도구를 추가합니다. 이 기기에 저장됩니다.",
+  "For people who connect scripts and agents. Most people never need these.": "스크립트와 에이전트를 연결하는 사람을 위한 설정입니다. 대부분의 사용자는 필요하지 않습니다.",
+  "Advanced: network": "고급: 네트워크",
+  "Admin settings": "관리자 설정",
+  "Show password": "비밀번호 표시",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "이메일 또는 비밀번호가 올바르지 않습니다. 다시 시도하거나 워크스페이스 관리자에게 재설정을 요청하세요."
+}

@@ -196,9 +196,65 @@
   display: block;
 }
 
+.auth__pw {
+  position: relative;
+  display: block;
+}
+
+.auth__pw > .input {
+  padding-inline-end: 44px;
+}
+
+.auth__pw-toggle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.auth__pw-toggle:hover {
+  color: var(--text);
+}
+
+.auth__pw-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 @media (max-width: 767px) {
   .auth__card {
     margin-block-start: 0;
     padding: var(--space-6) var(--space-5);
+  }
+
+  .auth .input,
+  .auth .btn,
+  .auth .auth__sso-btn {
+    min-block-size: 44px;
+  }
+
+  .auth__pw-toggle {
+    inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  .auth .link-btn,
+  .auth__alt a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+  }
+
+  .auth .check,
+  .auth .radio {
+    min-block-size: 44px;
   }
 }

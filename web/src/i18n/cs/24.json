@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "Kdokoli s odkazem může",
+  "view": "zobrazit",
+  "comment": "komentovat",
+  "Web address": "Webová adresa",
+  "More options": "Další možnosti",
+  "Advanced": "Pokročilé",
+  "Show developer tools": "Zobrazit nástroje pro vývojáře",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "Přidá terminál a další nástroje pro ty, kdo s form.md něco vytvářejí. Zapamatuje se v tomto zařízení.",
+  "For people who connect scripts and agents. Most people never need these.": "Pro ty, kdo připojují skripty a agenty. Většina lidí je nikdy nepotřebuje.",
+  "Advanced: network": "Pokročilé: síť",
+  "Admin settings": "Nastavení správce",
+  "Show password": "Zobrazit heslo",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "E-mail nebo heslo není správné. Zkuste to znovu, nebo požádejte správce pracovního prostoru o obnovení hesla."
+}

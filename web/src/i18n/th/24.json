@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "ทุกคนที่มีลิงก์สามารถ",
+  "view": "ดู",
+  "comment": "แสดงความคิดเห็น",
+  "Web address": "ที่อยู่เว็บ",
+  "More options": "ตัวเลือกเพิ่มเติม",
+  "Advanced": "ขั้นสูง",
+  "Show developer tools": "แสดงเครื่องมือสำหรับนักพัฒนา",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "เพิ่มเทอร์มินัลและเครื่องมืออื่นสำหรับผู้ที่สร้างงานด้วย form.md ระบบจะจำค่านี้ไว้บนอุปกรณ์เครื่องนี้",
+  "For people who connect scripts and agents. Most people never need these.": "สำหรับผู้ที่เชื่อมต่อสคริปต์และเอเจนต์ คนส่วนใหญ่ไม่จำเป็นต้องใช้",
+  "Advanced: network": "ขั้นสูง: เครือข่าย",
+  "Admin settings": "การตั้งค่าผู้ดูแลระบบ",
+  "Show password": "แสดงรหัสผ่าน",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "อีเมลหรือรหัสผ่านไม่ถูกต้อง ลองอีกครั้ง หรือขอให้ผู้ดูแลพื้นที่ทำงานรีเซ็ตให้"
+}

@@ -1,0 +1,15 @@
+{
+  "Anyone with the link can": "任何擁有連結的人都可以",
+  "view": "檢視",
+  "comment": "留言",
+  "Web address": "網址",
+  "More options": "更多選項",
+  "Advanced": "進階",
+  "Show developer tools": "顯示開發人員工具",
+  "Adds the terminal and other tools for people who build with form.md. Remembered on this device.": "為使用 form.md 開發的人新增終端機和其他工具。會記住此裝置上的選擇。",
+  "For people who connect scripts and agents. Most people never need these.": "適用於連接指令碼和代理程式的使用者。大多數人用不到這些。",
+  "Advanced: network": "進階：網路",
+  "Admin settings": "管理員設定",
+  "Show password": "顯示密碼",
+  "That email or password isn't right. Try again, or ask your workspace admin to reset it.": "電子郵件或密碼不正確。請再試一次，或請工作區管理員重設密碼。"
+}
