@@ -65,7 +65,26 @@ func midpoint(a, b string) string {
 }
 
 func After(a string) string {
+	if next, ok := bump(a); ok {
+		return next
+	}
 	return midpoint(a, "")
+}
+
+func bump(a string) (string, bool) {
+	for i := len(a) - 1; i >= 0; i-- {
+		v := value(a, i)
+		if v < 0 {
+			return "", false
+		}
+		if v < base-1 {
+			return a[:i] + string(digits[v+1]), true
+		}
+	}
+	if a == "" {
+		return "", false
+	}
+	return a + "1", true
 }
 
 func Before(b string) string {
