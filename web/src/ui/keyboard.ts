@@ -40,7 +40,8 @@ export function mountKeyboard(engine: Engine): void {
   window.addEventListener(
     "keydown",
     (e) => {
-      const handled = keymap.handle(e, { typing: isTypingTarget(e.target), scopes: activeScopes() });
+      const own = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-own-keys]") : null;
+      const handled = keymap.handle(e, { typing: isTypingTarget(e.target), scopes: activeScopes(), only: own ? new Set((own.dataset.ownKeys ?? "").split(" ")) : undefined });
       if (handled) {
         e.preventDefault();
         e.stopPropagation();

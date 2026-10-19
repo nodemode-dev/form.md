@@ -27,6 +27,7 @@ export interface KeyInput {
 export interface KeyContext {
   typing: boolean;
   scopes: ReadonlySet<Scope>;
+  only?: ReadonlySet<string> | undefined;
 }
 
 export interface ListedShortcut {
@@ -104,6 +105,7 @@ export class Keymap {
       const b = entry.binding;
       if (!ctx.scopes.has(b.scope)) continue;
       if (ctx.typing && !b.whileTyping) continue;
+      if (ctx.only && !ctx.only.has(b.command)) continue;
       if (!b.chords.some((c) => this.matches(this.chord(c), e))) continue;
       if (b.when && !b.when()) continue;
       hits.push(entry);
