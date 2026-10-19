@@ -7,7 +7,7 @@ import { pageIcon } from "../../ui/pageicon";
 import { AUTOFILL_TYPES, autofillChanged, autofillEditor, runAutofill } from "./autofill";
 import type { DbCtx } from "./cells";
 import { openPanel } from "./panel";
-import { CREATABLE, DATE_FORMATS, NUMBER_FORMATS, OPTION_COLORS, ROLLUP_FNS, TYPE_INFO, typeLabel } from "./props";
+import { DATE_FORMATS, NUMBER_FORMATS, OPTION_COLORS, ROLLUP_FNS, TYPE_INFO, typeEntries, typeLabel } from "./props";
 
 function schemaOp(ctx: DbCtx, ops: SchemaOp[]): Promise<void> {
   return ctx.engine.collections.schema(ctx.colId, ops).catch((e) => {
@@ -24,8 +24,8 @@ function uniqueName(col: Collection, base: string): string {
 
 export function openAddProperty(anchor: HTMLElement, ctx: DbCtx, after = "", onAdded?: (id: string) => void): void {
   const entries: MenuEntry[] = [{ kind: "heading", label: t("Property type") }];
-  for (const type of CREATABLE) {
-    entries.push({
+  entries.push(
+    ...typeEntries((type) => ({
       label: typeLabel(type),
       icon: TYPE_INFO[type].icon,
       run: () => {
@@ -45,8 +45,8 @@ export function openAddProperty(anchor: HTMLElement, ctx: DbCtx, after = "", onA
           })
           .catch(() => undefined);
       },
-    });
-  }
+    })),
+  );
   openMenu(anchor, entries, { side: "bottom", align: "end", label: t("New property") });
 }
 
@@ -75,7 +75,7 @@ export function openPropertyEditor(anchor: HTMLElement, p0: Property, ctx: DbCtx
       typeBtn.addEventListener("click", () => {
         openMenu(
           typeBtn,
-          CREATABLE.map((type) => ({
+          typeEntries((type) => ({
             label: typeLabel(type),
             icon: TYPE_INFO[type].icon,
             checked: type === p.type,

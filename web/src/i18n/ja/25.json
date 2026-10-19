@@ -1,0 +1,13 @@
+{
+  "Database table": "データベーステーブル",
+  "Sort, filter and add columns": "並べ替え、絞り込み、列の追加ができます",
+  "New table": "新しいテーブル",
+  "No rows yet. Click New to add your first row.": "まだ行がありません。「新規」をクリックして最初の行を追加しましょう。",
+  "Rules": "ルール",
+  "More types": "その他のタイプ",
+  "Link to another table": "別のテーブルへのリンク",
+  "Summary of linked rows": "リンクした行の集計",
+  "Calculation": "計算",
+  "Row number": "行番号",
+  "Action button": "アクションボタン"
+}

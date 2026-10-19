@@ -41,7 +41,10 @@ class DatabaseBlockView implements NodeView {
     const attach = (m: NonNullable<ReturnType<typeof databaseViews>>) => {
       if (this.gone) return;
       this.handle = m.mountDatabase(this.ctx.engine, this.dom, col, { inline: true, ...(view ? { viewId: view } : {}) });
-      void this.handle.ready.then(() => this.dom.setAttribute("data-ready", "true"));
+      void this.handle.ready.then(() => {
+        this.dom.setAttribute("data-ready", "true");
+        if (focusNext.delete(col)) this.handle?.focusNew();
+      });
     };
     const ready = databaseViews();
     if (ready) attach(ready);
@@ -81,15 +84,17 @@ class DatabaseBlockView implements NodeView {
 
 const N = schema.nodes as Record<string, NodeType>;
 const DATA = () => t("Databases");
+const focusNext = new Set<string>();
 
 function createInline(view: EditorView, ctx: EditorCtx, type: ViewType): void {
   const ws = ctx.workspaceId();
   const parent = ctx.pageId();
   if (!ws || !parent) return;
   void ctx.engine.api.pages
-    .createCollection({ workspace_id: ws, parent_id: parent, inline: true, view: type })
+    .createCollection({ workspace_id: ws, parent_id: parent, inline: true, view: type, ...(type === "table" ? { title: t("New table") } : {}) })
     .then((r) => {
       ctx.engine.pages.upsert(r.page);
+      focusNext.add(r.page.id);
       insertBlock(view, (N.database as NodeType).create({ id: newBlockId(), collection: r.page.id, view: "" }));
     })
     .catch(ctx.engine.reportError);
@@ -124,9 +129,12 @@ function setup(engine: Engine): void {
   for (const type of types) {
     CATALOG.push({
       id: `db-${type}`,
-      label: () => t("{view} database", { view: t(VIEW_INFO[type].label) }),
+      label: () => (type === "table" ? t("Database table") : t("{view} database", { view: t(VIEW_INFO[type].label) })),
       section: DATA,
       icon: VIEW_INFO[type].icon,
+      get hint() {
+        return type === "table" ? t("Sort, filter and add columns") : undefined;
+      },
       keywords: `database inline ${type} view collection`,
       run: (view, ctx) => createInline(view, ctx, type),
     });

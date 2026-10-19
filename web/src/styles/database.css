@@ -280,6 +280,25 @@
   margin-inline-start: var(--space-1);
 }
 
+.db__tool-label {
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.db__empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.db__empty[hidden] {
+  display: none;
+}
+
 .db__stage {
   min-inline-size: 0;
   padding-block-start: var(--space-2);
@@ -2304,5 +2323,9 @@
 
   .db__search {
     inline-size: 120px;
+  }
+
+  .db__tool-label {
+    display: none;
   }
 }

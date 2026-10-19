@@ -56,6 +56,7 @@ export interface DatabaseOptions {
 export interface DatabaseHandle {
   el: HTMLElement;
   ready: Promise<void>;
+  focusNew(): void;
   destroy(): void;
 }
 
@@ -96,27 +97,26 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     if (text) b.append(h("span", { class: "db__tool-label", text }));
     return b;
   };
-  const filterBtn = btn("filter", t("Filter"));
+  const filterBtn = btn("filter", t("Filter"), t("Filter"));
   const filterBadge = h("span", { class: "db__badge" });
   filterBtn.append(filterBadge);
-  const sortBtn = btn("sort", t("Sort"));
-  const groupBtn = btn("group", t("Group"));
-  const searchBtn = btn("search", t("Search"));
+  const sortBtn = btn("sort", t("Sort"), t("Sort"));
+  const searchBtn = btn("search", t("Search"), t("Search"));
   const searchIn = h("input", { class: "db__search", attrs: { type: "search", placeholder: t("Type to search"), "aria-label": t("Search this view") } });
-  const propsBtn = btn("sliders", t("Properties"));
-  const layoutBtn = btn("settings", t("Layout"));
-  const moreBtn = btn("more", t("More"));
-  const autoBtn = btn("bolt", t("Automations"));
+  const moreBtn = btn("more", t("More"), t("More"));
+  const emptyNew = h("button", { class: "btn btn--primary btn--sm", attrs: { type: "button" } }, iconNode("plus"), h("span", { text: t("New") }));
+  const empty = h("div", { class: "db__empty" }, h("span", { class: "db__empty-text", text: t("No rows yet. Click New to add your first row.") }), emptyNew);
+  empty.hidden = true;
   const newBtn = h("button", { class: "btn btn--primary btn--sm db__new", attrs: { type: "button" } }, iconNode("plus"), h("span", { text: t("New") }));
   const newMenu = h("button", { class: "btn btn--primary btn--sm db__newmenu", attrs: { type: "button", "aria-label": t("New page from a template"), "aria-haspopup": "menu" } }, iconNode("chevron-down"));
   const newGroup = h("span", { class: "db__newgroup" }, newBtn, newMenu);
-  tools.append(filterBtn, sortBtn, groupBtn, searchBtn, searchIn, propsBtn, layoutBtn, autoBtn, moreBtn, newGroup);
+  tools.append(filterBtn, sortBtn, searchBtn, searchIn, moreBtn, newGroup);
   const bar = h("div", { class: "db__bar" }, tabs, tools);
   const head = h("div", { class: "db__head" });
   if (o.inline) head.append(title);
   head.append(bar);
   const stage = h("div", { class: "db__stage" });
-  root.append(head, stage);
+  root.append(head, stage, empty);
   host.append(root);
   searchIn.hidden = true;
 
@@ -176,21 +176,30 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     addView.hidden = !canDesign();
   };
 
+  let offSession: (() => void) | undefined;
+  const paintEmpty = () => {
+    const v = col?.views.find((x) => x.id === activeId);
+    const s = current?.r.ctx.session;
+    const show = !!s && s.loaded && s.total === 0 && canWrite() && !search && filterCount(v) === 0 && ["table", "list", "gallery"].includes(v?.type ?? "");
+    if (empty.hidden === show) empty.hidden = !show;
+  };
+  const watchSession = () => {
+    offSession?.();
+    offSession = current?.r.ctx.session.on(paintEmpty);
+  };
+
   const paintTools = () => {
     const v = col?.views.find((x) => x.id === activeId);
     const n = filterCount(v);
     setText(filterBadge, n ? String(n) : "");
     setAttr(filterBtn, "data-on", n ? "true" : null);
     setAttr(sortBtn, "data-on", v?.config.sorts?.length ? "true" : null);
-    setAttr(groupBtn, "data-on", v?.config.group?.prop ? "true" : null);
+    setAttr(moreBtn, "data-on", v?.config.group?.prop ? "true" : null);
     const type = v?.type ?? "table";
-    groupBtn.hidden = !["table", "board", "list", "gallery"].includes(type);
     sortBtn.hidden = ["form", "chart", "dashboard"].includes(type);
-    propsBtn.hidden = ["chart", "dashboard", "map", "feed"].includes(type);
     filterBtn.hidden = type === "form";
     searchBtn.hidden = type === "form";
-    layoutBtn.hidden = !current?.r.settings;
-    autoBtn.hidden = !canWrite();
+    paintEmpty();
     newGroup.hidden = !canWrite() || type === "form";
     if (o.inline) {
       const name = col?.title ?? "";
@@ -216,7 +225,9 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
       stage.replaceChildren(r.el);
       current = { id: view.id, r, view };
       paintTools();
+      watchSession();
       await r.ready.catch(engine.reportError);
+      paintEmpty();
       return;
     }
     await Promise.race([r.ready.catch(engine.reportError), new Promise((res) => setTimeout(res, 450))]);
@@ -228,6 +239,8 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     stage.replaceChildren(r.el);
     current = { id: view.id, r, view };
     paintTools();
+    watchSession();
+    paintEmpty();
   };
 
   let readyResolve: () => void = () => undefined;
@@ -366,17 +379,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   };
   filterBtn.addEventListener("click", () => withCtx((ctx) => openFilterPanel(filterBtn, ctx, activeId)));
   sortBtn.addEventListener("click", () => withCtx((ctx) => openSortPanel(sortBtn, ctx, activeId)));
-  groupBtn.addEventListener("click", () => withCtx((ctx) => openGroupPanel(groupBtn, ctx, activeId)));
-  propsBtn.addEventListener("click", () =>
-    withCtx((ctx) => {
-      const type = viewOf(ctx, activeId)?.type ?? "table";
-      openPropsPanel(propsBtn, ctx, activeId, (p) => type !== "table" && p.type !== "title");
-    }),
-  );
-  layoutBtn.addEventListener("click", () => current?.r.settings?.(layoutBtn));
-  autoBtn.addEventListener("click", () => {
-    if (col) openAutomations(engine, store.get(colId) ?? col);
-  });
+  emptyNew.addEventListener("click", () => newBtn.click());
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   searchBtn.addEventListener("click", () => {
     searchIn.hidden = !searchIn.hidden;
@@ -465,6 +468,26 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   moreBtn.addEventListener("click", () => {
     const v = col?.views.find((x) => x.id === activeId);
     const entries: MenuEntry[] = [];
+    const type = v?.type ?? "table";
+    if (["table", "board", "list", "gallery"].includes(type)) entries.push({ label: t("Group"), icon: "group", run: () => withCtx((ctx) => openGroupPanel(moreBtn, ctx, activeId)) });
+    if (!["chart", "dashboard", "map", "feed"].includes(type)) {
+      entries.push({
+        label: t("Properties"),
+        icon: "sliders",
+        run: () => withCtx((ctx) => openPropsPanel(moreBtn, ctx, activeId, (p) => type !== "table" && p.type !== "title")),
+      });
+    }
+    if (current?.r.settings) entries.push({ label: t("Layout"), icon: "settings", run: () => current?.r.settings?.(moreBtn) });
+    if (canWrite()) {
+      entries.push({
+        label: t("Rules"),
+        icon: "bolt",
+        run: () => {
+          if (col) openAutomations(engine, store.get(colId) ?? col);
+        },
+      });
+    }
+    if (entries.length) entries.push({ kind: "separator" });
     if (v) {
       entries.push({
         label: t("Export as CSV"),
@@ -524,8 +547,15 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   return {
     el: root,
     ready,
+    focusNew() {
+      const first = stage.querySelector<HTMLElement>('[data-prop="title"]');
+      if (!empty.hidden) emptyNew.focus();
+      else if (first) first.focus();
+      else newBtn.focus();
+    },
     destroy() {
       destroyed = true;
+      offSession?.();
       off();
       offPages();
       current?.r.destroy();

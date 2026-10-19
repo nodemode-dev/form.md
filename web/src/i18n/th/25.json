@@ -1,0 +1,13 @@
+{
+  "Database table": "ตารางฐานข้อมูล",
+  "Sort, filter and add columns": "เรียงลำดับ กรอง และเพิ่มคอลัมน์",
+  "New table": "ตารางใหม่",
+  "No rows yet. Click New to add your first row.": "ยังไม่มีแถว คลิก ใหม่ เพื่อเพิ่มแถวแรกของคุณ",
+  "Rules": "กฎ",
+  "More types": "ประเภทอื่นๆ",
+  "Link to another table": "ลิงก์ไปยังตารางอื่น",
+  "Summary of linked rows": "สรุปแถวที่เชื่อมโยง",
+  "Calculation": "การคำนวณ",
+  "Row number": "หมายเลขแถว",
+  "Action button": "ปุ่มดำเนินการ"
+}

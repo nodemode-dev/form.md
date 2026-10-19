@@ -2,6 +2,7 @@ import type { ComputedValue, Property, PropType, RowData, ViewType } from "../..
 import { t } from "../../engine/i18n";
 import { locale } from "../../engine/format";
 import type { IconName } from "../../ui/icons";
+import type { MenuEntry } from "../../ui/menu";
 
 export const TYPE_INFO: Record<PropType, { label: string; icon: IconName }> = {
   title: { label: "Title", icon: "text" },
@@ -17,22 +18,33 @@ export const TYPE_INFO: Record<PropType, { label: string; icon: IconName }> = {
   url: { label: "URL", icon: "link" },
   email: { label: "Email", icon: "mail" },
   phone: { label: "Phone", icon: "phone" },
-  relation: { label: "Relation", icon: "relation" },
-  rollup: { label: "Rollup", icon: "rollup" },
-  formula: { label: "Formula", icon: "formula" },
+  relation: { label: "Link to another table", icon: "relation" },
+  rollup: { label: "Summary of linked rows", icon: "rollup" },
+  formula: { label: "Calculation", icon: "formula" },
   created_time: { label: "Created time", icon: "clock" },
   created_by: { label: "Created by", icon: "user" },
   last_edited_time: { label: "Last edited time", icon: "clock" },
   last_edited_by: { label: "Last edited by", icon: "user" },
-  unique_id: { label: "ID", icon: "id" },
+  unique_id: { label: "Row number", icon: "id" },
   place: { label: "Place", icon: "pin" },
-  button: { label: "Button", icon: "button" },
+  button: { label: "Action button", icon: "button" },
 };
 
 export const CREATABLE: PropType[] = [
   "text", "number", "select", "multi_select", "status", "date", "person", "files", "checkbox", "url", "email", "phone",
   "relation", "rollup", "formula", "created_time", "created_by", "last_edited_time", "last_edited_by", "unique_id", "place", "button",
 ];
+
+export const COMMON_TYPES = 9;
+
+export function typeEntries(make: (type: PropType) => MenuEntry): MenuEntry[] {
+  const out: MenuEntry[] = [];
+  CREATABLE.forEach((type, i) => {
+    if (i === COMMON_TYPES) out.push({ kind: "separator" }, { kind: "heading", label: t("More types") });
+    out.push(make(type));
+  });
+  return out;
+}
 
 export const VIEW_INFO: Record<ViewType, { label: string; icon: IconName }> = {
   table: { label: "Table", icon: "table" },

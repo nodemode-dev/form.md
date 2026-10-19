@@ -20,7 +20,7 @@ export interface CatalogEntry {
   section: () => string;
   icon: IconName;
   keywords: string;
-  hint?: string;
+  hint?: string | undefined;
   turn?: BlockKind;
   run: (view: EditorView, ctx: EditorCtx) => void;
 }

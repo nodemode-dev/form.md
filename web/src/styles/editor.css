@@ -1167,7 +1167,8 @@ a.mention:hover {
   content: none;
 }
 
-.doc-body[contenteditable="false"] .is-empty::before {
+.doc-body[contenteditable="false"] .is-empty::before,
+.doc-body :is(td, th) .is-empty::before {
   content: none;
 }
 
@@ -1630,7 +1631,7 @@ a.mention:hover {
 
 .listbox {
   min-inline-size: 260px;
-  max-inline-size: 340px;
+  max-inline-size: 400px;
   max-block-size: min(360px, calc(100dvh - var(--space-8)));
   overflow-y: auto;
   padding: var(--space-1);
