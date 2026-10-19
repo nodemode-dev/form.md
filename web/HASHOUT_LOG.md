@@ -1875,3 +1875,38 @@ The nested editor reuses the host's trigger plugin, AI plugins, format bar and u
 - logged: v0.41.0 · 2026-10-19
 
 Touch keeps native scrolling: a press arms a 450 ms timer that 8 px of movement cancels, and only when it fires does the mouse drag path begin. The non-passive touchmove and the capturing contextmenu listener exist only while a drag is live, so taps and scrolls are unaffected; on Android a long hold on a row now drags instead of opening the browser menu, and the row's own menu button still opens the row menu. In two-sections mode root databases leave Documents for the Databases section, and in one-tree mode the section hides, so no database is listed twice; only a mode change re-renders the two lists.
+
+### src/ui/icons.ts · formlit's icon art
+- refers-to: src/ui/icons.ts :: `PATHS`
+- kind: rationale
+- logged: v0.42.0 · 2026-10-19
+
+The owner wants one icon language across form.md and formlit, so every entry with a formlit counterpart is redrawn from formlit's art under form.md's name and no caller changes. Shapes formlit draws filled carry fill="currentColor" with stroke none; other strokes use the wrapper's 1.75 except the small plus in search, whose look depends on its thinner width. agent, agent-chat, send and ai-chip come from formlit; sparkle is removed (banned), and formlit's wand and burst icons were not copied, so the only star left is the single rating star. Filled icons are heavier than stroked ones; that matches formlit.
+
+### src/ui/agent-dock.ts · the dock as formlit has it
+- refers-to: src/ui/agent-dock.ts (header, ask bar, select, TermView.reattach, the chat); src/styles/dock.css; src/engine/keymap.ts :: `KeyContext.only`; src/ui/keyboard.ts (data-own-keys)
+- kind: rationale
+- logged: v0.42.0 · 2026-10-19
+
+The dock follows formlit's three-row grid (header, stage, ask bar) and its tab and chat proportions in form.md tokens. One ask bar serves the Claude Code tab and the chat, so the chat has no composer of its own. Restart reuses the same xterm and pane: the server's restart keeps the subscription, the client resets the terminal and re-attaches. App shortcuts run in a window capture listener, so a stage handler cannot stop them; a `data-own-keys` allow-list and `KeyContext.only` let the stage pass only the dock toggle. The Chat tab is appended and moved to the end when shown so opening it never shifts tabs on screen; the status text has a minimum width so "Claude is working..." never pushes the meter. Not yet like formlit: the dock overlays the page instead of taking a row of the shell, the client does not yet listen to `/api/claude/chat/events` after a reload, and there is no Claude section in settings.
+
+### src/ui/home-view.ts and index.html · home, topbar and first paint
+- refers-to: web/index.html (boot script order, data-home, data-owner, data-dev, home markup); src/ui/home-view.ts; src/main.ts (syncDev, the Claude probe); src/ui/status.ts; src/styles/shell.css, pages.css, doc.css
+- kind: rationale
+- logged: v0.42.0 · 2026-10-19
+
+The boot JSON and a small inline script now sit before `#app`, so `data-home`, `data-owner` and `data-dev` exist before the first frame; the home's two states are CSS toggled by `data-home`, and the only runtime writes are the recents list children inside reserved rows and the offline notice's hidden flag. Recents load in a lazy chunk at boot and on workspace change, so they can be stale until the next of those. The Claude Code button shows from the owner role at first paint and hides only if the harness probe says it is off. The account switch sets `data-dev` directly as well as storing it, because the storage event reaches other tabs only. The theme boot defaults to auto, so a new browser follows the system from the first frame.
+
+### src/ui/disclosure.ts · dialogs for everyday people
+- refers-to: src/ui/disclosure.ts; src/ui/publish-dialog.ts; src/ui/share-dialog.ts; src/ui/account.ts (Advanced); src/ui/admin.ts (Advanced: network); src/ui/auth.ts (Show password)
+- kind: rationale
+- logged: v0.42.0 · 2026-10-19
+
+Every disclosure is a native details element and only the summary chevron moves, by transform, so opening one never moves what sits above it. The publish dialog stacks its intro and the live address in one grid cell toggled by `data-off`, so publishing changes no height, and its sticky Publish bar covers the body padding so content never shows beneath it. The password toggle wraps the input in a same-size span in the same task as the form mounts, with end padding in CSS, so nothing shifts. The Advanced panels render on first open, which also defers their token and agent fetches.
+
+### src/extensions/database · tables everyday people can find
+- refers-to: src/extensions/database/index.ts (createCollection title, focusNew), surface.ts (empty hint, More menu, Rules), props.ts :: `typeEntries`, propedit.ts; src/extensions/blocks/catalog.ts; src/styles/editor.css, database.css
+- kind: rationale
+- logged: v0.42.0 · 2026-10-19
+
+The empty-table hint is a sibling after the stage, so it appears below content and nothing above moves, and its hidden flag is written only when the state changes. Group, Properties, Layout and Rules share the existing More menu instead of a new button, and panels anchor to it. Toolbar buttons keep a fixed 28px height so labels widen the bar without changing its height. The common nine property types come first and the rest follow "More types" under plain names; type ids are untouched so stored schemas and the API are unchanged.

@@ -41,6 +41,8 @@ var Vars = []Var{
 	{"DATA", "./data", "data directory holding the database and uploads"},
 	{"TERMINAL", "", "on or off: the in-app terminal and Claude Code for the owner; unset means on only when ADDR is a loopback address"},
 	{"CLAUDE_BIN", "", "path to the claude executable when it is not on the PATH or in the usual install folders"},
+	{"AGENT_DIR", "", "folder Claude Code starts in; unset means DATA/agent"},
+	{"MCP_AUTOSTART", "", "0 stops form-md mcp from starting a local server that is not running"},
 	{"TLS_CERT", "", "path to a TLS certificate; set together with FORMMD_TLS_KEY"},
 	{"TLS_KEY", "", "path to the TLS private key; set together with FORMMD_TLS_CERT"},
 	{"KEY_FILE", "", "path to the at-rest encryption key (form-md keygen makes one); keep it outside the data directory. A systemd credential named form-md.key is used when this is unset"},

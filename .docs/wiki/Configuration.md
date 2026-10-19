@@ -32,6 +32,8 @@ An empty value counts as unset and gives the default.
 | `FORMMD_FAMILY` | unset | Where the other form family apps run on this computer, as `product=url` pairs separated by commas. `formlit=http://127.0.0.1:8390,formvis=http://127.0.0.1:8190` are assumed. Loopback addresses only; anything else is ignored. `off` stops the lookups. See [Form family](Form-family) |
 | `FORMMD_TERMINAL` | unset | `on` (`1`, `true`) allows the terminal and Claude Code panel on a server that listens beyond this computer; `off` (`0`, `false`) turns it off even locally. Unset, it is on only when `FORMMD_ADDR` is a loopback address. See [Terminal and Claude Code](Terminal-and-Claude-Code) |
 | `FORMMD_CLAUDE_BIN` | unset | Path to the `claude` executable when it is not found on `PATH`, in the usual install folders or through the login shell |
+| `FORMMD_AGENT_DIR` | unset | Folder Claude Code starts in, from the terminal panel and the chat; unset means `agent` inside the data directory |
+| `FORMMD_MCP_AUTOSTART` | unset | `0` stops `form-md mcp` from starting a local server that is not running (it starts one only for a loopback address with a known data directory) |
 | `FORMMD_FETCH_PRIVATE` | unset | Set to `1` (or `true`) to let link previews, media imports, webhooks and other outbound requests reach private network addresses such as intranet sites. Off by default |
 
 The server refuses to start (exit status 2, log line `config`) when:

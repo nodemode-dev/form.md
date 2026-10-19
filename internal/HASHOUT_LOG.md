@@ -2123,3 +2123,17 @@ The ungrouped branch clamped a negative offset; the group branch used it as give
 - logged: v0.41.0 · 2026-10-19
 
 The v0.41.0 defect audit asked whether a client that sends no scope should get read rather than write. It is left as write: MCP clients connect without a scope and need to write, the consent screen names the scope the person grants, and the person can still choose a read-only grant. Changing it would make every scope-less agent read-only after its next sign-in; that is a product decision for the owner, not a defect fix.
+
+### internal/claudecode · run Claude Code the way formlit does
+- refers-to: internal/claudecode/claude.go (ServerName, ToolPrefix, Note, Launch, childEnv, MCPConfig), internal/claudecode/terminal.go (agentDir, halt, Restart, Scrollback, RunningClaude), internal/claudecode/chat.go (Turn, Live, subscribe, fan), internal/claudecode/module.go (openClaude, /api/claude/open, /api/claude/chat/events, terminal input, read and resize), cmd/form-md/bridge.go (autostart, launchServer), cmd/form-md/detach_unix.go, detach_other.go
+- kind: rationale
+- logged: v0.42.0 · 2026-10-19
+
+`--allowedTools mcp__form-md` and the login-shell `Launch` are ported from formlit's Claude Code arguments: without the first a terminal tab asked for every tool, and the login shell lets nvm or volta installs of claude find node. The server is `form-md` everywhere because the docs, the skill and .mcp.json already used that name; a second name registered one server twice and gave the note the wrong tool names. Chat events fan out from the run goroutine, not the request, so a reload cannot orphan an answer; `Live` is replaced as a whole copy, never mutated, so snapshots stay race-free; the POST stream stays because the hub's 128-event queue drops long replies. Restart halts without closing subscribers so a second window keeps its tab, and the old pump waits on a stale generation so the killed child is reaped. A prompt typed into a running tab is `prompt + "\r"` in one write, as formlit does, behind its own endpoint so `POST /api/terminal` always creates a tab. `form-md mcp` starts a server only for loopback http with a known data directory, so a bridge launched from a random folder never creates a stray ./data; setsid lives in build-tagged files because release targets include Windows.
+
+### internal/icon/icon.go and migration 0029 · the sparkle retired
+- refers-to: internal/icon/icon.go (Normalize), internal/comment/comment.go (Reactions, canonReaction), internal/comment/pagereact.go, internal/page/write.go, internal/page/teams.go, internal/workspace/workspace.go (cleanIcon), internal/site/render.go (iconSpan), internal/doc/html.go, internal/store/migrations/0029_retire_sparkle.sql
+- kind: rationale
+- logged: v0.42.0 · 2026-10-19
+
+The owner banned the three-star sparkle app-wide. Bolt replaces it for page icons and reactions because it exists in both the glyph and icon sets and is not a star; the reaction keeps its "Brilliant" label so no catalog changes. `Normalize` runs before `Valid` on every write path, so old clients and agents that send sparkle still work while `Valid` stays strict and sparkle is not an accepted name. Documents are not rewritten: the public renderer normalizes callout icons when it reads them, which leaves CRDT history alone. The migration deletes a sparkle reaction where the same person already has bolt before renaming the rest, because the primary key (target, user, icon) would otherwise refuse the rename.
