@@ -1,4 +1,4 @@
-VERSION := v0.41.0
+VERSION := v0.42.0
 LDFLAGS := -s -w -X github.com/nodemode-ai/form.md/internal/app.Version=$(VERSION)
 GO_BUILD := CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)"
 TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
