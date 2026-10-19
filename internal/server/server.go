@@ -141,6 +141,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	cols.OnAssign(notes.FromAssign)
 	finder := search.New(st, gate, authSvc, pages, log)
 	finder.SetRows(cols.RowText, cols.RowIDs)
+	finder.SetPDF(transfer.PDFText, fsvc.PDFBytes)
 	cols.OnRows(finder.RowsChanged)
 	sites := site.New(st, gate, pages, docs, cols, fsvc, authSvc, set, al, log)
 	views := analytics.New(st, gate, pages, al, log)
@@ -173,6 +174,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	harness := claudecode.New(authSvc, hub, cfg.Addr, cfg.DataDir)
 	agents := mcp.New(mcp.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Docs: docs, Cols: cols, Search: finder, Comments: comments, Workspace: ws, Runs: runs, Context: packer, Skill: skill, Window: harness, Version: app.Version, Log: log, Family: fam})
 	crew := agent.New(agent.Deps{Store: st, Auth: authSvc, Gate: gate, AI: brain, Tools: agents, Docs: docs, Cols: cols, Runs: runs, Context: packer, Log: log})
+	hooks.UsePages(pages)
 	hooks.OnEvent(crew.OnEvent)
 	flows := automation.New(automation.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Cols: cols, Inbox: notes, Mail: mailer, Hooks: hooks, Box: box, Public: func() string { return set.Get("instance.public_url") }, Log: log})
 	hooks.OnEvent(flows.OnEvent)
@@ -274,7 +276,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		transfer.New(st, authSvc, gate, pages, docs, cols, fsvc, sites, log, cfg.DataDir).Module(),
 		apidoc.New(authSvc.BaseURL).Module(),
 		graph.New(st, authSvc, pages).Module(),
-		answer.New(st, authSvc, finder, brain).Module(),
+		answer.New(st, authSvc, finder, brain, set, fetcher).Module(),
 		ops.Module{Auth: authSvc, Flush: docs.FlushAll},
 		s.Tunnel.Module(authSvc),
 		static.Module(s.renderDocument),

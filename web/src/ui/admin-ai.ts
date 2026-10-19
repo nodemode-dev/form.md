@@ -30,6 +30,43 @@ export function aiTab(engine: Engine): Tab {
       const general = section(t("AI"), t("Connect one or more providers, then choose which of their models people may use. API keys are sealed in the database."));
       general.append(on.el, field(t("Default model"), def, t("Used when someone does not pick a model.")), field(t("Transcription model"), audio, t("Turns meeting audio into text; mark a model as audio below.")), field(t("Requests per person per hour"), limit), st.el, actions(test, save));
 
+      const webMode = select<string>([["off", t("Off")], ["searxng", "SearXNG"], ["brave", "Brave Search API"]], "off");
+      const webUrl = input({ name: "ai-web-url", placeholder: "https://search.example.com/search" });
+      const webKey = input({ type: "password", name: "ai-web-key", autocomplete: "off" });
+      const webSave = button(t("Save"), "primary");
+      const webStatus = status();
+      let webKeySet = "";
+      const web = section(t("Web search for answers"), t("Lets people tick Include the web when they ask a question. Only the question is sent to the search service; the top three results are fetched and given to the model as untrusted sources."));
+      web.append(
+        field(t("Search service"), webMode),
+        field(t("Search address"), webUrl, t("SearXNG: the address of its search page, with JSON output allowed. Brave: leave empty for the public API, or give a compatible address.")),
+        field(t("Search API key"), webKey, t("Brave only. Sealed in the database; leave empty to keep the saved key.")),
+        webStatus.el,
+        actions(webSave),
+      );
+      const loadWeb = async () => {
+        try {
+          const r = await engine.api.admin.settings();
+          webKeySet = r.secret_set;
+          webMode.value = r.settings["ai.web.mode"] || "off";
+          webUrl.value = r.settings["ai.web.url"] ?? "";
+          webKey.placeholder = r.settings["ai.web.key"] === webKeySet ? t("key set") : "";
+        } catch (err) {
+          webStatus.error(err);
+        }
+      };
+      webSave.addEventListener("click", async () => {
+        webStatus.clear();
+        try {
+          await busy(webSave, () => engine.api.admin.saveSettings({ "ai.web.mode": webMode.value, "ai.web.url": webUrl.value, "ai.web.key": webKey.value || webKeySet }));
+          webKey.value = "";
+          webStatus.say(t("Saved."), "success");
+          await loadWeb();
+        } catch (err) {
+          webStatus.error(err);
+        }
+      });
+
       const provList = h("div", { class: "ai-providers" });
       const noProv = h("p", { class: "muted", text: t("No provider yet.") });
       const provStatus = status();
@@ -226,9 +263,13 @@ export function aiTab(engine: Engine): Tab {
         }
       });
 
-      panel.append(general, providers, addSection, usageSection);
+      panel.append(general, web, providers, addSection, usageSection);
       void load();
-      return () => void load();
+      void loadWeb();
+      return () => {
+        void load();
+        void loadWeb();
+      };
     },
   };
 }

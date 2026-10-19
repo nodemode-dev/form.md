@@ -22,6 +22,8 @@ type Item =
   | { kind: "empty"; key: string; label: string };
 
 interface Source {
+  kind?: string;
+  url?: string;
   page_id: string;
   title: string;
   heading: string;
@@ -106,7 +108,16 @@ export function mountSearch(engine: Engine): void {
     const inChip = chip(t("In"));
     const dateChip = chip(t("Date"));
     const sortChip = chip(t("Best match"));
-    const filterRow = h("div", { class: "srch__filters", attrs: { role: "group", "aria-label": t("Filters") } }, titleChip, byChip, inChip, dateChip, h("span", { class: "srch__spacer" }), sortChip);
+    const webChip = h("button", { class: "chip-btn", attrs: { type: "button", "aria-pressed": "false" } }, h("span", { text: t("Include the web") }));
+    webChip.hidden = true;
+    const filterRow = h("div", { class: "srch__filters", attrs: { role: "group", "aria-label": t("Filters") } }, titleChip, byChip, inChip, dateChip, webChip, h("span", { class: "srch__spacer" }), sortChip);
+    webChip.addEventListener("click", () => setAttr(webChip, "aria-pressed", String(webChip.getAttribute("aria-pressed") !== "true")));
+    void api.ai.answerOptions().then(
+      (o) => {
+        webChip.hidden = !o.web;
+      },
+      () => {},
+    );
     const list = h("div", { class: "srch__list", attrs: { id: "srch-list", role: "listbox", "aria-label": t("Results") } });
     const answerText = h("div", { class: "srch__answer-text doc-body", attrs: { "aria-live": "polite" } });
     const answerNote = h("p", { class: "srch__answer-note" });
@@ -233,7 +244,7 @@ export function mountSearch(engine: Engine): void {
         { side: "bottom", align: "end", label: t("Sort") },
       );
     });
-    return { scrim, dialog, input, busy, list, titleChip, byChip, inChip, dateChip, sortChip, took: foot.querySelector(".srch__took") as HTMLElement, answer, answerText, answerNote, sourcesEl };
+    return { scrim, dialog, input, busy, list, titleChip, webChip, byChip, inChip, dateChip, sortChip, took: foot.querySelector(".srch__took") as HTMLElement, answer, answerText, answerNote, sourcesEl };
   }
 
   const paintChips = () => {
@@ -309,7 +320,10 @@ export function mountSearch(engine: Engine): void {
     answering?.abort();
     answering = null;
     asked = "";
-    if (parts) parts.answer.hidden = true;
+    if (parts) {
+      parts.answer.hidden = true;
+      setAttr(parts.webChip, "aria-pressed", "false");
+    }
   };
 
   const runAnswer = (q: string) => {
@@ -322,7 +336,8 @@ export function mountSearch(engine: Engine): void {
     p.answer.hidden = false;
     p.answerText.replaceChildren();
     p.sourcesEl.replaceChildren();
-    setText(p.answerNote, t("Reading the workspace"));
+    const web = !p.webChip.hidden && p.webChip.getAttribute("aria-pressed") === "true";
+    setText(p.answerNote, web ? t("Reading the workspace and the web") : t("Reading the workspace"));
     p.answerNote.hidden = false;
     let raw = "";
     let frame = 0;
@@ -336,10 +351,18 @@ export function mountSearch(engine: Engine): void {
             if (event === "sources") {
               const list = ((data as { sources?: Source[] }).sources ?? []) as Source[];
               list.forEach((s, i) => {
+                if (s.kind === "web" && s.url) {
+                  p.sourcesEl.append(h("li", {}, h("a", { attrs: { href: s.url, target: "_blank", rel: "noopener noreferrer" } }, h("span", { class: "srch__src-n", text: `[${i + 1}]` }), h("span", { text: `${s.title || s.url} · ${s.url}` }))));
+                  return;
+                }
                 const where = [...s.path.map((c) => c.title || t("Untitled")), s.title || t("Untitled")].join(" / ");
                 p.sourcesEl.append(h("li", {}, h("a", { attrs: { href: `/p/${s.page_id}`, "data-page": s.page_id } }, h("span", { class: "srch__src-n", text: `[${i + 1}]` }), h("span", { text: s.heading ? `${where} › ${s.heading}` : where }))));
               });
-              setText(p.answerNote, list.length ? t("Writing an answer from {n} passages", { n: list.length }) : t("No page matched; answering anyway"));
+              const webState = (data as { web?: string }).web;
+              setText(
+                p.answerNote,
+                webState === "failed" || webState === "none" ? t("The web gave no usable pages; answering from the workspace") : list.length ? t("Writing an answer from {n} passages", { n: list.length }) : t("No page matched; answering anyway"),
+              );
             } else if (event === "delta") {
               raw += (data as { t?: string }).t ?? "";
               p.answerNote.hidden = true;
@@ -351,6 +374,7 @@ export function mountSearch(engine: Engine): void {
             }
           },
           abort.signal,
+          web,
         )
         .then(
           () => {

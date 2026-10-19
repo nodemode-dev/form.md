@@ -85,6 +85,9 @@ var Defs = []Def{
 	{Key: "ai.default_model", Kind: Text},
 	{Key: "ai.transcribe_model", Kind: Text},
 	{Key: "ai.user_limit_per_hour", Kind: Int, Default: "200", Min: 1, Max: 100000},
+	{Key: "ai.web.mode", Kind: Enum, Default: "off", Options: []string{"off", "searxng", "brave"}},
+	{Key: "ai.web.url", Kind: Text},
+	{Key: "ai.web.key", Kind: Secret},
 }
 
 var byKey = func() map[string]Def {
