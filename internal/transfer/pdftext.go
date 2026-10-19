@@ -8,6 +8,8 @@ import (
 	"github.com/ledongthuc/pdf"
 )
 
+func PDFText(data []byte) ([]string, error) { return pdfText(data) }
+
 func pdfText(data []byte) (pages []string, err error) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	indexVersion = "1"
+	indexVersion = "2"
 	batchSize    = 100
 	debounce     = 400 * time.Millisecond
 	maxLimit     = 50
@@ -39,6 +39,8 @@ type Service struct {
 	log     *slog.Logger
 	rowText func(ctx context.Context, id string) (string, bool)
 	rowIDs  func(ctx context.Context, collectionID string) []string
+	pdfText func(data []byte) ([]string, error)
+	pdfRead func(ctx context.Context, id string, max int64) ([]byte, bool)
 
 	mu         sync.Mutex
 	dirty      map[string]struct{}
@@ -291,7 +293,7 @@ func (s *Service) load(ctx context.Context, id string) (*source, error) {
 	if err := s.st.R.QueryRowContext(ctx, "SELECT markdown FROM doc_state WHERE page_id = ?", id).Scan(&md); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
-	src.parts = passages(md.String)
+	src.parts = append(passages(md.String), s.pdfParts(ctx, id)...)
 	if row == 1 && s.rowText != nil {
 		src.props, _ = s.rowText(ctx, id)
 	}

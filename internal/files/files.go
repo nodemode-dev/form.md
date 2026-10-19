@@ -322,6 +322,23 @@ func (s *Service) Open(ctx context.Context, p *policy.Principal, id string) (*Fi
 	return f, fh, nil
 }
 
+func (s *Service) PDFBytes(ctx context.Context, id string, max int64) ([]byte, bool) {
+	f, err := s.lookup(ctx, id)
+	if err != nil || f.Mime != "application/pdf" || f.Size > max {
+		return nil, false
+	}
+	fh, err := s.st.Key.Open(s.path(f.ID, f.ext))
+	if err != nil {
+		return nil, false
+	}
+	defer fh.Close()
+	data, err := io.ReadAll(io.LimitReader(fh, max+1))
+	if err != nil || int64(len(data)) > max {
+		return nil, false
+	}
+	return data, true
+}
+
 type headBuf struct {
 	b []byte
 }
@@ -484,7 +501,8 @@ func (s *Service) Sweep(ctx context.Context) {
 	day := store.NowMS() - int64(24*time.Hour/time.Millisecond)
 	_, err := s.st.W.ExecContext(ctx, `DELETE FROM files WHERE created_at < ? AND (
 			(purpose IN ('attachment', 'cover', 'icon') AND page_id IS NULL AND workspace_id IS NOT NULL
-				AND NOT EXISTS (SELECT 1 FROM pages WHERE cover = 'f:' || files.id OR icon = 'f:' || files.id))
+				AND NOT EXISTS (SELECT 1 FROM pages WHERE cover = 'f:' || files.id OR icon = 'f:' || files.id)
+				AND NOT EXISTS (SELECT 1 FROM doc_refs WHERE kind = 'file' AND target = files.id))
 			OR (purpose = 'avatar' AND NOT EXISTS (SELECT 1 FROM users WHERE avatar = 'f:' || files.id))
 			OR (purpose = 'workspace' AND NOT EXISTS (SELECT 1 FROM workspaces WHERE image = 'f:' || files.id OR icon = 'f:' || files.id)))`, day)
 	if err != nil {
