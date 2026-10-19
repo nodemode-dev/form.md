@@ -1833,3 +1833,45 @@ The catalogue tells the server whether a command changes data, and a read-only M
 - logged: v0.19.0 · 2026-10-16
 
 At phone width the terminal and shortcut buttons are hidden (neither is usable on a touch screen) and the mode button keeps only its icon, its aria-label still naming the mode, so the page title in the top bar keeps room. `.code` is a grid whose implicit column sized to the longest line; `minmax(0, 1fr)` bounds it so `.code__pre` scrolls instead of widening the block.
+
+### src/extensions/database/views/board.ts · per-card bars and rings
+- refers-to: src/extensions/database/views/board.ts :: `paintCard`, `isMeter`; src/styles/database.css :: `.card__prop[data-meter]`
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+Cards already drew a number property shown as a bar or ring, but only while it had a value, so typing the first value made the card taller. A bar or ring row now stays on the card when empty, marked `data-meter`, with 16px (the ring height) reserved. Existing card nodes are reconciled and the attribute is set in place; nothing is rebuilt.
+
+### src/ui/library-view.ts · the Graph tab
+- refers-to: src/ui/library-view.ts :: `VIEWS`, `graphBox`, `syncGraph`; src/ui/graph-view.ts :: `mountGraph`, `openGraph`; src/engine/router.ts :: `LibraryView`, `LIBRARY_VIEWS`; src/styles/pages.css :: `.lib-graph`
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+`mountGraph` holds what the dialog did and returns a dispose that disconnects the ResizeObserver and cancels the frame; the dialog and the tab both call it. The tab imports graph-view only when entered, so the start bundle does not grow, and disposes on leaving the tab, the library route or the workspace. `.lib-graph` reserves the canvas height plus its bar before data arrives, so loading does not shift the page.
+
+### src/ui/search.ts and src/ui/admin-ai.ts · Include the web
+- refers-to: src/ui/search.ts (answer filter row, sources list); src/ui/admin-ai.ts (Web search for answers); src/engine/client.ts :: `ai.answer`, `ai.answerOptions`
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+The "Include the web" chip sits in the existing filter row and stays hidden unless `GET /api/ai/answer/options` says the web is on, so instances without a service see nothing new. It is off by default and resets after each question, so the web is chosen per question, never sticky. Web sources render as external links with their URL beside the number. The admin section keeps all fields visible whatever the mode, so changing the mode never moves the form.
+
+### src/extensions/blocks/diagram.ts · Mermaid in dark appearance
+- refers-to: src/extensions/blocks/diagram.ts :: `drawDiagram`, `darkAppearance`, `watchAppearance`; src/extensions/blocks/nodeviews.ts :: `CodeView.setLight`, `ensureDark`, `apply`; src/sandbox/main.ts (theme per render); src/styles/editor.css :: `.diagram__img:not([data-tone="dark"])`
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+Inverting a neutral drawing turned a diagram's own colours into their opposites. The sandbox renders Mermaid's dark theme on request, re-initialised with the full config each render, and the dark drawing is cached apart from the light one and never stored, so the document and public pages keep the light svg. The new image is decoded off the page and then src, data-tone, width and height are written in one task, so there is no blank or resize; the box keeps a min-block-size while the first dark drawing is pending. The filter still applies to any image not marked dark, which is what published pages show.
+
+### src/extensions/blocks/synced.ts · the nested editor's chrome
+- refers-to: src/extensions/blocks/synced.ts :: `SyncedView.bind`; src/extensions/blocks/editor.ts :: `EditorHost.nested`; src/extensions/blocks/context.ts :: `NestedKit`; src/extensions/blocks/cursors.ts; src/extensions/blocks/formatbar.ts :: `detach`
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+The nested editor reuses the host's trigger plugin, AI plugins, format bar and upload plugin rather than forks of them. The host builds them through `EditorCtx.nested()` because importing the format bar or triggers into synced.ts closes a cycle (nodeviews, synced, format bar, catalog, board) whose evaluation order left a module undefined at boot. The nested context's `doc()` is the source page's session document, so a block created inside the synced block lands in the document that owns it. `FormatBar.attach` registers its window mouseup listener with an AbortController and `detach` aborts it, so destroyed synced blocks leave no listener behind. There is no block handle inside: the handle is bound to the main editor's wrapper and hover.
+
+### src/ui/tree.ts · long-press drag and the Databases section
+- refers-to: src/ui/tree.ts :: `mountTree` pointerdown handler, `splitMode`, `renderRoot`, `renderDatabases`
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+Touch keeps native scrolling: a press arms a 450 ms timer that 8 px of movement cancels, and only when it fires does the mouse drag path begin. The non-passive touchmove and the capturing contextmenu listener exist only while a drag is live, so taps and scrolls are unaffected; on Android a long hold on a row now drags instead of opening the browser menu, and the row's own menu button still opens the row menu. In two-sections mode root databases leave Documents for the Databases section, and in one-tree mode the section hides, so no database is listed twice; only a mode change re-renders the two lists.

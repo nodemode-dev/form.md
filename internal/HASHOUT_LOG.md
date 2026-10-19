@@ -2060,3 +2060,66 @@ The token was cached in a `sync.Map` for the life of the process with no check, 
 - logged: v0.39.3 · 2026-10-17
 
 The middleware checks the credential when the request arrives, but a long-lived connection is only registered for revoke hooks a moment later, after the WebSocket handshake or the stream header. A sign-out, token delete, grant revoke or account disable landing in that gap fired its hooks before the connection was in any list, so the connection stayed open. Each of the three owners now asks `CredentialLive` after registering: the session row (unexpired), the API token row, or the grant (unrevoked, with an unexpired access token), plus the user not disabled. Any revoke after registration reaches the hooks; any before it fails this check. It costs two indexed reads per new connection. The event hub gets the check from its module's `Mount` because the hub itself has no auth service.
+
+### internal/search/pdf.go · text of referenced PDF files
+- refers-to: internal/search/pdf.go (SetPDF, pdfParts), internal/search/search.go (load, indexVersion), internal/files/files.go (PDFBytes), internal/transfer/pdftext.go (PDFText), internal/server/server.go (finder.SetPDF)
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+The indexer adds passages from the PDF files a page body references, found through `doc_refs` rather than `files.page_id`, so removing a PDF from the body drops its text at the next re-index and replacing it changes the body, which already re-indexes the page. The extractor is the importer's, exported as `transfer.PDFText`, so imported and uploaded PDFs read the same. Limits: 4 PDFs per page, 16 MiB read per file through a LimitReader, 200 KiB of text per page, passages split on words at `maxPassage`; the indexer is single-threaded, so one file is in memory at a time, and the extractor's own 2000-page cap still holds. Scanned PDFs have no text layer and give nothing. `indexVersion` moved to 2 so existing pages rebuild once. `PDFBytes` takes no principal because only the indexer calls it, after the page itself passed the gate.
+
+### internal/files/files.go · the sweep reads doc_refs
+- refers-to: internal/files/files.go (Sweep)
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+The sweep removed unattached attachment, cover and icon files once no page used them as cover or icon, so a file linked only from another page's body could go. The delete now also requires that no `doc_refs` row of kind `file` targets it. Files attached to a page are unchanged.
+
+### internal/webhook/webhook.go · the page record in payloads
+- refers-to: internal/webhook/webhook.go (Event.DataOmitted, UsePages, attach, maxRecordBytes), internal/server/server.go (hooks.UsePages)
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+`page.create` and `page.update` carry `page.Meta` under `data`, the object REST returns under `page`, attached before the body is marshalled so the signature covers it. Over 64 KiB the record is dropped with `data_omitted: "size"`. Private and teamspace pages get `data_omitted: "restricted"`: a hook belongs to the workspace and its admin may not be able to read those pages. Row and comment events still carry ids only, because row values live in the collection service, not in `Meta`.
+
+### internal/store/store.go · stale WAL files
+- refers-to: internal/store/store.go (Open)
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+The database file was already created 0600; SQLite creates `-wal` and `-shm` with the main file's mode. A `-wal` or `-shm` left 0644 by an older version or a crash kept that mode, so `Open` sets any existing one to 0600 before opening.
+
+### internal/order/order.go · After increments instead of halving
+- refers-to: internal/order/order.go (After, bump)
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+`After` took the midpoint between the key and the top of the space, which added a character every five appends. `bump` increments the last character below the top digit and truncates after it, appending a digit only when the whole key is the top digit, so growth falls to about one character per 61 appends. Keys are compared as strings, so every existing key keeps its place and no migration is needed; a key that never grows would need a fixed-width integer part and a migration. The client's optimistic `keyBetween(a, "")` still halves until the server's key arrives.
+
+### internal/answer/web.go · the web as an answer source
+- refers-to: internal/answer/web.go (webOn, search, gather, readable, scrub, systemWeb), internal/answer/answer.go (New, the answer handler, options), internal/settings/settings.go (ai.web.mode, ai.web.url, ai.web.key)
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+The web is opt-in twice: an admin sets a search service (off by default) and the asker ticks it per question, so no workspace sends traffic out unless both happened. Only the question is sent to the search service, squashed and capped at 300 characters, never workspace text. Result pages go through the guarded fetcher with per-page and overall caps and are reduced to readable text (script, style, nav, header, footer, aside and forms dropped); a page that fails keeps its search snippet. Web text is framed like workspace text, numbered inside `<sources>` after the workspace sources so citations share one number space, with `<sources` neutralised so a page cannot close the block, under a system prompt that says to ignore instructions in sources. The search call uses its own netguard client that allows private addresses, because a LAN SearXNG is the expected setup; it only reaches the admin's configured address and only parses JSON, while result pages keep the full guard. The key is a sealed Secret behind the existing admin settings endpoint. Connectors are not built: `internal/family` discovers sibling tools but the siblings expose no search contract (id, title, snippet, URL) and family has no `tools/call` client.
+
+### internal/site/render.go · boards and galleries on published pages
+- refers-to: internal/collection/public.go (PublicTable, PublicRow, PublicGroup, publicCover), internal/site/render.go (table, cardsHTML, cardHTML, cardBody, boardHTML, galleryHTML)
+- kind: rationale
+- logged: v0.41.0 · 2026-10-19
+
+`PublicTable` carries the view type, groups and covers, and the groups come from the same `bucketise` the app uses, so a published board has the app's column order, hidden groups, hide-empty and option colours. The renderer stays server HTML with no script, which the public CSP requires. Covers follow the view's cover setting and reserve space with `aspect-ratio`. A cover taken only from a files property may be refused by the public file allow-list and show as a broken picture; not yet exercised. Calendar, timeline, list and feed views still publish as a table.
+
+### internal/collection/service.go · grouped query offset
+- refers-to: internal/collection/service.go (Query, the group branch of makeGroups)
+- kind: fix
+- logged: v0.41.0 · 2026-10-19
+
+The ungrouped branch clamped a negative offset; the group branch used it as given and indexed `rows[-1]`, a panic per request behind the recover middleware. Both branches now clamp at zero.
+
+### internal/oauth/oauth.go · a blank scope means write
+- refers-to: internal/oauth/oauth.go (normScope)
+- kind: decision
+- logged: v0.41.0 · 2026-10-19
+
+The v0.41.0 defect audit asked whether a client that sends no scope should get read rather than write. It is left as write: MCP clients connect without a scope and need to write, the consent screen names the scope the person grants, and the person can still choose a read-only grant. Changing it would make every scope-less agent read-only after its next sign-in; that is a product decision for the owner, not a defect fix.
