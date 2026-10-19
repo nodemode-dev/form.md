@@ -345,8 +345,11 @@ export function mountTree(engine: Engine): void {
     return true;
   };
 
+  const splitMode = () => engine.workspaceById(ws)?.sidebar_mode !== "tree";
+
   const renderRoot = () => {
-    renderList(root, "", 0, pages.roots(ws, ""));
+    const top = pages.roots(ws, "");
+    renderList(root, "", 0, splitMode() ? top.filter((p) => p.kind !== "collection" || p.is_template || !!p.row) : top);
     renderTeams();
     renderShared();
     const n = pages.all(ws).length;
@@ -422,7 +425,7 @@ export function mountTree(engine: Engine): void {
   const renderDatabases = () => {
     const list = pages.isLoaded(ws) ? pages.all(ws).filter((p) => p.kind === "collection" && !p.is_template && !p.row) : [];
     list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-    dbs.el.hidden = list.length === 0;
+    dbs.el.hidden = list.length === 0 || !splitMode();
     setText(dbs.count, list.length ? String(list.length) : "");
     reconcileFlat(dbList, list, "flat", parentHint);
   };
@@ -1027,7 +1030,8 @@ export function mountTree(engine: Engine): void {
   };
 
   nav.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || e.pointerType === "touch") return;
+    if (e.button !== 0) return;
+    const touch = e.pointerType === "touch";
     const host = (e.target as HTMLElement).closest<HTMLElement>(".tree-row, .flat-row");
     if (!host || (e.target as HTMLElement).closest("button")) return;
     const id = host.dataset.id ?? "";
@@ -1035,18 +1039,42 @@ export function mountTree(engine: Engine): void {
     if (!id || !from || (from === "tree" && !writable())) return;
     const sx = e.clientX;
     const sy = e.clientY;
+    let lastX = sx;
+    let lastY = sy;
+    let press: ReturnType<typeof setTimeout> | undefined;
+    const begin = (x: number, y: number) => {
+      if (drag) return;
+      const p = pages.get(id);
+      const ghost = h("div", { class: "drag-ghost" }, pageIcon(p?.icon ?? "", fallbackGlyph(p?.kind ?? "doc")), h("span", { text: p?.title || t("Untitled") }));
+      byId("overlay-root").append(ghost);
+      host.classList.add("is-dragged");
+      setAttr(nav, "data-dragging", "true");
+      drag = { id, from, ghost, target: null, hover: undefined, hoverId: "", scroll: 0, x, y };
+      drag.scroll = requestAnimationFrame(autoscroll);
+      updateDrag(x, y);
+    };
     const onMove = (ev: PointerEvent) => {
+      lastX = ev.clientX;
+      lastY = ev.clientY;
       if (!drag) {
-        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 5) return;
-        const p = pages.get(id);
-        const ghost = h("div", { class: "drag-ghost" }, pageIcon(p?.icon ?? "", fallbackGlyph(p?.kind ?? "doc")), h("span", { text: p?.title || t("Untitled") }));
-        byId("overlay-root").append(ghost);
-        host.classList.add("is-dragged");
-        setAttr(nav, "data-dragging", "true");
-        drag = { id, from, ghost, target: null, hover: undefined, hoverId: "", scroll: 0, x: ev.clientX, y: ev.clientY };
-        drag.scroll = requestAnimationFrame(autoscroll);
+        const far = Math.hypot(ev.clientX - sx, ev.clientY - sy);
+        if (touch) {
+          if (far >= 8) finish(false);
+          return;
+        }
+        if (far < 5) return;
+        begin(ev.clientX, ev.clientY);
+        return;
       }
       updateDrag(ev.clientX, ev.clientY);
+    };
+    const holdScroll = (ev: TouchEvent) => {
+      if (drag && ev.cancelable) ev.preventDefault();
+    };
+    const holdMenu = (ev: Event) => {
+      if (!drag) return;
+      ev.preventDefault();
+      ev.stopPropagation();
     };
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape" && drag) {
@@ -1060,6 +1088,9 @@ export function mountTree(engine: Engine): void {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
       window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("touchmove", holdScroll);
+      window.removeEventListener("contextmenu", holdMenu, true);
+      clearTimeout(press);
       if (drag) {
         suppressClick = true;
         setTimeout(() => (suppressClick = false), 0);
@@ -1072,6 +1103,11 @@ export function mountTree(engine: Engine): void {
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onCancel);
     window.addEventListener("keydown", onKey, true);
+    if (touch) {
+      window.addEventListener("touchmove", holdScroll, { passive: false });
+      window.addEventListener("contextmenu", holdMenu, true);
+      press = setTimeout(() => begin(lastX, lastY), 450);
+    }
   });
 
   const onChange = (c: StoreChange) => {
@@ -1155,8 +1191,16 @@ export function mountTree(engine: Engine): void {
     renderFilter();
     renderNotes();
   });
+  let shownSplit = splitMode();
   state.watch("me", () => {
     paintWritable();
+    if (splitMode() !== shownSplit) {
+      shownSplit = splitMode();
+      if (pages.isLoaded(ws)) {
+        renderRoot();
+        renderDatabases();
+      }
+    }
     renderFilter();
     renderNotes();
     renderFavorites();
