@@ -16,6 +16,7 @@ func placeholders(n int) string {
 }
 
 func (s *Service) ReactPage(ctx context.Context, p *policy.Principal, pageID, icon string, on bool) ([]Reaction, error) {
+	icon = canonReaction(icon)
 	if !validReaction(icon) {
 		return nil, httpx.Fail(http.StatusBadRequest, "bad_reaction", "use one of the reaction icons")
 	}

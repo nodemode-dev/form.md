@@ -123,7 +123,7 @@ export function mountSearch(engine: Engine): void {
     const answerNote = h("p", { class: "srch__answer-note" });
     const sourcesEl = h("ol", { class: "srch__sources", attrs: { "aria-label": t("Sources") } });
     const answerClose = h("button", { class: "icon-btn icon-btn--sm", attrs: { type: "button", "aria-label": t("Close answer") } }, iconNode("close"));
-    const answer = h("section", { class: "srch__answer", attrs: { "aria-label": t("AI answer") } }, h("header", { class: "srch__answer-head" }, iconNode("sparkle"), h("span", { text: t("AI answer") }), answerClose), answerNote, answerText, sourcesEl);
+    const answer = h("section", { class: "srch__answer", attrs: { "aria-label": t("AI answer") } }, h("header", { class: "srch__answer-head" }, iconNode("ai-chip"), h("span", { text: t("AI answer") }), answerClose), answerNote, answerText, sourcesEl);
     answer.hidden = true;
     const foot = h(
       "div",
@@ -410,7 +410,7 @@ export function mountSearch(engine: Engine): void {
         if (it.kind === "heading") return h("div", { class: "srch__section", attrs: { role: "presentation" } });
         if (it.kind === "empty") return h("div", { class: "srch__empty", attrs: { role: "presentation" } });
         if (it.kind === "more") return h("div", { class: "srch__row srch__row--more", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("chevron-down")), h("span", { class: "srch__title" }));
-        if (it.kind === "ask") return h("div", { class: "srch__row srch__row--ask", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("sparkle")), h("span", { class: "srch__main" }, h("span", { class: "srch__title" }), h("span", { class: "srch__path" })), h("span", { class: "srch__meta" }));
+        if (it.kind === "ask") return h("div", { class: "srch__row srch__row--ask", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("ai-chip")), h("span", { class: "srch__main" }, h("span", { class: "srch__title" }), h("span", { class: "srch__path" })), h("span", { class: "srch__meta" }));
         if (it.kind === "action")
           return h("div", { class: "srch__row srch__row--action", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("keyboard")), h("span", { class: "srch__main" }, h("span", { class: "srch__title" }), h("span", { class: "srch__path" })), h("span", { class: "srch__meta" }));
         return h(

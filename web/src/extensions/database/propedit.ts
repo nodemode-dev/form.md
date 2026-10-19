@@ -358,7 +358,7 @@ export function propertyMenu(anchor: HTMLElement, p: Property, ctx: DbCtx, extra
     { label: t("Edit property"), icon: "settings", run: () => openPropertyEditor(anchor, p, ctx) },
     ...extra,
   ];
-  if (p.autofill && AUTOFILL_TYPES.has(p.type) && ctx.col().can_write) entries.push({ label: t("Fill all rows with AI"), icon: "sparkle", run: () => runAutofill(ctx, p) });
+  if (p.autofill && AUTOFILL_TYPES.has(p.type) && ctx.col().can_write) entries.push({ label: t("Fill all rows with AI"), icon: "ai-chip", run: () => runAutofill(ctx, p) });
   if (p.type !== "title") {
     entries.push(
       { kind: "separator" },

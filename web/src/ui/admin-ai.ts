@@ -15,7 +15,7 @@ export function aiTab(engine: Engine): Tab {
   return {
     id: "ai",
     label: t("AI"),
-    icon: "sparkle",
+    icon: "ai-chip",
     render(panel) {
       let data: AIAdmin | null = null;
       const st = status();
@@ -26,7 +26,7 @@ export function aiTab(engine: Engine): Tab {
       const limit = input({ type: "number", name: "ai-limit", value: "200" });
       limit.min = "1";
       const save = button(t("Save"), "primary");
-      const test = button(t("Try the default model"), "ghost", "sparkle");
+      const test = button(t("Try the default model"), "ghost", "ai-chip");
       const general = section(t("AI"), t("Connect one or more providers, then choose which of their models people may use. API keys are sealed in the database."));
       general.append(on.el, field(t("Default model"), def, t("Used when someone does not pick a model.")), field(t("Transcription model"), audio, t("Turns meeting audio into text; mark a model as audio below.")), field(t("Requests per person per hour"), limit), st.el, actions(test, save));
 
@@ -129,7 +129,7 @@ export function aiTab(engine: Engine): Tab {
         const el = h(
           "div",
           { class: "ai-provider" },
-          h("div", { class: "row" }, iconNode("sparkle"), h("div", { class: "row__main" }, title, meta), h("div", { class: "row__actions" }, h("label", { class: "switch", attrs: { "aria-label": t("Provider on") } }, enabled), refresh, remove)),
+          h("div", { class: "row" }, iconNode("ai-chip"), h("div", { class: "row__main" }, title, meta), h("div", { class: "row__actions" }, h("label", { class: "switch", attrs: { "aria-label": t("Provider on") } }, enabled), refresh, remove)),
           filter,
           models,
           h("div", { class: "ai-provider__manual" }, manual, addModel),

@@ -18,6 +18,7 @@ import (
 
 	"github.com/nodemode-ai/form.md/internal/collection"
 	"github.com/nodemode-ai/form.md/internal/doc"
+	"github.com/nodemode-ai/form.md/internal/icon"
 	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/nodemode-ai/form.md/internal/pagestyle"
 )
@@ -238,7 +239,7 @@ func (s *Service) iconSpan(sc *scope, ref, fallback, class string) string {
 	if id, ok := strings.CutPrefix(ref, "f:"); ok {
 		return `<span` + cls + ` data-kind="picture"><img src="` + esc(sc.fileHref(id)) + `" alt="" decoding="async"></span>`
 	}
-	if rest, ok := strings.CutPrefix(ref, "i:"); ok {
+	if rest, ok := strings.CutPrefix(icon.Normalize(ref), "i:"); ok {
 		name, tint, _ := strings.Cut(rest, ":")
 		color := ""
 		if tint != "" {

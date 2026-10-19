@@ -75,7 +75,7 @@ export function agentsTab(engine: Engine): Tab {
         const title = h("span", { class: "row__title" });
         const meta = h("span", { class: "row__meta" });
         const undo = iconButton("restore", t("Undo this run"));
-        const r = h("div", { class: "row" }, iconNode("sparkle"), h("div", { class: "row__main" }, title, meta), h("div", { class: "row__actions" }, h("span", { class: "badge" }), undo));
+        const r = h("div", { class: "row" }, iconNode("ai-chip"), h("div", { class: "row__main" }, title, meta), h("div", { class: "row__actions" }, h("span", { class: "badge" }), undo));
         undo.addEventListener("click", async () => {
           const ok = await confirmDialog({ title: t("Undo this run?"), body: t("Every change it made is reversed, newest first. Edits people made since stay where they do not overlap."), confirm: t("Undo"), variant: "danger" });
           if (!ok) return;

@@ -228,7 +228,7 @@ func cleanName(raw string) (string, error) {
 }
 
 func cleanIcon(raw string) (string, error) {
-	v := strings.TrimSpace(raw)
+	v := icon.Normalize(strings.TrimSpace(raw))
 	if !icon.Valid(v) {
 		return "", httpx.Fail(http.StatusBadRequest, "bad_icon", "an icon is a name from the icon set or an uploaded image")
 	}

@@ -115,7 +115,7 @@ interface ActionDef {
 const EDIT = () => t("Edit or review");
 const WRITE = () => t("Write");
 const SELECTED: ActionDef[] = [
-  { action: "improve", label: () => t("Improve writing"), icon: "sparkle", section: EDIT },
+  { action: "improve", label: () => t("Improve writing"), icon: "ai-chip", section: EDIT },
   { action: "fix", label: () => t("Fix spelling and grammar"), icon: "check", section: EDIT },
   { action: "shorter", label: () => t("Make shorter"), icon: "text", section: EDIT },
   { action: "longer", label: () => t("Make longer"), icon: "text", section: EDIT },
@@ -187,7 +187,7 @@ class AIPanel {
     );
     this.replaceBtn.hidden = !this.selected;
     this.done.hidden = true;
-    const bar = h("div", { class: "ai-panel__bar" }, h("span", { class: "ai-panel__icon" }, iconNode("sparkle")), this.input, this.model, this.go, this.stop);
+    const bar = h("div", { class: "ai-panel__bar" }, h("span", { class: "ai-panel__icon" }, iconNode("ai-chip")), this.input, this.model, this.go, this.stop);
     this.el = h("form", { class: "popover ai-panel", attrs: { role: "dialog", "aria-label": t("Ask AI") } }, this.out, bar, this.note, this.list, this.done);
     this.fillList(this.selected ? SELECTED : CURSOR);
     this.el.addEventListener("submit", (e) => {
@@ -497,7 +497,7 @@ class AIBlockView implements NodeView {
   ) {
     this.promptEl = h("span", { class: "ai-block__prompt", attrs: { role: "button", tabindex: "0" } });
     this.runBtn = h("button", { class: "ai-block__run", attrs: { type: "button" }, text: t("Regenerate") });
-    const head = h("div", { class: "ai-block__head", attrs: { contenteditable: "false" } }, h("span", { class: "ai-block__icon" }, iconNode("sparkle")), this.promptEl, this.runBtn);
+    const head = h("div", { class: "ai-block__head", attrs: { contenteditable: "false" } }, h("span", { class: "ai-block__icon" }, iconNode("ai-chip")), this.promptEl, this.runBtn);
     this.contentDOM = h("div", { class: "ai-block__body" });
     this.dom = h("div", { class: "ai-block" }, head, this.contentDOM);
     this.promptEl.addEventListener("click", () => this.editPrompt());

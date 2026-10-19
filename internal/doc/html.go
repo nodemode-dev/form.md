@@ -144,7 +144,7 @@ func (w *htmlWriter) node(el *crdt.YXmlElement) {
 		w.open("div", "class", "ai-block", "data-block", id, "data-prompt", prompt)
 		icon := ""
 		if w.pub != nil {
-			icon = w.pub.UI("sparkle")
+			icon = w.pub.UI("ai-chip")
 		}
 		w.b.WriteString(`<div class="ai-block__head" contenteditable="false"><span class="ai-block__icon">` + icon + `</span><span class="ai-block__prompt">` + esc(prompt) + `</span>`)
 		if w.pub == nil {

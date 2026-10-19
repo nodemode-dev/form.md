@@ -63,7 +63,7 @@ export class FormatBar {
     this.tools = [
       {
         id: "ai",
-        icon: "sparkle",
+        icon: "ai-chip",
         label: () => t("Ask AI"),
         run: (view) => {
           this.hide();

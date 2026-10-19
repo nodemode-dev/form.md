@@ -715,7 +715,7 @@ export interface SharedPage extends Page {
   level: AccessLevel;
 }
 
-export type ReactionIcon = "heart" | "star" | "sparkle" | "eye" | "rocket" | "lightbulb";
+export type ReactionIcon = "heart" | "star" | "bolt" | "eye" | "rocket" | "lightbulb";
 
 export interface CommentReaction {
   icon: ReactionIcon;

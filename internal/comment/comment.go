@@ -24,7 +24,7 @@ const (
 	MaxAnchor = 512
 )
 
-var Reactions = []string{"heart", "star", "sparkle", "eye", "rocket", "lightbulb"}
+var Reactions = []string{"heart", "star", "bolt", "eye", "rocket", "lightbulb"}
 
 var mentionRE = regexp.MustCompile(`@\[([^\]\n]{1,200})\]\((user|page):([a-z2-7]{26})\)`)
 
@@ -481,6 +481,13 @@ func (s *Service) Resolve(ctx context.Context, p *policy.Principal, threadID str
 	return nil
 }
 
+func canonReaction(icon string) string {
+	if icon == "sparkle" {
+		return "bolt"
+	}
+	return icon
+}
+
 func validReaction(icon string) bool {
 	for _, r := range Reactions {
 		if r == icon {
@@ -491,6 +498,7 @@ func validReaction(icon string) bool {
 }
 
 func (s *Service) React(ctx context.Context, p *policy.Principal, commentID, icon string, on bool) error {
+	icon = canonReaction(icon)
 	if !validReaction(icon) {
 		return httpx.Fail(http.StatusBadRequest, "bad_reaction", "use one of the reaction icons")
 	}

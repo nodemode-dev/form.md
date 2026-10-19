@@ -113,6 +113,7 @@ func (s *Service) Create(ctx context.Context, p *policy.Principal, in CreateInpu
 	if kind != "doc" && kind != "collection" {
 		return nil, httpx.Fail(http.StatusBadRequest, "bad_kind", "a page is a doc or a collection")
 	}
+	in.Icon = icon.Normalize(in.Icon)
 	if !icon.Valid(in.Icon) || strings.HasPrefix(in.Icon, "f:") {
 		return nil, httpx.Fail(http.StatusBadRequest, "bad_icon", "an icon is a name from the icon set or an uploaded image")
 	}
@@ -212,7 +213,7 @@ func (s *Service) Update(ctx context.Context, p *policy.Principal, id string, in
 		changes = append(changes, audit.Change{Field: "title", Before: m.Title, After: t})
 	}
 	if in.Icon != nil {
-		v := strings.TrimSpace(*in.Icon)
+		v := icon.Normalize(strings.TrimSpace(*in.Icon))
 		if !icon.Valid(v) {
 			return nil, httpx.Fail(http.StatusBadRequest, "bad_icon", "an icon is a name from the icon set or an uploaded image")
 		}

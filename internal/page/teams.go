@@ -161,7 +161,7 @@ func (s *Service) CreateTeamspace(ctx context.Context, p *policy.Principal, work
 	}
 	ic, desc := "", ""
 	if in.Icon != nil {
-		ic = strings.TrimSpace(*in.Icon)
+		ic = icon.Normalize(strings.TrimSpace(*in.Icon))
 	}
 	if !icon.Valid(ic) || strings.HasPrefix(ic, "f:") {
 		return nil, httpx.Fail(http.StatusBadRequest, "bad_icon", "an icon is a name from the icon set")
@@ -211,7 +211,7 @@ func (s *Service) UpdateTeamspace(ctx context.Context, p *policy.Principal, id s
 		sets, args = append(sets, "name = ?"), append(args, n)
 	}
 	if in.Icon != nil {
-		v := strings.TrimSpace(*in.Icon)
+		v := icon.Normalize(strings.TrimSpace(*in.Icon))
 		if !icon.Valid(v) || strings.HasPrefix(v, "f:") {
 			return nil, httpx.Fail(http.StatusBadRequest, "bad_icon", "an icon is a name from the icon set")
 		}

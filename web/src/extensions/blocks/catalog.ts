@@ -208,7 +208,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "ask-ai",
     label: () => t("Ask AI"),
     section: AI,
-    icon: "sparkle",
+    icon: "ai-chip",
     keywords: "ai write continue summarize translate assistant generate draft",
     run: (view, ctx) => {
       requestAnimationFrame(() => openAI(ctx, view));
@@ -218,7 +218,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "ai-block",
     label: () => t("AI block"),
     section: AI,
-    icon: "sparkle",
+    icon: "ai-chip",
     keywords: "ai block generate prompt regenerate summary",
     run: (view) => insertBlock(view, newAIBlock()),
   },

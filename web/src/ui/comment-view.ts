@@ -16,7 +16,7 @@ import { toast } from "./toast";
 export const REACTIONS: readonly (readonly [ReactionIcon, () => string])[] = [
   ["heart", () => t("Love")],
   ["star", () => t("Star")],
-  ["sparkle", () => t("Brilliant")],
+  ["bolt", () => t("Brilliant")],
   ["eye", () => t("Looking into it")],
   ["rocket", () => t("Ship it")],
   ["lightbulb", () => t("Good idea")],
