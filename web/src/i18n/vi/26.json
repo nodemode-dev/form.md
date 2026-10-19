@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Khởi động lại thẻ này",
+  "Hide the panel ({keys}); programs keep running": "Ẩn bảng ({keys}); chương trình vẫn chạy",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Chưa mở terminal nào. Mở shell bằng nút dấu cộng, Claude Code bằng nút tác tử, hoặc trò chuyện bằng bong bóng thoại.",
+  "Ask Claude Code": "Hỏi Claude Code",
+  "Ask Claude Code to work on this page": "Nhờ Claude Code làm việc với trang này",
+  "Send to Claude Code": "Gửi tới Claude Code",
+  "Ask Claude about this page (Enter to send)": "Hỏi Claude về trang này (Enter để gửi)",
+  "Close the Chat tab": "Đóng thẻ Trò chuyện",
+  "with the page \"{title}\"": "kèm trang “{title}”",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Bộ nhớ: cuộc trò chuyện này dùng bao nhiêu bộ nhớ làm việc của Claude (mỗi tin nhắn nó đọc lại toàn bộ). Trả lời: số token đã viết đến giờ. Trò chuyện: mọi thứ đã gửi và viết trong cuộc trò chuyện này và chi phí của nó.",
+  "Continue from Claude Code": "Tiếp tục từ Claude Code"
+}

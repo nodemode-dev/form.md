@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Bu sekmeyi yeniden başlat",
+  "Hide the panel ({keys}); programs keep running": "Paneli gizle ({keys}); programlar çalışmaya devam eder",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Açık terminal yok. Artı düğmesiyle bir kabuk, ajan düğmesiyle Claude Code veya konuşma balonuyla sohbet başlatın.",
+  "Ask Claude Code": "Claude Code'a sor",
+  "Ask Claude Code to work on this page": "Claude Code'dan bu sayfa üzerinde çalışmasını isteyin",
+  "Send to Claude Code": "Claude Code'a gönder",
+  "Ask Claude about this page (Enter to send)": "Claude'a bu sayfayı sorun (göndermek için Enter)",
+  "Close the Chat tab": "Sohbet sekmesini kapat",
+  "with the page \"{title}\"": "“{title}” sayfasıyla",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Bellek: bu konuşmanın Claude'un çalışma belleğinin ne kadarını kullandığı (her mesajda hepsini yeniden okur). Yanıt: şu ana kadar yazılan tokenlar. Sohbet: bu konuşmada gönderilen ve yazılan her şey ve maliyeti.",
+  "Continue from Claude Code": "Claude Code'dan devam et"
+}

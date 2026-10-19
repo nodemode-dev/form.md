@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Restartovat tuto kartu",
+  "Hide the panel ({keys}); programs keep running": "Skrýt panel ({keys}); programy běží dál",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Není otevřený žádný terminál. Spusťte shell tlačítkem plus, Claude Code tlačítkem agenta nebo chat bublinou.",
+  "Ask Claude Code": "Zeptat se Claude Code",
+  "Ask Claude Code to work on this page": "Požádejte Claude Code o práci na této stránce",
+  "Send to Claude Code": "Odeslat do Claude Code",
+  "Ask Claude about this page (Enter to send)": "Zeptejte se Clauda na tuto stránku (Enter odešle)",
+  "Close the Chat tab": "Zavřít kartu chatu",
+  "with the page \"{title}\"": "se stránkou „{title}“",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Paměť: kolik pracovní paměti Clauda tento rozhovor zabírá (s každou zprávou ji čte celou znovu). Odpověď: dosud napsané tokeny. Chat: vše odeslané a napsané v tomto rozhovoru a kolik to stálo.",
+  "Continue from Claude Code": "Pokračovat z Claude Code"
+}

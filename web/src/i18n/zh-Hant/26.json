@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "重新啟動此分頁",
+  "Hide the panel ({keys}); programs keep running": "隱藏面板（{keys}）；程式會繼續執行",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "沒有開啟的終端機。用加號按鈕啟動 shell，用代理按鈕啟動 Claude Code，或用對話泡泡開始聊天。",
+  "Ask Claude Code": "詢問 Claude Code",
+  "Ask Claude Code to work on this page": "請 Claude Code 處理此頁面",
+  "Send to Claude Code": "傳送給 Claude Code",
+  "Ask Claude about this page (Enter to send)": "向 Claude 詢問此頁面（按 Enter 傳送）",
+  "Close the Chat tab": "關閉聊天分頁",
+  "with the page \"{title}\"": "附上頁面「{title}」",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "記憶：此對話占用 Claude 工作記憶的多少（每則訊息都會重新讀取全部內容）。回覆：目前已寫出的 token。聊天：此對話中傳送與寫出的全部內容及其費用。",
+  "Continue from Claude Code": "從 Claude Code 繼續"
+}

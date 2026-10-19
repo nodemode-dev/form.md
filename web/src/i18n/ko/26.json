@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "이 탭 다시 시작",
+  "Hide the panel ({keys}); programs keep running": "패널 숨기기 ({keys}). 프로그램은 계속 실행됩니다",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "열린 터미널이 없습니다. 더하기 버튼으로 셸을, 에이전트 버튼으로 Claude Code를, 말풍선으로 채팅을 시작하세요.",
+  "Ask Claude Code": "Claude Code에 요청",
+  "Ask Claude Code to work on this page": "이 페이지 작업을 Claude Code에 요청하세요",
+  "Send to Claude Code": "Claude Code로 보내기",
+  "Ask Claude about this page (Enter to send)": "이 페이지에 대해 Claude에게 질문 (Enter로 전송)",
+  "Close the Chat tab": "채팅 탭 닫기",
+  "with the page \"{title}\"": "\"{title}\" 페이지와 함께",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "메모리: 이 대화가 Claude의 작업 메모리를 얼마나 쓰는지 (메시지마다 전부 다시 읽습니다). 응답: 지금까지 작성된 토큰. 채팅: 이 대화에서 보내고 작성한 모든 내용과 그 비용.",
+  "Continue from Claude Code": "Claude Code에서 이어서 하기"
+}

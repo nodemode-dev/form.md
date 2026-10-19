@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Starta om den här fliken",
+  "Hide the panel ({keys}); programs keep running": "Dölj panelen ({keys}); programmen fortsätter köra",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Ingen terminal är öppen. Starta ett skal med plusknappen, Claude Code med agentknappen eller chatten med pratbubblan.",
+  "Ask Claude Code": "Fråga Claude Code",
+  "Ask Claude Code to work on this page": "Be Claude Code arbeta med den här sidan",
+  "Send to Claude Code": "Skicka till Claude Code",
+  "Ask Claude about this page (Enter to send)": "Fråga Claude om den här sidan (Enter för att skicka)",
+  "Close the Chat tab": "Stäng chattfliken",
+  "with the page \"{title}\"": "med sidan ”{title}”",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Minne: hur mycket av Claudes arbetsminne samtalet använder (det läser om allt vid varje meddelande). Svar: tokens skrivna hittills. Chatt: allt som skickats och skrivits i samtalet och vad det har kostat.",
+  "Continue from Claude Code": "Fortsätt från Claude Code"
+}

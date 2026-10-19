@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "重启此标签页",
+  "Hide the panel ({keys}); programs keep running": "隐藏面板（{keys}）；程序会继续运行",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "没有打开的终端。用加号按钮启动 shell，用代理按钮启动 Claude Code，或用对话气泡开始聊天。",
+  "Ask Claude Code": "询问 Claude Code",
+  "Ask Claude Code to work on this page": "请 Claude Code 处理此页面",
+  "Send to Claude Code": "发送给 Claude Code",
+  "Ask Claude about this page (Enter to send)": "向 Claude 询问此页面（按 Enter 发送）",
+  "Close the Chat tab": "关闭聊天标签页",
+  "with the page \"{title}\"": "附带页面“{title}”",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "记忆：此对话占用 Claude 工作记忆的多少（每条消息都会重新读取全部内容）。回复：目前已写出的 token。聊天：此对话中发送和写出的全部内容及其费用。",
+  "Continue from Claude Code": "从 Claude Code 继续"
+}

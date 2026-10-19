@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Mulai ulang tab ini",
+  "Hide the panel ({keys}); programs keep running": "Sembunyikan panel ({keys}); program tetap berjalan",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Tidak ada terminal yang terbuka. Mulai shell dengan tombol plus, Claude Code dengan tombol agen, atau obrolan dengan gelembung percakapan.",
+  "Ask Claude Code": "Tanya Claude Code",
+  "Ask Claude Code to work on this page": "Minta Claude Code mengerjakan halaman ini",
+  "Send to Claude Code": "Kirim ke Claude Code",
+  "Ask Claude about this page (Enter to send)": "Tanya Claude tentang halaman ini (Enter untuk mengirim)",
+  "Close the Chat tab": "Tutup tab Obrolan",
+  "with the page \"{title}\"": "dengan halaman “{title}”",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Memori: seberapa banyak memori kerja Claude yang dipakai percakapan ini (ia membaca ulang semuanya di setiap pesan). Balasan: token yang ditulis sejauh ini. Obrolan: semua yang dikirim dan ditulis dalam percakapan ini, dan biayanya.",
+  "Continue from Claude Code": "Lanjutkan dari Claude Code"
+}

@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Dit tabblad opnieuw starten",
+  "Hide the panel ({keys}); programs keep running": "Paneel verbergen ({keys}); programma's blijven draaien",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Er is geen terminal open. Start een shell met de plusknop, Claude Code met de agentknop of de chat met de tekstballon.",
+  "Ask Claude Code": "Claude Code vragen",
+  "Ask Claude Code to work on this page": "Vraag Claude Code om aan deze pagina te werken",
+  "Send to Claude Code": "Naar Claude Code sturen",
+  "Ask Claude about this page (Enter to send)": "Vraag Claude over deze pagina (Enter om te versturen)",
+  "Close the Chat tab": "Chattabblad sluiten",
+  "with the page \"{title}\"": "met de pagina ‘{title}’",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Geheugen: hoeveel van Claudes werkgeheugen dit gesprek gebruikt (het leest alles opnieuw bij elk bericht). Antwoord: tot nu toe geschreven tokens. Chat: alles wat in dit gesprek is verstuurd en geschreven, en wat het heeft gekost.",
+  "Continue from Claude Code": "Verdergaan vanuit Claude Code"
+}

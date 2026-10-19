@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "このタブを再起動",
+  "Hide the panel ({keys}); programs keep running": "パネルを隠す ({keys})。プログラムは動き続けます",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "開いているターミナルはありません。プラスボタンでシェル、エージェントボタンで Claude Code、吹き出しでチャットを始めます。",
+  "Ask Claude Code": "Claude Code に頼む",
+  "Ask Claude Code to work on this page": "このページの作業を Claude Code に頼む",
+  "Send to Claude Code": "Claude Code に送信",
+  "Ask Claude about this page (Enter to send)": "このページについて Claude に質問 (Enter で送信)",
+  "Close the Chat tab": "チャットタブを閉じる",
+  "with the page \"{title}\"": "ページ「{title}」について",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "メモリ: この会話が Claude の作業メモリをどれだけ使っているか (メッセージのたびに全体を読み直します)。返答: これまでに書かれたトークン。チャット: この会話で送信・作成されたすべてと、その費用。",
+  "Continue from Claude Code": "Claude Code から続ける"
+}

@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Käynnistä tämä välilehti uudelleen",
+  "Hide the panel ({keys}); programs keep running": "Piilota paneeli ({keys}); ohjelmat jatkavat käyntiään",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Yhtään päätettä ei ole auki. Avaa komentotulkki plus-painikkeella, Claude Code agenttipainikkeella tai keskustelu puhekuplasta.",
+  "Ask Claude Code": "Kysy Claude Codelta",
+  "Ask Claude Code to work on this page": "Pyydä Claude Codea työstämään tätä sivua",
+  "Send to Claude Code": "Lähetä Claude Codelle",
+  "Ask Claude about this page (Enter to send)": "Kysy Claudelta tästä sivusta (Enter lähettää)",
+  "Close the Chat tab": "Sulje keskusteluvälilehti",
+  "with the page \"{title}\"": "sivun ”{title}” kanssa",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Muisti: kuinka paljon Clauden työmuistista tämä keskustelu vie (se lukee kaiken uudelleen jokaisella viestillä). Vastaus: tähän mennessä kirjoitetut tokenit. Keskustelu: kaikki tässä keskustelussa lähetetty ja kirjoitettu sekä sen hinta.",
+  "Continue from Claude Code": "Jatka Claude Codesta"
+}

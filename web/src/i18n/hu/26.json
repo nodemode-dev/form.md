@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "A lap újraindítása",
+  "Hide the panel ({keys}); programs keep running": "A panel elrejtése ({keys}); a programok tovább futnak",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Nincs nyitott terminál. Indítson shellt a plusz gombbal, Claude Code-ot az ügynök gombbal, vagy csevegést a szövegbuborékkal.",
+  "Ask Claude Code": "Kérdezze a Claude Code-ot",
+  "Ask Claude Code to work on this page": "Kérje meg a Claude Code-ot, hogy dolgozzon ezen az oldalon",
+  "Send to Claude Code": "Küldés a Claude Code-nak",
+  "Ask Claude about this page (Enter to send)": "Kérdezze Claude-ot erről az oldalról (Enter: küldés)",
+  "Close the Chat tab": "A csevegés lap bezárása",
+  "with the page \"{title}\"": "a(z) „{title}” oldallal",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Memória: Claude munkamemóriájából mennyit foglal ez a beszélgetés (minden üzenetnél újra elolvassa az egészet). Válasz: eddig írt tokenek. Csevegés: minden, amit ebben a beszélgetésben elküldtek és megírtak, és amennyibe került.",
+  "Continue from Claude Code": "Folytatás a Claude Code-ból"
+}

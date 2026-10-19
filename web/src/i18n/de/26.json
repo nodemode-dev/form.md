@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Diesen Tab neu starten",
+  "Hide the panel ({keys}); programs keep running": "Bereich ausblenden ({keys}); Programme laufen weiter",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Kein Terminal ist offen. Starte eine Shell mit dem Plus, Claude Code mit dem Agenten-Knopf oder den Chat mit der Sprechblase.",
+  "Ask Claude Code": "Claude Code fragen",
+  "Ask Claude Code to work on this page": "Claude Code bitten, an dieser Seite zu arbeiten",
+  "Send to Claude Code": "An Claude Code senden",
+  "Ask Claude about this page (Enter to send)": "Claude zu dieser Seite fragen (Eingabe zum Senden)",
+  "Close the Chat tab": "Chat-Tab schließen",
+  "with the page \"{title}\"": "mit der Seite „{title}“",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Gedächtnis: wie viel von Claudes Arbeitsgedächtnis dieses Gespräch belegt (es liest bei jeder Nachricht alles erneut). Antwort: bisher geschriebene Tokens. Chat: alles in diesem Gespräch Gesendete und Geschriebene und was es gekostet hat.",
+  "Continue from Claude Code": "Aus Claude Code fortsetzen"
+}

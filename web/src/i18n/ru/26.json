@@ -1,0 +1,13 @@
+{
+  "Restart this tab": "Перезапустить вкладку",
+  "Hide the panel ({keys}); programs keep running": "Скрыть панель ({keys}); программы продолжат работу",
+  "No terminal is open. Start a shell with the plus button, Claude Code with the agent button, or Chat with the speech bubble.": "Нет открытых терминалов. Запустите оболочку кнопкой с плюсом, Claude Code кнопкой агента или чат кнопкой с облачком.",
+  "Ask Claude Code": "Спросить Claude Code",
+  "Ask Claude Code to work on this page": "Попросите Claude Code поработать над этой страницей",
+  "Send to Claude Code": "Отправить в Claude Code",
+  "Ask Claude about this page (Enter to send)": "Спросите Claude об этой странице (Enter — отправить)",
+  "Close the Chat tab": "Закрыть вкладку чата",
+  "with the page \"{title}\"": "со страницей «{title}»",
+  "Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost.": "Память: сколько рабочей памяти Claude занимает этот разговор (с каждым сообщением он перечитывает её целиком). Ответ: токены, написанные к этому моменту. Чат: всё отправленное и написанное в этом разговоре и его стоимость.",
+  "Continue from Claude Code": "Продолжить из Claude Code"
+}
