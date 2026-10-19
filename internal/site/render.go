@@ -279,7 +279,99 @@ func (s *Service) table(ctx context.Context, sc *scope, collectionID, viewID str
 	if err != nil {
 		return ""
 	}
+	switch {
+	case t.Type == "board" && len(t.Groups) > 0:
+		return s.cardsHTML(sc, t, heading, s.boardHTML(sc, t))
+	case t.Type == "gallery":
+		return s.cardsHTML(sc, t, heading, s.galleryHTML(sc, t))
+	}
 	return s.tableHTML(sc, t, heading)
+}
+
+var optionColors = map[string]bool{"default": true, "gray": true, "brown": true, "orange": true, "yellow": true, "green": true, "blue": true, "purple": true, "pink": true, "red": true}
+
+func (s *Service) cardsHTML(sc *scope, t *collection.PublicTable, heading bool, body string) string {
+	var b strings.Builder
+	b.WriteString(`<section class="site-table site-cards">`)
+	if heading {
+		title := t.Title
+		if title == "" {
+			title = "Untitled"
+		}
+		b.WriteString(`<div class="site-table__title">` + esc(title) + `</div>`)
+	}
+	b.WriteString(body)
+	if t.Total > len(t.Rows) {
+		b.WriteString(`<p class="site-table__more">Showing ` + strconv.Itoa(len(t.Rows)) + ` of ` + strconv.Itoa(t.Total) + ` rows.</p>`)
+	}
+	b.WriteString(`</section>`)
+	return b.String()
+}
+
+func (s *Service) cardHTML(sc *scope, r collection.PublicRow) string {
+	var b strings.Builder
+	b.WriteString(`<article class="site-card">`)
+	if f, ok := strings.CutPrefix(r.Cover, "f:"); ok {
+		b.WriteString(`<span class="site-card__cover"><img src="` + esc(sc.fileHref(f)) + `" alt="" loading="lazy" decoding="async"></span>`)
+	}
+	label := r.Title
+	if label == "" {
+		label = "Untitled"
+	}
+	b.WriteString(`<div class="site-card__title">`)
+	if u := sc.href(r.ID); u != "" {
+		b.WriteString(`<a href="` + esc(u) + `">` + s.pageIcon(sc, r.ID, "site-icon") + `<span>` + esc(label) + `</span></a>`)
+	} else {
+		b.WriteString(s.pageIcon(sc, r.ID, "site-icon") + `<span>` + esc(label) + `</span>`)
+	}
+	b.WriteString(`</div>`)
+	return b.String()
+}
+
+func (s *Service) cardBody(t *collection.PublicTable, r collection.PublicRow) string {
+	var b strings.Builder
+	for i := 1; i < len(r.Cells) && i < len(t.Columns); i++ {
+		if r.Cells[i] == "" || i == t.GroupCol {
+			continue
+		}
+		b.WriteString(`<p class="site-card__prop" title="` + esc(t.Columns[i]) + `">` + esc(r.Cells[i]) + `</p>`)
+	}
+	b.WriteString(`</article>`)
+	return b.String()
+}
+
+func (s *Service) boardHTML(sc *scope, t *collection.PublicTable) string {
+	var b strings.Builder
+	b.WriteString(`<div class="site-board">`)
+	for _, g := range t.Groups {
+		color := ""
+		if optionColors[g.Color] {
+			color = ` data-oc="` + g.Color + `"`
+		}
+		b.WriteString(`<section class="site-board__col"` + color + `><header class="site-board__head"><span class="site-board__label">` + esc(g.Label) + `</span><span class="site-board__count">` + strconv.Itoa(g.Count) + `</span></header><div class="site-board__cards">`)
+		for _, i := range g.Rows {
+			if i >= 0 && i < len(t.Rows) {
+				b.WriteString(s.cardHTML(sc, t.Rows[i]) + s.cardBody(t, t.Rows[i]))
+			}
+		}
+		b.WriteString(`</div></section>`)
+	}
+	b.WriteString(`</div>`)
+	return b.String()
+}
+
+func (s *Service) galleryHTML(sc *scope, t *collection.PublicTable) string {
+	var b strings.Builder
+	size := ""
+	if t.Size != "" {
+		size = ` data-size="` + esc(t.Size) + `"`
+	}
+	b.WriteString(`<div class="site-gallery"` + size + `>`)
+	for _, r := range t.Rows {
+		b.WriteString(s.cardHTML(sc, r) + s.cardBody(t, r))
+	}
+	b.WriteString(`</div>`)
+	return b.String()
 }
 
 func (s *Service) tableHTML(sc *scope, t *collection.PublicTable, heading bool) string {

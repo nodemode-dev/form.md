@@ -2,25 +2,75 @@ package collection
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/store"
 )
 
 type PublicTable struct {
-	ID      string
-	Title   string
-	View    string
-	Columns []string
-	Rows    []PublicRow
-	Total   int
+	ID       string
+	Title    string
+	View     string
+	Type     string
+	Size     string
+	Columns  []string
+	GroupCol int
+	Rows     []PublicRow
+	Groups   []PublicGroup
+	Total    int
 }
 
 type PublicRow struct {
 	ID    string
 	Title string
 	Icon  string
+	Cover string
 	Cells []string
+}
+
+type PublicGroup struct {
+	Label string
+	Color string
+	Count int
+	Rows  []int
+}
+
+func publicCover(sn *snap, r *Row, source string) string {
+	switch source {
+	case "none":
+		return ""
+	case "cover":
+		if strings.HasPrefix(r.Cover, "f:") {
+			return r.Cover
+		}
+		return ""
+	case "", "content":
+		if strings.HasPrefix(r.Thumb, "f:") {
+			return r.Thumb
+		}
+		if strings.HasPrefix(r.Cover, "f:") {
+			return r.Cover
+		}
+		return ""
+	}
+	p := sn.schema.ByID(source)
+	if p == nil || p.Type != TFiles {
+		return ""
+	}
+	var files []FileVal
+	if json.Unmarshal(r.Vals[p.ID], &files) != nil {
+		return ""
+	}
+	for _, f := range files {
+		name := strings.ToLower(f.Name)
+		image := strings.HasPrefix(f.Mime, "image/") || (f.Mime == "" && (strings.HasSuffix(name, ".png") || strings.HasSuffix(name, ".jpg") || strings.HasSuffix(name, ".jpeg") || strings.HasSuffix(name, ".gif") || strings.HasSuffix(name, ".webp")))
+		if f.ID != "" && image {
+			return "f:" + f.ID
+		}
+	}
+	return ""
 }
 
 type PublicProp struct {
@@ -88,15 +138,25 @@ func (s *Service) PublicTable(ctx context.Context, collectionID, viewID string, 
 			props = append(props, p)
 		}
 	}
-	out := &PublicTable{ID: collectionID, Title: title, View: v.Name, Total: len(rows)}
+	out := &PublicTable{ID: collectionID, Title: title, View: v.Name, Type: v.Type, Total: len(rows)}
 	for _, p := range props {
 		out.Columns = append(out.Columns, p.Name)
+	}
+	coverSource := "content"
+	if c, ok := v.Config.Layout["cover"].(string); ok {
+		coverSource = c
+	}
+	if sz, ok := v.Config.Layout["size"].(string); ok && (sz == "small" || sz == "large") {
+		out.Size = sz
 	}
 	for i, r := range rows {
 		if limit > 0 && i >= limit {
 			break
 		}
 		pr := PublicRow{ID: r.ID, Title: r.Title, Icon: r.Icon, Cells: make([]string, len(props))}
+		if v.Type == "gallery" || v.Type == "board" {
+			pr.Cover = publicCover(sn, r, coverSource)
+		}
 		for j, p := range props {
 			if p.Type == TTitle {
 				pr.Cells[j] = r.Title
@@ -105,6 +165,28 @@ func (s *Service) PublicTable(ctx context.Context, collectionID, viewID string, 
 			pr.Cells[j] = ev.displayCell(sn, r, p)
 		}
 		out.Rows = append(out.Rows, pr)
+	}
+	if g := v.Config.Group; v.Type == "board" && g != nil && sn.schema.ByID(g.Prop) != nil {
+		index := make(map[string]int, len(out.Rows))
+		for i, r := range out.Rows {
+			index[r.ID] = i
+		}
+		for j, p := range props {
+			if p.ID == g.Prop {
+				out.GroupCol = j
+			}
+		}
+		hiddenGroups := hiddenSet(g.Hidden)
+		for _, b := range ev.bucketise(sn, rows[:len(out.Rows)], g) {
+			if hiddenGroups[b.key] || (len(b.rows) == 0 && (g.HideEmpty || b.key == "")) {
+				continue
+			}
+			pg := PublicGroup{Label: b.label, Color: b.color, Count: len(b.rows), Rows: make([]int, 0, len(b.rows))}
+			for _, r := range b.rows {
+				pg.Rows = append(pg.Rows, index[r.ID])
+			}
+			out.Groups = append(out.Groups, pg)
+		}
 	}
 	return out, nil
 }
