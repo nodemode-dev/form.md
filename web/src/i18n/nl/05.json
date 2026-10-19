@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Pagina's worden toegevoegd aan {name}.",
   "Choose files": "Bestanden kiezen",
   "Drop files here or choose them": "Sleep bestanden hierheen of kies ze",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Exports van Notion en Confluence, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML en PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Pagina- en ruimte-exports, ENEX-notities, Markdown, HTML, Word, Excel, CSV, bordexports, OPML en PDF",
   "Format": "Indeling",
   "Choose files, then Import.": "Kies bestanden en klik dan op Importeren.",
   "Imported {pages} pages, {rows} rows and {files} files.": "{pages} pagina's, {rows} rijen en {files} bestanden geïmporteerd.",

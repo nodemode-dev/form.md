@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Sayfalar {name} alanına eklenir.",
   "Choose files": "Dosya seç",
   "Drop files here or choose them": "Dosyaları buraya bırak veya seç",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Notion ve Confluence dışa aktarımları, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML ve PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Sayfa ve alan dışa aktarımları, ENEX notları, Markdown, HTML, Word, Excel, CSV, pano dışa aktarımları, OPML ve PDF",
   "Format": "Biçim",
   "Choose files, then Import.": "Dosyaları seç, sonra İçe aktar'ı seç.",
   "Imported {pages} pages, {rows} rows and {files} files.": "{pages} sayfa, {rows} satır ve {files} dosya içe aktarıldı.",

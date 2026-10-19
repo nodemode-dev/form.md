@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Az oldalak ide kerülnek: {name}.",
   "Choose files": "Fájlok kiválasztása",
   "Drop files here or choose them": "Húzd ide a fájlokat, vagy válaszd ki őket",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Notion- és Confluence-exportok, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML és PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Oldal- és tér-exportok, ENEX-jegyzetek, Markdown, HTML, Word, Excel, CSV, táblaexportok, OPML és PDF",
   "Format": "Formátum",
   "Choose files, then Import.": "Válaszd ki a fájlokat, majd az Importálás gombot.",
   "Imported {pages} pages, {rows} rows and {files} files.": "Importálva: {pages} oldal, {rows} sor és {files} fájl.",

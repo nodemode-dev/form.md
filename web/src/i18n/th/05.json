@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "หน้าจะถูกเพิ่มใน {name}",
   "Choose files": "เลือกไฟล์",
   "Drop files here or choose them": "วางไฟล์ที่นี่หรือเลือกไฟล์",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "ไฟล์ส่งออกจาก Notion และ Confluence, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML และ PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "ไฟล์ส่งออกหน้าและพื้นที่, โน้ต ENEX, Markdown, HTML, Word, Excel, CSV, ไฟล์ส่งออกบอร์ด, OPML และ PDF",
   "Format": "รูปแบบ",
   "Choose files, then Import.": "เลือกไฟล์ แล้วกด นำเข้า",
   "Imported {pages} pages, {rows} rows and {files} files.": "นำเข้า {pages} หน้า {rows} แถว และ {files} ไฟล์แล้ว",

@@ -93,7 +93,7 @@ func inlineHTML(s string) string {
 	return oneLine(out.String())
 }
 
-type trelloBoard struct {
+type boardExport struct {
 	Name  string `json:"name"`
 	Desc  string `json:"desc"`
 	Lists []struct {
@@ -142,15 +142,15 @@ type trelloBoard struct {
 	} `json:"actions"`
 }
 
-func looksLikeTrello(data []byte) bool {
+func looksLikeBoardJSON(data []byte) bool {
 	head := data[:min(len(data), 1<<20)]
 	return bytes.Contains(head, []byte(`"idList"`)) || (bytes.Contains(head, []byte(`"lists"`)) && bytes.Contains(head, []byte(`"cards"`)))
 }
 
-func importTrello(name string, data []byte, b *Bundle) {
-	var t trelloBoard
+func importBoardJSON(name string, data []byte, b *Bundle) {
+	var t boardExport
 	if err := json.Unmarshal(data, &t); err != nil {
-		b.Warn("The Trello board in " + name + " could not be read")
+		b.Warn("The board export in " + name + " could not be read")
 		return
 	}
 	lists := map[string]string{}
@@ -198,7 +198,7 @@ func importTrello(name string, data []byte, b *Bundle) {
 		}
 		return cards[i].Pos < cards[j].Pos
 	})
-	tbl := &Table{Headers: []string{"Name", "List", "Labels", "Due", "Done", "Archived", "Trello link"}, Types: []string{"title", "select", "multi_select", "date", "checkbox", "checkbox", "url"}, Board: "List"}
+	tbl := &Table{Headers: []string{"Name", "List", "Labels", "Due", "Done", "Archived", "Card link"}, Types: []string{"title", "select", "multi_select", "date", "checkbox", "checkbox", "url"}, Board: "List"}
 	for _, c := range cards {
 		var labels []string
 		for _, l := range c.Labels {
@@ -244,14 +244,14 @@ func yesNo(v bool) string {
 	return "No"
 }
 
-var asanaHeaders = []string{"task id", "name", "section/column"}
+var projectHeaders = []string{"task id", "name", "section/column"}
 
-func looksLikeAsana(headers []string) bool {
+func looksLikeProjectCSV(headers []string) bool {
 	have := map[string]bool{}
 	for _, h := range headers {
 		have[strings.ToLower(strings.TrimSpace(h))] = true
 	}
-	for _, h := range asanaHeaders {
+	for _, h := range projectHeaders {
 		if !have[h] {
 			return false
 		}
@@ -259,7 +259,7 @@ func looksLikeAsana(headers []string) bool {
 	return true
 }
 
-func importAsana(name string, headers []string, rows [][]string, b *Bundle) {
+func importProjectCSV(name string, headers []string, rows [][]string, b *Bundle) {
 	idx := map[string]int{}
 	for i, h := range headers {
 		idx[strings.ToLower(strings.TrimSpace(h))] = i
@@ -309,8 +309,8 @@ func importCSVFile(name string, data []byte, b *Bundle) {
 		b.Warn("The file " + name + " has no header row")
 		return
 	}
-	if looksLikeAsana(headers) {
-		importAsana(name, headers, rows, b)
+	if looksLikeProjectCSV(headers) {
+		importProjectCSV(name, headers, rows, b)
 		return
 	}
 	b.Roots = append(b.Roots, &Node{Title: stripExt(name), Table: &Table{Headers: headers, Rows: rows}})
@@ -355,13 +355,13 @@ func importText(name string, data []byte, b *Bundle) {
 	b.Roots = append(b.Roots, &Node{Title: stripExt(name), Body: textToMarkdown(normalizeText(data))})
 }
 
-var confluenceTitle = regexp.MustCompile(`^[^:]{1,80} : `)
+var spaceTitle = regexp.MustCompile(`^[^:]{1,80} : `)
 
-func looksLikeConfluence(v *vfs) bool {
+func looksLikeSpaceExport(v *vfs) bool {
 	for _, f := range v.files {
 		if path.Base(f.path) == "index.html" {
 			data, err := v.read(f)
-			if err == nil && (bytes.Contains(data, []byte("Confluence")) || bytes.Contains(data, []byte("main-content"))) && bytes.Contains(data, []byte("Available Pages")) {
+			if err == nil && bytes.Contains(data, []byte("main-content")) && bytes.Contains(data, []byte("Available Pages")) {
 				return true
 			}
 		}
@@ -369,7 +369,7 @@ func looksLikeConfluence(v *vfs) bool {
 	return false
 }
 
-func importConfluence(v *vfs, b *Bundle) {
+func importSpaceExport(v *vfs, b *Bundle) {
 	var index *vfile
 	for _, f := range v.sorted() {
 		if path.Base(f.path) == "index.html" && (index == nil || len(f.path) < len(index.path)) {
@@ -442,7 +442,7 @@ func importConfluence(v *vfs, b *Bundle) {
 			continue
 		}
 		t.convert(f.path, data, n)
-		n.Title = confluenceTitle.ReplaceAllString(n.Title, "")
+		n.Title = spaceTitle.ReplaceAllString(n.Title, "")
 		n.Body = dropLeadingHeading(n.Body, n.Title)
 		if !placed[n] {
 			roots = append(roots, n)

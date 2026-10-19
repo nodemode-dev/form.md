@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Страницы добавляются в {name}.",
   "Choose files": "Выбрать файлы",
   "Drop files here or choose them": "Перетащите файлы сюда или выберите их",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Экспорт Notion и Confluence, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML и PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Экспорт страниц и пространств, заметки ENEX, Markdown, HTML, Word, Excel, CSV, экспорт досок, OPML и PDF",
   "Format": "Формат",
   "Choose files, then Import.": "Выберите файлы, затем нажмите «Импортировать».",
   "Imported {pages} pages, {rows} rows and {files} files.": "Импортировано: страниц {pages}, строк {rows}, файлов {files}.",

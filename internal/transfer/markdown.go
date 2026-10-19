@@ -15,16 +15,16 @@ import (
 )
 
 type treeImporter struct {
-	v      *vfs
-	b      *Bundle
-	notion bool
-	titles bool
-	docs   map[string]*Node
-	owners map[string]*Node
-	tables map[*Node]string
-	roots  []*Node
-	assets map[string]*Asset
-	kids   map[*Node][]childAt
+	v       *vfs
+	b       *Bundle
+	pageZip bool
+	titles  bool
+	docs    map[string]*Node
+	owners  map[string]*Node
+	tables  map[*Node]string
+	roots   []*Node
+	assets  map[string]*Asset
+	kids    map[*Node][]childAt
 }
 
 type childAt struct {
@@ -32,14 +32,14 @@ type childAt struct {
 	node *Node
 }
 
-var notionID = regexp.MustCompile(`\s+[0-9a-f]{32}$`)
+var pageZipID = regexp.MustCompile(`\s+[0-9a-f]{32}$`)
 
 func (t *treeImporter) titleOf(name string) string {
 	name = strings.TrimSpace(stripExt(name))
-	if t.notion {
-		name = notionID.ReplaceAllString(name, "")
+	if t.pageZip {
+		name = pageZipID.ReplaceAllString(name, "")
 		name = strings.TrimSuffix(name, "_all")
-		name = notionID.ReplaceAllString(name, "")
+		name = pageZipID.ReplaceAllString(name, "")
 	}
 	return strings.TrimSpace(name)
 }
@@ -52,14 +52,14 @@ func docExt(e string) bool {
 	return false
 }
 
-func importTree(v *vfs, b *Bundle, notion bool) {
-	t := &treeImporter{v: v, b: b, notion: notion, docs: map[string]*Node{}, owners: map[string]*Node{}, tables: map[*Node]string{}, assets: map[string]*Asset{}, kids: map[*Node][]childAt{}}
+func importTree(v *vfs, b *Bundle, pageZip bool) {
+	t := &treeImporter{v: v, b: b, pageZip: pageZip, docs: map[string]*Node{}, owners: map[string]*Node{}, tables: map[*Node]string{}, assets: map[string]*Asset{}, kids: map[*Node][]childAt{}}
 	files := v.sorted()
 	csvs := map[string]*vfile{}
 	for _, f := range files {
 		if extOf(f.path) == ".csv" {
 			key := strings.ToLower(stripExt(f.path))
-			if notion {
+			if pageZip {
 				if base, ok := strings.CutSuffix(key, "_all"); ok {
 					csvs[base] = f
 					continue
@@ -76,7 +76,7 @@ func importTree(v *vfs, b *Bundle, notion bool) {
 		if !docExt(e) {
 			continue
 		}
-		if notion && e == ".html" && hasMarkdownTwin(v, f.path) {
+		if pageZip && e == ".html" && hasMarkdownTwin(v, f.path) {
 			continue
 		}
 		n := &Node{Title: t.titleOf(path.Base(f.path))}
@@ -196,14 +196,14 @@ func (t *treeImporter) fillTable(n *Node, p string) {
 		n.Table.Rows = append(n.Table.Rows, row)
 		n.Table.Bodies = append(n.Table.Bodies, c.node)
 	}
-	if t.notion {
+	if t.pageZip {
 		for i := range headers {
 			if i > 0 && relationColumn(rows, i) {
 				n.Table.Types = padTypes(n.Table.Types, len(headers))
 				n.Table.Types[i] = "text"
 				for _, r := range n.Table.Rows {
 					if i < len(r) {
-						r[i] = stripNotionLinks(r[i])
+						r[i] = stripPageLinks(r[i])
 					}
 				}
 			}
@@ -218,19 +218,19 @@ func padTypes(t []string, n int) []string {
 	return t
 }
 
-var notionLinkCell = regexp.MustCompile(`\s*\([^()]*\.(?:md|csv)\)`)
+var pageLinkCell = regexp.MustCompile(`\s*\([^()]*\.(?:md|csv)\)`)
 
 func relationColumn(rows [][]string, i int) bool {
 	for _, r := range rows {
-		if i < len(r) && notionLinkCell.MatchString(r[i]) {
+		if i < len(r) && pageLinkCell.MatchString(r[i]) {
 			return true
 		}
 	}
 	return false
 }
 
-func stripNotionLinks(s string) string {
-	s = notionLinkCell.ReplaceAllString(s, "")
+func stripPageLinks(s string) string {
+	s = pageLinkCell.ReplaceAllString(s, "")
 	return strings.TrimSpace(s)
 }
 
@@ -274,7 +274,7 @@ func (t *treeImporter) convert(p string, data []byte, n *Node) {
 		if err != nil {
 			return
 		}
-		if title := findTitle(root); title != "" && (n.Title == "" || t.notion || t.titles) {
+		if title := findTitle(root); title != "" && (n.Title == "" || t.pageZip || t.titles) {
 			n.Title = title
 		}
 		body := mainContent(root)
@@ -295,13 +295,13 @@ func (t *treeImporter) convert(p string, data []byte, n *Node) {
 		if fmTitle != "" {
 			n.Title = fmTitle
 		}
-		if h1, rest, ok := leadingH1(src); ok && (t.notion || strings.EqualFold(strings.TrimSpace(h1), strings.TrimSpace(n.Title)) || n.Title == "") {
+		if h1, rest, ok := leadingH1(src); ok && (t.pageZip || strings.EqualFold(strings.TrimSpace(h1), strings.TrimSpace(n.Title)) || n.Title == "") {
 			n.Title = h1
 			src = rest
 		}
-		if t.notion {
-			src = notionAsides(src)
-			src = t.dropNotionProps(src, n)
+		if t.pageZip {
+			src = pageAsides(src)
+			src = t.dropPageProps(src, n)
 		}
 		n.Body = t.rewriteLinks(path.Dir(p), src)
 	}
@@ -353,7 +353,7 @@ func dropLeadingHeading(md, title string) string {
 
 var asideRE = regexp.MustCompile(`(?s)<aside>\s*(.*?)\s*</aside>`)
 
-func notionAsides(s string) string {
+func pageAsides(s string) string {
 	return asideRE.ReplaceAllStringFunc(s, func(m string) string {
 		inner := strings.TrimSpace(asideRE.FindStringSubmatch(m)[1])
 		inner = stripLeadingSymbol(inner)
@@ -387,7 +387,7 @@ func stripPictographs(s string) string {
 	return strings.TrimSpace(strings.Join(strings.Fields(b.String()), " "))
 }
 
-func (t *treeImporter) dropNotionProps(src string, n *Node) string {
+func (t *treeImporter) dropPageProps(src string, n *Node) string {
 	lines := strings.Split(src, "\n")
 	i := 0
 	dropped := 0
@@ -422,12 +422,12 @@ func (t *treeImporter) rewriteLinks(dir, src string) string {
 		dest := strings.Trim(sub[2], "<>")
 		r := t.resolve(dir, dest)
 		if r == "" || r == dest {
-			if t.notion && !strings.HasPrefix(sub[1], "!") && deadPageLink(dest) {
+			if t.pageZip && !strings.HasPrefix(sub[1], "!") && deadPageLink(dest) {
 				return strings.TrimSuffix(strings.TrimPrefix(sub[1], "["), "](")
 			}
 			return m
 		}
-		if t.notion && sub[1] == "!["+dest+"](" {
+		if t.pageZip && sub[1] == "!["+dest+"](" {
 			alt, err := url.PathUnescape(dest)
 			if err != nil {
 				alt = dest

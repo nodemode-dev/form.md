@@ -141,7 +141,7 @@ func (s *Service) prune() {
 	}
 }
 
-var formats = map[string]bool{"": true, "auto": true, "notion": true, "evernote": true, "markdown": true, "html": true, "confluence": true, "text": true, "opml": true, "trello": true, "asana": true, "csv": true, "docx": true, "xlsx": true, "pdf": true}
+var formats = map[string]bool{"": true, "auto": true, "pagezip": true, "enex": true, "markdown": true, "html": true, "spacehtml": true, "text": true, "opml": true, "boardjson": true, "csv": true, "docx": true, "xlsx": true, "pdf": true}
 
 func (s *Service) target(ctx context.Context, p *policy.Principal, workspaceID, parentID string) (string, error) {
 	if parentID != "" {
@@ -339,11 +339,11 @@ func (s *Service) finish(job *Job, b *Bundle, err error) {
 
 func readBundle(v *vfs, b *Bundle, format string) string {
 	files := v.sorted()
-	notion, docs, conf := false, 0, false
+	pageZip, docs, space := false, 0, false
 	for _, f := range files {
 		base := path.Base(f.path)
-		if notionID.MatchString(stripExt(base)) || notionID.MatchString(strings.TrimSuffix(stripExt(base), "_all")) {
-			notion = true
+		if pageZipID.MatchString(stripExt(base)) || pageZipID.MatchString(strings.TrimSuffix(stripExt(base), "_all")) {
+			pageZip = true
 		}
 		switch extOf(f.path) {
 		case ".md", ".markdown", ".mdown", ".html", ".htm", ".txt", ".csv":
@@ -357,18 +357,18 @@ func readBundle(v *vfs, b *Bundle, format string) string {
 			break
 		}
 	}
-	if docs > 0 && (format == "confluence" || ((format == "" || format == "auto" || format == "html") && looksLikeConfluence(v))) {
-		conf = true
+	if docs > 0 && (format == "spacehtml" || ((format == "" || format == "auto" || format == "html") && looksLikeSpaceExport(v))) {
+		space = true
 	}
 	kind := format
 	treeDone := false
 	switch {
-	case format == "notion" || ((format == "" || format == "auto") && notion && docs > 0):
+	case format == "pagezip" || ((format == "" || format == "auto") && pageZip && docs > 0):
 		importTree(v, b, true)
-		kind, treeDone = "notion", true
-	case conf:
-		importConfluence(v, b)
-		kind, treeDone = "confluence", true
+		kind, treeDone = "pagezip", true
+	case space:
+		importSpaceExport(v, b)
+		kind, treeDone = "spacehtml", true
 	case docs > 1 || (docs > 0 && zipped):
 		importTree(v, b, false)
 		treeDone = true
@@ -390,7 +390,7 @@ func readBundle(v *vfs, b *Bundle, format string) string {
 			}
 			importENEX(name, rc, b)
 			rc.Close()
-			setKind(&kind, "evernote")
+			setKind(&kind, "enex")
 			continue
 		}
 		known := map[string]bool{".opml": true, ".json": true, ".csv": true, ".tsv": true, ".docx": true, ".xlsx": true, ".pdf": true, ".md": true, ".markdown": true, ".html": true, ".htm": true, ".txt": true, ".xml": true}
@@ -410,11 +410,11 @@ func readBundle(v *vfs, b *Bundle, format string) string {
 			importOPML(name, data, b)
 			setKind(&kind, "opml")
 		case ".json":
-			if looksLikeTrello(data) {
-				importTrello(name, data, b)
-				setKind(&kind, "trello")
+			if looksLikeBoardJSON(data) {
+				importBoardJSON(name, data, b)
+				setKind(&kind, "boardjson")
 			} else {
-				b.Warn("Skipped " + name + ": only Trello board exports are read from JSON")
+				b.Warn("Skipped " + name + ": only board exports are read from JSON")
 			}
 		case ".csv", ".tsv":
 			importCSVFile(name, data, b)
@@ -440,7 +440,7 @@ func readBundle(v *vfs, b *Bundle, format string) string {
 		case ".xml":
 			if looksLikeENEX(data[:min(len(data), 4096)]) {
 				importENEX(name, bytes.NewReader(data), b)
-				setKind(&kind, "evernote")
+				setKind(&kind, "enex")
 			} else {
 				b.Warn("Skipped " + name + ": unknown XML")
 			}

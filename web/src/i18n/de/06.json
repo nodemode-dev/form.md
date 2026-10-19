@@ -1,7 +1,7 @@
 {
  "Choose files": "Dateien auswählen",
  "Drop files here or choose them": "Dateien hier ablegen oder auswählen",
- "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Notion- und Confluence-Exporte, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML und PDF",
+ "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Seiten- und Bereichsexporte, ENEX-Notizen, Markdown, HTML, Word, Excel, CSV, Board-Exporte, OPML und PDF",
  "Format": "Format",
  "Choose files, then Import.": "Wähle Dateien aus und klicke dann auf Importieren.",
  "Imported {pages} pages, {rows} rows and {files} files.": "{pages} Seiten, {rows} Zeilen und {files} Dateien importiert.",

@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Sider tilføjes til {name}.",
   "Choose files": "Vælg filer",
   "Drop files here or choose them": "Slip filer her, eller vælg dem",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Eksporter fra Notion og Confluence, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML og PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Side- og områdeeksporter, ENEX-noter, Markdown, HTML, Word, Excel, CSV, tavleeksporter, OPML og PDF",
   "Format": "Format",
   "Choose files, then Import.": "Vælg filer, og tryk derefter Importer.",
   "Imported {pages} pages, {rows} rows and {files} files.": "Importerede {pages} sider, {rows} rækker og {files} filer.",

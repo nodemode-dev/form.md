@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "페이지가 {name}에 추가돼요.",
   "Choose files": "파일 선택",
   "Drop files here or choose them": "여기에 파일을 끌어다 놓거나 선택하세요",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Notion 및 Confluence 내보내기, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML, PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "페이지 및 스페이스 내보내기, ENEX 노트, Markdown, HTML, Word, Excel, CSV, 보드 내보내기, OPML, PDF",
   "Format": "형식",
   "Choose files, then Import.": "파일을 선택한 다음 가져오기를 누르세요.",
   "Imported {pages} pages, {rows} rows and {files} files.": "페이지 {pages}개, 행 {rows}개, 파일 {files}개를 가져왔어요.",

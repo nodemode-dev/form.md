@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Le pagine vengono aggiunte a {name}.",
   "Choose files": "Scegli i file",
   "Drop files here or choose them": "Trascina qui i file o scegli",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Esportazioni di Notion e Confluence, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML e PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Esportazioni di pagine e spazi, note ENEX, Markdown, HTML, Word, Excel, CSV, esportazioni di bacheche, OPML e PDF",
   "Format": "Formato",
   "Choose files, then Import.": "Scegli i file, poi Importa.",
   "Imported {pages} pages, {rows} rows and {files} files.": "Importate {pages} pagine, {rows} righe e {files} file.",

@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Stránky se přidávají do: {name}.",
   "Choose files": "Vybrat soubory",
   "Drop files here or choose them": "Přetáhněte soubory sem nebo je vyberte",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Exporty z Notion a Confluence, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML a PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Exporty stránek a prostorů, poznámky ENEX, Markdown, HTML, Word, Excel, CSV, exporty tabulí, OPML a PDF",
   "Format": "Formát",
   "Choose files, then Import.": "Vyberte soubory a poté Importovat.",
   "Imported {pages} pages, {rows} rows and {files} files.": "Importováno stránek: {pages}, řádků: {rows} a souborů: {files}.",

@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "頁面將新增到 {name}。",
   "Choose files": "選擇檔案",
   "Drop files here or choose them": "將檔案拖放到這裡，或選擇檔案",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Notion 與 Confluence 匯出檔、Evernote、Markdown、HTML、Word、Excel、CSV、Asana、Trello、OPML 與 PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "頁面與空間匯出檔、ENEX 筆記、Markdown、HTML、Word、Excel、CSV、看板匯出檔、OPML 與 PDF",
   "Format": "格式",
   "Choose files, then Import.": "請選擇檔案，然後按「匯入」。",
   "Imported {pages} pages, {rows} rows and {files} files.": "已匯入 {pages} 個頁面、{rows} 列與 {files} 個檔案。",

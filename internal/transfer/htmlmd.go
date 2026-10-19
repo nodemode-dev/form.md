@@ -326,7 +326,7 @@ func (c *htmlConv) block(n *html.Node) []string {
 	case "tbody", "thead", "tr":
 		return c.container(n)
 	}
-	if strings.EqualFold(attr(n, "data-type"), "callout") || strings.Contains(attr(n, "class"), "callout") || strings.Contains(attr(n, "class"), "confluence-information-macro") {
+	if strings.EqualFold(attr(n, "data-type"), "callout") || strings.Contains(attr(n, "class"), "callout") || strings.Contains(attr(n, "class"), "information-macro") {
 		inner := joinBlocks(c.container(n))
 		if inner != "" {
 			return []string{prefixAll("[!NOTE]\n"+inner, "> ")}

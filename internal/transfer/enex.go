@@ -42,7 +42,7 @@ type enexNote struct {
 func importENEX(name string, r io.Reader, b *Bundle) {
 	notebook := &Node{Title: strings.TrimSpace(stripExt(name))}
 	if notebook.Title == "" {
-		notebook.Title = "Evernote"
+		notebook.Title = "Imported notes"
 	}
 	dec := xml.NewDecoder(r)
 	dec.Strict = false
@@ -171,5 +171,5 @@ func enexTime(s string) time.Time {
 }
 
 func looksLikeENEX(head []byte) bool {
-	return bytes.Contains(head, []byte("<en-export")) || bytes.Contains(head, []byte("evernote-export"))
+	return bytes.Contains(head, []byte("<en-export"))
 }

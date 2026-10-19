@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "ページは {name} に追加されます。",
   "Choose files": "ファイルを選択",
   "Drop files here or choose them": "ここにファイルをドロップするか、選択してください",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Notion と Confluence のエクスポート、Evernote、Markdown、HTML、Word、Excel、CSV、Asana、Trello、OPML、PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "ページとスペースのエクスポート、ENEX ノート、Markdown、HTML、Word、Excel、CSV、ボードのエクスポート、OPML、PDF",
   "Format": "形式",
   "Choose files, then Import.": "ファイルを選択してから、インポートしてください。",
   "Imported {pages} pages, {rows} rows and {files} files.": "ページ {pages} 件、行 {rows} 件、ファイル {files} 件をインポートしました。",

@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Sivut lisätään kohteeseen {name}.",
   "Choose files": "Valitse tiedostot",
   "Drop files here or choose them": "Pudota tiedostot tähän tai valitse ne",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Notion- ja Confluence-viennit, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML ja PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Sivu- ja tilaviennit, ENEX-muistiinpanot, Markdown, HTML, Word, Excel, CSV, taulujen viennit, OPML ja PDF",
   "Format": "Muoto",
   "Choose files, then Import.": "Valitse tiedostot ja valitse sitten Tuo.",
   "Imported {pages} pages, {rows} rows and {files} files.": "Tuotu {pages} sivua, {rows} riviä ja {files} tiedostoa.",

@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Halaman ditambahkan ke {name}.",
   "Choose files": "Pilih file",
   "Drop files here or choose them": "Letakkan file di sini atau pilih",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Ekspor Notion dan Confluence, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML, dan PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Ekspor halaman dan ruang, catatan ENEX, Markdown, HTML, Word, Excel, CSV, ekspor papan, OPML, dan PDF",
   "Format": "Format",
   "Choose files, then Import.": "Pilih file, lalu Impor.",
   "Imported {pages} pages, {rows} rows and {files} files.": "Mengimpor {pages} halaman, {rows} baris, dan {files} file.",

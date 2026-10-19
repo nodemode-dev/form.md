@@ -26,16 +26,16 @@ export interface ImportTarget {
 
 const FORMATS: readonly (readonly [string, string])[] = [
   ["auto", "Detect automatically"],
-  ["notion", "Notion export (.zip)"],
-  ["evernote", "Evernote (.enex)"],
+  ["pagezip", "Markdown and CSV page export (.zip)"],
+  ["enex", "ENEX notes file (.enex)"],
   ["markdown", "Markdown files or a zip"],
   ["html", "HTML files or a zip"],
-  ["confluence", "Confluence space export (.zip)"],
+  ["spacehtml", "HTML space export (.zip)"],
   ["docx", "Word (.docx)"],
   ["xlsx", "Excel (.xlsx)"],
-  ["csv", "CSV or Asana export"],
-  ["trello", "Trello board (.json)"],
-  ["opml", "OPML or WorkFlowy"],
+  ["csv", "CSV file or project export"],
+  ["boardjson", "Board export (.json)"],
+  ["opml", "OPML outline (.opml)"],
   ["pdf", "PDF text"],
   ["text", "Plain text"],
 ];
@@ -87,7 +87,7 @@ export function openImport(engine: Engine, target: ImportTarget): void {
         { class: "xfer__drop" },
         iconNode("upload"),
         h("span", { class: "xfer__droptitle", text: t("Drop files here or choose them") }),
-        h("span", { class: "xfer__drophint", text: t("Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF") }),
+        h("span", { class: "xfer__drophint", text: t("Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF") }),
         picker,
       );
       const list = h("ul", { class: "xfer__list", attrs: { role: "list" } });

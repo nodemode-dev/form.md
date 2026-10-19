@@ -291,7 +291,7 @@
   "Pages are added to {name}.": "Các trang được thêm vào {name}.",
   "Choose files": "Chọn tệp",
   "Drop files here or choose them": "Thả tệp vào đây hoặc chọn tệp",
-  "Notion and Confluence exports, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML and PDF": "Tệp xuất từ Notion và Confluence, Evernote, Markdown, HTML, Word, Excel, CSV, Asana, Trello, OPML và PDF",
+  "Page and space exports, ENEX notes, Markdown, HTML, Word, Excel, CSV, board exports, OPML and PDF": "Tệp xuất trang và không gian, ghi chú ENEX, Markdown, HTML, Word, Excel, CSV, tệp xuất bảng, OPML và PDF",
   "Format": "Định dạng",
   "Choose files, then Import.": "Chọn tệp, rồi nhấn Nhập.",
   "Imported {pages} pages, {rows} rows and {files} files.": "Đã nhập {pages} trang, {rows} hàng và {files} tệp.",
