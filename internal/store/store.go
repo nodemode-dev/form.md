@@ -53,6 +53,11 @@ func Open(ctx context.Context, dataDir string, key *crypt.Key) (*Store, error) {
 		f.Close()
 		_ = os.Chmod(path, 0o600)
 	}
+	for _, suffix := range []string{"-wal", "-shm"} {
+		if _, err := os.Stat(path + suffix); err == nil {
+			_ = os.Chmod(path+suffix, 0o600)
+		}
+	}
 	s := &Store{Path: path, Key: key}
 	if key != nil {
 		if err := Register(key); err != nil {

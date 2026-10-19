@@ -18,6 +18,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/ids"
 	"github.com/nodemode-ai/form.md/internal/netguard"
+	"github.com/nodemode-ai/form.md/internal/page"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/secrets"
 	"github.com/nodemode-ai/form.md/internal/store"
@@ -27,6 +28,7 @@ const (
 	maxAttempts    = 8
 	disableAfter   = 100
 	keepDeliveries = 30 * 24 * time.Hour
+	maxRecordBytes = 64 << 10
 )
 
 var backoff = []time.Duration{30 * time.Second, 2 * time.Minute, 10 * time.Minute, 30 * time.Minute, 2 * time.Hour, 6 * time.Hour, 12 * time.Hour}
@@ -84,6 +86,7 @@ type Event struct {
 	Detail      string          `json:"detail,omitempty"`
 	Changes     json.RawMessage `json:"changes,omitempty"`
 	Data        any             `json:"data,omitempty"`
+	DataOmitted string          `json:"data_omitted,omitempty"`
 	Audit       bool            `json:"-"`
 }
 
@@ -96,7 +99,35 @@ type Service struct {
 	client *http.Client
 	wake   chan struct{}
 	plain  bool
+	pages  *page.Service
 	subs   []func(ctx context.Context, e Event)
+}
+
+func (s *Service) UsePages(p *page.Service) {
+	s.pages = p
+}
+
+func (s *Service) attach(ctx context.Context, e *Event) {
+	if s.pages == nil || e.Data != nil || e.PageID == "" || (e.Type != "page.create" && e.Type != "page.update") {
+		return
+	}
+	m, err := s.pages.Load(ctx, e.PageID)
+	if err != nil || m.TrashedAt > 0 {
+		return
+	}
+	if m.Visibility != "workspace" || m.TeamspaceID != "" {
+		e.DataOmitted = "restricted"
+		return
+	}
+	raw, err := json.Marshal(m)
+	if err != nil {
+		return
+	}
+	if len(raw) > maxRecordBytes {
+		e.DataOmitted = "size"
+		return
+	}
+	e.Data = json.RawMessage(raw)
 }
 
 func (s *Service) OnEvent(fn func(ctx context.Context, e Event)) {
@@ -152,6 +183,7 @@ func (s *Service) enqueue(ctx context.Context, e Event) {
 	if len(hooks) == 0 {
 		return
 	}
+	s.attach(ctx, &e)
 	body, err := json.Marshal(e)
 	if err != nil {
 		return
