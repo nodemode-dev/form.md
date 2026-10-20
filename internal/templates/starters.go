@@ -15,6 +15,7 @@ type prop struct {
 	Type    string `json:"type"`
 	Options []opt  `json:"options,omitempty"`
 	Format  string `json:"format,omitempty"`
+	Prefix  string `json:"prefix,omitempty"`
 }
 
 type view struct {
@@ -30,12 +31,13 @@ type row struct {
 }
 
 type Starter struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Icon        string `json:"icon"`
-	Kind        string `json:"kind"`
-	Category    string `json:"category"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Icon        string   `json:"icon"`
+	Kind        string   `json:"kind"`
+	Category    string   `json:"category"`
+	Tags        []string `json:"tags"`
 	markdown    string
 	schema      []prop
 	views       []view
@@ -52,23 +54,23 @@ var statusOpts = []opt{{ID: "todo", Name: "Not started", Color: "gray", Group: "
 
 var starters = []Starter{
 	{
-		ID: "meeting-notes", Name: "Meeting notes", Description: "Agenda, notes, decisions and action items for one meeting.", Icon: "i:chat:violet", Kind: "doc", Category: "Docs",
+		ID: "meeting-notes", Name: "Meeting notes", Description: "Agenda, notes, decisions and action items for one meeting.", Icon: "i:chat:violet", Kind: "doc", Category: catMeetings, Tags: []string{"agenda", "minutes", "action items"},
 		markdown: "**Date:** {{date}}\n\n**Attendees:** \n\n## Agenda\n\n1. \n2. \n3. \n\n## Notes\n\n- \n\n## Decisions\n\n> [!TIP]\n> Write down what was agreed and who agreed it.\n\n## Action items\n\n- [ ] \n- [ ] \n",
 	},
 	{
-		ID: "project-brief", Name: "Project brief", Description: "Problem, goals, scope, milestones and risks on one page.", Icon: "i:rocket:blue", Kind: "doc", Category: "Docs",
+		ID: "project-brief", Name: "Project brief", Description: "Problem, goals, scope, milestones and risks on one page.", Icon: "i:rocket:blue", Kind: "doc", Category: catProjects, Tags: []string{"kickoff", "scope", "milestones"},
 		markdown: "## Problem\n\nWhat is wrong today, and for whom?\n\n## Goals\n\n- \n\n## Out of scope\n\n- \n\n## Milestones\n\n| Milestone | Owner | Date |\n| --- | --- | --- |\n| Kickoff |  | {{date}} |\n| First release |  |  |\n\n## Risks\n\n| Risk | Likelihood | Plan |\n| --- | --- | --- |\n|  |  |  |\n\n## Open questions\n\n- [ ] \n",
 	},
 	{
-		ID: "weekly-review", Name: "Weekly review", Description: "A short reflection: wins, misses, lessons and next week's focus.", Icon: "i:calendar:teal", Kind: "doc", Category: "Personal",
+		ID: "weekly-review", Name: "Weekly review", Description: "A short reflection: wins, misses, lessons and next week's focus.", Icon: "i:calendar:teal", Kind: "doc", Category: catPersonal, Tags: []string{"reflection", "planning", "weekly"},
 		markdown: "Week of {{date}}\n\n## Wins\n\n- \n\n## What did not go to plan\n\n- \n\n## Lessons\n\n- \n\n## Focus for next week\n\n- [ ] \n- [ ] \n- [ ] \n",
 	},
 	{
-		ID: "team-wiki", Name: "Team wiki", Description: "A home page for a team: who we are, how we work, where things live.", Icon: "i:book:amber", Kind: "doc", Category: "Docs",
+		ID: "team-wiki", Name: "Team wiki", Description: "A home page for a team: who we are, how we work, where things live.", Icon: "i:book:amber", Kind: "doc", Category: catDocs, Tags: []string{"team", "home page", "knowledge"},
 		markdown: "<!-- toc -->\n\n## Who we are\n\nOne paragraph on what this team owns.\n\n## How we work\n\n- Planning happens on Mondays.\n- Decisions are written down in the project brief.\n\n## Where things live\n\n| What | Where |\n| --- | --- |\n| Roadmap |  |\n| Runbooks |  |\n\n## Getting help\n\n> [!NOTE]\n> Mention the team in a comment and someone will pick it up.\n",
 	},
 	{
-		ID: "task-tracker", Name: "Task tracker", Description: "Tasks with status, owner, priority and due date, on a board, a table, a calendar and a chart.", Icon: "i:checklist:green", Kind: "database", Category: "Projects",
+		ID: "task-tracker", Name: "Task tracker", Description: "Tasks with status, owner, priority and due date, on a board, a table, a calendar and a chart.", Icon: "i:checklist:green", Kind: "database", Category: catProjects, Tags: []string{"tasks", "to-do", "kanban"},
 		schema: []prop{
 			{ID: "title", Name: "Task", Type: "title"},
 			{ID: "status", Name: "Status", Type: "status", Options: statusOpts},
@@ -93,7 +95,7 @@ var starters = []Starter{
 		},
 	},
 	{
-		ID: "reading-list", Name: "Reading list", Description: "Books, articles and podcasts with status, rating and links, shown as a gallery.", Icon: "i:bookmark:rose", Kind: "database", Category: "Personal",
+		ID: "reading-list", Name: "Reading list", Description: "Books, articles and podcasts with status, rating and links, shown as a gallery.", Icon: "i:bookmark:rose", Kind: "database", Category: catPersonal, Tags: []string{"books", "articles", "podcasts"},
 		schema: []prop{
 			{ID: "title", Name: "Title", Type: "title"},
 			{ID: "author", Name: "Author", Type: "text"},
@@ -113,7 +115,7 @@ var starters = []Starter{
 		},
 	},
 	{
-		ID: "content-calendar", Name: "Content calendar", Description: "Posts by publish date and channel, on a calendar and a board.", Icon: "i:megaphone:orange", Kind: "database", Category: "Marketing",
+		ID: "content-calendar", Name: "Content calendar", Description: "Posts by publish date and channel, on a calendar and a board.", Icon: "i:megaphone:orange", Kind: "database", Category: catMarketing, Tags: []string{"editorial", "blog", "schedule"},
 		schema: []prop{
 			{ID: "title", Name: "Post", Type: "title"},
 			{ID: "publish", Name: "Publish date", Type: "date"},
@@ -132,7 +134,7 @@ var starters = []Starter{
 		},
 	},
 	{
-		ID: "contacts", Name: "Customer contacts", Description: "People and companies with a stage, last contact and a pipeline chart.", Icon: "i:users:cyan", Kind: "database", Category: "Sales",
+		ID: "contacts", Name: "Customer contacts", Description: "People and companies with a stage, last contact and a pipeline chart.", Icon: "i:users:cyan", Kind: "database", Category: catSales, Tags: []string{"crm", "people", "companies"},
 		schema: []prop{
 			{ID: "title", Name: "Name", Type: "title"},
 			{ID: "company", Name: "Company", Type: "text"},
@@ -153,7 +155,7 @@ var starters = []Starter{
 		},
 	},
 	{
-		ID: "places", Name: "Places to visit", Description: "Cities and spots with a place, shown on a map and a gallery.", Icon: "i:map:teal", Kind: "database", Category: "Personal",
+		ID: "places", Name: "Places to visit", Description: "Cities and spots with a place, shown on a map and a gallery.", Icon: "i:map:teal", Kind: "database", Category: catPersonal, Tags: []string{"travel", "map", "bucket list"},
 		schema: []prop{
 			{ID: "title", Name: "Name", Type: "title"},
 			{ID: "where", Name: "Place", Type: "place"},

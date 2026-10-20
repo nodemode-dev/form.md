@@ -41,15 +41,16 @@ type WorkspaceTemplate struct {
 }
 
 type Gallery struct {
-	Starters  []Starter           `json:"starters"`
-	Workspace []WorkspaceTemplate `json:"workspace"`
+	Categories []Category          `json:"categories"`
+	Starters   []Starter           `json:"starters"`
+	Workspace  []WorkspaceTemplate `json:"workspace"`
 }
 
 func (s *Service) List(ctx context.Context, p *policy.Principal, workspaceID string) (*Gallery, error) {
 	if _, err := s.gate.Workspace(ctx, p, workspaceID); err != nil {
 		return nil, err
 	}
-	out := &Gallery{Starters: starters, Workspace: []WorkspaceTemplate{}}
+	out := &Gallery{Categories: categories, Starters: starters, Workspace: []WorkspaceTemplate{}}
 	rows, err := s.st.R.QueryContext(ctx, "SELECT id FROM pages WHERE workspace_id = ? AND is_template = 1 AND is_row = 0 AND trashed_at = 0 ORDER BY updated_at DESC LIMIT 200", workspaceID)
 	if err != nil {
 		return nil, err
@@ -78,6 +79,7 @@ type UseInput struct {
 	TeamspaceID string `json:"teamspace_id"`
 	Starter     string `json:"starter"`
 	Page        string `json:"page"`
+	Title       string `json:"title"`
 }
 
 func dayOffset(v string, now time.Time) (string, bool) {
@@ -132,7 +134,10 @@ func (s *Service) Use(ctx context.Context, p *policy.Principal, in UseInput) (*p
 		if !src.IsTemplate {
 			return nil, httpx.Fail(http.StatusBadRequest, "not_template", "that page is not a template")
 		}
-		title := src.Title
+		title := strings.TrimSpace(in.Title)
+		if title == "" {
+			title = src.Title
+		}
 		if strings.TrimSpace(title) == "" {
 			title = "Untitled"
 		}
@@ -152,16 +157,15 @@ func (s *Service) Use(ctx context.Context, p *policy.Principal, in UseInput) (*p
 		}
 		return s.pages.Load(ctx, copied.ID)
 	}
-	var st *Starter
-	for i := range starters {
-		if starters[i].ID == in.Starter {
-			st = &starters[i]
-		}
-	}
+	st := findStarter(in.Starter)
 	if st == nil {
 		return nil, httpx.Fail(http.StatusNotFound, "no_template", "no such template")
 	}
-	create := page.CreateInput{WorkspaceID: in.WorkspaceID, ParentID: in.ParentID, TeamspaceID: in.TeamspaceID, Title: st.Name, Icon: st.Icon, Kind: "doc"}
+	title := strings.TrimSpace(in.Title)
+	if title == "" {
+		title = st.Name
+	}
+	create := page.CreateInput{WorkspaceID: in.WorkspaceID, ParentID: in.ParentID, TeamspaceID: in.TeamspaceID, Title: title, Icon: st.Icon, Kind: "doc"}
 	if st.Kind == "database" {
 		create.Kind = "collection"
 		extra, _ := json.Marshal(map[string]any{"view": st.views[0].Type, "schema": st.schemaJSON()})
@@ -239,6 +243,15 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 			return err
 		}
 		httpx.JSON(w, http.StatusOK, g)
+		return nil
+	}))
+	r.HandleFunc("GET /api/templates/{id}/preview", s.auth.Require(func(w http.ResponseWriter, r *http.Request, _ *policy.Principal) error {
+		p := previewFor(r.PathValue("id"))
+		if p == nil {
+			return httpx.Fail(http.StatusNotFound, "no_template", "no such template")
+		}
+		w.Header().Set("Cache-Control", "private, max-age=3600")
+		httpx.JSON(w, http.StatusOK, p)
 		return nil
 	}))
 	r.HandleFunc("POST /api/templates/use", s.auth.Require(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
