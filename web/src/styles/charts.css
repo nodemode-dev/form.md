@@ -39,7 +39,7 @@
 }
 
 .chart [data-pal="0"] { --oc: var(--accent); }
-.chart [data-pal="1"] { --oc: var(--c-violet); }
+.chart [data-pal="1"] { --oc: var(--c-blue); }
 .chart [data-pal="2"] { --oc: var(--c-teal); }
 .chart [data-pal="3"] { --oc: var(--c-amber); }
 .chart [data-pal="4"] { --oc: var(--c-rose); }
@@ -47,7 +47,7 @@
 .chart [data-pal="6"] { --oc: var(--c-orange); }
 .chart [data-pal="7"] { --oc: var(--c-cyan); }
 .chart [data-pal="8"] { --oc: var(--c-pink); }
-.chart [data-pal="9"] { --oc: var(--c-lime); }
+.chart [data-pal="9"] { --oc: var(--c-violet); }
 
 .chart__grid {
   stroke: var(--border);

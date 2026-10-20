@@ -12,11 +12,19 @@ let engine: Promise<Mermaid> | null = null;
 let queue: Promise<unknown> = Promise.resolve();
 let seq = 0;
 
+const PALETTE = {
+  dark: ["#a78bfa", "#60a5fa", "#2dd4bf", "#4ade80", "#fbbf24", "#fb923c", "#fb7185", "#f472b6", "#22d3ee", "#a3e635", "#9a8cff", "#94a3b8"],
+  neutral: ["#7c3aed", "#2563eb", "#0f766e", "#15803d", "#b45309", "#c2410c", "#be123c", "#be185d", "#0e7490", "#4d7c0f", "#5a46e0", "#64748b"],
+};
+
 function settings(theme: "dark" | "neutral") {
+  const pal = PALETTE[theme];
+  const pie = Object.fromEntries(pal.map((c, i) => [`pie${i + 1}`, c]));
   return {
     startOnLoad: false,
     securityLevel: "strict",
     theme,
+    themeVariables: { ...pie, pieStrokeColor: theme === "dark" ? "#111113" : "#ffffff", xyChart: { plotColorPalette: pal.join(", ") } },
     deterministicIds: true,
     fontFamily: "Arial, Helvetica, sans-serif",
     htmlLabels: false,

@@ -28,22 +28,20 @@ export function drawKpi(svg: SVGSVGElement, o: KpiDraw): void {
   const labels = layer(svg, "labels");
   const center = layer(svg, "center");
   for (const g of [layer(svg, "axis"), layer(svg, "legend")]) if (g.firstChild) g.replaceChildren();
-  const big = Math.min(40, Math.max(24, W / 9));
   const change = kpiChange(o.spark);
+  const badgeText = change && change.pct !== null ? `${change.pct > 0 ? "+" : ""}${Math.round(change.pct * 10) / 10}% ${o.period}` : change ? `${o.fmt(change.last)} ${o.period}` : "";
+  const valueText = o.fmt(o.value);
+  const room = W - 8 - (badgeText ? badgeText.length * 6.6 + 12 : 0);
+  const big = Math.max(16, Math.min(40, Math.max(24, W / 9), room / Math.max(1, valueText.length * 0.6)));
   const lines = [
-    { k: "value", t: o.fmt(o.value), x: 4, y: big + 2, cls: "chart__big", size: big },
+    { k: "value", t: valueText, x: 4, y: big + 2, cls: "chart__big", size: big },
     { k: "caption", t: o.caption, x: 4, y: big + 22, cls: "chart__caption", size: 12 },
   ];
   keyed(center, lines, (l) => l.k, "text", (e, l) => {
     set(e, { x: l.x, y: l.y, class: l.cls, "font-size": l.size, "text-anchor": "start" });
     text(e, l.t);
   });
-  const badge =
-    change && change.pct !== null
-      ? [{ k: "change", t: `${change.pct > 0 ? "+" : ""}${Math.round(change.pct * 10) / 10}% ${o.period}`, dir: change.pct > 0 ? "up" : change.pct < 0 ? "down" : "flat" }]
-      : change
-        ? [{ k: "change", t: `${o.fmt(change.last)} ${o.period}`, dir: "flat" }]
-        : [];
+  const badge = badgeText ? [{ k: "change", t: badgeText, dir: change && change.pct !== null ? (change.pct > 0 ? "up" : change.pct < 0 ? "down" : "flat") : "flat" }] : [];
   keyed(labels, badge, (b) => b.k, "text", (e, b) => {
     set(e, { x: W - 4, y: 18, "text-anchor": "end", class: "chart__kpi-change", "data-dir": b.dir });
     text(e, b.t);

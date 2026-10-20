@@ -370,7 +370,16 @@ function radial(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts): void 
   const s = res.series[0];
   const xs = res.x.slice(0, 12);
   const vals = xs.map((_, i) => Math.max(0, v(s, i)));
-  const max = Math.max(...vals, 0) || 1;
+  const max = spec.target && spec.target > 0 ? Math.max(spec.target, ...vals) : Math.max(...vals, 0) || 1;
+  const total = !vals.length
+    ? 0
+    : spec.fn === "average" || spec.fn === "median" || !!spec.fn?.startsWith("percent")
+      ? vals.reduce((a, b) => a + b, 0) / vals.length
+      : spec.fn === "min"
+        ? Math.min(...vals)
+        : spec.fn === "max"
+          ? Math.max(...vals)
+          : vals.reduce((a, b) => a + b, 0);
   const legendH = legendRow(
     f,
     xs.map((x, i) => ({ key: x.key, label: `${x.label || "-"} · ${o.fmt(vals[i] ?? 0)}`, color: x.color, pal: i })),
@@ -396,7 +405,7 @@ function radial(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts): void 
     set(e, { x: cx - 6, y: cy - r.r + ring * 0.75, "text-anchor": "end", class: "chart__value" });
     text(e, clip(`${r.x.label || "-"} ${o.fmt(r.val)}`, cx - 12));
   });
-  keyed(f.center, [o.fmt(vals.reduce((a, b) => a + b, 0)), o.caption], (_, i) => String(i), "text", (e, t, i) => {
+  keyed(f.center, [o.fmt(total), o.caption], (_, i) => String(i), "text", (e, t, i) => {
     set(e, { x: cx, y: cy + (i ? 16 : -2) + R * 0.12, "text-anchor": "middle", class: i ? "chart__caption" : "chart__total", "font-size": i ? 12 : Math.max(14, Math.min(26, inner / 1.6)) });
     text(e, clip(t, inner * 2.4, i ? 12 : 20));
   });
@@ -429,7 +438,7 @@ function gauge(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts): void {
   centerText(
     f,
     [
-      { t: o.fmt(value), size: Math.min(40, Math.max(20, R / 3)), cls: "chart__big" },
+      { t: o.fmt(value), size: Math.max(12, Math.min(40, Math.max(20, R / 3), ((R - thick) * 1.7) / Math.max(1, o.fmt(value).length * 0.6))), cls: "chart__big" },
       { t: target ? `${Math.round((value / target) * 100)}% of ${o.fmt(target)}` : o.caption, size: 12, cls: "chart__caption" },
     ],
     cy - R * 0.28,
@@ -526,8 +535,11 @@ function dots(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts, empty: (
   clear(f.legend, f.center);
   const groups = res.x.length ? res.x : [{ key: "", label: "" }];
   const idx = new Map(groups.map((g, i) => [g.key, i]));
-  const lo = Math.min(0, ...pts.map((p) => p.value));
-  const hi = Math.max(0, ...pts.map((p) => p.value));
+  const dmin = Math.min(...pts.map((p) => p.value));
+  const dmax = Math.max(...pts.map((p) => p.value));
+  const tight = dmin > 0 && dmin > dmax * 0.4;
+  const lo = tight ? dmin - (dmax - dmin) * 0.1 : Math.min(0, dmin);
+  const hi = Math.max(0, dmax);
   const diverging = lo < 0 && hi > 0;
   const ticks = niceTicks(lo, hi, 6);
   const d0 = ticks[0] ?? 0;

@@ -98,7 +98,8 @@ export function chartCaption(col: Collection, spec: ChartSpec): string {
 export function chartFormat(col: Collection, spec: ChartSpec): { fmt: (n: number) => string; axisFmt: (n: number) => string } {
   const pct = (spec.fn ?? "").startsWith("percent_");
   const p = measureProp(col, spec);
-  const numeric = !!p && p.type === "number" && NUMERIC.includes(spec.fn ?? "");
+  const numberLike = !!p && (p.type === "number" || ((p.type === "formula" || p.type === "rollup") && (!!p.format || (p.precision ?? 0) !== 0)));
+  const numeric = numberLike && NUMERIC.includes(spec.fn ?? "");
   let compact: Intl.NumberFormat;
   try {
     compact = new Intl.NumberFormat(locale(), { notation: "compact", maximumFractionDigits: 1 });

@@ -173,11 +173,11 @@ export const DATE_FORMATS: [string, string][] = [["", "Default"], ["full", "Full
 
 export function formatNumber(n: number, p: Pick<Property, "format" | "precision">): string {
   const fmt = p.format ?? "";
-  const digits = p.precision !== undefined && p.precision > 0 ? p.precision : undefined;
+  const digits = p.precision === -1 ? 0 : p.precision !== undefined && p.precision > 0 ? p.precision : undefined;
   const base: Intl.NumberFormatOptions = digits !== undefined ? { minimumFractionDigits: digits, maximumFractionDigits: digits } : { maximumFractionDigits: 8 };
   try {
-    if (fmt === "percent") return new Intl.NumberFormat(locale(), { ...base, style: "percent" }).format(n);
-    if (CURRENCY[fmt]) return new Intl.NumberFormat(locale(), { ...base, style: "currency", currency: CURRENCY[fmt] }).format(n);
+    if (fmt === "percent") return new Intl.NumberFormat(locale(), { ...(digits !== undefined ? base : { maximumFractionDigits: 1 }), style: "percent" }).format(n);
+    if (CURRENCY[fmt]) return new Intl.NumberFormat(locale(), { ...(digits !== undefined ? base : {}), style: "currency", currency: CURRENCY[fmt] }).format(n);
     if (fmt === "comma") return new Intl.NumberFormat(locale(), base).format(n);
   } catch {
     return String(n);

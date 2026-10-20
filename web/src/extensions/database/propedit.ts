@@ -241,7 +241,7 @@ export function openPropertyEditor(anchor: HTMLElement, p0: Property, ctx: DbCtx
             }
             pad.append(field(t("Number format"), selectOf(NUMBER_FORMATS, p.format ?? "", (v) => (p.format = v))));
             {
-              const prec = selectOf([["0", "Default"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]], String(p.precision ?? 0), (v) => (p.precision = Number(v)));
+              const prec = selectOf([["0", "Default"], ["-1", "Whole number"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]], String(p.precision ?? 0), (v) => (p.precision = Number(v)));
               pad.append(field(t("Decimal places"), prec));
             }
             pad.append(

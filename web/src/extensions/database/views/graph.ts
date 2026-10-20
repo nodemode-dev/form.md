@@ -116,8 +116,15 @@ export function graphView(host: ViewHost): ViewRenderer {
     accent = cs.getPropertyValue("--accent").trim() || accent;
     textColor = cs.getPropertyValue("--text").trim() || textColor;
     faint = cs.getPropertyValue("--text-faint").trim() || faint;
-    sheet = cs.getPropertyValue("--sheet").trim() || sheet;
-    palette = new Map(COLORS.map((c) => [c, resolveColor(probe, c)]));
+    let behind: Element | null = el;
+    let bg = "";
+    while (behind && !bg) {
+      const c = getComputedStyle(behind).backgroundColor;
+      if (c && c !== "transparent" && !/rgba\([^)]*,\s*0\)$/.test(c)) bg = c;
+      behind = behind.parentElement;
+    }
+    sheet = bg || cs.getPropertyValue("--sheet").trim() || sheet;
+    palette = new Map(COLORS.map((c) => [c, resolveColor(probe, c)] as [string, string]).filter(([, v]) => !!v));
   };
 
   const size = () => [frame.clientWidth, frame.clientHeight] as const;
@@ -236,7 +243,8 @@ export function graphView(host: ViewHost): ViewRenderer {
         if (!show) return;
         const text = n.title || t("Untitled");
         const ty0 = n.y + n.r + 3 / k;
-        g.lineWidth = 3 / k;
+        g.lineWidth = 2.5 / k;
+        g.lineJoin = "round";
         g.strokeStyle = sheet;
         g.strokeText(text.length > 40 ? `${text.slice(0, 39)}…` : text, n.x, ty0);
         g.fillStyle = i === focus ? textColor : faint;
@@ -779,11 +787,21 @@ export function graphView(host: ViewHost): ViewRenderer {
     readTheme();
     redraw();
   });
-  theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  const ro = new ResizeObserver(() => redraw());
+  theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-dark-theme", "data-light-theme", "data-accent", "data-contrast"] });
+  let themed = false;
+  const ro = new ResizeObserver(() => {
+    if (!themed && frame.isConnected) {
+      themed = true;
+      readTheme();
+    }
+    redraw();
+  });
   ro.observe(frame);
   requestAnimationFrame(() => {
-    readTheme();
+    if (frame.isConnected) {
+      themed = true;
+      readTheme();
+    }
     redraw();
   });
   const ready = load(1);
