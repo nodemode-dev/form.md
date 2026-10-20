@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.44.0
-Last updated: 2026-10-20 · v0.44.0: the template library and previews, search shared-space filter and direction, the appearance preference, /desktop/enter to /home?start=1; v0.43.0: desktop mode (FORMMD_DESKTOP_KEY, /desktop/enter, stdin stop, port fallback), desktop notices; v0.42.1: the notices tool finds the Go licence outside GOROOT; v0.42.0: Claude Code launched like formlit's, chat events for every window, form-md mcp autostart, the sparkle retired; v0.41.0: import sources by file format, PDF text in search, webhook page records, the web as an answer source, published boards and galleries, the grouped-offset fix; Phase 14: terminals, Claude Code and its chat, window commands, form-md cli, 26 languages
+Current build version: v0.45.0
+Last updated: 2026-10-20 · v0.45.0: the recursive template builder (sub-pages, related databases, placeholders, relative dates, relation values by title), Data & charts and Example projects, project previews, the code block view in Markdown; v0.44.0: the template library and previews, search shared-space filter and direction, the appearance preference, /desktop/enter to /home?start=1; v0.43.0: desktop mode (FORMMD_DESKTOP_KEY, /desktop/enter, stdin stop, port fallback), desktop notices; v0.42.1: the notices tool finds the Go licence outside GOROOT; v0.42.0: Claude Code launched like formlit's, chat events for every window, form-md mcp autostart, the sparkle retired; v0.41.0: import sources by file format, PDF text in search, webhook page records, the web as an answer source, published boards and galleries, the grouped-offset fix; Phase 14: terminals, Claude Code and its chat, window commands, form-md cli, 26 languages
 
 ---
 
@@ -2305,3 +2305,10 @@ Rows are generated at package start by `chartRng` (xorshift with a fixed seed pe
 - logged: v0.45.0 · 2026-10-20
 
 A relation to `"@self"` or the database's own key becomes `"self"` in the schema; its row values are left out when rows are created and set in a second pass once every row of that database exists, mapped from titles. The gallery JSON carries `docs` and `databases` beside the total `pages`, so a card reads "4 pages · 5 databases" like the preview pane. A fenced code block's info string may carry a view after the language (```mermaid preview, ```mermaid code); the importer keeps it as the block's `view` and the exporter writes it back, and template content turns every Mermaid fence into the preview form so example diagrams open as drawings.
+
+### internal/templates · independent check fixes
+- refers-to: build.go :: `(*buildState).fill`; tpl_charts.go :: `chartSales`, `chartCustomers`; tpl_examples_a.go (Product launch HQ milestones, Engineering home, plans); tpl_examples_b.go (trip bookings and budget, household accounts)
+- kind: fix
+- logged: v0.45.0 · 2026-10-20
+
+Tilde fences get the preview view too, so the Diagram gallery opens drawn. The Sales dashboard filters refunded orders out of every revenue chart, not only the KPI and the line, so its totals agree; a store's name no longer matches a real product. The Japan trip, flying from Heathrow, prices in pounds with whole numbers and its season note holds for any start date. Options that charted as grey (Starter, Joint, Planned) take colours; the household donut says it leaves the card out; the milestones table gives its date ranges room.

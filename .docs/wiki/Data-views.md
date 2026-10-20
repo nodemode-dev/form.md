@@ -97,6 +97,10 @@ The table renders only the rows near the viewport and asks the server for each w
 2. Every mark that stands for rows carries `data-x` (and `data-s` for a series) with the bucket keys the server returns, so a pick finds its rows; a mark for one row carries `data-row`.
 3. A new view type is added to `viewTypes` in `internal/collection/service.go`, to the `collection_views.type` check by a migration that keeps `form_links` and `calendar_feeds`, to `ViewType` and `VIEW_INFO` on the client and to `renderers` in `views/index.ts`.
 
+## Templates that show every view
+
+Since v0.45.0 Home leads with **Data & charts**: 15 featured templates (Sales dashboard, Website analytics, Project portfolio, Finance overview, Survey results, Inventory and stock levels, Team capacity, Customer map, Fitness tracker, Habit heatmap, Knowledge graph, Formula and rollup playground, Content library, Quarterly report, Diagram gallery) that between them use all 13 chart kinds and all 13 views, with real rows dated relative to the day they are added so calendars, heatmaps and timelines are never empty. **Example projects** follows: 14 projects, each a home page with inline dashboards, sub-pages and related databases. Both are built by `internal/templates/build.go`, which creates the page tree first and then fills `{{db:KEY}}` and `{{page:KEY}}` placeholders, relations given by row title, and relative dates. The catalogue is checked when the server starts, so a template that points at a missing database or option does not ship.
+
 ## Related
 
 [[API-and-agents]] · [[Offline]]

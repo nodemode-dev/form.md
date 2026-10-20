@@ -7,7 +7,7 @@
 <p align="center"><b>One workspace for people & agents: documents, databases & realtime editing in a single binary.</b></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.44.0-9a8cff" alt="version v0.44.0" />
+  <img src="https://img.shields.io/badge/version-v0.45.0-9a8cff" alt="version v0.45.0" />
   <img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+" />
   <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache--2.0-555555" alt="license Apache-2.0" />
@@ -21,7 +21,9 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 
 - **A desktop app** · form.md.app & a .dmg on macOS, .deb, .rpm & .AppImage on Linux, .msi & a setup .exe on Windows, built by `./build_app` or `build_app.bat`; the server runs inside it on this computer & you are signed in as the owner
 - **A page-first layout** · a flush, resizable sidebar (Search, Home, Library, favorites, shared spaces, your pages, then Templates, Import, Trash, Settings & Help), back & forward, breadcrumbs that list sibling pages, & a Home page w/ a greeting, a drop area for your material, recently visited cards & templates
-- **61 templates in nine categories** · projects, docs & wikis, meetings, engineering, product & design, marketing, sales & customers, team & HR, personal & school; a gallery w/ search, live previews & a preview pane
+- **Data & charts, first on Home** · 15 featured templates that between them use every chart kind (bar, line, area, donut, number, radial, gauge, histogram, dot plot, comparison, heatmap & calendar) & every database view, plus diagrams, formulas, rollups, a map & a knowledge graph
+- **14 example projects, already filled in** · a product launch, a startup's operating system, marketing analytics, a sales pipeline, an engineering team, customer success, a research lab, household money, health & fitness, a trip, a community event, a home renovation, a school course & a neighbourhood cafe: each a home page w/ dashboards, sub-pages & related databases full of data, added w/ one click
+- **90 templates in eleven categories** · data & charts, example projects, projects, docs & wikis, meetings, engineering, product & design, marketing, sales & customers, team & HR, personal & school; a gallery w/ search, live previews, a What's inside tree for projects & a preview pane
 - **Ways to find things** · search w/ title-only, created-by, shared-space, in-page & date filters & five sorts; Find a command (`Ctrl+Shift+P`); find & replace in a page; a shortcuts sheet where any key can be changed
 - **Preferences** · 14 dark & 6 light theme profiles, nine accent colours or your own, three densities & high contrast, applied before the first frame & kept w/ your account
 - **Claude Code inside the workspace** · a bottom panel with real terminals, Claude Code tabs already connected to this form.md's MCP tools, and a Claude Code chat that shows each tool call as it runs; hand a chat to a terminal tab or bring one back (Mod+J, Mod+Alt+J, Mod+Alt+K)
