@@ -1,0 +1,12 @@
+{
+  "{count} database|{count} databases": "데이터베이스 {count}개|데이터베이스 {count}개",
+  "Whole number": "정수",
+  "Featured": "추천",
+  "Building {count} pages…": "페이지 {count}개를 만드는 중…",
+  "Adding…": "추가하는 중…",
+  "Large projects take a few seconds to build.": "큰 프로젝트는 만드는 데 몇 초 걸려요.",
+  "Data & charts": "데이터 및 차트",
+  "Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.": "차트, 대시보드, 히트맵, 지도, 타임라인이 모두 예시 데이터로 채워져 있어 표가 어떻게 바뀔 수 있는지 볼 수 있어요.",
+  "Example projects": "예시 프로젝트",
+  "Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.": "이미 채워진 워크스페이스 전체예요. 홈 페이지, 하위 페이지, 연결된 데이터베이스가 들어 있어요. 하나 추가해서 둘러보세요."
+}

@@ -1,0 +1,12 @@
+{
+  "{count} database|{count} databases": "{count} tietokanta|{count} tietokantaa",
+  "Whole number": "Kokonaisluku",
+  "Featured": "Suositeltu",
+  "Building {count} pages…": "Luodaan {count} sivua…",
+  "Adding…": "Lisätään…",
+  "Large projects take a few seconds to build.": "Suurten projektien luominen kestää muutaman sekunnin.",
+  "Data & charts": "Data ja kaaviot",
+  "Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.": "Kaavioita, koontinäkymiä, lämpökarttoja, karttoja ja aikajanoja, kaikki täytetty esimerkkidatalla, jotta näet, mitä taulukoistasi voi tulla.",
+  "Example projects": "Esimerkkiprojektit",
+  "Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.": "Kokonaisia työtiloja valmiiksi täytettyinä: aloitussivu, alasivut ja linkitetyt tietokannat. Lisää yksi ja katsele ympärillesi."
+}

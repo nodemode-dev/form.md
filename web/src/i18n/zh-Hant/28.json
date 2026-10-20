@@ -1,0 +1,12 @@
+{
+  "{count} database|{count} databases": "{count} 個資料庫|{count} 個資料庫",
+  "Whole number": "整數",
+  "Featured": "精選",
+  "Building {count} pages…": "正在建立 {count} 個頁面…",
+  "Adding…": "正在新增…",
+  "Large projects take a few seconds to build.": "建立大型專案需要幾秒鐘。",
+  "Data & charts": "資料與圖表",
+  "Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.": "圖表、儀表板、熱度圖、地圖和時間軸，皆已填入範例資料，讓你看看表格能變成什麼樣子。",
+  "Example projects": "範例專案",
+  "Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.": "已填好內容的完整工作區：包含首頁、子頁面和連結的資料庫。新增一個，四處看看吧。"
+}

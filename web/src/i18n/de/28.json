@@ -1,0 +1,12 @@
+{
+  "{count} database|{count} databases": "{count} Datenbank|{count} Datenbanken",
+  "Whole number": "Ganze Zahl",
+  "Featured": "Empfohlen",
+  "Building {count} pages…": "{count} Seiten werden erstellt…",
+  "Adding…": "Wird hinzugefügt…",
+  "Large projects take a few seconds to build.": "Große Projekte brauchen ein paar Sekunden, bis sie erstellt sind.",
+  "Data & charts": "Daten & Diagramme",
+  "Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.": "Diagramme, Dashboards, Heatmaps, Karten und Zeitachsen, jeweils mit Beispieldaten gefüllt, damit du siehst, was aus deinen Tabellen werden kann.",
+  "Example projects": "Beispielprojekte",
+  "Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.": "Komplette Arbeitsbereiche, bereits ausgefüllt: eine Startseite, Unterseiten und verknüpfte Datenbanken. Füg einen hinzu und sieh dich um."
+}

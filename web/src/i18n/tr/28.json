@@ -1,0 +1,12 @@
+{
+  "{count} database|{count} databases": "{count} veritabanı|{count} veritabanı",
+  "Whole number": "Tam sayı",
+  "Featured": "Öne çıkan",
+  "Building {count} pages…": "{count} sayfa oluşturuluyor…",
+  "Adding…": "Ekleniyor…",
+  "Large projects take a few seconds to build.": "Büyük projelerin oluşturulması birkaç saniye sürer.",
+  "Data & charts": "Veriler ve grafikler",
+  "Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.": "Grafikler, gösterge panelleri, ısı haritaları, haritalar ve zaman çizelgeleri. Hepsi örnek verilerle dolu, böylece tablolarının neye dönüşebileceğini görebilirsin.",
+  "Example projects": "Örnek projeler",
+  "Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.": "Önceden doldurulmuş eksiksiz çalışma alanları: bir ana sayfa, alt sayfalar ve bağlantılı veritabanları. Birini ekle ve göz at."
+}

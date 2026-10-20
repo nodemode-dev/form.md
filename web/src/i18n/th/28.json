@@ -1,0 +1,12 @@
+{
+  "{count} database|{count} databases": "{count} ฐานข้อมูล|{count} ฐานข้อมูล",
+  "Whole number": "จำนวนเต็ม",
+  "Featured": "แนะนำ",
+  "Building {count} pages…": "กำลังสร้าง {count} หน้า…",
+  "Adding…": "กำลังเพิ่ม…",
+  "Large projects take a few seconds to build.": "โปรเจกต์ขนาดใหญ่ใช้เวลาสร้างไม่กี่วินาที",
+  "Data & charts": "ข้อมูลและแผนภูมิ",
+  "Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.": "แผนภูมิ แดชบอร์ด ฮีตแมป แผนที่ และไทม์ไลน์ ทุกอันมีข้อมูลตัวอย่างให้คุณเห็นว่าตารางของคุณจะกลายเป็นอะไรได้บ้าง",
+  "Example projects": "โปรเจกต์ตัวอย่าง",
+  "Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.": "พื้นที่ทำงานแบบครบชุดที่มีเนื้อหาพร้อมแล้ว ทั้งหน้าหลัก หน้าย่อย และฐานข้อมูลที่ลิงก์กัน เพิ่มสักชุดแล้วลองสำรวจดู"
+}

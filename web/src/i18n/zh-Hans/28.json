@@ -1,0 +1,12 @@
+{
+  "{count} database|{count} databases": "{count} 个数据库|{count} 个数据库",
+  "Whole number": "整数",
+  "Featured": "精选",
+  "Building {count} pages…": "正在创建 {count} 个页面…",
+  "Adding…": "正在添加…",
+  "Large projects take a few seconds to build.": "创建大型项目需要几秒钟。",
+  "Data & charts": "数据与图表",
+  "Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.": "图表、仪表盘、热力图、地图和时间线，均已填入示例数据，让你看看表格能变成什么样。",
+  "Example projects": "示例项目",
+  "Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.": "已填好内容的完整工作区：包含首页、子页面和关联的数据库。添加一个，四处看看吧。"
+}

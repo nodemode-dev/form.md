@@ -1,0 +1,12 @@
+{
+  "{count} database|{count} databases": "Баз даних: {count}|Баз даних: {count}",
+  "Whole number": "Ціле число",
+  "Featured": "Рекомендуємо",
+  "Building {count} pages…": "Створення сторінок: {count}…",
+  "Adding…": "Додавання…",
+  "Large projects take a few seconds to build.": "Створення великих проєктів займає кілька секунд.",
+  "Data & charts": "Дані й діаграми",
+  "Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.": "Діаграми, дашборди, теплові карти, карти й часові шкали з прикладами даних, щоб було видно, чим можуть стати ваші таблиці.",
+  "Example projects": "Приклади проєктів",
+  "Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.": "Готові робочі простори цілком: початкова сторінка, підсторінки та пов'язані бази даних. Додайте один і роздивіться."
+}
