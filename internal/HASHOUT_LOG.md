@@ -213,7 +213,8 @@ form.md/
     ├── oc_install (+ .bat)          Go side install: go mod download
     ├── boot_backend (+ .bat)        Go side dev boot: go run on 127.0.0.1:8750
     ├── notices/
-    │   └── main.go                  generates NOTICES.md from go list and web/node_modules
+    │   ├── main.go                  generates NOTICES.md from go list and web/node_modules
+    │   └── go-LICENSE               the Go licence, used when the toolchain keeps none in GOROOT
     ├── wikicheck/
     │   └── main.go                  fails when the wiki names a variable, command, route or page that does not exist
     └── skillcheck/
@@ -505,6 +506,14 @@ Creates the instance id once and records the version that last started against t
 - logged: v0.1.0 · 2026-10-07
 
 Generates `NOTICES.md` from the modules actually linked into `./cmd/form-md` (`go list -deps`), the Go standard library licence, and the runtime `dependencies` of `web/package.json` plus Vite (its runtime helpers ship in the bundle). Development-only packages are excluded because they never ship. The file is generated output, rewritten whole by design, like a lockfile; regenerate it whenever dependencies change (`make notices`). It exits non-zero when a licence file is missing so a release cannot ship an incomplete notice.
+
+### tools/notices/main.go · the Go licence without a GOROOT copy
+- refers-to: tools/notices/main.go :: `stdlib`, `goLicense`; tools/notices/go-LICENSE
+- kind: explainer
+- kind: warning-context
+- logged: v0.42.1 · 2026-10-20
+
+`./build_app` failed on macOS with Homebrew Go 1.27.2: `open /opt/homebrew/Cellar/go/1.27.2/libexec/LICENSE: no such file or directory`. The Go licence is not guaranteed to sit in GOROOT (a Homebrew keg can keep it at the keg root, one level above `libexec`), and `runtime.GOROOT()` is deprecated. `stdlib` now asks `go env GOROOT`, tries `GOROOT/LICENSE` then `GOROOT/../LICENSE`, accepts a file only when it names The Go Authors (so an unrelated licence one level up is never picked), and otherwise uses `go-LICENSE`, the go1.26.9 licence embedded beside the tool. That text is byte-identical to the one `NOTICES.md` already carried, so the generated file does not change. The Go licence has been the same BSD-3-Clause text for years; if Go ever changes it, refresh `go-LICENSE` from a release's `LICENSE`.
 
 ---
 

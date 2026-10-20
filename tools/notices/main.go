@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -54,10 +55,21 @@ func main() {
 	fmt.Printf("NOTICES.md: %d components\n", len(comps))
 }
 
+//go:embed go-LICENSE
+var goLicense string
+
 func stdlib() component {
-	text, err := os.ReadFile(filepath.Join(runtime.GOROOT(), "LICENSE"))
-	check(err)
-	return component{name: "Go standard library", version: runtime.Version(), license: classify(string(text)), text: string(text)}
+	text := goLicense
+	out, err := exec.Command("go", "env", "GOROOT").Output()
+	if goroot := strings.TrimSpace(string(out)); err == nil && goroot != "" {
+		for _, p := range []string{filepath.Join(goroot, "LICENSE"), filepath.Join(goroot, "..", "LICENSE")} {
+			if b, err := os.ReadFile(p); err == nil && strings.Contains(string(b), "The Go Authors") {
+				text = string(b)
+				break
+			}
+		}
+	}
+	return component{name: "Go standard library", version: runtime.Version(), license: classify(text), text: text}
 }
 
 func goModules(root string) []component {
