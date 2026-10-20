@@ -15,10 +15,15 @@
 
 form.md is a self-hosted workspace where people & AI agents write documents, run databases & edit together in realtime. It ships as one static Go binary w/ its web client embedded & one SQLite file beside it: no database server, no cache, no object store. The server holds the real collaborative document (a Yjs CRDT in pure Go), so an agent's edit merges into what a person is typing instead of resetting it. This repo is at **Phase 13 of 14**: the binary, storage, accounts, workspaces & the policy gate, the workspace shell (tree, tabs, favorites, tags, trash, library, covers & icons, uploads, live updates), the document engine w/ a block editor & realtime co-editing, databases w/ seven views, formulas, relations & rollups, public forms & CSV, full-text search w/ a command palette & the rest of the editor, collaboration & identity (sharing w/ six access levels, teamspaces, comments, suggested edits, an inbox, history, publishing, analytics, webhooks, an audit log, SCIM & SAML), & now agents & AI: an MCP server w/ OAuth, AI providers w/ an allow-list, writing help, AI blocks, autofill, a workspace agent & custom agents, meeting notes & answers from the workspace, automations, charts & dashboards, buttons, templates, map & feed views, importers from a dozen tools, Markdown, HTML & PDF export, a documented REST API, visual data views, & now context packs & a knowledge bank for agents w/ ready connections for Claude Code, Codex & Cursor.
 
-**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 28 MB static binary, 261 KB JS & 29 KB CSS gzipped up front; database views & charts, automations, button editing, import & export, the sharing, publishing & history dialogs, search, settings, the agent pane, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
+**Stack:** Go 1.26 · pure-Go SQLite (modernc) · ygo CRDT · vanilla TypeScript & Vite · ProseMirror & Yjs · no UI framework · **Scale:** 37 MB static binary, 266 KB JS & 39 KB CSS gzipped up front; database views & charts, automations, button editing, import & export, the sharing, publishing & history dialogs, search, settings, the agent pane, KaTeX, the code highlighter, the Markdown parser & the Mermaid renderer load on demand
 
 ## Highlights
 
+- **A desktop app** · form.md.app & a .dmg on macOS, .deb, .rpm & .AppImage on Linux, .msi & a setup .exe on Windows, built by `./build_app` or `build_app.bat`; the server runs inside it on this computer & you are signed in as the owner
+- **A page-first layout** · a flush, resizable sidebar (Search, Home, Library, favorites, shared spaces, your pages, then Templates, Import, Trash, Settings & Help), back & forward, breadcrumbs that list sibling pages, & a Home page w/ a greeting, a drop area for your material, recently visited cards & templates
+- **61 templates in nine categories** · projects, docs & wikis, meetings, engineering, product & design, marketing, sales & customers, team & HR, personal & school; a gallery w/ search, live previews & a preview pane
+- **Ways to find things** · search w/ title-only, created-by, shared-space, in-page & date filters & five sorts; Find a command (`Ctrl+Shift+P`); find & replace in a page; a shortcuts sheet where any key can be changed
+- **Preferences** · 14 dark & 6 light theme profiles, nine accent colours or your own, three densities & high contrast, applied before the first frame & kept w/ your account
 - **Claude Code inside the workspace** · a bottom panel with real terminals, Claude Code tabs already connected to this form.md's MCP tools, and a Claude Code chat that shows each tool call as it runs; hand a chat to a terminal tab or bring one back (Mod+J, Mod+Alt+J, Mod+Alt+K)
 - **Agents drive the window** · every command carries a description, typed parameters & whether it changes anything; agents list & run them through MCP (`window_commands`, `window_command_run`), REST or `form-md cli`
 - **Page styles** · named saved styles for the workspace; six fonts (sans, serif, mono, rounded, slab, humanist) plus fonts you upload to the workspace (WOFF2, WOFF, TTF, OTF), three text sizes & widths, line spacing & justified or centred text per page, w/ a workspace default; styled pages paint styled from the first frame
@@ -275,6 +280,13 @@ form.md/
 
 | Keys | Action |
 |---|---|
+| `Ctrl+K` · `Ctrl+P` | Search pages, w/ filters & sorts, or type to find a command |
+| `Ctrl+Shift+P` | Find a command: every action in the app, searchable |
+| `Ctrl+F` | Find & replace in the open page |
+| `Ctrl+[` · `Ctrl+]` | Back · forward |
+| `Ctrl+L` | Copy the page link |
+| `Ctrl+Shift+L` | Dark or light |
+| `Ctrl+N` | New page (desktop app) |
 | `Alt+N` | New page |
 | `Ctrl+Shift+F` | Focus mode on or off (`Esc` leaves) |
 | `Ctrl+J` | Terminal & Claude Code panel (owner, on this computer) |
@@ -296,9 +308,9 @@ form.md/
 | `Ctrl+Enter` | Tick or untick a to-do |
 | `Ctrl+Shift+C` | Copy the page as Markdown |
 | `Ctrl+Shift+J` | Show or hide the agent |
-| `?` | Every shortcut that is live right now |
+| `?` | Every shortcut that is live right now; click one to change its keys |
 
-On macOS, `Ctrl` reads as `Cmd`.
+On macOS, `Ctrl` reads as `Cmd`. Changed keys are kept on this device.
 
 ## Development
 
