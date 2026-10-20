@@ -2,8 +2,8 @@
 
 Living log of explainers, rationale and removed code for the desktop app in `src-tauri/` and its build scripts (`build_app`, `build_app.bat`, `tools/build_desktop`, `.github/workflows/desktop.yml`). Source files stay comment-free per dev-rules `hashout-log`; what they would have said lives here. Paths are relative to the repo root.
 
-Current build version: v0.44.0
-Last updated: 2026-10-20 · v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
+Current build version: v0.45.0
+Last updated: 2026-10-20 · v0.45.0: version only; v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
 
 ---
 
