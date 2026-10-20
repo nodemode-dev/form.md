@@ -374,6 +374,7 @@ func (s *Service) handlePolicy(w http.ResponseWriter, r *http.Request) error {
 		"sso":            s.SSOProviders(),
 		"saml_only":      s.SAMLOnly(),
 		"instance_name":  s.settings.Get("instance.name"),
+		"desktop":        s.Desktop(),
 	})
 	return nil
 }
@@ -386,7 +387,7 @@ func (s *Service) Me(ctx context.Context, p *policy.Principal) (map[string]any, 
 	out := map[string]any{
 		"user":       u,
 		"credential": map[string]any{"kind": p.Kind, "scope": p.Scope},
-		"instance":   map[string]any{"name": s.settings.Get("instance.name")},
+		"instance":   map[string]any{"name": s.settings.Get("instance.name"), "desktop": s.Desktop()},
 	}
 	if s.meExtras != nil {
 		extra, err := s.meExtras(ctx, p)

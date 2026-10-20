@@ -104,6 +104,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	al := audit.New(st)
 	mailer := mail.New(set)
 	authSvc := auth.New(st, box, set, gate, log)
+	authSvc.SetDesktopKey(cfg.DesktopKey)
 	ws := workspace.New(st, gate, al, log)
 	adm := admin.New(st, authSvc, ws, set, mailer, al, log)
 	mailAuth := mail.NewOAuth(set)

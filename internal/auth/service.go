@@ -47,6 +47,8 @@ type Service struct {
 
 	avatarCheck func(ctx context.Context, ref, userID string) bool
 	guestAccept GuestAccept
+
+	desktopKey string
 }
 
 func (s *Service) SetMeExtras(fn func(ctx context.Context, p *policy.Principal) (map[string]any, error)) {

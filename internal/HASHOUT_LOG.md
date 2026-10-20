@@ -2146,3 +2146,21 @@ The v0.41.0 defect audit asked whether a client that sends no scope should get r
 - logged: v0.42.0 · 2026-10-19
 
 The owner banned the three-star sparkle app-wide. Bolt replaces it for page icons and reactions because it exists in both the glyph and icon sets and is not a star; the reaction keeps its "Brilliant" label so no catalog changes. `Normalize` runs before `Valid` on every write path, so old clients and agents that send sparkle still work while `Valid` stays strict and sparkle is not an accepted name. Documents are not rewritten: the public renderer normalizes callout icons when it reads them, which leaves CRDT history alone. The migration deletes a sparkle reaction where the same person already has bolt before renaming the rest, because the primary key (target, user, icon) would otherwise refuse the rename.
+
+## Phase 18 · desktop app {#p18}
+
+### internal/config, internal/app, cmd/form-md · desktop mode
+- refers-to: internal/config/config.go :: `DesktopKey`, `Desktop`, `Load`; internal/app/app.go :: `Run` (listener fallback, ready line); cmd/form-md/main.go :: `serve` (stdin watch)
+- kind: explainer
+- kind: warning-context
+- logged: v0.43.0 · 2026-10-20
+
+`FORMMD_DESKTOP_KEY` is set only by the desktop app (`src-tauri`) for the server it starts as its sidecar. With it set the server refuses any address that is not loopback or that uses TLS, and the key must be at least 32 characters. If the preferred port (8750, so agents and the stdio bridge find it at the usual address) is busy, it takes a free port instead and says so in the log. It prints `form-md desktop ready http://127.0.0.1:PORT` on standard output once it is serving; the shell waits for that exact line rather than the slog line, so an earlier log line that mentions another loopback URL can never be mistaken for it. The server reads standard input to its end and stops when the pipe closes: the shell closes it on quit, and if the app crashes the operating system closes it, so the server never outlives the app and the data lock is released cleanly. Never set the key on a server that runs on its own; its standard input under systemd is empty and it would stop at once.
+
+### internal/auth/desktop.go · the desktop window signs in by itself
+- refers-to: internal/auth/desktop.go :: `handleDesktopEnter`, `desktopOwner`, `desktopName`, `loopbackPeer`; internal/auth/users.go :: `handlePolicy`, `Me` (desktop flag)
+- kind: explainer
+- kind: decision
+- logged: v0.43.0 · 2026-10-20
+
+Owner's decision of 2026-10-20 (1a): the desktop app runs a private server on this computer with its owner signed in, no sign-in screen. `GET /desktop/enter?key=` answers 404 unless the key matches in constant time and the peer is a loopback address. On an empty data folder it creates the owner (name from the operating system account, email `owner@localhost`, no usable password, so nobody can sign in with a password until the owner sets one in account settings); otherwise it signs in the oldest enabled owner. A request that already carries that owner's live session gets no second session, so relaunching does not pile up sessions. It redirects to `/` with `no-referrer` and `no-store` so the key does not linger in history or a Referer. `desktop` in the policy and in `/api/me` lets the client hide Sign out, which would strand a desktop owner on a password screen.

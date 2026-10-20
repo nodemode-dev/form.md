@@ -76,6 +76,10 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 	}
 
 	ln, err := net.Listen("tcp", d.Config.Addr)
+	if err != nil && d.Config.Desktop() {
+		d.Log.Warn("preferred port busy, using a free one", "addr", d.Config.Addr, "err", err)
+		ln, err = net.Listen("tcp", "127.0.0.1:0")
+	}
 	if err != nil {
 		return err
 	}
@@ -119,6 +123,9 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 		"url", scheme+"://"+ln.Addr().String(),
 		"version", Version,
 		"data", d.Config.DataDir)
+	if d.Config.Desktop() {
+		fmt.Printf("form-md desktop ready http://%s\n", ln.Addr())
+	}
 
 	select {
 	case err := <-served:

@@ -70,6 +70,13 @@ func serve() int {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if cfg.Desktop() {
+		go func() {
+			_, _ = io.Copy(io.Discard, os.Stdin)
+			log.Info("the desktop app closed its pipe; stopping")
+			stop()
+		}()
+	}
 
 	key, err := crypt.Load(cfg.DataDir, crypt.KeyPath(cfg.KeyFile), store.HasData(cfg.DataDir))
 	if err != nil {

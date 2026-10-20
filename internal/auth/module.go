@@ -18,6 +18,7 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 	s := m.s
 	r.HandleFunc("GET /api/auth/policy", s.Public(s.handlePolicy))
 	r.HandleFunc("POST /api/setup", s.Public(s.handleSetup))
+	r.HandleFunc("GET /desktop/enter", s.Public(s.handleDesktopEnter))
 	r.HandleFunc("POST /api/auth/login", s.Public(s.handleLogin))
 	r.HandleFunc("POST /api/auth/logout", s.Public(s.handleLogout))
 	r.HandleFunc("POST /api/auth/signup", s.Public(s.handleSignup))

@@ -28,6 +28,8 @@ type Config struct {
 	FetchPrivate bool
 
 	Family string
+
+	DesktopKey string
 }
 
 type Var struct {
@@ -54,6 +56,7 @@ var Vars = []Var{
 	{"UPDATE_URL", "", "where the daily update check reads the latest release (GitHub's API when unset); point it at a mirror on a closed network"},
 	{"FAMILY", "", "where the other form family apps run on this computer, as product=url pairs separated by commas (formlit=http://127.0.0.1:8390,formvis=http://127.0.0.1:8190 are assumed); loopback addresses only; off stops the lookups"},
 	{"FETCH_PRIVATE", "", "set to 1 to let link previews and media imports reach private network addresses such as intranet sites; off by default"},
+	{"DESKTOP_KEY", "", "set by the desktop app for the server it starts: the key its own window signs the owner in with; keeps the server on this computer. Leave unset"},
 }
 
 func Load() (Config, error) {
@@ -73,6 +76,8 @@ func Load() (Config, error) {
 		FetchPrivate: get("FETCH_PRIVATE") == "1" || get("FETCH_PRIVATE") == "true",
 
 		Family: get("FAMILY"),
+
+		DesktopKey: get("DESKTOP_KEY"),
 	}
 	for _, d := range strings.Split(get("ACME_DOMAINS"), ",") {
 		if d = strings.ToLower(strings.TrimSpace(d)); d != "" {
@@ -82,8 +87,17 @@ func Load() (Config, error) {
 	if len(c.ACMEDomains) > 0 && c.TLSCert != "" {
 		return c, errors.New(EnvPrefix + "ACME_DOMAINS and " + EnvPrefix + "TLS_CERT cannot both be set")
 	}
-	if _, _, err := net.SplitHostPort(c.Addr); err != nil {
+	host, _, err := net.SplitHostPort(c.Addr)
+	if err != nil {
 		return c, fmt.Errorf("%sADDR %q: %w", EnvPrefix, c.Addr, err)
+	}
+	if c.DesktopKey != "" {
+		if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() || c.TLS() {
+			return c, errors.New(EnvPrefix + "DESKTOP_KEY needs a loopback " + EnvPrefix + "ADDR without TLS")
+		}
+		if len(c.DesktopKey) < 32 {
+			return c, errors.New(EnvPrefix + "DESKTOP_KEY must be at least 32 characters")
+		}
 	}
 	if (c.TLSCert == "") != (c.TLSKey == "") {
 		return c, errors.New(EnvPrefix + "TLS_CERT and " + EnvPrefix + "TLS_KEY must be set together")
@@ -102,6 +116,10 @@ func (c Config) TLS() bool {
 
 func (c Config) ACME() bool {
 	return len(c.ACMEDomains) > 0
+}
+
+func (c Config) Desktop() bool {
+	return c.DesktopKey != ""
 }
 
 func get(name string) string {
