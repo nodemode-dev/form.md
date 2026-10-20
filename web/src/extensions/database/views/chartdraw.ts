@@ -85,6 +85,79 @@ function clip(s: string, room: number, size = 11): string {
   return s.length <= max ? s : `${s.slice(0, Math.max(1, max - 1))}…`;
 }
 
+// Picks the first candidate (full value, then compact) and the largest size that fits `room(size)`.
+// Every candidate but the last stops shrinking at `floor`; the last may go down to `min`. Numbers are never clipped.
+function fitText(cands: string[], room: (size: number) => number, max: number, floor: number, min: number, k = 0.62): { t: string; size: number } {
+  const list = cands.filter((c, i) => !!c && cands.indexOf(c) === i);
+  for (let ci = 0; ci < list.length; ci++) {
+    const t = list[ci] as string;
+    const lo = ci === list.length - 1 ? min : floor;
+    for (let s = Math.floor(max); s >= lo; s--) if (t.length * s * k <= room(s)) return { t, size: s };
+  }
+  return { t: list[list.length - 1] ?? "", size: min };
+}
+
+const chord = (r: number, dy: number) => 2 * Math.sqrt(Math.max(0, r * r - dy * dy));
+
+// Server day and week buckets read "Oct 7, 2026" and "Week of Sep 21, 2026"; on an axis the year
+// adds nothing when it is the current one, and the prefix never does.
+function tickLabel(s: string, short = false): string {
+  const m = /^(?:Week of )?([A-Z][a-z]{2} \d{1,2}), (\d{4})$/.exec(s);
+  if (!m) return s;
+  return short || Number(m[2]) === new Date().getFullYear() ? (m[1] as string) : `${m[1]}, ${m[2]}`;
+}
+
+function catLabel(s: string, room: number): string {
+  const full = tickLabel(s);
+  return width(full) <= room ? full : clip(tickLabel(s, true), room);
+}
+
+// Legend that wraps onto more rows (and then shrinks its type) instead of dropping items.
+// An item's `tail` (a value such as " · $1.5K") is never clipped; only the name before it is.
+function legendRows(g: SVGGElement, items: (Swatch & { tail?: string })[], W: number, H: number): number {
+  if (!items.length) {
+    if (g.firstChild) g.replaceChildren();
+    return 0;
+  }
+  const maxRows = Math.max(1, Math.floor((H * 0.3 - 10) / 14));
+  type Placed = Swatch & { x: number; row: number; t: string };
+  let out: Placed[] = [];
+  let fs = 11;
+  let rows = 1;
+  for (const [size, cap] of [[11, 220], [11, 150], [10, 130], [10, 100], [9, 90], [9, 64]] as const) {
+    out = [];
+    let x = 0;
+    let row = 0;
+    for (const s of items) {
+      const tail = s.tail ?? "";
+      const t = clip(s.label || "-", Math.max(size * 2, cap - width(tail, size)), size) + tail;
+      const w = size + 6 + width(t, size) + 12;
+      if (x > 0 && x + w > W - 8) {
+        row++;
+        x = 0;
+      }
+      out.push({ ...s, x, row, t });
+      x += w;
+    }
+    fs = size;
+    rows = row + 1;
+    if (rows <= maxRows) break;
+  }
+  const rowH = fs + 5;
+  const sw = fs - 1;
+  keyed(g, out, (s) => s.key || "#none", "g", (gg, s) => {
+    set(gg, { transform: `translate(${s.x + 4},${8 + s.row * rowH})`, class: "chart__legend-item", "data-fs": fs === 11 ? null : String(fs) });
+    if (gg.childElementCount !== 2) gg.replaceChildren(el("rect"), el("text"));
+    const r = gg.firstElementChild as SVGRectElement;
+    set(r, { x: 0, y: 1, width: sw, height: sw, rx: 2, class: s.key === "prev" ? "chart__swatch chart__swatch--prev" : "chart__swatch" });
+    paintSwatch(r, s);
+    const tx = gg.lastElementChild as SVGTextElement;
+    set(tx, { x: sw + 6, y: fs - 1, class: "chart__tick" });
+    text(tx, s.t);
+  });
+  return 10 + rows * rowH;
+}
+
 export function niceTicks(lo: number, hi: number, count = 5): number[] {
   if (lo === hi) hi = lo + 1;
   const raw = (hi - lo) / count;
@@ -218,28 +291,7 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
   const donut = spec.kind === "donut";
   const swatches: Swatch[] = donut ? xs.map((x, i) => ({ key: x.key, label: x.label, color: x.color, pal: i })) : multi ? series.map((s, i) => ({ key: s.key, label: s.label, color: s.color, pal: i })) : [];
   const showLegend = swatches.length > 0 && spec.legend !== false;
-  let legendH = 0;
-  if (showLegend) {
-    let lx = 0;
-    const items: (Swatch & { x: number })[] = [];
-    for (const s of swatches) {
-      const w = 18 + width(clip(s.label || "—", 140)) + 14;
-      if (lx + w > W - 8) break;
-      items.push({ ...s, x: lx });
-      lx += w;
-    }
-    legendH = 26;
-    keyed(legend, items, (s) => s.key || "#none", "g", (g, s) => {
-      set(g, { transform: `translate(${s.x + 4},8)`, class: "chart__legend-item" });
-      if (g.childElementCount !== 2) g.replaceChildren(el("rect"), el("text"));
-      const r = g.firstElementChild as SVGRectElement;
-      set(r, { x: 0, y: 1, width: 10, height: 10, rx: 2, class: "chart__swatch" });
-      paintSwatch(r, s);
-      const t = g.lastElementChild as SVGTextElement;
-      set(t, { x: 16, y: 10, class: "chart__tick" });
-      text(t, clip(s.label || "—", 140));
-    });
-  } else clear(legend);
+  const legendH = legendRows(legend, showLegend ? swatches : [], W, H);
   clear(center);
   if (donut) {
     clear(grid, axis);
@@ -270,9 +322,14 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
       set(e, { x: cx + rr * Math.sin(mid), y: cy - rr * Math.cos(mid) + 4, "text-anchor": "middle", class: "chart__value chart__value--in" });
       text(e, `${Math.round((s.v / total) * 100)}%`);
     });
-    keyed(center, [o.fmt(total), o.caption], (_, i) => String(i), "text", (e, t, i) => {
-      set(e, { x: cx, y: cy + (i ? 16 : -2), "text-anchor": "middle", class: i ? "chart__caption" : "chart__total", "font-size": i ? 12 : Math.max(16, Math.min(28, ir / 2.4)) });
-      text(e, clip(t, ir * 1.8, i ? 12 : 20));
+    // The total sits on a baseline 2px above centre; its cap height reaches about 0.75em higher,
+    // so the room is the hole's chord at that height, less a little air before the ring.
+    const big = fitText([o.fmt(total), o.axisFmt(total)], (s) => chord(ir, 2 + s * 0.75) - 12, Math.max(14, Math.min(28, ir / 2.2)), 13, 9);
+    const capRoom = chord(ir, 20) - 10;
+    const lines = capRoom >= 36 ? [big.t, clip(o.caption, capRoom, 12)] : [big.t];
+    keyed(center, lines, (_, i) => String(i), "text", (e, t, i) => {
+      set(e, { x: cx, y: cy + (i ? 16 : lines.length > 1 ? -2 : big.size * 0.35), "text-anchor": "middle", class: i ? "chart__caption" : "chart__total", "font-size": i ? 12 : big.size });
+      text(e, t);
     });
     return;
   }
@@ -301,9 +358,10 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
   const d0 = ticks[0] ?? 0;
   const d1 = ticks[ticks.length - 1] ?? 1;
   const top = legendH + (spec.labels ? 22 : 12);
-  const labelChars = Math.max(...xs.map((x) => (x.label || "—").length));
+  const labelChars = Math.max(...xs.map((x) => tickLabel(x.label || "-").length));
   const left = horiz ? Math.min(160, Math.max(40, labelChars * 6.6 + 14)) : Math.max(...ticks.map((t) => width(o.axisFmt(t)))) + 14;
-  const right = horiz && spec.labels ? 44 : 16;
+  const labelW = horiz && spec.labels ? Math.max(0, ...(stacked ? xs.map((_, i) => series.reduce((a, s) => a + val(s, i), 0)) : series.flatMap((s) => xs.map((_, i) => val(s, i)))).map((v) => width(o.fmt(v)))) : 0;
+  const right = horiz && spec.labels ? Math.min(Math.max(44, labelW + 10), W * 0.3) : 16;
   const bottom = 26;
   const pw = Math.max(10, W - left - right);
   const ph = Math.max(10, H - top - bottom);
@@ -320,7 +378,7 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
   const catTicks = xs
     .map((x, i) => ({ x, i }))
     .filter(({ i }) => i % every === 0)
-    .map(({ x, i }) => ({ k: `c${x.key}`, t: clip(x.label || "—", room), x: horiz ? left - 8 : left + band * (i + 0.5), y: horiz ? top + band * (i + 0.5) + 4 : top + ph + 16, anchor: horiz ? "end" : "middle" }));
+    .map(({ x, i }) => ({ k: `c${x.key}`, t: catLabel(x.label || "-", room), x: horiz ? left - 8 : left + band * (i + 0.5), y: horiz ? top + band * (i + 0.5) + 4 : top + ph + 16, anchor: horiz ? "end" : "middle" }));
   keyed(axis, [...valueTicks, ...catTicks], (t) => t.k, "text", (e, t) => {
     set(e, { x: t.x, y: t.y, "text-anchor": t.anchor, class: "chart__tick" });
     text(e, t.t);
@@ -391,22 +449,40 @@ export function drawChart(svg: SVGSVGElement, res: ChartResult | null, spec: Cha
     tip(e, tipFor(x, b.s, b.v));
   });
   const vals = spec.labels ? (stacked ? xs.map((x, xi) => ({ key: x.key, xi, v: series.reduce((a, s) => a + val(s, xi), 0), bar: bars.filter((b) => b.xi === xi) })) : bars.map((b) => ({ key: b.key, xi: b.xi, v: b.v, bar: [b] }))) : [];
-  keyed(labels, vals, (v) => `v:${v.key}`, "text", (e, v) => {
-    const b = v.bar;
-    const b0 = b[0];
-    if (!b0) return;
-    if (horiz) {
-      const end = Math.max(...b.map((r) => r.x + r.w));
-      set(e, { x: end + 6, y: b0.y + b0.h / 2 + 4, "text-anchor": "start", class: "chart__value" });
-    } else {
-      const y = Math.min(...b.map((r) => r.y));
-      set(e, { x: b0.x + b0.w / 2, y: y - 6, "text-anchor": "middle", class: "chart__value" });
+  // Data labels: full values when none collide, else compact values, else drop the smaller of
+  // each colliding pair. Labels are kept inside the chart box.
+  const anchors = vals.flatMap((v) => {
+    const b0 = v.bar[0];
+    if (!b0) return [];
+    return horiz ? [{ key: v.key, v: v.v, ax: Math.max(...v.bar.map((r) => r.x + r.w)) + 6, y: b0.y + b0.h / 2 + 4 }] : [{ key: v.key, v: v.v, ax: b0.x + b0.w / 2, y: Math.min(...v.bar.map((r) => r.y)) - 6 }];
+  });
+  const lay = (f: (n: number) => string) =>
+    anchors.map((l) => {
+      const t = f(l.v);
+      const w = width(t);
+      const x = horiz ? Math.min(l.ax, W - 2 - w) : Math.max(left + w / 2, Math.min(W - 2 - w / 2, l.ax));
+      const x0 = horiz ? x : x - w / 2;
+      return { ...l, t, x, x0, x1: x0 + w, y0: l.y - 10, y1: l.y + 2, moved: Math.abs(x - l.ax) > 0.5 };
+    });
+  type Placed = ReturnType<typeof lay>[number];
+  const hits = (a: Placed, b: Placed) => a.x0 < b.x1 + 3 && b.x0 < a.x1 + 3 && a.y0 < b.y1 && b.y0 < a.y1;
+  const clean = (ls: Placed[]) => ls.every((a, i) => (!horiz || !a.moved) && ls.every((b, j) => j <= i || !hits(a, b)));
+  let placed = lay(o.fmt);
+  if (!clean(placed)) {
+    placed = lay(o.axisFmt);
+    if (!clean(placed)) {
+      const kept: Placed[] = [];
+      for (const p of [...placed].sort((a, b) => Math.abs(b.v) - Math.abs(a.v))) if (kept.every((k) => !hits(k, p))) kept.push(p);
+      placed = placed.filter((p) => kept.includes(p));
     }
-    text(e, o.fmt(v.v));
+  }
+  keyed(labels, placed, (v) => `v:${v.key}`, "text", (e, v) => {
+    set(e, { x: v.x, y: v.y, "text-anchor": horiz ? "start" : "middle", class: "chart__value" });
+    text(e, v.t);
   });
 }
 
-export { arc, clip, el, keyed, layer, linear, monotone, paintSwatch, set, text, tip, width };
+export { arc, catLabel, chord, clip, el, fitText, keyed, layer, legendRows, linear, monotone, paintSwatch, set, text, tickLabel, tip, width };
 export type { Swatch };
 
 function size(svg: SVGSVGElement): [number, number] {

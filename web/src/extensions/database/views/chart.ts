@@ -6,7 +6,7 @@ import { type IconName, iconNode } from "../../../ui/icons";
 import { toast } from "../../../ui/toast";
 import type { DbCtx } from "../cells";
 import { openPanel } from "../panel";
-import { formatNumber } from "../props";
+import { formatCalc, formatNumber } from "../props";
 import type { ViewHost, ViewRenderer } from "../surface";
 import { groupable, propSelect, saveConfig } from "../toolbar";
 import { drawChart, exportChart } from "./chartdraw";
@@ -102,16 +102,24 @@ export function chartFormat(col: Collection, spec: ChartSpec): { fmt: (n: number
   const numeric = numberLike && NUMERIC.includes(spec.fn ?? "");
   let compact: Intl.NumberFormat;
   try {
-    compact = new Intl.NumberFormat(locale(), { notation: "compact", maximumFractionDigits: 1 });
+    compact = new Intl.NumberFormat(locale(), { notation: "compact", maximumSignificantDigits: 3 });
   } catch {
-    compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+    compact = new Intl.NumberFormat("en", { notation: "compact", maximumSignificantDigits: 3 });
   }
   const plain = (n: number) => (Number.isInteger(n) ? n.toLocaleString(locale()) : (Math.round(n * 100) / 100).toLocaleString(locale()));
   if (pct) {
     const f = (n: number) => `${Math.round(n * 1000) / 10}%`;
     return { fmt: f, axisFmt: f };
   }
-  if (numeric && p) return { fmt: (n) => formatNumber(n, p), axisFmt: (n) => (p.format && p.format !== "number" && p.format !== "comma" && Math.abs(n) < 1e4 ? formatNumber(n, { format: p.format, precision: 0 }) : compact.format(n)) };
+  if (numeric && p) {
+    const calc = spec.fn ?? "sum";
+    if (p.format === "percent") return { fmt: (n) => formatCalc(n, calc, p), axisFmt: (n) => formatNumber(n, { format: "percent" }) };
+    // One unit template per property ("$1", "1 EUR"), so every tick on an axis shares the same compact notation.
+    const unit = p.format && p.format !== "number" && p.format !== "comma" ? formatNumber(1, { format: p.format, precision: -1 }) : "";
+    const withUnit = unit.includes("1") && unit !== "1";
+    const axisFmt = (n: number) => (withUnit ? `${n < 0 ? "-" : ""}${unit.replace("1", compact.format(Math.abs(n)))}` : compact.format(n));
+    return { fmt: (n) => formatCalc(n, calc, p), axisFmt };
+  }
   return { fmt: plain, axisFmt: (n) => compact.format(n) };
 }
 

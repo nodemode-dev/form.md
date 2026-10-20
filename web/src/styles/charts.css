@@ -49,6 +49,12 @@
 .chart [data-pal="8"] { --oc: var(--c-pink); }
 .chart [data-pal="9"] { --oc: var(--c-violet); }
 
+/* Grey and default options: a mid slate that reads as a real series in both themes, not as disabled text. */
+.chart [data-color="default"],
+.chart [data-color="gray"] {
+  --oc: color-mix(in srgb, var(--text) 28%, #7a8699);
+}
+
 .chart__grid {
   stroke: var(--border);
   stroke-width: 1;
@@ -63,6 +69,15 @@
 .chart__tick {
   fill: var(--text-faint);
   font-size: 11px;
+}
+
+/* Legends that wrap past their row budget step their type down (chartdraw legendRows). */
+.chart__legend-item[data-fs="10"] .chart__tick {
+  font-size: 10px;
+}
+
+.chart__legend-item[data-fs="9"] .chart__tick {
+  font-size: 9px;
 }
 
 .chart__value {

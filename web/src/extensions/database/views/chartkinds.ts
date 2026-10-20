@@ -1,6 +1,6 @@
 import { locale } from "../../../engine/format";
 import type { ChartResult, ChartSpec } from "../../../engine/types";
-import { arc, clip, type DrawOpts, el, keyed, layer, linear, monotone, niceTicks, paintSwatch, type Swatch, set, text, tip, width } from "./chartdraw";
+import { arc, catLabel, chord, clip, type DrawOpts, fitText, keyed, layer, legendRows, linear, monotone, niceTicks, paintSwatch, type Swatch, set, text, tickLabel, tip, width } from "./chartdraw";
 
 export const EXTRA_KINDS: ReadonlySet<string> = new Set(["area", "radial", "gauge", "histogram", "dots", "compare", "heatmap", "calendar"]);
 
@@ -34,30 +34,14 @@ function centerText(f: Frame, lines: { t: string; size: number; cls: string }[],
   });
 }
 
-function legendRow(f: Frame, items: Swatch[], show: boolean): number {
-  if (!show || !items.length) {
-    clear(f.legend);
-    return 0;
-  }
-  let lx = 0;
-  const placed: (Swatch & { x: number })[] = [];
-  for (const s of items) {
-    const w = 18 + width(clip(s.label || "-", 160)) + 14;
-    if (lx + w > f.W - 8) break;
-    placed.push({ ...s, x: lx });
-    lx += w;
-  }
-  keyed(f.legend, placed, (s) => s.key || "#none", "g", (g, s) => {
-    set(g, { transform: `translate(${s.x + 4},8)`, class: "chart__legend-item" });
-    if (g.childElementCount !== 2) g.replaceChildren(el("rect"), el("text"));
-    const r = g.firstElementChild as SVGRectElement;
-    set(r, { x: 0, y: 1, width: 10, height: 10, rx: 2, class: s.key === "prev" ? "chart__swatch chart__swatch--prev" : "chart__swatch" });
-    paintSwatch(r, s);
-    const tx = g.lastElementChild as SVGTextElement;
-    set(tx, { x: 16, y: 10, class: "chart__tick" });
-    text(tx, clip(s.label || "-", 160));
-  });
-  return 26;
+function legendRow(f: Frame, items: (Swatch & { tail?: string })[], show: boolean): number {
+  return legendRows(f.legend, show ? items : [], f.W, f.H);
+}
+
+// A value for a legend or caption: the full format when it is short, else the compact axis format.
+function brief(o: DrawOpts, n: number): string {
+  const full = o.fmt(n);
+  return full.length <= 8 ? full : o.axisFmt(n);
 }
 
 interface Axes {
@@ -87,12 +71,12 @@ function cartesian(f: Frame, o: DrawOpts, xs: Point[], lo: number, hi: number, t
     const p = scale(t);
     set(e, { x1: left, x2: left + pw, y1: p, y2: p, class: t === 0 ? "chart__base" : "chart__grid" });
   });
-  const labelChars = Math.max(1, ...xs.map((x) => (x.label || "-").length));
+  const labelChars = Math.max(1, ...xs.map((x) => tickLabel(x.label || "-").length));
   const every = Math.max(1, Math.ceil((Math.min(labelChars, 14) * 6.6 + 10) / band));
   const cat = xs
     .map((x, i) => ({ x, i }))
     .filter(({ i }) => i % every === 0)
-    .map(({ x, i }) => ({ k: `c${x.key}`, t: clip(x.label || "-", band * every - 6), x: left + band * (i + 0.5), y: top + ph + 16, a: "middle" }));
+    .map(({ x, i }) => ({ k: `c${x.key}`, t: catLabel(x.label || "-", band * every - 6), x: left + band * (i + 0.5), y: top + ph + 16, a: "middle" }));
   const val = ticks.map((t) => ({ k: `v${t}`, t: o.axisFmt(t), x: left - 8, y: scale(t) + 4, a: "end" }));
   const alt = rightTicks ? rightTicks.ticks.map((t) => ({ k: `r${t}`, t: rightTicks.fmt(t), x: left + pw + 8, y: top + ph - (t / (rightTicks.ticks[rightTicks.ticks.length - 1] || 1)) * ph + 4, a: "start" })) : [];
   keyed(f.axis, [...val, ...cat, ...alt], (t) => t.k, "text", (e, t) => {
@@ -382,7 +366,7 @@ function radial(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts): void 
           : vals.reduce((a, b) => a + b, 0);
   const legendH = legendRow(
     f,
-    xs.map((x, i) => ({ key: x.key, label: `${x.label || "-"} · ${o.fmt(vals[i] ?? 0)}`, color: x.color, pal: i })),
+    xs.map((x, i) => ({ key: x.key, label: x.label || "-", tail: ` · ${brief(o, vals[i] ?? 0)}`, color: x.color, pal: i })),
     spec.legend !== false,
   );
   const top = legendH + 8;
@@ -405,9 +389,10 @@ function radial(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts): void 
     set(e, { x: cx - 6, y: cy - r.r + ring * 0.75, "text-anchor": "end", class: "chart__value" });
     text(e, clip(`${r.x.label || "-"} ${o.fmt(r.val)}`, cx - 12));
   });
-  keyed(f.center, [o.fmt(total), o.caption], (_, i) => String(i), "text", (e, t, i) => {
-    set(e, { x: cx, y: cy + (i ? 16 : -2) + R * 0.12, "text-anchor": "middle", class: i ? "chart__caption" : "chart__total", "font-size": i ? 12 : Math.max(14, Math.min(26, inner / 1.6)) });
-    text(e, clip(t, inner * 2.4, i ? 12 : 20));
+  const big = fitText([o.fmt(total), o.axisFmt(total)], () => inner * 2.4, Math.max(14, Math.min(26, inner / 1.6)), 13, 9);
+  keyed(f.center, [big.t, clip(o.caption, inner * 2.4, 12)], (_, i) => String(i), "text", (e, t, i) => {
+    set(e, { x: cx, y: cy + (i ? 16 : -2) + R * 0.12, "text-anchor": "middle", class: i ? "chart__caption" : "chart__total", "font-size": i ? 12 : big.size });
+    text(e, t);
   });
 }
 
@@ -435,11 +420,18 @@ function gauge(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts): void {
     set(e, { x: t.x, y: cy + 16, "text-anchor": "middle", class: "chart__tick" });
     text(e, t.t);
   });
+  // centerText puts the big value's cap line about 0.65 * (size + 12) - 0.25 * size above the block centre,
+  // which sits R * 0.28 above the hub; the value must fit the arc's inner chord at that height.
+  const ri = R - thick;
+  const room = ri * 1.7;
+  const big = fitText([o.fmt(value), o.axisFmt(value)], (s) => Math.min(room, chord(ri, R * 0.28 + 0.65 * (s + 12) - 0.25 * s) - 14), Math.min(40, Math.max(20, R / 3)), 16, 11);
+  const pct = target ? `${Math.round((value / target) * 100)}% of ` : "";
+  const cap = target ? (width(`${pct}${o.fmt(target)}`, 12) <= room ? `${pct}${o.fmt(target)}` : `${pct}${o.axisFmt(target)}`) : clip(o.caption, room, 12);
   centerText(
     f,
     [
-      { t: o.fmt(value), size: Math.max(12, Math.min(40, Math.max(20, R / 3), ((R - thick) * 1.7) / Math.max(1, o.fmt(value).length * 0.6))), cls: "chart__big" },
-      { t: target ? `${Math.round((value / target) * 100)}% of ${o.fmt(target)}` : o.caption, size: 12, cls: "chart__caption" },
+      { t: big.t, size: big.size, cls: "chart__big" },
+      { t: cap, size: 12, cls: "chart__caption" },
     ],
     cy - R * 0.28,
   );
@@ -479,12 +471,13 @@ function compare(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts, empty
   const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
   const sc = sum(cur);
   const sp = sum(prev);
-  const change = sp ? Math.round(((sc - sp) / Math.abs(sp)) * 1000) / 10 : null;
+  const raw = sp ? ((sc - sp) / Math.abs(sp)) * 100 : null;
+  const change = raw === null ? null : Math.abs(raw) >= 10 ? Math.round(raw) : Math.round(raw * 10) / 10;
   const legendH = legendRow(
     f,
     [
-      { key: "cur", label: `This period · ${o.fmt(sc)}${change === null ? "" : ` (${change > 0 ? "+" : ""}${change}%)`}`, pal: 0 },
-      { key: "prev", label: `Previous period · ${o.fmt(sp)}`, pal: 1 },
+      { key: "cur", label: "This period", tail: ` · ${brief(o, sc)}${change === null ? "" : ` (${change > 0 ? "+" : ""}${change}%)`}`, pal: 0 },
+      { key: "prev", label: "Previous", tail: ` · ${brief(o, sp)}`, pal: 1 },
     ],
     true,
   );
@@ -521,10 +514,10 @@ function matrix(f: Frame, res: ChartResult, spec: ChartSpec, o: DrawOpts): void 
       cells.push({ key: `${x.key}|${s.key}`, x: x.key, ...(s.key ? { s: s.key } : {}), px: left + xi * cw + 1, py: top + ri * ch + 1, w: cw - 2, h: ch - 2, v: val, tip: `${x.label || "-"}${s.label ? ` · ${s.label}` : ""}: ${o.fmt(val)}` });
     }),
   );
-  const every = Math.max(1, Math.ceil((Math.min(12, Math.max(1, ...xs.map((x) => (x.label || "-").length))) * 6.6 + 8) / cw));
+  const every = Math.max(1, Math.ceil((Math.min(12, Math.max(1, ...xs.map((x) => tickLabel(x.label || "-").length))) * 6.6 + 8) / cw));
   const gl: GridLabel[] = [
     ...rows.map((s, ri) => ({ k: `r${s.key}`, x: left - 6, y: top + ri * ch + ch / 2 + 4, t: clip(s.label || "-", left - 10), a: "end" as const })),
-    ...xs.filter((_, i) => i % every === 0).map((x) => ({ k: `c${x.key}`, x: left + xs.indexOf(x) * cw + cw / 2, y: top + rows.length * ch + 16, t: clip(x.label || "-", cw * every - 4), a: "middle" as const })),
+    ...xs.filter((_, i) => i % every === 0).map((x) => ({ k: `c${x.key}`, x: left + xs.indexOf(x) * cw + cw / 2, y: top + rows.length * ch + 16, t: catLabel(x.label || "-", cw * every - 4), a: "middle" as const })),
   ];
   paintCells(f, cells, gl, spec.scale, o.fmt, !!spec.labels);
 }
