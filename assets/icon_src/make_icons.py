@@ -1,4 +1,8 @@
-"""Build every form.md icon file from art1024.png.
+"""Build every form.md icon file from approved1024.png and art1024.png.
+
+approved1024.png is the icon the owner chose (v0.45.1): the white ".MD" in
+a white outline beside the pointer. Its artwork is kept pixel for pixel;
+only its outer edge is cut again.
 
 art1024.png is opaque: the owner's tile on the light page it was mocked up
 on, including a soft grey shadow at the lower right. The tile is cut out
@@ -21,6 +25,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 SRC = Path("assets/icon_src/art1024.png")
+APPROVED = Path("assets/icon_src/approved1024.png")  # the owner's chosen icon, v0.45.1
 N = 5.40  # superellipse exponent, fitted to the tile's outline
 A = 506.9  # half-width in px at 1024, 2 px inside the tile's dark edge
 SS = 4  # supersampling for the edge
@@ -37,9 +42,16 @@ def tile_mask(size: int = 1024) -> Image.Image:
 
 
 def cut_tile() -> Image.Image:
+    # The approved icon (white ".MD" in a white outline, the crisp pointer)
+    # supplies every pixel it holds opaque; art1024 fills only the few edge
+    # pixels where the approved file was transparent or part of its old rim.
+    approved = np.array(Image.open(APPROVED).convert("RGBA")).astype(np.float64)
     art = Image.open(SRC).convert("RGB")
     mask = tile_mask(art.width)
     rgb = np.array(art).astype(np.float64)
+    keep = approved[..., 3] == 255
+    keep &= np.array(Image.fromarray(keep.astype(np.uint8) * 255).filter(ImageFilter.MinFilter(9))) == 255
+    rgb[keep] = approved[..., :3][keep]
     m = np.array(mask) > 0
     # Edge colour: mean of the opaque pixels in the outer 6 px of the tile.
     inner = np.array(mask.filter(ImageFilter.MinFilter(13))) == 255

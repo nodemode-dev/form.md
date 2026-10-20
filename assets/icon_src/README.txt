@@ -13,3 +13,10 @@ script cuts the tile with a superellipse (n 5.4, half-width 506.9 px)
 fitted 2 px inside the tile's dark edge, drawn at 4x for a smooth edge,
 fills the transparent pixels with the tile's edge colour and resizes with
 premultiplied alpha, so no light pixel reaches any size.
+
+Since v0.45.3 the artwork comes from approved1024.png, the icon the owner
+chose in v0.45.1 (the white ".MD" in a white outline beside the pointer).
+art1024.png still carries the earlier tag, a white pill with dark text, and
+v0.45.2 was wrongly built from it alone. Every pixel approved1024.png holds
+opaque, 4 px in from its old edge, is kept exactly; art1024.png only fills
+the outer few pixels the new cut reaches.
