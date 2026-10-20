@@ -1,6 +1,6 @@
 [package]
 name = "form-md-desktop"
-version = "0.42.1"
+version = "0.43.0"
 description = "form.md desktop app"
 authors = ["nodemode-ai"]
 license = "Apache-2.0"

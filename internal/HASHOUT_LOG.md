@@ -2,8 +2,8 @@
 
 Living log of all comment content, explainers, rationale, TODOs and removed code for the Go side of the repo (`cmd/`, `embed.go`, `internal/`, `tools/`). Source files stay comment-free per dev-rules `hashout-log`; everything they would have said lives here, indexed. Read this first, then edit code surgically. Paths are relative to the repo root.
 
-Current build version: v0.42.1
-Last updated: 2026-10-20 · v0.42.1: the notices tool finds the Go licence outside GOROOT; v0.42.0: Claude Code launched like formlit's, chat events for every window, form-md mcp autostart, the sparkle retired; v0.41.0: import sources by file format, PDF text in search, webhook page records, the web as an answer source, published boards and galleries, the grouped-offset fix; Phase 14: terminals, Claude Code and its chat, window commands, form-md cli, 26 languages
+Current build version: v0.43.0
+Last updated: 2026-10-20 · v0.43.0: desktop mode (FORMMD_DESKTOP_KEY, /desktop/enter, stdin stop, port fallback), desktop notices; v0.42.1: the notices tool finds the Go licence outside GOROOT; v0.42.0: Claude Code launched like formlit's, chat events for every window, form-md mcp autostart, the sparkle retired; v0.41.0: import sources by file format, PDF text in search, webhook page records, the web as an answer source, published boards and galleries, the grouped-offset fix; Phase 14: terminals, Claude Code and its chat, window commands, form-md cli, 26 languages
 
 ---
 
