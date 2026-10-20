@@ -117,7 +117,10 @@ export function mountHome(engine: Engine): void {
     );
   };
 
-  const categoryName = (id: string) => catalog?.categories.find((c) => c.id === id)?.name ?? "";
+  const categoryName = (id: string) => {
+    const name = catalog?.categories.find((c) => c.id === id)?.name ?? "";
+    return name ? t(name) : "";
+  };
   const previews = new IntersectionObserver(
     (entries) => {
       for (const en of entries) {
@@ -153,7 +156,7 @@ export function mountHome(engine: Engine): void {
       () => h("button", { class: "home-chip", attrs: { type: "button" } }, h("span", { class: "home-chip__name" }), h("span", { class: "home-chip__count" })),
       (el, c) => {
         el.dataset.cat = c.id;
-        setText(el.firstElementChild as HTMLElement, c.name);
+        setText(el.firstElementChild as HTMLElement, c.id ? t(c.name) : c.name);
         setText(el.lastElementChild as HTMLElement, String(c.count));
         setAttr(el, "aria-pressed", c.id === category ? "true" : "false");
       },
