@@ -127,6 +127,8 @@ async function start(): Promise<void> {
   register(harness);
   register(writing);
   activateAll(engine);
+  const commands = engine.commands;
+  (window as unknown as { __formmdRun?: (id: string) => boolean }).__formmdRun = (id: string) => commands.run(id);
   if (auth === "form" || boot.collection || boot.row || document.querySelector("[data-ref='doc-body'] .dbblock")) await loadDatabase().catch(() => undefined);
   mountUI(engine);
   if (auth === "form") {
