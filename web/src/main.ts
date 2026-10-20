@@ -147,6 +147,7 @@ async function start(): Promise<void> {
     mountSession(engine);
     mountTree(engine);
     mountTopbar(engine);
+    void import("./ui/shell-extras").then((m) => m.mountShellExtras(live), live.reportError);
     mountPageView(engine);
     mountCommentsPane(engine);
     mountInboxView(engine);

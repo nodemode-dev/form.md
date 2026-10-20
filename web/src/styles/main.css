@@ -25,4 +25,8 @@
 @import "./writing.css";
 @import "./annotate.css";
 @import "./board.css";
+@import "./home.css";
+@import "./templates.css";
+@import "./finder.css";
+@import "./prefs.css";
 @import "./auth.css";

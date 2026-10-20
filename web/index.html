@@ -9,7 +9,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#08080a" />
-    <script>(function(){var d=document.documentElement,p="auto";try{var s=localStorage.getItem("formmd.theme");if(s==="light"||s==="dark"||s==="auto")p=s;if(localStorage.getItem("formmd.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed");if(localStorage.getItem("formmd.focus")==="1")d.setAttribute("data-focus","");if(localStorage.getItem("formmd.typewriterOff")==="1")d.setAttribute("data-typewriter-off","");var h=history.state,n=h&&h.tabs&&h.tabs.length,m=/^\/p\/([^/]+)\/?$/.exec(location.pathname);if(!n){var l=JSON.parse(localStorage.getItem("formmd.tabs")||"[]");n=Array.isArray(l)?l.length+(m&&l.indexOf(m[1])<0?1:0):0}if(n>1)d.setAttribute("data-tabbar","open")}catch(e){}var t=p==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):p;d.setAttribute("data-theme",t);d.setAttribute("data-theme-pref",p)})()</script>
+    <script>(function(){var d=document.documentElement,p="auto",L={},c="auto",S,m;try{var s=localStorage.getItem("formmd.theme");if(s==="light"||s==="dark"||s==="auto")p=s;if(localStorage.getItem("formmd.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed");if(localStorage.getItem("formmd.focus")==="1")d.setAttribute("data-focus","");if(localStorage.getItem("formmd.typewriterOff")==="1")d.setAttribute("data-typewriter-off","");var h=history.state,n=h&&h.tabs&&h.tabs.length,m=/^\/p\/([^/]+)\/?$/.exec(location.pathname);if(!n){var l=JSON.parse(localStorage.getItem("formmd.tabs")||"[]");n=Array.isArray(l)?l.length+(m&&l.indexOf(m[1])<0?1:0):0}if(n>1)d.setAttribute("data-tabbar","open")}catch(e){}try{L=JSON.parse(localStorage.getItem("formmd.look")||"{}")||{}}catch(e){}try{S=JSON.parse(d.getAttribute("data-look")||"null");if(S&&S.at>(L.at||0)){L=S;if(S.mode==="light"||S.mode==="dark"||S.mode==="auto")p=S.mode}}catch(e){}var t=p==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):p;d.setAttribute("data-theme",t);d.setAttribute("data-theme-pref",p);try{var w=/^[a-z]{2,12}$/;d.setAttribute("data-dark-theme",w.test(L.dark||"")?L.dark:"dark");d.setAttribute("data-light-theme",w.test(L.light||"")?L.light:"light");d.setAttribute("data-density",L.density==="compact"||L.density==="comfortable"?L.density:"standard");if(L.contrast==="high"||L.contrast==="standard")c=L.contrast;d.setAttribute("data-contrast-pref",c);if(c==="high"||c==="auto"&&matchMedia("(prefers-contrast: more)").matches)d.setAttribute("data-contrast","high");if(/^#[0-9a-f]{6}$/.test(L.accent)){var k=parseInt(L.accent.slice(1),16);d.style.setProperty("--accent-pick",L.accent);d.setAttribute("data-accent",.2126*(k>>16)+.7152*(k>>8&255)+.0722*(k&255)>132?"light":"dark")}m=document.querySelector('meta[name="theme-color"]');if(m&&t==="light")m.content="#f3f1ed"}catch(e){}})()</script>
     <link rel="preload" href="/src/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/src/styles/main.css" />
     <script type="module" src="/src/main.ts"></script>
@@ -17,7 +17,7 @@
   </head>
   <body>
     <script type="application/json" id="boot">null</script>
-    <script>(function(){try{var b=JSON.parse(document.getElementById("boot").textContent||"null"),p=b&&b.pages;document.documentElement.setAttribute("data-home",p&&p.length?"back":"new");if(b&&b.me&&b.me.user&&b.me.user.role==="owner")document.documentElement.setAttribute("data-owner","");if(localStorage.getItem("fm.dev")==="1")document.documentElement.setAttribute("data-dev","")}catch(e){}})()</script>
+    <script>(function(){var d=document.documentElement,h=new Date().getHours();d.setAttribute("data-daypart",h<12?"morning":h<18?"afternoon":"evening");try{var b=JSON.parse(document.getElementById("boot").textContent||"null"),p=b&&b.pages;d.setAttribute("data-home",p&&p.length?"back":"new");if(b&&b.me&&b.me.user&&b.me.user.role==="owner")d.setAttribute("data-owner","");if(b&&b.me&&b.me.instance&&b.me.instance.desktop)d.setAttribute("data-desktop","");if(localStorage.getItem("fm.dev")==="1")d.setAttribute("data-dev","");var w=parseInt(localStorage.getItem("formmd.sidebarWidth")||"",10);if(w>=220&&w<=480)d.style.setProperty("--sidebar-w",w+"px")}catch(e){}})()</script>
     <div id="app" class="app">
       <aside class="sidebar" id="sidebar" aria-label="Sidebar">
         <div class="sidebar__inner">
@@ -27,33 +27,55 @@
               <span class="ws-switch__name" data-ref="ws-name"><!--slot:ws-name--></span>
               <i data-icon="chevron-down" class="ws-switch__chev"></i>
             </button>
+            <span class="sidebar__version" data-ref="version"><span class="live-dot" data-ref="live-dot" aria-hidden="true"></span><span class="sidebar__version-text" data-ref="version-text"><!--slot:version--></span></span>
             <div class="sidebar__head-actions">
-              <button class="icon-btn" type="button" data-command="search.open" data-tip="Search" aria-label="Search">
-                <i data-icon="search"></i>
+              <button class="icon-btn sidebar__collapse" type="button" data-command="shell.toggleSidebar" data-tip="Hide sidebar" aria-label="Hide sidebar">
+                <i data-icon="chevrons-left"></i>
               </button>
-              <button class="icon-btn" type="button" data-command="library.open" data-tip="Library" aria-label="Library">
-                <i data-icon="library"></i>
+              <button class="icon-btn sidebar__inbox" type="button" data-ref="sb-inbox" data-tip="Inbox" aria-label="Inbox">
+                <i data-icon="inbox"></i><span class="sidebar__badge" data-ref="sb-inbox-count"></span>
               </button>
-              <button class="icon-btn" type="button" data-command="shell.toggleSidebar" data-tip="Hide sidebar" aria-label="Hide sidebar">
-                <i data-icon="panel-left"></i>
+              <button class="icon-btn" type="button" data-ref="sb-new" aria-haspopup="menu" aria-expanded="false" data-tip="New" aria-label="New">
+                <i data-icon="compose"></i>
               </button>
             </div>
           </header>
+          <div class="sidebar__top">
+            <button class="sb-item" type="button" data-command="search.open">
+              <span class="sb-icon"><i data-icon="search"></i></span><span class="sb-label">Search</span><span class="sb-keys" data-ref="sb-search-keys"></span>
+            </button>
+            <a class="sb-item" href="/" data-ref="sb-home" data-route-link="home">
+              <span class="sb-icon"><i data-icon="home"></i></span><span class="sb-label">Home</span>
+            </a>
+            <a class="sb-item" href="/library" data-ref="sb-library" data-route-link="library">
+              <span class="sb-icon"><i data-icon="library"></i></span><span class="sb-label">Library</span>
+            </a>
+          </div>
           <nav class="sidebar__nav" data-ref="nav" aria-label="Pages"></nav>
           <footer class="sidebar__foot">
+            <button class="sb-item" type="button" data-ref="sb-templates">
+              <span class="sb-icon"><i data-icon="gallery"></i></span><span class="sb-label">Templates</span>
+            </button>
+            <button class="sb-item" type="button" data-ref="sb-import">
+              <span class="sb-icon"><i data-icon="upload"></i></span><span class="sb-label">Import</span>
+            </button>
+            <a class="sb-item" href="/trash" data-ref="sb-trash" data-route-link="trash">
+              <span class="sb-icon"><i data-icon="trash"></i></span><span class="sb-label">Trash</span>
+            </a>
+            <button class="sb-item" type="button" data-ref="sb-settings">
+              <span class="sb-icon"><i data-icon="settings"></i></span><span class="sb-label">Settings</span>
+            </button>
+            <button class="sb-item" type="button" data-command="shell.showShortcuts">
+              <span class="sb-icon"><i data-icon="help"></i></span><span class="sb-label">Help</span>
+            </button>
             <button class="user-chip" type="button" data-ref="user-chip" aria-haspopup="menu" aria-expanded="false">
               <span class="avatar" data-color="<!--slot:user-color-->" data-kind="<!--slot:user-kind-->" data-ref="user-avatar"><!--slot:user-initials--></span>
               <span class="user-chip__name" data-ref="user-name"><!--slot:user-name--></span>
               <i data-icon="more" class="user-chip__more"></i>
             </button>
-            <div class="segmented" role="group" aria-label="Theme">
-              <button type="button" class="segmented__btn" data-theme-choice="light" aria-pressed="false" data-tip="Light theme" aria-label="Light theme"><i data-icon="sun"></i></button>
-              <button type="button" class="segmented__btn" data-theme-choice="auto" aria-pressed="false" data-tip="Match system theme" aria-label="Match system theme"><i data-icon="monitor"></i></button>
-              <button type="button" class="segmented__btn" data-theme-choice="dark" aria-pressed="true" data-tip="Dark theme" aria-label="Dark theme"><i data-icon="moon"></i></button>
-            </div>
-            <span class="sidebar__version" data-ref="version"><span class="live-dot" data-ref="live-dot" aria-hidden="true"></span><span data-ref="version-text"><!--slot:version--></span></span>
           </footer>
         </div>
+        <div class="sidebar__resize" data-ref="sb-resize" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" aria-valuemin="220" aria-valuemax="480" tabindex="0"></div>
       </aside>
       <div class="drawer-scrim" aria-hidden="true"></div>
       <main class="sheet" id="sheet">
@@ -61,9 +83,15 @@
           <button class="icon-btn topbar__menu" type="button" data-command="shell.toggleSidebar" data-tip="Show sidebar" aria-label="Show sidebar">
             <i data-icon="panel-left"></i>
           </button>
+          <span class="topbar__nav">
+            <button class="icon-btn" type="button" data-command="nav.back" data-ref="nav-back" data-tip="Back" aria-label="Back" disabled><i data-icon="arrow-left"></i></button>
+            <button class="icon-btn" type="button" data-command="nav.forward" data-ref="nav-forward" data-tip="Forward" aria-label="Forward" disabled><i data-icon="arrow-right"></i></button>
+          </span>
           <nav class="crumbs" data-ref="crumbs" aria-label="Breadcrumb"></nav>
           <div class="topbar__actions">
             <span class="topbar__page-actions" data-ref="page-actions">
+              <span class="topbar__edited" data-ref="act-edited"></span>
+              <span class="topbar__presence" data-ref="act-presence"></span>
               <button class="btn btn--ghost topbar__mode" type="button" data-ref="act-mode" aria-haspopup="menu" aria-expanded="false" hidden></button>
               <button class="btn btn--ghost topbar__share" type="button" data-ref="act-share">Share</button>
               <button class="icon-btn" type="button" data-ref="act-visibility" aria-label="Visibility"><i data-icon="users"></i></button>
@@ -75,9 +103,6 @@
             <button class="icon-btn topbar__claude" type="button" data-command="dock.toggle" data-tip="Claude Code" aria-label="Claude Code"><i data-icon="agent"></i></button>
             <button class="icon-btn topbar__dev topbar__devonly" type="button" data-command="dock.toggle" data-tip="Terminal" aria-label="Terminal"><i data-icon="terminal"></i></button>
             <button class="icon-btn topbar__sync topbar__dev topbar__devonly" type="button" data-command="shell.sync" data-tip="Sync now" aria-label="Sync now"><i data-icon="refresh"></i></button>
-            <button class="icon-btn topbar__dev" type="button" data-command="shell.showShortcuts" data-tip="Keyboard shortcuts" aria-label="Keyboard shortcuts">
-              <i data-icon="keyboard"></i>
-            </button>
           </div>
         </header>
         <div class="tabbar" data-ref="tabbar" role="tablist" aria-label="Open pages"></div>
@@ -87,22 +112,68 @@
           <section class="view view--library" data-view="library" data-ref="view-library" aria-label="Library"></section>
           <section class="view view--trash" data-view="trash" data-ref="view-trash" aria-label="Trash"></section>
           <section class="view view--inbox" data-view="inbox" data-ref="view-inbox" aria-label="Inbox"></section>
-          <article class="view doc" data-view="home" data-ref="view-home">
-            <p class="doc__eyebrow" data-ref="home-eyebrow"><!--slot:ws-name--></p>
-            <h1 class="doc__title"><span data-when="new">Start your first page</span><span data-when="back">Welcome back</span></h1>
-            <p class="doc__lead" data-when="new">Write notes, plan a project or keep a table of things. Begin with a blank page, pick a template, or bring in what you already have.</p>
-            <div class="doc__actions">
-              <button class="btn btn--primary" type="button" data-command="page.new" data-ref="home-new"><i data-icon="plus"></i><span>New page</span></button>
-              <button class="btn" type="button" data-when="new" data-ref="home-templates"><i data-icon="gallery"></i><span>Start from a template</span></button>
-              <button class="btn" type="button" data-when="new" data-ref="home-import"><i data-icon="upload"></i><span>Import a file</span></button>
+          <section class="view view--home" data-view="home" data-ref="view-home" aria-labelledby="home-title">
+            <div class="home">
+              <header class="home__head">
+                <div class="home__heading">
+                  <p class="home__eyebrow" data-ref="home-eyebrow"><!--slot:ws-name--></p>
+                  <h1 class="home__title" id="home-title"><span data-daypart="morning">Good morning</span><span data-daypart="afternoon">Good afternoon</span><span data-daypart="evening">Good evening</span></h1>
+                  <p class="home__lead" data-when="new">Write notes, plan a project or keep a table of things. Begin with a blank page, pick a template, or bring in what you already have.</p>
+                </div>
+                <button class="btn btn--primary home__new" type="button" data-command="page.new" data-ref="home-new"><i data-icon="plus"></i><span>New page</span></button>
+              </header>
+              <div class="home-drop" data-ref="home-material">
+                <span class="home-drop__icon"><i data-icon="upload"></i></span>
+                <div class="home-drop__text">
+                  <p class="home-drop__title">Start from your material</p>
+                  <p class="home-drop__sub">Drop notes, documents, spreadsheets or a whole export here. Each file becomes a page or a database you can keep editing.</p>
+                  <p class="home-drop__formats"><span>MD</span><span>CSV</span><span>HTML</span><span>PDF</span><span>DOCX</span><span>XLSX</span><span>ZIP</span><span>ENEX</span><span>OPML</span><span>JSON</span><span>TXT</span></p>
+                </div>
+                <div class="home-drop__actions">
+                  <button class="btn" type="button" data-ref="home-choose"><i data-icon="upload"></i><span>Choose files</span></button>
+                  <button class="btn btn--ghost" type="button" data-ref="home-paste"><i data-icon="text"></i><span>Paste text</span></button>
+                </div>
+              </div>
+              <section class="home-sec" data-when="back" aria-labelledby="home-recent-title">
+                <div class="home-sec__head">
+                  <h2 class="home-sec__title" id="home-recent-title">Recently visited</h2>
+                  <button class="btn btn--ghost home-sec__more" type="button" data-ref="home-see-all">See all</button>
+                </div>
+                <div class="home-grid home-grid--row" data-ref="home-recent">
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                </div>
+              </section>
+              <section class="home-sec" data-ref="home-tpl-sec" aria-labelledby="home-tpl-title">
+                <div class="home-sec__head">
+                  <h2 class="home-sec__title" id="home-tpl-title">Templates</h2>
+                  <div class="home-chips" data-ref="home-chips" role="group" aria-label="Template categories"></div>
+                  <label class="home-search"><i data-icon="search"></i><input type="search" data-ref="home-tpl-search" placeholder="Search templates" aria-label="Search templates" autocomplete="off" /></label>
+                </div>
+                <div class="home-grid" data-ref="home-tpl-grid">
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                </div>
+                <p class="home-empty" data-ref="home-tpl-empty" hidden>No template matches. Try another word or category.</p>
+                <div class="home-sec__foot"><button class="btn btn--ghost" type="button" data-ref="home-templates"><i data-icon="gallery"></i><span>Browse all templates</span></button></div>
+              </section>
+              <p class="home-offline" data-ref="home-offline" role="status" hidden>You are offline. Pages saved on this device stay open and sync when you are back online.</p>
             </div>
-            <section class="home-recent" data-when="back" aria-labelledby="home-recent-title">
-              <h2 class="home-recent__title" id="home-recent-title">Recent pages</h2>
-              <ul class="home-recent__list" data-ref="home-recent" role="list"></ul>
-            </section>
-            <p class="home-offline" data-ref="home-offline" role="status" hidden>You are offline. Pages saved on this device stay open and sync when you are back online.</p>
-          </article>
+          </section>
         </div>
+        <button class="help-fab" type="button" data-ref="help-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Help" data-tip="Help" data-tip-side="left"><span aria-hidden="true">?</span></button>
       </main>
     </div>
     <main id="auth" class="auth">

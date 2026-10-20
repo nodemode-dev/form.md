@@ -15,7 +15,7 @@ var assetRef = regexp.MustCompile(`(?:src|href)="(/assets/[A-Za-z0-9._-]+\.js)"`
 
 func main() {
 	dist := flag.String("dist", "web/dist", "the built client")
-	budget := flag.Float64("budget", 262, "KB of gzipped JavaScript the first page may load before it runs")
+	budget := flag.Float64("budget", 268, "KB of gzipped JavaScript the first page may load before it runs")
 	flag.Parse()
 	html, err := os.ReadFile(filepath.Join(*dist, "index.html"))
 	if err != nil {

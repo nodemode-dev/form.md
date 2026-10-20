@@ -114,36 +114,13 @@ export function mountTree(engine: Engine): void {
   const noteChips = h("div", { class: "notes-filters" });
   const noteList = h("ul", { class: "notes-list", attrs: { role: "list" } });
   const noteEmpty = h("p", { class: "sb-empty" });
-  const inboxCount = h("span", { class: "sb-count sb-count--badge" });
-  const inboxRow = h(
-    "a",
-    { class: "sb-trash sb-inbox", attrs: { href: "/inbox" } },
-    h("span", { class: "sb-icon" }, iconNode("inbox")),
-    h("span", { class: "sb-label", text: t("Inbox") }),
-    inboxCount,
-  );
-  const templatesRow = h(
-    "button",
-    { class: "sb-trash sb-templates", attrs: { type: "button" } },
-    h("span", { class: "sb-icon" }, iconNode("gallery")),
-    h("span", { class: "sb-label", text: t("Templates") }),
-  );
+  const inboxCount = ref("sb-inbox-count");
+  const inboxRow = ref<HTMLButtonElement>("sb-inbox");
+  const templatesRow = ref<HTMLButtonElement>("sb-templates");
   templatesRow.addEventListener("click", () => void import("./templates-dialog").then((m) => m.openTemplates(engine), engine.reportError));
-  const importRow = h(
-    "button",
-    { class: "sb-trash sb-templates", attrs: { type: "button" } },
-    h("span", { class: "sb-icon" }, iconNode("upload")),
-    h("span", { class: "sb-label", text: t("Import") }),
-  );
+  const importRow = ref<HTMLButtonElement>("sb-import");
   importRow.addEventListener("click", () => void import("./transfer-dialog").then((m) => m.openImport(engine, { workspaceId: engine.state.get("workspaceId") }), engine.reportError));
-  const trashCount = h("span", { class: "sb-count" });
-  const trashRow = h(
-    "a",
-    { class: "sb-trash", attrs: { href: "/trash" } },
-    h("span", { class: "sb-icon" }, iconNode("trash")),
-    h("span", { class: "sb-label", text: t("Trash") }),
-    trashCount,
-  );
+  const trashRow = ref<HTMLAnchorElement>("sb-trash");
   favs.body.append(favList);
   tags.body.append(cloud);
   tree.body.append(root, empty);
@@ -152,7 +129,7 @@ export function mountTree(engine: Engine): void {
   notes.body.append(noteChips, noteList, noteEmpty);
   const indicator = h("div", { class: "drop-indicator", attrs: { "aria-hidden": "true" } });
   indicator.hidden = true;
-  nav.append(inboxRow, favs.el, tags.el, filter, notes.el, teams.el, tree.el, shared.el, dbs.el, templatesRow, importRow, trashRow, indicator);
+  nav.append(favs.el, filter, notes.el, teams.el, shared.el, tree.el, dbs.el, tags.el, indicator);
 
   const nodes = new Map<string, HTMLLIElement>();
   const teamNodes = new Map<string, HTMLLIElement>();
@@ -544,6 +521,7 @@ export function mountTree(engine: Engine): void {
     if (tree.add) tree.add.hidden = !w;
     if (notes.add) notes.add.hidden = !w;
     importRow.hidden = !w;
+    setText(tree.el.querySelector(".sb-label") as HTMLElement, engine.workspaceById(ws)?.personal ? t("Private") : t("Pages"));
   };
 
   const paintTrash = () => {
@@ -880,7 +858,7 @@ export function mountTree(engine: Engine): void {
     id: string;
     from: "tree" | "fav";
     ghost: HTMLElement;
-    target: { el: HTMLElement; zone: Zone; kind: "tree" | "fav" } | null;
+    target: { el: HTMLElement; zone: Zone; kind: "tree" | "fav" | "trash" } | null;
     hover: ReturnType<typeof setTimeout> | undefined;
     hoverId: string;
     scroll: number;
@@ -891,6 +869,7 @@ export function mountTree(engine: Engine): void {
   const clearIndicator = () => {
     indicator.hidden = true;
     for (const el of nav.querySelectorAll("[data-drop]")) el.removeAttribute("data-drop");
+    trashRow.removeAttribute("data-drop");
   };
 
   const showIndicator = (el: HTMLElement, zone: Zone) => {
@@ -912,6 +891,7 @@ export function mountTree(engine: Engine): void {
   const resolveTarget = (x: number, y: number) => {
     if (!drag) return null;
     const under = document.elementFromPoint(x, y) as HTMLElement | null;
+    if (under && drag.from === "tree" && trashRow.contains(under)) return { el: trashRow, zone: "inside" as Zone, kind: "trash" as const };
     if (!under || !nav.contains(under)) return null;
     const treeRow = under.closest<HTMLElement>(".tree-row");
     const favRow = under.closest<HTMLElement>('.flat-row[data-kind="fav"]');
@@ -943,8 +923,8 @@ export function mountTree(engine: Engine): void {
     const box = nav.getBoundingClientRect();
     const edge = 36;
     let v = 0;
-    if (drag.y < box.top + edge) v = -Math.ceil((box.top + edge - drag.y) / 4);
-    else if (drag.y > box.bottom - edge) v = Math.ceil((drag.y - (box.bottom - edge)) / 4);
+    if (drag.y < box.top + edge && drag.y >= box.top) v = -Math.ceil((box.top + edge - drag.y) / 4);
+    else if (drag.y > box.bottom - edge && drag.y <= box.bottom) v = Math.ceil((drag.y - (box.bottom - edge)) / 4);
     if (v) {
       nav.scrollTop += v;
       updateDrag(drag.x, drag.y);
@@ -987,6 +967,10 @@ export function mountTree(engine: Engine): void {
     if (!commit || !d.target) return;
     const { el, zone, kind } = d.target;
     const targetId = el.dataset.id ?? "";
+    if (kind === "trash") {
+      void trashWithUndo(d.id);
+      return;
+    }
     if (kind === "fav") {
       const favIds = pages.favorites().map((p) => p.id).filter((x) => x !== d.id);
       const at = favIds.indexOf(targetId);

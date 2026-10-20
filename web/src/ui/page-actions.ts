@@ -2,7 +2,6 @@ import type { Engine, Page } from "../engine";
 import { t } from "../engine/i18n";
 import { errorMessage } from "./errors";
 import { copyText } from "./form";
-import { openAnalytics } from "./analytics-dialog";
 import type { MenuEntry } from "./menu";
 import { tile } from "./avatar";
 import { offlineIds } from "./offline-list";
@@ -115,7 +114,7 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
   }
   entries.push({ kind: "separator" });
   if (engine.can(id, "view") && p.kind === "doc") entries.push({ label: t("Page history"), icon: "clock", run: () => openHistory(engine, id) });
-  if (engine.can(id, "edit")) entries.push({ label: t("Analytics"), icon: "chart", run: () => void openAnalytics(engine, id) });
+  if (engine.can(id, "edit")) entries.push({ label: t("Analytics"), icon: "chart", run: () => void import("./analytics-dialog").then((m) => m.openAnalytics(engine, id), engine.reportError) });
   if (engine.can(id, "view")) entries.push({ label: t("Export"), icon: "download", run: () => void import("./transfer-dialog").then((m) => m.openExport(engine, { pageId: id }), engine.reportError) });
   if (engine.can(id, "view") && !p.row && "serviceWorker" in navigator) {
     entries.push({ label: t("Available offline"), icon: "offline", checked: offlineIds(engine).includes(id), run: () => void import("./offline").then((m) => m.toggleOffline(engine, id), engine.reportError) });

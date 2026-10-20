@@ -12,7 +12,7 @@ import { type Health, HealthMonitor, initialHealth } from "./health";
 import { Keymap } from "./keymap";
 import { Live, type LiveStatus } from "./live";
 import { PageStore } from "./pages";
-import { type KeyValueStore, PREF_KEYS, readSidebar, readThemePref, type SidebarMode, type ThemePref } from "./prefs";
+import { type KeyValueStore, PREF_KEYS, readSidebar, readThemePref, type SidebarMode, startOnHome, type ThemePref } from "./prefs";
 import { closeTab, cycleTab, moveTab, type NavState, openNewTab, openTab, parseRoute, type Route, routePath, sameRoute } from "./router";
 import { State } from "./state";
 
@@ -202,7 +202,9 @@ export function createEngine(deps: EngineDeps): Engine {
   const refreshMe = async () => setMe(await api.me.get());
 
   const lastPageKey = (ws: string) => `formmd.last.${ws}`;
-  const commit = (next: NavState, replace = false) => {
+  const bootDesktop = (deps.boot.me?.instance as { desktop?: boolean } | undefined)?.desktop === true;
+  let autoLand = startRoute.name === "home" && !(bootDesktop && startOnHome(deps.storage));
+  const commit =(next: NavState, replace = false) => {
     const prev = state.get("route");
     const snapshot: NavState = { tabs: next.tabs, route: next.route };
     const url = routePath(next.route);
@@ -215,11 +217,12 @@ export function createEngine(deps: EngineDeps): Engine {
 
   const landing = () => {
     const ws = state.get("workspaceId");
-    if (state.get("route").name !== "home" || !ws || !pages.isLoaded(ws)) return;
+    if (!autoLand || state.get("route").name !== "home" || !ws || !pages.isLoaded(ws)) return;
     const live = (id: string | null) => (id ? pages.get(id) : undefined);
     const remembered = live(deps.storage.get(lastPageKey(ws)));
     const fromTab = state.get("tabs").map((id) => pages.get(id)).find((p) => p?.workspace_id === ws);
     const target = (remembered?.workspace_id === ws ? remembered : undefined) ?? fromTab ?? pages.children(ws, "")[0];
+    autoLand = false;
     if (target) commit(openTab(nav(), target.id), true);
   };
 
@@ -261,6 +264,7 @@ export function createEngine(deps: EngineDeps): Engine {
 
   state.watch("workspaceId", (ws) => {
     if (!ws) return;
+    autoLand = true;
     state.set("tagFilter", "");
     void pages.load(ws).then(landing, reportError);
     void pages.loadTags(ws).catch(reportError);
@@ -353,6 +357,7 @@ export function createEngine(deps: EngineDeps): Engine {
   });
 
   const openPage = (id: string, options: OpenOptions = {}) => {
+    autoLand = false;
     if (state.get("drawer")) state.set("drawer", false);
     commit(options.newTab ? openNewTab(nav(), id) : openTab(nav(), id), options.replace ?? false);
   };
@@ -402,6 +407,7 @@ export function createEngine(deps: EngineDeps): Engine {
       state.set("overlay", overlay);
     },
     navigate(route, options = {}) {
+      autoLand = false;
       if (route.name === "page") return openPage(route.id, options);
       if (state.get("drawer")) state.set("drawer", false);
       commit({ tabs: state.get("tabs"), route }, options.replace ?? false);
@@ -420,6 +426,7 @@ export function createEngine(deps: EngineDeps): Engine {
       commit(moveTab(nav(), id, before), true);
     },
     restoreNav(raw) {
+      autoLand = false;
       const here = deps.platform.location();
       const route = parseRoute(here.path, here.search);
       if (isNavState(raw)) {
