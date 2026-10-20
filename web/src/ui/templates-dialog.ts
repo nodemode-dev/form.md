@@ -1,5 +1,5 @@
 import type { Engine } from "../engine";
-import { formatRelative } from "../engine/format";
+import { formatRelative, searchFold } from "../engine/format";
 import { plural, t } from "../engine/i18n";
 import type { Page } from "../engine/types";
 import { TYPE_INFO, VIEW_INFO } from "../extensions/database/props";
@@ -311,7 +311,7 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
         const card = cardShell(box, pageIcon(s.icon, s.kind === "database" ? "table" : "page", "tplcard__icon"), h("span", { class: "tplcard__label", text: s.name }), h("span", { class: "tplcard__meta", text: starterMeta(s) }));
         if (s.featured) card.append(h("span", { class: "tplcard__flag", text: t("Featured") }));
         lazy?.observe(box);
-        const it: Item = { starter: s, card, text: [s.name, s.description, s.category, t(s.category), ...s.tags].join(" ").toLowerCase() };
+        const it: Item = { starter: s, card, text: searchFold([s.name, s.description, s.category, t(s.category), ...s.tags].join(" ")) };
         byCard.set(card, it);
         return it;
       };
@@ -331,7 +331,7 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
           paintIcon(small, n.icon, fb);
           setText(label, n.title || t("Untitled"));
           setText(meta, `${t("From this workspace")} · ${kindLabel(n.kind)}`);
-          it.text = `${n.title} ${t("From this workspace")}`.toLowerCase();
+          it.text = searchFold(`${n.title} ${t("From this workspace")}`);
         };
         it.update(w);
         byCard.set(card, it);
@@ -345,7 +345,7 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
         let n = 0;
         const counts = new Map<string, number>();
         for (const it of items) {
-          const hit = words.every((w) => it.text.includes(w));
+          const hit = words.every((w) => it.text.includes(` ${w}`));
           if (hit) {
             const k = it.ws ? WS_CAT : (it.starter?.category ?? "");
             counts.set(k, (counts.get(k) ?? 0) + 1);
@@ -444,7 +444,9 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
           inside.replaceChildren();
         }
         setAttr(dlg, "data-own-keys", "templates.preview");
-        useBtn.focus();
+        // On a phone the detail scrolls as one column: keep the preview in view.
+        useBtn.focus({ preventScroll: true });
+        detail.scrollTop = 0;
       };
 
       const run = () => {
@@ -459,6 +461,7 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
         useTemplate(engine, it.starter ? { starter: it.starter.id, title } : { page: it.ws?.id ?? "", title }, target)
           .then((p) => {
             close();
+            if (pages) window.dispatchEvent(new CustomEvent("formmd:expand", { detail: { id: p.id } }));
             engine.openPage(p.id);
           })
           .catch((e: unknown) => {
@@ -506,7 +509,7 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
         else if (want) cat = g.categories.find((c) => c.id === want || c.name.toLowerCase() === want)?.name ?? "";
         if (opts.query) {
           searchInput.value = opts.query;
-          words = opts.query.toLowerCase().split(/\s+/).filter(Boolean);
+          words = searchFold(opts.query).split(" ").filter(Boolean);
         }
         filter();
         const pick = opts.preview ? items.find((it) => it.starter?.id === opts.preview || it.ws?.id === opts.preview) : undefined;
@@ -541,7 +544,7 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
         next?.scrollIntoView({ block: "nearest" });
       });
       searchInput.addEventListener("input", () => {
-        words = searchInput.value.toLowerCase().split(/\s+/).filter(Boolean);
+        words = searchFold(searchInput.value).split(" ").filter(Boolean);
         showGrid(false);
         filter();
         browse.scrollTop = 0;

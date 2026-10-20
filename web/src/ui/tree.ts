@@ -1156,6 +1156,17 @@ export function mountTree(engine: Engine): void {
   };
   pages.subscribe(onChange);
 
+  // A page made from a project template opens with its sub-pages showing:
+  // the gallery names it before it opens, so its row and the children that
+  // arrive after it are drawn expanded.
+  window.addEventListener("formmd:expand", (e) => {
+    const id = (e as CustomEvent<{ id?: string }>).detail?.id;
+    if (!id || expanded.has(id)) return;
+    expanded.add(id);
+    writeSet(EXPANDED_KEY(ws), expanded);
+    renderParent(id);
+  });
+
   state.watch("workspaceId", (next) => {
     if (next === ws) return;
     ws = next;

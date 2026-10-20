@@ -301,7 +301,7 @@ The dashboard updates as the team logs each day. Hover any chart for exact value
 				views: []view{
 					{Name: "Timeline", Type: "timeline", Config: `{"layout":{"date":"when","zoom":"month","table":false}}`},
 					{Name: "By phase", Type: "board", Config: `{"group":{"prop":"phase","hide_empty":true},` + xaCards("progress", "owner", "when") + `}`},
-					{Name: "All milestones", Type: "table", Config: `{"sorts":[{"prop":"when","dir":"asc"}],"calcs":{"effort":"sum"},"props":[{"id":"share","hidden":true}]}`},
+					{Name: "All milestones", Type: "table", Config: `{"sorts":[{"prop":"when","dir":"asc"}],"calcs":{"effort":"sum"},"props":[{"id":"share","hidden":true},{"id":"when","hidden":false,"width":250}]}`},
 				},
 				rows: msRows,
 			},
@@ -2085,7 +2085,7 @@ func xaEngineering() Starter {
 
 ## Incidents this year
 
-[[inc]] incidents in the last twelve months, resolved in [[mttr]] minutes on average.
+[[inc]] incidents in the last twelve months, resolved in about [[mttr]] minutes on average.
 
 {{db:en_inc}}
 
@@ -2582,7 +2582,7 @@ Our Net Promoter Score is **[[nps]]**.
 				schema: []prop{
 					{ID: "title", Name: "Customer", Type: "title"},
 					{ID: "health", Name: "Health score", Type: "number", Display: "ring", Max: 100, Precision: 1},
-					{ID: "plan", Name: "Plan", Type: "select", Options: []opt{o("starter", "Starter", "gray"), o("growth", "Growth", "blue"), o("ent", "Enterprise", "purple")}},
+					{ID: "plan", Name: "Plan", Type: "select", Options: []opt{o("starter", "Starter", "yellow"), o("growth", "Growth", "blue"), o("ent", "Enterprise", "purple")}},
 					{ID: "arr", Name: "Annual value", Type: "number", Format: "dollar"},
 					{ID: "seats", Name: "Seats", Type: "number"},
 					{ID: "csm", Name: "Success manager", Type: "select", Options: csms},

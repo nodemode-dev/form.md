@@ -28,7 +28,7 @@ type buildState struct {
 var placeholder = regexp.MustCompile(`\{\{(db|page):([A-Za-z0-9_-]+)\}\}`)
 
 func (b *buildState) fill(md string) string {
-	md = strings.ReplaceAll(fill(md), "```mermaid\n", "```mermaid preview\n")
+	md = strings.NewReplacer("```mermaid\n", "```mermaid preview\n", "~~~mermaid\n", "~~~mermaid preview\n").Replace(fill(md))
 	return placeholder.ReplaceAllStringFunc(md, func(m string) string {
 		parts := placeholder.FindStringSubmatch(m)
 		id, ok := b.refs[parts[2]]

@@ -130,7 +130,7 @@ func chartSales() Starter {
 		"apac":  {{"Sydney", -33.8688, 151.2093}, {"Tokyo", 35.6762, 139.6503}, {"Auckland", -36.8485, 174.7633}, {"Seoul", 37.5665, 126.978}, {"Singapore", 1.3521, 103.8198}},
 		"latam": {{"Santiago", -33.4489, -70.6693}, {"Mexico City", 19.4326, -99.1332}, {"Bogotá", 4.711, -74.0721}, {"São Paulo", -23.5505, -46.6333}},
 	}
-	stores := []string{"Summit Supply", "Ridgeline Outfitters", "Fjord and Pine", "Basecamp Co-op", "Tidewater Sports", "Alpenglow Gear", "Northstar Trading", "Cedar Trail Shop", "Kestrel Outdoor", "Bluebird Mercantile", "Granite Peak Store", "Harbour Line Goods"}
+	stores := []string{"Summit Supply", "Ridgeline Outfitters", "Fjord and Pine", "Switchback Co-op", "Tidewater Sports", "Alpenglow Gear", "Northstar Trading", "Cedar Trail Shop", "Kestrel Outdoor", "Bluebird Mercantile", "Granite Peak Store", "Harbour Line Goods"}
 	season := map[time.Month]float64{1: .85, 2: .8, 3: .95, 4: 1, 5: 1.05, 6: 1, 7: .76, 8: .9, 9: 1.08, 10: 1.15, 11: 1.35, 12: 1.55}
 	prodIDs := chartIDs(products)
 	var rows []row
@@ -189,10 +189,10 @@ func chartSales() Starter {
 		`{"id":"orders","size":"s","title":"Orders","kpi":{"date":"date","by":"month"},"chart":{"kind":"number","fn":"count"}},` +
 		fmt.Sprintf(`{"id":"goal","size":"s","title":"This month against target","chart":{"kind":"gauge","fn":"sum","prop":"revenue","target":%.0f,"filter":{"op":"and","items":[{"prop":"date","cond":"within","value":{"within":"this_month"}},`+paid+`]}}},`, target) +
 		`{"id":"trend","wide":true,"title":"Revenue by month","chart":{"kind":"line","x":{"prop":"date","by":"month"},"fn":"sum","prop":"revenue","smooth":true,"labels":true,"filter":` + paid + `}},` +
-		`{"id":"regions","title":"Revenue by region","chart":{"kind":"donut","x":{"prop":"region"},"fn":"sum","prop":"revenue","labels":true}},` +
-		`{"id":"top","title":"Top products","chart":{"kind":"hbar","x":{"prop":"product"},"fn":"sum","prop":"revenue","sort":"value_desc","labels":true}},` +
-		`{"id":"stack","wide":true,"title":"Monthly revenue by region","chart":{"kind":"area","x":{"prop":"date","by":"month"},"series":{"prop":"region"},"fn":"sum","prop":"revenue","stacked":true,"smooth":true,"legend":true}},` +
-		`{"id":"half","wide":true,"title":"Last six months against the six before","chart":{"kind":"compare","x":{"prop":"date","by":"month"},"fn":"sum","prop":"revenue","window":6,"smooth":true}}` +
+		`{"id":"regions","title":"Revenue by region","chart":{"kind":"donut","x":{"prop":"region"},"fn":"sum","prop":"revenue","labels":true,"filter":` + paid + `}},` +
+		`{"id":"top","title":"Top products","chart":{"kind":"hbar","x":{"prop":"product"},"fn":"sum","prop":"revenue","sort":"value_desc","labels":true,"filter":` + paid + `}},` +
+		`{"id":"stack","wide":true,"title":"Monthly revenue by region","chart":{"kind":"area","x":{"prop":"date","by":"month"},"series":{"prop":"region"},"fn":"sum","prop":"revenue","stacked":true,"smooth":true,"legend":true,"filter":` + paid + `}},` +
+		`{"id":"half","wide":true,"title":"Last six months against the six before","chart":{"kind":"compare","x":{"prop":"date","by":"month"},"fn":"sum","prop":"revenue","window":6,"smooth":true,"filter":` + paid + `}}` +
 		`]}}`
 	return Starter{
 		ID: "sales-dashboard", Name: "Sales dashboard", Description: "A year of wholesale orders on one dashboard: revenue KPIs with trends, a monthly line, regions as a stacked area, a donut and a map, top products and a target gauge.", Icon: "i:chart-line:green", Kind: "database", Category: catCharts, Featured: true, Tags: []string{"revenue", "kpi", "dashboard", "map", "gauge"},
@@ -213,7 +213,7 @@ func chartSales() Starter {
 			{Name: "Orders", Type: "table", Config: `{"group":{"prop":"date","by":"month","sort":"desc","hide_empty":true},"sorts":[{"prop":"date","dir":"desc"}],"calcs":{"title":"count_all","units":"sum","revenue":"sum"}}`},
 			{Name: "Store map", Type: "map", Config: `{"layout":{"place":"city"}}`},
 			{Name: "By region", Type: "board", Config: `{"group":{"prop":"region","hide_empty":true},"sorts":[{"prop":"revenue","dir":"desc"}],"props":[{"id":"revenue","hidden":false},{"id":"product","hidden":false},{"id":"date","hidden":false}],"layout":{"total":{"prop":"revenue","fn":"sum"}}}`},
-			{Name: "Channels", Type: "chart", Config: `{"layout":{"chart":{"kind":"bar","x":{"prop":"date","by":"month"},"series":{"prop":"channel"},"fn":"sum","prop":"revenue","stacked":true,"legend":true}}}`},
+			{Name: "Channels", Type: "chart", Config: `{"layout":{"chart":{"kind":"bar","x":{"prop":"date","by":"month"},"series":{"prop":"channel"},"fn":"sum","prop":"revenue","stacked":true,"legend":true,"filter":` + paid + `}}}`},
 		},
 		rows: rows,
 	}
@@ -939,7 +939,7 @@ func chartCustomers() Starter {
 			{ID: "title", Name: "Customer", Type: "title"},
 			{ID: "location", Name: "Location", Type: "place"},
 			{ID: "country", Name: "Country", Type: "select", Options: countries},
-			{ID: "plan", Name: "Plan", Type: "select", Options: []opt{o("starter", "Starter", "gray"), o("growth", "Growth", "blue"), o("enterprise", "Enterprise", "purple")}},
+			{ID: "plan", Name: "Plan", Type: "select", Options: []opt{o("starter", "Starter", "yellow"), o("growth", "Growth", "blue"), o("enterprise", "Enterprise", "purple")}},
 			{ID: "mrr", Name: "Monthly revenue", Type: "number", Format: "dollar", Precision: -1, Display: "bar", Max: 6500},
 			{ID: "seats", Name: "Seats", Type: "number"},
 			{ID: "since", Name: "Customer since", Type: "date"},

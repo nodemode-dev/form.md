@@ -1,5 +1,5 @@
 import type { Engine, Page } from "../engine";
-import { formatRelative } from "../engine/format";
+import { formatRelative, searchFold, searchHit } from "../engine/format";
 import { plural, t } from "../engine/i18n";
 import { simpleDialog } from "./dialog";
 import { h, ref, setAttr, setText } from "./dom";
@@ -192,7 +192,7 @@ export function mountHome(engine: Engine): void {
     setAttr(exSec, "data-empty", projects.length ? null : "true");
   };
   const matches = (s: StarterSummary) =>
-    (!category || s.category === chosenName()) && (!query || `${s.name} ${s.description} ${s.category} ${categoryName(s.category)} ${s.tags.join(" ")}`.toLowerCase().includes(query));
+    (!category || s.category === chosenName()) && (!query || searchHit(searchFold(`${s.name} ${s.description} ${s.category} ${categoryName(s.category)} ${s.tags.join(" ")}`), query));
   const paintTemplates = () => {
     if (!catalog) return;
     paintShowcase();
@@ -284,7 +284,7 @@ export function mountHome(engine: Engine): void {
     paintTemplates();
   });
   tplSearch.addEventListener("input", () => {
-    query = tplSearch.value.trim().toLowerCase();
+    query = searchFold(tplSearch.value).trim();
     paintTemplates();
   });
   tplGrid.addEventListener("click", (e) => {
@@ -299,7 +299,7 @@ export function mountHome(engine: Engine): void {
   exGrid.addEventListener("click", openPreview);
   ref("home-feat-all").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { category: "charts" }), engine.reportError));
   ref("home-ex-all").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { category: "examples" }), engine.reportError));
-  ref("home-templates").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { ...(category ? { category } : {}), ...(query ? { query } : {}) }), engine.reportError));
+  ref("home-templates").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { ...(category ? { category } : {}), ...(query ? { query: tplSearch.value.trim() } : {}) }), engine.reportError));
   ref("home-choose").addEventListener("click", chooseFiles);
   ref("home-paste").addEventListener("click", pasteText);
   material.addEventListener("dragover", (e) => {

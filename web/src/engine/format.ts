@@ -80,3 +80,13 @@ export function weekStart(): number {
   }
   return 1;
 }
+
+/** Text folded for searching: lower case, accents dropped, punctuation as spaces, with a leading space. */
+export function searchFold(s: string): string {
+  return ` ${s.normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()}`;
+}
+
+/** Whether every word of a folded query starts a word of folded text ("map" finds "map view", not "heatmap"). */
+export function searchHit(text: string, query: string): boolean {
+  return query.split(" ").every((w) => !w || text.includes(` ${w}`));
+}

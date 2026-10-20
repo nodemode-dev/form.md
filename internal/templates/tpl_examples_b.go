@@ -1948,7 +1948,7 @@ The bar on each column shows how much of it is already in the case.
 					{ID: "type", Name: "Type", Type: "select", Options: []opt{o("flight", "Flight", "blue"), o("stay", "Stay", "purple"), o("train", "Train or ferry", "green"), o("tour", "Tour or class", "pink"), o("other", "Other", "gray")}},
 					{ID: "dates", Name: "Dates", Type: "date"},
 					{ID: "status", Name: "Status", Type: "status", Options: []opt{so("todo", "To book", "red", "todo"), so("booked", "Booked, pay later", "yellow", "doing"), so("paid", "Paid", "green", "done")}},
-					{ID: "cost", Name: "Cost", Type: "number", Format: "dollar"},
+					{ID: "cost", Name: "Cost", Type: "number", Format: "pound", Precision: -1},
 					{ID: "provider", Name: "With", Type: "text"},
 					{ID: "ref", Name: "Reference", Type: "text"},
 					{ID: "city", Name: "City", Type: "select", Options: cityOpts},
@@ -1964,9 +1964,9 @@ The bar on each column shows how much of it is already in the case.
 				key: "trip-budget", Name: "Trip budget", Icon: "i:wallet:green", Kind: "database",
 				schema: []prop{
 					{ID: "title", Name: "Item", Type: "title"},
-					{ID: "kind", Name: "Planned or spent", Type: "select", Options: []opt{o("plan", "Planned", "gray"), o("spent", "Spent", "green")}},
+					{ID: "kind", Name: "Planned or spent", Type: "select", Options: []opt{o("plan", "Planned", "blue"), o("spent", "Spent", "green")}},
 					{ID: "category", Name: "Category", Type: "select", Options: catOpts},
-					{ID: "amount", Name: "Amount", Type: "number", Format: "dollar"},
+					{ID: "amount", Name: "Amount", Type: "number", Format: "pound", Precision: -1},
 					{ID: "date", Name: "Paid on", Type: "date"},
 					{ID: "booking", Name: "Booking", Type: "relation", Collection: "@trip-bookings"},
 				},
@@ -2063,7 +2063,7 @@ Seven days, starting the day we leave Hakone. Seat reservations are free; book t
 </details>
 
 > [!WARNING]
-> Mid-November is autumn leaf season in Kyoto. Temples get very busy after 10:00, so plan the famous ones early.
+> Kyoto's temples get very busy after 10:00, and busier still in cherry blossom and autumn leaf season, so plan the famous ones early.
 `,
 				children: []Starter{
 					{
@@ -2715,14 +2715,14 @@ Each goal is linked to the savings account that holds it, so the ring fills as t
 				schema: []prop{
 					{ID: "title", Name: "Account", Type: "title"},
 					{ID: "type", Name: "Type", Type: "select", Options: []opt{o("everyday", "Everyday", "blue"), o("savings", "Savings", "green"), o("credit", "Credit card", "red"), o("invest", "Investments", "purple")}},
-					{ID: "owner", Name: "Owner", Type: "select", Options: []opt{o("joint", "Joint", "gray"), o("maya", "Maya", "pink"), o("sam", "Sam", "blue")}},
+					{ID: "owner", Name: "Owner", Type: "select", Options: []opt{o("joint", "Joint", "purple"), o("maya", "Maya", "pink"), o("sam", "Sam", "blue")}},
 					{ID: "bank", Name: "Bank", Type: "text"},
 					{ID: "balance", Name: "Balance", Type: "number", Format: "dollar", Precision: 2},
 					{ID: "rate", Name: "Interest", Type: "number", Format: "percent", Precision: 1},
 					{ID: "updated", Name: "Checked on", Type: "date"},
 				},
 				views: []view{
-					{Name: "Overview", Type: "dashboard", Config: `{"layout":{"widgets":[{"id":"a1","size":"s","title":"Net worth","chart":{"kind":"number","fn":"sum","prop":"balance"}},{"id":"a2","size":"s","title":"Saved for goals","chart":{"kind":"number","fn":"sum","prop":"balance","filter":{"prop":"type","cond":"is","value":"savings"}}},{"id":"a5","size":"s","title":"Everyday money","chart":{"kind":"number","fn":"sum","prop":"balance","filter":{"prop":"type","cond":"is","value":"everyday"}}},{"id":"a6","size":"s","title":"Owed on the card","chart":{"kind":"number","fn":"sum","prop":"balance","filter":{"prop":"type","cond":"is","value":"credit"}}},{"id":"a3","title":"Where the money sits","chart":{"kind":"donut","x":{"prop":"type"},"fn":"sum","prop":"balance","filter":{"prop":"balance","cond":"gt","value":0},"legend":true}},{"id":"a7","title":"Whose name it is in","chart":{"kind":"bar","x":{"prop":"owner"},"fn":"sum","prop":"balance","labels":true}},{"id":"a4","wide":true,"title":"Balance by account","chart":{"kind":"hbar","x":{"prop":"title"},"fn":"sum","prop":"balance","sort":"value_desc","labels":true}}]}}`},
+					{Name: "Overview", Type: "dashboard", Config: `{"layout":{"widgets":[{"id":"a1","size":"s","title":"Net worth","chart":{"kind":"number","fn":"sum","prop":"balance"}},{"id":"a2","size":"s","title":"Saved for goals","chart":{"kind":"number","fn":"sum","prop":"balance","filter":{"prop":"type","cond":"is","value":"savings"}}},{"id":"a5","size":"s","title":"Everyday money","chart":{"kind":"number","fn":"sum","prop":"balance","filter":{"prop":"type","cond":"is","value":"everyday"}}},{"id":"a6","size":"s","title":"Owed on the card","chart":{"kind":"number","fn":"sum","prop":"balance","filter":{"prop":"type","cond":"is","value":"credit"}}},{"id":"a3","title":"Where the money sits, before the card","chart":{"kind":"donut","x":{"prop":"type"},"fn":"sum","prop":"balance","filter":{"prop":"balance","cond":"gt","value":0},"legend":true}},{"id":"a7","title":"Whose name it is in","chart":{"kind":"bar","x":{"prop":"owner"},"fn":"sum","prop":"balance","labels":true}},{"id":"a4","wide":true,"title":"Balance by account","chart":{"kind":"hbar","x":{"prop":"title"},"fn":"sum","prop":"balance","sort":"value_desc","labels":true}}]}}`},
 					{Name: "All accounts", Type: "table", Config: `{"sorts":[{"prop":"balance","dir":"desc"}],"calcs":{"balance":"sum"}}`},
 					{Name: "By owner", Type: "board", Config: `{"group":{"prop":"owner"},"layout":{"total":{"fn":"sum","prop":"balance"}},` + xbShow("balance", "type") + `}`},
 				},
