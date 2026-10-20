@@ -4,6 +4,8 @@ release
 data
 web/node_modules
 web/dist/assets
+src-tauri/target
+src-tauri/binaries
 *.db
 *.db-wal
 *.db-shm

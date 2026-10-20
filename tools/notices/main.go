@@ -25,6 +25,10 @@ var licenseFiles = []string{"LICENSE", "LICENSE.md", "LICENSE.txt", "LICENSE-MIT
 func main() {
 	root, err := os.Getwd()
 	check(err)
+	if len(os.Args) > 1 && os.Args[1] == "desktop" {
+		desktopNotices(root)
+		return
+	}
 
 	var comps []component
 	comps = append(comps, stdlib())

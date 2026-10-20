@@ -13,8 +13,9 @@ usage: ./form-md [command] [options]
   install              install the Go modules and the web client's packages
   backend              boot the server only
   frontend             boot the web client only
-  build                build everything into one binary, bin/form-md (same as ./build_app)
-  release              build every release target into release/ (same as ./build_app --all)
+  build                build the desktop app with the server inside it (same as ./build_app)
+  desktop build|dev    build the desktop app, or run it from source with the server just compiled
+  release              build every server release target into release/ (same as ./build_app --all)
   serve                run the built binary (bin/form-md serve) on 127.0.0.1:8750
   claude [args]        Claude Code in this terminal with form.md's MCP tools attached (needs FORMMD_MCP_TOKEN)
   mcp                  the MCP server over stdio for agents that start a command (Codex, Claude Desktop); starts the local server when it is not running
@@ -42,6 +43,21 @@ case "$cmd" in
   frontend) exec ./web/boot_frontend "$@" ;;
   build) exec ./build_app "$@" ;;
   release) exec ./build_app --all "$@" ;;
+  desktop)
+    sub="${1:-build}"
+    [ $# -gt 0 ] && shift
+    case "$sub" in
+      build) exec ./build_app "$@" ;;
+      dev)
+        ./build_app --server-only
+        [ -x "$HOME/.cargo/bin/rustc" ] && export PATH="$HOME/.cargo/bin:$PATH"
+        triple="$(rustc -vV | awk '/^host:/ {print $2}')"
+        mkdir -p src-tauri/binaries
+        rm -f src-tauri/binaries/form-md-server-*
+        cp bin/form-md "src-tauri/binaries/form-md-server-$triple"
+        cd src-tauri && exec ../web/node_modules/.bin/tauri dev "$@" ;;
+      *) usage; exit 2 ;;
+    esac ;;
   serve)
     [ -x bin/form-md ] || ./build_app
     export FORMMD_ADDR="${FORMMD_ADDR:-127.0.0.1:8750}"

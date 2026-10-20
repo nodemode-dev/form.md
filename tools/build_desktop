@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ROOT="$(pwd)"
+
+usage() {
+  cat << 'EOF'
+usage: tools/build_desktop VERSION SERVER_BINARY [--debug] [--bundles LIST] [--clean] [--yes] [--config JSON]
+
+Bundles the form.md desktop app around a server binary that ./build_app has just compiled.
+Run ./build_app rather than this script.
+EOF
+}
+
+[ $# -ge 2 ] || { usage >&2; exit 2; }
+VERSION="$1"
+SERVER="$2"
+shift 2
+
+DEBUG=0
+YES=0
+CLEAN=0
+BUNDLES=""
+CONFIG=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --debug) DEBUG=1 ;;
+    --yes|-y) YES=1 ;;
+    --clean) CLEAN=1 ;;
+    --bundles) BUNDLES="$2"; shift ;;
+    --config) CONFIG="$2"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) printf '[desktop] unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+  esac
+  shift
+done
+
+say() { printf '[desktop] %s\n' "$*"; }
+die() { printf '[desktop] stopped: %s\n' "$*" >&2; exit 1; }
+ask() {
+  [ "$YES" = 1 ] && return 0
+  [ -t 0 ] || return 1
+  printf '[desktop] %s [y/N] ' "$1"
+  read -r reply
+  case "$reply" in y|Y|yes|YES) return 0 ;; *) return 1 ;; esac
+}
+
+START=$(date +%s)
+case "$(uname -s)" in
+  Darwin) OS=macos ;;
+  Linux) OS=linux ;;
+  *) die "on Windows run build_app.bat" ;;
+esac
+ARCH="$(uname -m)"
+[ -n "$BUNDLES" ] || { [ "$OS" = macos ] && BUNDLES="app,dmg" || BUNDLES="deb,rpm,appimage"; }
+[ -f "$SERVER" ] || die "the server binary $SERVER is missing; run ./build_app"
+
+say "checking the desktop toolchain"
+if [ "$OS" = macos ]; then
+  xcode-select -p >/dev/null 2>&1 || die "the Xcode Command Line Tools are needed. Run: xcode-select --install"
+else
+  if ! pkg-config --exists webkit2gtk-4.1 2>/dev/null; then
+    pkgs="libwebkit2gtk-4.1-dev build-essential curl wget file pkg-config libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm"
+    if command -v apt-get >/dev/null 2>&1 && ask "Install the WebKitGTK build packages with apt-get?"; then
+      sudo_cmd=""
+      [ "$(id -u)" -eq 0 ] || sudo_cmd="sudo"
+      $sudo_cmd apt-get update
+      $sudo_cmd apt-get install -y $pkgs
+    else
+      die "WebKitGTK 4.1 is needed. Debian or Ubuntu: sudo apt-get install $pkgs. Fedora: sudo dnf install webkit2gtk4.1-devel openssl-devel libappindicator-gtk3-devel librsvg2-devel libxdo-devel rpm-build"
+    fi
+  fi
+fi
+
+[ -x "$HOME/.cargo/bin/rustc" ] && export PATH="$HOME/.cargo/bin:$PATH"
+if ! command -v cargo >/dev/null 2>&1 || ! command -v rustup >/dev/null 2>&1; then
+  if command -v cargo >/dev/null 2>&1; then
+    say "Rust at $(command -v cargo) is not managed by rustup; the desktop build expects rustup"
+  fi
+  if ask "Install Rust with rustup now (https://rustup.rs, into ~/.cargo)?"; then
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+    export PATH="$HOME/.cargo/bin:$PATH"
+  elif ! command -v cargo >/dev/null 2>&1; then
+    die "Rust is needed. Install it from https://rustup.rs and run ./build_app again"
+  fi
+fi
+if command -v rustup >/dev/null 2>&1; then
+  if [ "$OS" = macos ] && [ "$ARCH" = arm64 ]; then
+    rustup toolchain list | grep -q '^stable-aarch64-apple-darwin' || rustup toolchain install stable-aarch64-apple-darwin --profile minimal
+    export RUSTUP_TOOLCHAIN=stable-aarch64-apple-darwin
+  elif ! rustup show active-toolchain >/dev/null 2>&1; then
+    rustup default stable
+  fi
+fi
+unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS CARGO_BUILD_TARGET CARGO_TARGET_DIR RUSTC RUSTC_WRAPPER
+RUSTC_V="$(rustc -V | awk '{print $2}')"
+CARGO_V="$(cargo -V | awk '{print $2}')"
+[ "$RUSTC_V" = "$CARGO_V" ] || die "rustc $RUSTC_V and cargo $CARGO_V come from different installs. Remove the extra one (for Homebrew: brew uninstall rust) and keep rustup's"
+TRIPLE="$(rustc -vV | awk '/^host:/ {print $2}')"
+case "$OS:$ARCH:$TRIPLE" in
+  macos:arm64:aarch64-apple-darwin|macos:x86_64:x86_64-apple-darwin|linux:*) ;;
+  *) die "this is a $ARCH Mac but Rust builds for $TRIPLE. Run: rustup default stable-$ARCH-apple-darwin" ;;
+esac
+[ "$OS" = macos ] && export PATH="$(dirname "$(command -v rustc)"):/usr/bin:$PATH"
+say "Rust $RUSTC_V for $TRIPLE"
+
+TAURI="$ROOT/web/node_modules/.bin/tauri"
+[ -x "$TAURI" ] || (cd web && npm ci --no-audit --no-fund)
+[ -x "$TAURI" ] || die "the Tauri command line is missing from web/node_modules; run: cd web && npm install"
+CLI_V="$("$TAURI" --version | awk '{print $2}')"
+CRATE_V="$(awk '/^name = "tauri"$/ {getline; gsub(/"/, "", $3); print $3; exit}' src-tauri/Cargo.lock)"
+[ "${CLI_V%.*}" = "${CRATE_V%.*}" ] || die "the Tauri command line ($CLI_V) and the tauri crate ($CRATE_V) differ; update web/package.json or src-tauri/Cargo.lock so they match"
+
+APP_V="${VERSION#v}"
+for f in src-tauri/tauri.conf.json src-tauri/Cargo.toml; do
+  grep -q "\"version\": \"$APP_V\"\|^version = \"$APP_V\"" "$f" || die "$f does not carry version $APP_V; bump it with the release"
+done
+
+if [ "$CLEAN" = 1 ]; then
+  say "clearing the Rust build cache"
+  (cd src-tauri && cargo clean)
+fi
+rm -f src-tauri/binaries/form-md-server-*
+mkdir -p src-tauri/binaries
+EXT=""
+case "$TRIPLE" in *windows*) EXT=".exe" ;; esac
+SIDECAR="src-tauri/binaries/form-md-server-$TRIPLE$EXT"
+cp "$SERVER" "$SIDECAR"
+chmod +x "$SIDECAR"
+"$SIDECAR" version >/dev/null || die "the server copy at $SIDECAR does not run on this computer"
+say "server inside the app: $SIDECAR ($("$SIDECAR" version))"
+
+TAURI_ARGS=(build --bundles "$BUNDLES")
+[ "$DEBUG" = 1 ] && TAURI_ARGS+=(--debug)
+[ -n "$CONFIG" ] && TAURI_ARGS+=(--config "$CONFIG")
+LOG="$(mktemp)"
+trap 'rm -f "$LOG"' EXIT
+run_tauri() {
+  set +e
+  (cd src-tauri && "$TAURI" "$@") 2>&1 | tee "$LOG"
+  local status=${PIPESTATUS[0]}
+  set -e
+  return "$status"
+}
+PROFILE=release
+[ "$DEBUG" = 1 ] && PROFILE=debug
+OUT="src-tauri/target/$PROFILE/bundle"
+say "bundling $BUNDLES"
+if ! run_tauri "${TAURI_ARGS[@]}"; then
+  if grep -q "E0463" "$LOG"; then
+    say "Rust could not load a crate it had just built (E0463); clearing the Rust build cache and building again"
+    (cd src-tauri && cargo clean)
+    run_tauri "${TAURI_ARGS[@]}" || die "the Rust build failed again; the log above shows the first error"
+  elif [ "$OS" = macos ] && grep -qi "dmg" "$LOG" && [ -d "$OUT/macos/form.md.app" ]; then
+    say "the .app was built but the .dmg step failed; the app is usable as it is (drag it to Applications)"
+  else
+    die "the desktop build failed; the log above shows the first error"
+  fi
+fi
+
+ELAPSED=$(( $(date +%s) - START ))
+say "done in $((ELAPSED / 60)) min $((ELAPSED % 60)) s"
+find "$OUT" -maxdepth 2 \( -name '*.dmg' -o -name '*.app' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) -print 2>/dev/null | while read -r f; do
+  say "  $ROOT/$f"
+done
+if [ "$OS" = macos ] && [ -d "$OUT/macos/form.md.app" ]; then
+  say "open it: open \"$ROOT/$OUT/macos/form.md.app\""
+elif [ "$OS" = linux ]; then
+  deb="$(ls -t "$OUT"/deb/*.deb 2>/dev/null | head -1 || true)"
+  if [ -n "$deb" ]; then
+    say "install it: sudo apt install ./$deb"
+  else
+    say "run the .AppImage, or install the .rpm with dnf"
+  fi
+fi
+say "your pages live in ~/form.md (set FORMMD_DATA before starting the app to use another folder)"

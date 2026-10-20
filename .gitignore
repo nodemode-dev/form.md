@@ -8,3 +8,7 @@
 *.db-wal
 *.db-shm
 .DS_Store
+/src-tauri/target/
+/src-tauri/gen/
+/src-tauri/binaries/*
+!/src-tauri/binaries/.gitkeep
