@@ -208,6 +208,7 @@ export function timelineView(host: ViewHost): ViewRenderer {
         const w = Math.max(px(), xOf(addDays(end, 1)) - x);
         n.style.transform = `translate(${x}px, ${top}px)`;
         n.style.width = `${w}px`;
+        n.classList.toggle("tl__bar--out", w < (sp.row.title || t("Untitled")).length * 6.6 + 40);
         const icon = n.children[1] as HTMLElement;
         if (icon.dataset.icon !== sp.row.icon) {
           icon.dataset.icon = sp.row.icon;
@@ -220,7 +221,16 @@ export function timelineView(host: ViewHost): ViewRenderer {
     paintDeps(bars);
     if (!scrolledToday && scroll.clientWidth) {
       scrolledToday = true;
-      scroll.scrollLeft = Math.max(0, xOf(startOfDay(new Date())) - scroll.clientWidth / 3);
+      // Opens on today, unless every dated item fits in the window: then on all of them.
+      let a = Infinity;
+      let b = -Infinity;
+      for (const s of list) {
+        if (!s.start) continue;
+        a = Math.min(a, xOf(s.start));
+        b = Math.max(b, xOf(addDays(s.end ?? s.start, 1)) + 160);
+      }
+      const room = scroll.clientWidth - 48;
+      scroll.scrollLeft = Number.isFinite(a) && b - a <= room ? Math.max(0, a - 24 - (room - (b - a)) / 2) : Math.max(0, xOf(startOfDay(new Date())) - scroll.clientWidth / 3);
     }
     if (pendingTitle) {
       const n = canvas.querySelector<HTMLElement>(`.tl__bar[data-row="${pendingTitle}"]`);

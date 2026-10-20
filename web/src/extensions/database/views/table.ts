@@ -7,7 +7,7 @@ import { type MenuEntry, openMenu } from "../../../ui/menu";
 import { optionChip, paintCell } from "../cells";
 import { editCell } from "../editors";
 import { openAddProperty, propertyMenu } from "../propedit";
-import { calcsFor, computedText, TYPE_INFO } from "../props";
+import { calcsFor, computedText, formatCalc, TYPE_INFO } from "../props";
 import type { ViewHost, ViewRenderer } from "../surface";
 import { openFilterPanel, orderedProps, saveConfig } from "../toolbar";
 import { configKey, prefillFromFilter } from "./shared";
@@ -312,15 +312,17 @@ export function tableView(host: ViewHost): ViewRenderer {
       foot,
       [{ id: "#gutter" }, ...cols.map((c) => ({ id: c.p.id }))],
       (x) => x.id,
-      (x) => h("div", { class: x.id === "#gutter" ? "tbl__cell tbl__cell--gutter" : "tbl__cell tbl__cell--calc", attrs: { "data-prop": x.id } }),
+      (x) => (x.id === "#gutter" ? h("div", { class: "tbl__cell tbl__cell--gutter", attrs: { "data-prop": x.id } }) : h("div", { class: "tbl__cell tbl__cell--calc", attrs: { "data-prop": x.id } }, h("span", { class: "tbl__calc-label" }), h("span", { class: "tbl__calc-value" }))),
       (cell, x) => {
         if (x.id === "#gutter") return;
         const fn = calcs[x.id];
         const c = cols.find((y) => y.p.id === x.id);
-        const label = fn ? (calcsFor(c?.p as Property).find((k) => k[0] === fn)?.[1] ?? fn) : "";
+        const label = fn ? t(calcsFor(c?.p as Property).find((k) => k[0] === fn)?.[1] ?? fn) : "";
         const v = fn ? session.calcs?.[x.id] : null;
-        const text = fn ? `${t(label)} ${computedText(v ?? null, c?.p)}`.trim() : "";
-        setText(cell, text || (host.canWrite() ? t("Calculate") : ""));
+        const value = !fn || !v ? "" : v.type === "number" ? formatCalc(v.value as number, fn, c?.p) : computedText(v, c?.p);
+        setText(cell.children[0] as HTMLElement, fn ? label : host.canWrite() ? t("Calculate") : "");
+        setText(cell.children[1] as HTMLElement, value);
+        setAttr(cell, "title", fn && value ? `${label} ${value}` : null);
         setAttr(cell, "data-empty", fn ? null : "true");
         frozenStyle(cell, cols.findIndex((y) => y.p.id === x.id));
       },

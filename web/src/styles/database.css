@@ -564,6 +564,24 @@
   color: var(--text-faint);
 }
 
+.tbl__calc-label {
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tbl__calc-value {
+  flex: none;
+  margin-inline-start: 0.35em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.tbl__calc-value:empty {
+  display: none;
+}
+
 .tbl__group {
   display: flex;
   align-items: center;
@@ -863,6 +881,14 @@
 .nring__fg {
   stroke: var(--oc, var(--accent));
   stroke-linecap: round;
+}
+
+.num--ring[data-color="default"] .nring__fg {
+  stroke: var(--accent);
+}
+
+.nbar[data-color="default"] .nbar__fill {
+  background: var(--accent);
 }
 
 .ftext--link {
@@ -1958,6 +1984,22 @@
   color: var(--text-faint);
   background: transparent;
   border-style: dashed;
+}
+
+/* Too short for its title: the title sits just after the bar, in its row. */
+.tl__bar--out {
+  overflow: visible;
+}
+
+.tl__bar--out .tl__icon {
+  display: none;
+}
+
+.tl__bar--out .tl__title {
+  position: absolute;
+  inset-inline-start: calc(100% + 6px);
+  color: var(--text);
+  pointer-events: none;
 }
 
 .tl__bar .page-icon {

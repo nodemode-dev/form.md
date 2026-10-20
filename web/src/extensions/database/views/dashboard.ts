@@ -7,8 +7,9 @@ import { openMenu } from "../../../ui/menu";
 import { toast } from "../../../ui/toast";
 import { openPanel } from "../panel";
 import type { ViewHost, ViewRenderer } from "../surface";
+import { formatCalc } from "../props";
 import { saveConfig } from "../toolbar";
-import { chartCaption, chartClicks, chartFormat, chartSettings, defaultSpec } from "./chart";
+import { chartCaption, chartClicks, chartFormat, chartSettings, defaultSpec, measureProp } from "./chart";
 import { drawChart, exportChart } from "./chartdraw";
 import { drawKpi } from "./kpi";
 
@@ -91,7 +92,9 @@ export function dashboardView(host: ViewHost): ViewRenderer {
     const w = c.body.clientWidth;
     const hh = c.body.clientHeight;
     if (!w || !hh) return;
-    const f = chartFormat(host.col(), c.w.chart);
+    const spec = c.w.chart;
+    const f0 = chartFormat(host.col(), spec);
+    const f = spec.kind === "number" ? { ...f0, fmt: (n: number) => formatCalc(n, spec.fn || "count", measureProp(host.col(), spec)) } : f0;
     if (c.w.kpi && c.w.chart.kind === "number") {
       if (c.result) drawKpi(c.svg, { width: w, height: hh, value: c.result.value, fmt: f.fmt, caption: chartCaption(host.col(), c.w.chart), spark: c.spark, period: t(PERIOD[c.w.kpi.by] ?? "") });
       return;

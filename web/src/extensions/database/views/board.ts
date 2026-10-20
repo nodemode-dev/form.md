@@ -7,10 +7,9 @@ import { type MenuEntry, openMenu } from "../../../ui/menu";
 import { cardCover, optionChip, paintCell } from "../cells";
 import { editCell } from "../editors";
 import { openPanel } from "../panel";
-import { asList, computed } from "../props";
+import { asList, computed, formatCalc } from "../props";
 import type { ViewHost, ViewRenderer } from "../surface";
 import { openGroupPanel, orderedProps, saveConfig } from "../toolbar";
-import { chartFormat } from "./chart";
 import { configKey, prefillFromFilter } from "./shared";
 
 export function groupValue(p: Property, key: string, row: RowData | undefined, fromKey: string): unknown {
@@ -210,9 +209,10 @@ export function boardView(host: ViewHost): ViewRenderer {
     if (totalEl) {
       totalEl.hidden = !tot?.fn;
       if (tot?.fn) {
-        const f = chartFormat(ctx.col(), { kind: "bar", fn: tot.fn, ...(tot.prop ? { prop: tot.prop } : {}) });
         const p2 = ctx.col().schema.find((x) => x.id === tot.prop);
-        setText(totalEl, sum?.total !== undefined ? `${t(tot.fn === "count" ? "Count" : tot.fn === "sum" ? "Sum" : "Average")}${p2 && tot.fn !== "count" ? ` ${p2.name}` : ""} ${f.fmt(sum.total)}` : "");
+        const totalText = sum?.total !== undefined ? `${t(tot.fn === "count" ? "Count" : tot.fn === "sum" ? "Sum" : "Average")}${p2 && tot.fn !== "count" ? ` ${p2.name}` : ""} ${formatCalc(sum.total, tot.fn, tot.fn === "count" ? null : p2)}` : "";
+        setText(totalEl, totalText);
+        setAttr(totalEl, "title", totalText || null);
       }
     }
     const editable = host.canWrite() && !!p && !computed(p.type);

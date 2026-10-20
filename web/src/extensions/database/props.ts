@@ -171,7 +171,40 @@ export const NUMBER_FORMATS: [string, string][] = [
 
 export const DATE_FORMATS: [string, string][] = [["", "Default"], ["full", "Full date"], ["short", "Month and day"], ["us", "Month/day/year"], ["eu", "Day/month/year"], ["iso", "Year-month-day"], ["relative", "Relative"]];
 
-export function formatNumber(n: number, p: Pick<Property, "format" | "precision">): string {
+const COUNT_CALCS = new Set(["count", "count_all", "count_values", "count_unique", "count_empty", "count_not_empty", "checked", "unchecked"]);
+
+export function formatCalc(n: number, fn: string, p?: Pick<Property, "format" | "precision"> | null): string {
+  if (!Number.isFinite(n)) return String(n);
+  const x = Number(n.toPrecision(15));
+  const fmtWith = (o: Intl.NumberFormatOptions): string => {
+    try {
+      return new Intl.NumberFormat(locale(), o).format(x);
+    } catch {
+      return String(Math.round(x * 100) / 100);
+    }
+  };
+  if (fn.startsWith("percent_")) return fmtWith({ style: "percent", maximumFractionDigits: 1 });
+  if (COUNT_CALCS.has(fn)) return fmtWith({ maximumFractionDigits: 0 });
+  if (!p) return fmtWith({ maximumFractionDigits: 2 });
+  const fmt = p.format ?? "";
+  const spread = fn === "average" || fn === "median";
+  const fixed = p.precision === -1 ? 0 : p.precision !== undefined && p.precision > 0 ? p.precision : undefined;
+  const plain = fmt === "" || fmt === "number" || fmt === "comma";
+  let digits: Intl.NumberFormatOptions;
+  if (fixed !== undefined) {
+    const whole = Number.isInteger(Number(x.toFixed(fixed)));
+    digits = { minimumFractionDigits: plain && whole ? 0 : fixed, maximumFractionDigits: fixed };
+  } else if (fmt === "percent") digits = { maximumFractionDigits: 1 };
+  else if (CURRENCY[fmt]) digits = {};
+  else digits = { maximumFractionDigits: spread ? 2 : 8 };
+  if (fmt === "percent") return fmtWith({ ...digits, style: "percent" });
+  if (CURRENCY[fmt]) return fmtWith({ ...digits, style: "currency", currency: CURRENCY[fmt] });
+  return fmtWith(digits);
+}
+
+export function formatNumber(n: number, p: Pick<Property, "format" | "precision"> & Partial<Pick<Property, "type" | "fn">>): string {
+  const rollFn = p.type === "rollup" ? (p.fn ?? "") : "";
+  if (rollFn && rollFn !== "show_original" && rollFn !== "show_unique" && !COUNT_CALCS.has(rollFn) && (rollFn.startsWith("percent_") ? !p.format : p.precision === undefined || p.precision === 0)) return formatCalc(n, rollFn, p);
   const fmt = p.format ?? "";
   const digits = p.precision === -1 ? 0 : p.precision !== undefined && p.precision > 0 ? p.precision : undefined;
   const base: Intl.NumberFormatOptions = digits !== undefined ? { minimumFractionDigits: digits, maximumFractionDigits: digits } : { maximumFractionDigits: 8 };
