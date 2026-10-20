@@ -2,8 +2,8 @@
 
 Living log of explainers, rationale and removed code for the desktop app in `src-tauri/` and its build scripts (`build_app`, `build_app.bat`, `tools/build_desktop`, `.github/workflows/desktop.yml`). Source files stay comment-free per dev-rules `hashout-log`; what they would have said lives here. Paths are relative to the repo root.
 
-Current build version: v0.45.0
-Last updated: 2026-10-20 · v0.45.0: version only; v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
+Current build version: v0.45.1
+Last updated: 2026-10-20 · v0.45.1: the owner's app icon in icons/* and on the splash; v0.45.0: version only; v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
 
 ---
 
@@ -77,3 +77,12 @@ Owner's decision of 2026-10-20 (between a ribbon and none): the window itself st
 - logged: v0.43.0 · 2026-10-20
 
 Five runners (macOS arm64 and Intel, Linux x64 and arm64, Windows x64) build on each `v*.*.*` tag and attach the .dmg, .deb, .rpm, .AppImage, .msi and setup .exe to the release that release.yml creates, waiting up to ten minutes for it to exist. Apple signing and notarising switch on when the APPLE_* secrets are set; without them a downloaded macOS build is unsigned and macOS blocks its first launch until it is allowed under System Settings, Privacy and Security, Open Anyway. An app built on the Mac itself with `./build_app` carries no download quarantine and opens directly.
+
+## The app icon on the splash {#splash-icon}
+
+### src-tauri/splash/index.html and icons/* · the owner's # icon
+- refers-to: src-tauri/splash/index.html, src-tauri/splash/icon.png; src-tauri/icons/*
+- kind: fix
+- logged: v0.45.1 · 2026-10-20
+
+The icon files are the owner's redesign (see web/HASHOUT_LOG.md, app-icon-family). The splash drew the old F as inline SVG; it now shows `icon.png` (the 256 px icon, a copy of `icons/128x128@2x.png`) at 64 px, since `splash` is the frontendDist and is bundled whole. The window stays 360 by 180; the icon, label and bar fit with room.
