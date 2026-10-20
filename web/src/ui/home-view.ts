@@ -1,6 +1,6 @@
 import type { Engine, Page } from "../engine";
 import { formatRelative } from "../engine/format";
-import { t } from "../engine/i18n";
+import { plural, t } from "../engine/i18n";
 import { simpleDialog } from "./dialog";
 import { h, ref, setAttr, setText } from "./dom";
 import { fallbackGlyph, pageIcon, paintIcon } from "./pageicon";
@@ -8,6 +8,8 @@ import type { StarterSummary, TemplateCatalog } from "./templates-dialog";
 
 const RECENT_SHOWN = 8;
 const TEMPLATES_SHOWN = 10;
+const FEATURE_SHOWN = 6;
+const SHOWCASE = ["charts", "examples"];
 const ACCEPT = ".zip,.md,.markdown,.txt,.html,.htm,.enex,.xml,.docx,.xlsx,.csv,.tsv,.json,.opml,.pdf";
 
 function patchCards<T>(host: HTMLElement, items: readonly T[], key: (x: T) => string, make: (x: T) => HTMLElement, update: (el: HTMLElement, x: T) => void): void {
@@ -49,6 +51,10 @@ export function mountHome(engine: Engine): void {
   const tplGrid = ref("home-tpl-grid");
   const tplEmpty = ref("home-tpl-empty");
   const tplSearch = ref<HTMLInputElement>("home-tpl-search");
+  const featSec = ref("home-feat-sec");
+  const featGrid = ref("home-feat-grid");
+  const exSec = ref("home-ex-sec");
+  const exGrid = ref("home-ex-grid");
   let recent: Page[] = [];
   let token = 0;
   let catalog: TemplateCatalog | null = null;
@@ -82,6 +88,8 @@ export function mountHome(engine: Engine): void {
     const w = engine.canWrite();
     if (material.hidden === w) material.hidden = !w;
     if (tplSec.hidden === w) tplSec.hidden = !w;
+    if (featSec.hidden === w) featSec.hidden = !w;
+    if (exSec.hidden === w) exSec.hidden = !w;
   };
 
   const makeRecent = () => cardShell(h("span", { class: "hcard__doc" }, pageIcon("", "page"), h("span", { class: "hcard__doc-title" }), h("span", { class: "hcard__doc-text" })));
@@ -143,11 +151,54 @@ export function mountHome(engine: Engine): void {
     setText(el.querySelector(".hcard__meta") as HTMLElement, [categoryName(s.category), s.kind === "database" ? t("Database") : t("Page")].filter(Boolean).join(" · "));
     setAttr(el, "title", s.description || null);
   };
+  const makeRich = (cls: string) => (s: StarterSummary) => {
+    const el = h(
+      "button",
+      { class: `hcard ${cls}`, attrs: { type: "button" } },
+      h("span", { class: "hcard__preview" }, h("span", { class: "hcard__glyph" }, pageIcon(s.icon, s.kind === "database" ? "table" : "page")), h("span", { class: "hcard__shot" })),
+      h("span", { class: "hcard__body" }, h("span", { class: "hcard__name" }), h("span", { class: "hcard__desc" }), h("span", { class: "hcard__meta" })),
+    );
+    el.dataset.template = s.id;
+    previews.observe(el.firstElementChild as HTMLElement);
+    return el;
+  };
+  const paintRich = (el: HTMLElement, s: StarterSummary) => {
+    setText(el.querySelector(".hcard__name") as HTMLElement, s.name);
+    setText(el.querySelector(".hcard__desc") as HTMLElement, s.description);
+    setText(
+      el.querySelector(".hcard__meta") as HTMLElement,
+      s.databases !== undefined || s.docs !== undefined
+        ? `${plural(s.docs ?? 0, "{count} page", "{count} pages")} · ${plural(s.databases ?? 0, "{count} database", "{count} databases")}`
+        : s.pages
+          ? plural(s.pages, "{count} page", "{count} pages")
+          : s.kind === "database"
+            ? t("Database")
+            : t("Page"),
+    );
+  };
+  const catName = (id: string) => catalog?.categories.find((c) => c.id === id)?.name ?? "";
+  const paintShowcase = () => {
+    if (!catalog) return;
+    const charts = catName("charts");
+    const examples = catName("examples");
+    const feat = catalog.starters
+      .filter((s) => s.category === charts)
+      .sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
+      .slice(0, FEATURE_SHOWN);
+    const projects = catalog.starters.filter((s) => s.category === examples);
+    patchCards(featGrid, feat, (s) => s.id, makeRich("hcard--big"), paintRich);
+    patchCards(exGrid, projects, (s) => s.id, makeRich("hcard--ex"), paintRich);
+    setAttr(featSec, "data-empty", feat.length ? null : "true");
+    setAttr(exSec, "data-empty", projects.length ? null : "true");
+  };
   const matches = (s: StarterSummary) =>
     (!category || s.category === chosenName()) && (!query || `${s.name} ${s.description} ${s.category} ${categoryName(s.category)} ${s.tags.join(" ")}`.toLowerCase().includes(query));
   const paintTemplates = () => {
     if (!catalog) return;
-    const all = [{ id: "", name: t("All"), count: catalog.starters.length }, ...catalog.categories.filter((c) => c.count > 0)];
+    paintShowcase();
+    const rest = catalog.categories.filter((c) => c.count > 0 && !SHOWCASE.includes(c.id));
+    const pool = catalog.starters.filter((s) => rest.some((c) => c.name === s.category));
+    const all = [{ id: "", name: t("All"), count: pool.length }, ...rest];
     patchCards(
       chips,
       all,
@@ -160,7 +211,7 @@ export function mountHome(engine: Engine): void {
         setAttr(el, "aria-pressed", c.id === category ? "true" : "false");
       },
     );
-    const list = catalog.starters.filter(matches).slice(0, TEMPLATES_SHOWN);
+    const list = pool.filter(matches).slice(0, TEMPLATES_SHOWN);
     patchCards(tplGrid, list, (s) => s.id, makeTemplate, paintTemplateCard);
     if (tplEmpty.hidden !== list.length > 0) tplEmpty.hidden = list.length > 0;
   };
@@ -240,6 +291,14 @@ export function mountHome(engine: Engine): void {
     const id = (e.target as HTMLElement).closest<HTMLElement>(".hcard[data-template]")?.dataset.template;
     if (id) void templatesModule().then((m) => m.openTemplates(engine, {}, { preview: id }), engine.reportError);
   });
+  const openPreview = (e: Event) => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>(".hcard[data-template]")?.dataset.template;
+    if (id) void templatesModule().then((m) => m.openTemplates(engine, {}, { preview: id }), engine.reportError);
+  };
+  featGrid.addEventListener("click", openPreview);
+  exGrid.addEventListener("click", openPreview);
+  ref("home-feat-all").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { category: "charts" }), engine.reportError));
+  ref("home-ex-all").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { category: "examples" }), engine.reportError));
   ref("home-templates").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { ...(category ? { category } : {}), ...(query ? { query } : {}) }), engine.reportError));
   ref("home-choose").addEventListener("click", chooseFiles);
   ref("home-paste").addEventListener("click", pasteText);

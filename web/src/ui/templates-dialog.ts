@@ -17,11 +17,29 @@ export interface StarterSummary {
   kind: "doc" | "database";
   category: string;
   tags: string[];
+  featured?: boolean;
+  pages?: number;
+  docs?: number;
+  databases?: number;
+}
+
+export function projectCounts(s: { pages?: number; docs?: number; databases?: number }): string {
+  if (s.docs !== undefined || s.databases !== undefined) return `${plural(s.docs ?? 0, "{count} page", "{count} pages")} · ${plural(s.databases ?? 0, "{count} database", "{count} databases")}`;
+  return plural(s.pages ?? 0, "{count} page", "{count} pages");
 }
 
 interface PreviewItem {
   name: string;
   type: string;
+}
+
+interface PreviewNode {
+  name: string;
+  icon: string;
+  kind: "doc" | "database";
+  depth: number;
+  rows?: number;
+  view?: string;
 }
 
 export interface TemplatePreview {
@@ -36,6 +54,14 @@ export interface TemplatePreview {
   views?: PreviewItem[];
   properties?: PreviewItem[];
   rows?: number;
+  featured?: boolean;
+  pages?: number;
+  databases?: number;
+  tree?: PreviewNode[];
+}
+
+export function starterMeta(s: StarterSummary): string {
+  return s.pages ? `${t(s.category)} · ${projectCounts(s)}` : `${t(s.category)} · ${kindLabel(s.kind)}`;
 }
 
 export interface TemplateCategory {
@@ -243,6 +269,8 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
       const inside = h("div", { class: "tplgal__inside" });
       const titleInput = input({ maxlength: 200 });
       const useBtn = button(t("Use this template"), "primary");
+      useBtn.classList.add("tplgal__use");
+      const useLabel = useBtn.lastElementChild as HTMLElement;
       const backBtn = button(t("Back to templates"), "ghost");
       const info = h(
         "div",
@@ -280,7 +308,8 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
       const starterCard = (s: StarterSummary): Item => {
         const box = h("span", { class: "tplcard__prev tplprev" });
         box.dataset.tpl = s.id;
-        const card = cardShell(box, pageIcon(s.icon, s.kind === "database" ? "table" : "page", "tplcard__icon"), h("span", { class: "tplcard__label", text: s.name }), h("span", { class: "tplcard__meta", text: `${t(s.category)} · ${kindLabel(s.kind)}` }));
+        const card = cardShell(box, pageIcon(s.icon, s.kind === "database" ? "table" : "page", "tplcard__icon"), h("span", { class: "tplcard__label", text: s.name }), h("span", { class: "tplcard__meta", text: starterMeta(s) }));
+        if (s.featured) card.append(h("span", { class: "tplcard__flag", text: t("Featured") }));
         lazy?.observe(box);
         const it: Item = { starter: s, card, text: [s.name, s.description, s.category, t(s.category), ...s.tags].join(" ").toLowerCase() };
         byCard.set(card, it);
@@ -341,7 +370,26 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
       const fillInside = (it: Item, p: TemplatePreview) => {
         if (current !== it) return;
         const groups: HTMLElement[] = [];
-        if (p.kind === "database") {
+        if (p.tree?.length) {
+          const counts = [plural(p.pages ?? 0, "{count} page", "{count} pages"), plural(p.databases ?? 0, "{count} database", "{count} databases")];
+          if (p.rows) counts.push(plural(p.rows, "{count} sample row", "{count} sample rows"));
+          groups.push(h("p", { class: "tplgal__counts", text: counts.join(" · ") }));
+          groups.push(
+            h(
+              "ul",
+              { class: "tplgal__tree" },
+              ...p.tree.map((n) =>
+                h(
+                  "li",
+                  { attrs: { "data-depth": String(Math.min(n.depth, 4)) } },
+                  pageIcon(n.icon, n.kind === "database" ? "table" : "page", "tplgal__ticon"),
+                  h("span", { class: "tplgal__tname", text: n.name }),
+                  n.kind === "database" && n.view ? h("span", { class: "tplgal__tmeta" }, iconNode(viewIcon(n.view)), h("span", { text: String(n.rows ?? 0) })) : h("span", { class: "tplgal__tmeta" }),
+                ),
+              ),
+            ),
+          );
+        } else if (p.kind === "database") {
           groups.push(insideGroup(t("Views"), (p.views ?? []).map((v): [IconName, string] => [viewIcon(v.type), v.name])));
           groups.push(insideGroup(t("Properties"), (p.properties ?? []).map((x): [IconName, string] => [propIcon(x.type), x.name])));
           if (p.rows) groups.push(h("p", { class: "tplgal__note", text: plural(p.rows, "{count} sample row", "{count} sample rows") }));
@@ -366,12 +414,13 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
         lastCard = it.card;
         st.clear();
         setAttr(useBtn, "aria-busy", null);
+        setText(useLabel, t("Use this template"));
         const s = it.starter;
         const w = it.ws;
         const name = s ? s.name : w?.title || t("Untitled");
         paintIcon(dIcon, s ? s.icon : (w?.icon ?? ""), (s ? s.kind === "database" : w?.kind === "collection") ? "table" : "page");
         setText(dName, name);
-        setText(dMeta, s ? `${t(s.category)} · ${kindLabel(s.kind)}` : w ? `${t("From this workspace")} · ${kindLabel(w.kind)} · ${t("Updated {when}", { when: formatRelative(w.updated_at) })}` : "");
+        setText(dMeta, s ? starterMeta(s) : w ? `${t("From this workspace")} · ${kindLabel(w.kind)} · ${t("Updated {when}", { when: formatRelative(w.updated_at) })}` : "");
         setText(dDesc, s?.description ?? "");
         dDesc.hidden = !s;
         titleInput.value = name;
@@ -402,6 +451,10 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
         const it = current;
         if (!it || useBtn.getAttribute("aria-busy")) return;
         setAttr(useBtn, "aria-busy", "true");
+        const pages = it.starter?.pages ?? 0;
+        setText(useLabel, pages ? t("Building {count} pages…", { count: pages }) : t("Adding…"));
+        if (pages) st.say(t("Large projects take a few seconds to build."));
+        else st.clear();
         const title = titleInput.value.trim();
         useTemplate(engine, it.starter ? { starter: it.starter.id, title } : { page: it.ws?.id ?? "", title }, target)
           .then((p) => {
@@ -410,6 +463,7 @@ export function openTemplates(engine: Engine, target: TemplateTarget = {}, opts:
           })
           .catch((e: unknown) => {
             setAttr(useBtn, "aria-busy", null);
+            setText(useLabel, t("Use this template"));
             st.error(e);
           });
       };

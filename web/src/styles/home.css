@@ -187,6 +187,95 @@
   display: flex;
 }
 
+.home-sec[data-empty="true"] {
+  display: none;
+}
+
+.home-sec__head--lead {
+  align-items: flex-end;
+}
+
+.home-sec__intro {
+  display: grid;
+  row-gap: 4px;
+  min-inline-size: 0;
+}
+
+.home-sec__lead {
+  max-inline-size: 72ch;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.home-feature {
+  row-gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-6);
+  background: radial-gradient(90% 120% at 0% 0%, var(--accent-wash), transparent 60%), var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.home-feature__title {
+  font-size: 21px;
+  font-weight: var(--weight-semibold);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.home-feature .hcard {
+  background: var(--sheet);
+}
+
+.home-grid.home-grid--big {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.home-grid.home-grid--ex {
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+}
+
+.hcard__desc {
+  display: -webkit-box;
+  block-size: 2.9em;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-muted);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.hcard.is-skeleton .hcard__desc {
+  color: transparent;
+}
+
+.hcard--big,
+.hcard--ex {
+  padding-block-end: 12px;
+}
+
+.hcard--big .hcard__body,
+.hcard--ex .hcard__body {
+  row-gap: 4px;
+  padding-inline: 6px;
+}
+
+.hcard--big .hcard__name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.hcard--big .tplprev__head,
+.hcard--big .tplp-tabs {
+  display: none;
+}
+
+.hcard--big .tplprev__page {
+  padding: 22px 26px;
+}
+
 .home-chips {
   display: flex;
   flex: 1 1 auto;
@@ -502,6 +591,18 @@
   .home-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: var(--space-3);
+  }
+
+  .home-grid.home-grid--big {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-grid.home-grid--ex {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .home-feature {
+    padding: var(--space-4) var(--space-3);
   }
 
   .home .btn,
