@@ -1,6 +1,14 @@
 # Install
 
-form.md is one binary, `form-md`, that serves the web client, the API and the realtime sync socket from one port. It needs a writable data directory and nothing else. There are four ways to get it running: the installer script (Linux with systemd, or macOS without a service), the release binary by hand, the container image, or a build from source.
+form.md is one binary, `form-md`, that serves the web client, the API and the realtime sync socket from one port. It needs a writable data directory and nothing else. There are five ways to get it running: the desktop app, the installer script (Linux with systemd, or macOS without a service), the release binary by hand, the container image, or a build from source.
+
+## Desktop app
+
+Since v0.43.0 each release also carries the desktop app: `form.md_X.Y.Z_aarch64.dmg` and `_x64.dmg` for macOS 12 or newer, a `.deb`, `.rpm` and `.AppImage` for Linux on x64 and arm64, and an `.msi` and setup `.exe` for Windows 10 or newer. Build it yourself with `./build_app` (macOS and Linux) or `build_app.bat` (Windows); the packages land in `src-tauri/target/release/bundle`.
+
+The app is a window around the same `form-md` binary. It starts the server on this computer when it opens and stops it when you quit, signs you in as the owner without a password screen, and keeps your data in `~/form.md` (start the app with `FORMMD_DATA` set to use another folder). The server listens on `127.0.0.1:8750` so agents and `form-md mcp` find it at the usual address, or on another free port when 8750 is taken. It never listens beyond this computer; to share a workspace with other people, run the server on its own as below.
+
+A macOS build downloaded from a release is unsigned unless the release workflow had Apple signing secrets: allow it once under System Settings, Privacy and Security, Open Anyway.
 
 ## Layout
 

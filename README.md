@@ -91,7 +91,16 @@ form.md is a self-hosted workspace where people & AI agents write documents, run
 
 ### Requirements
 
-Go 1.26 or newer & Node.js 22 or newer. Everything else is installed by the scripts below.
+Go 1.26 or newer & Node.js 22 or newer. The desktop app also needs Rust (`./build_app` offers to install it w/ rustup), the Xcode Command Line Tools on a Mac & WebKitGTK 4.1 on Linux. Everything else is installed by the scripts below.
+
+### Desktop app
+
+```shell
+./build_app          # macOS: form.md.app & a .dmg · Linux: .deb, .rpm & .AppImage
+build_app.bat        # Windows: .msi & a setup .exe
+```
+
+The packages land in `src-tauri/target/release/bundle`. The app is a Tauri 2 window around the same form-md server, which it starts on this computer & stops when you quit; you are signed in as the owner w/o a password screen, & your pages live in `~/form.md` (set `FORMMD_DATA` before starting the app to use another folder). It answers only this computer. Agents still find it at http://127.0.0.1:8750 (another free port when 8750 is taken). `./form-md desktop dev` runs it from source; `./build_app --server-only` builds just the binary. CI builds every platform on each version tag (`.github/workflows/desktop.yml`).
 
 ### macOS & Linux
 
@@ -101,11 +110,11 @@ chmod +x form-md_oc_install form-md
 ./form-md
 ```
 
-Open http://127.0.0.1:5750 while developing. To build the single binary from a clean clone & run it:
+Open http://127.0.0.1:5750 while developing. To build the server binary alone from a clean clone & run it:
 
 ```shell
-./build_app          # checks Go & Node, installs, builds the client, compiles bin/form-md
-./form-md serve      # or ./bin/form-md
+./build_app --server-only   # checks Go & Node, installs, builds the client, compiles bin/form-md
+./form-md serve             # or ./bin/form-md
 ```
 
 `./form-md help` lists the rest: `release` (every platform into `release/`), `claude` (Claude Code in this terminal w/ form.md's tools), `mcp`, `agents install`, `cli list|describe|run`, `check`, `counts`, `clean`.
