@@ -35,6 +35,10 @@ type Preview struct {
 	Views       []PreviewItem `json:"views,omitempty"`
 	Properties  []PreviewItem `json:"properties,omitempty"`
 	Rows        int           `json:"rows,omitempty"`
+	Featured    bool          `json:"featured,omitempty"`
+	Pages       int           `json:"pages,omitempty"`
+	Databases   int           `json:"databases,omitempty"`
+	Tree        []PreviewNode `json:"tree,omitempty"`
 }
 
 var (
@@ -68,9 +72,13 @@ func previewFor(id string) *Preview {
 			delete(previewCache, k)
 		}
 	}
-	p := &Preview{ID: st.ID, Kind: st.Kind, Title: st.Name, Icon: st.Icon, Description: st.Description, Category: st.Category}
+	p := &Preview{ID: st.ID, Kind: st.Kind, Title: st.Name, Icon: st.Icon, Description: st.Description, Category: st.Category, Featured: st.Featured}
+	t := newTree(st, now)
+	if len(st.children) > 0 {
+		p.Tree, p.Pages, p.Databases, p.Rows = treeOf(st)
+	}
 	if st.Kind == "database" {
-		p.HTML = databaseHTML(st, now)
+		p.HTML = databaseHTML(t, st, now)
 		for _, v := range st.views {
 			p.Views = append(p.Views, PreviewItem{Name: v.Name, Type: v.Type})
 		}
@@ -79,7 +87,7 @@ func previewFor(id string) *Preview {
 		}
 		p.Rows = len(st.rows)
 	} else {
-		p.HTML, p.Sections = markdownHTML(fill(st.markdown))
+		p.HTML, p.Sections = t.docHTML(st, st.markdown)
 	}
 	previewCache[key] = p
 	return p
@@ -279,10 +287,14 @@ func cellHTML(sp prop, v any, idx int, now time.Time) string {
 	return ""
 }
 
-func databaseHTML(st *Starter, now time.Time) string {
+func databaseHTML(t *pvTree, st *Starter, now time.Time) string {
 	var b strings.Builder
 	b.WriteString(`<div class="tplp-tabs">`)
 	for i, v := range st.views {
+		if i == 6 {
+			b.WriteString(`<span>+` + strconv.Itoa(len(st.views)-6) + `</span>`)
+			break
+		}
 		cls := ""
 		if i == 0 {
 			cls = ` class="is-on"`
@@ -291,6 +303,12 @@ func databaseHTML(st *Starter, now time.Time) string {
 	}
 	b.WriteString(`</div>`)
 	first := st.views[0]
+	if visualViews[first.Type] {
+		if out := t.visualHTML(t.db(st), first); out != "" {
+			b.WriteString(out)
+			return b.String()
+		}
+	}
 	var cfg viewConfig
 	_ = json.Unmarshal([]byte(first.Config), &cfg)
 	var title prop
@@ -314,16 +332,6 @@ func databaseHTML(st *Starter, now time.Time) string {
 			return b.String()
 		}
 	}
-	if first.Type == "gallery" {
-		b.WriteString(`<div class="tplp-cards">`)
-		for i, r := range st.rows {
-			b.WriteString(`<div class="tplp-card"><div class="tplp-card__cover"></div><div class="tplp-card__title">` + esc(r.Title) + `</div>`)
-			b.WriteString(cardProps(rest, r, i, now, 2))
-			b.WriteString(`</div>`)
-		}
-		b.WriteString(`</div>`)
-		return b.String()
-	}
 	cols := rest
 	if len(cols) > 4 {
 		cols = cols[:4]
@@ -334,9 +342,12 @@ func databaseHTML(st *Starter, now time.Time) string {
 	}
 	b.WriteString(`</tr></thead><tbody>`)
 	for i, r := range st.rows {
+		if i == 12 {
+			break
+		}
 		b.WriteString(`<tr><td class="tplp-title">` + esc(r.Title) + `</td>`)
 		for _, sp := range cols {
-			b.WriteString(`<td>` + cellHTML(sp, r.Values[sp.ID], i, now) + `</td>`)
+			b.WriteString(`<td>` + t.cellOf(t.db(st), i, sp, now) + `</td>`)
 		}
 		b.WriteString(`</tr>`)
 	}
@@ -372,13 +383,20 @@ func boardHTML(st *Starter, group prop, rest []prop, now time.Time) string {
 	b.WriteString(`<div class="tplp-board">`)
 	for _, o := range group.Options {
 		b.WriteString(`<div class="tplp-col"><div class="tplp-col__head">` + optionChip(o) + `</div>`)
+		shown := 0
 		for i, r := range st.rows {
 			if v, _ := r.Values[group.ID].(string); v != o.ID {
+				continue
+			}
+			if shown++; shown > 4 {
 				continue
 			}
 			b.WriteString(`<div class="tplp-card"><div class="tplp-card__title">` + esc(r.Title) + `</div>`)
 			b.WriteString(cardProps(others, r, i, now, 2))
 			b.WriteString(`</div>`)
+		}
+		if shown > 4 {
+			b.WriteString(`<div class="tplp-col__more">+` + strconv.Itoa(shown-4) + `</div>`)
 		}
 		b.WriteString(`</div>`)
 	}
