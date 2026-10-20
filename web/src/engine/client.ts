@@ -332,10 +332,12 @@ export function createClient(f: FetchFn) {
         if (q.in === "title") p.set("in", "title");
         if (q.creator?.length) p.set("creator", q.creator.join(","));
         if (q.parent) p.set("parent", q.parent);
+        if (q.teamspace) p.set("teamspace", q.teamspace);
         if (q.date) p.set("date", q.date);
         if (q.from) p.set("from", String(q.from));
         if (q.to) p.set("to", String(q.to));
         if (q.sort && q.sort !== "best") p.set("sort", q.sort);
+        if (q.dir) p.set("dir", q.dir);
         if (q.limit) p.set("limit", String(q.limit));
         if (q.offset) p.set("offset", String(q.offset));
         return request<SearchResult>(f, "GET", `/api/search?${p.toString()}`, undefined, 15000, cancel);

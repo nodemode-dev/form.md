@@ -2,9 +2,10 @@ import type { Engine, Page } from "../engine";
 import type { Command } from "../engine/commands";
 import { formatRelative } from "../engine/format";
 import { t } from "../engine/i18n";
-import type { Member, SearchHit, SearchQuery } from "../engine/types";
+import type { Member, SearchHit, SearchQuery, SearchResult } from "../engine/types";
 import { byId, delayedIndicator, h, setAttr, setText } from "./dom";
-import { iconNode } from "./icons";
+import { anchorTo } from "./floating";
+import { type IconName, iconNode } from "./icons";
 import { openLayer } from "./layers";
 import { reconcile } from "./list";
 import { type MenuEntry, openMenu } from "./menu";
@@ -17,6 +18,7 @@ type Item =
   | { kind: "heading"; key: string; label: string }
   | { kind: "page"; key: string; hit: SearchHit }
   | { kind: "action"; key: string; command: Command; chord: string }
+  | { kind: "dest"; key: string; label: string; detail: string; icon: IconName; run: () => void }
   | { kind: "more"; key: string }
   | { kind: "ask"; key: string }
   | { kind: "empty"; key: string; label: string };
@@ -34,14 +36,19 @@ const QUESTION = /\?\s*$|^(who|what|when|where|why|how|which|is|are|do|does|did|
 
 type DateRange = "any" | "today" | "week" | "month" | "year";
 
+type Sort = "best" | "edited" | "edited_old" | "created" | "created_old";
+
 interface Filters {
   titleOnly: boolean;
   creators: string[];
+  team: { id: string; name: string } | null;
   parent: { id: string; title: string } | null;
   date: DateRange;
   dateField: "edited" | "created";
-  sort: "best" | "edited" | "created";
+  sort: Sort;
 }
+
+type FinderQuery = SearchQuery;
 
 const DAY = 86400000;
 const PAGE_SIZE = 20;
@@ -91,26 +98,45 @@ export function mountSearch(engine: Engine): void {
   let more = false;
   let recents: SearchHit[] = [];
   let people: Member[] = [];
-  const filters: Filters = { titleOnly: false, creators: [], parent: null, date: "any", dateField: "edited", sort: "best" };
+  const visited = new Map<string, number>();
+  const filters: Filters = { titleOnly: false, creators: [], team: null, parent: null, date: "any", dateField: "edited", sort: "best" };
 
   const workspace = () => state.get("workspaceId") ?? "";
 
   function build() {
     const input = h("input", {
       class: "srch__input",
-      attrs: { type: "search", role: "combobox", "aria-expanded": "true", "aria-controls": "srch-list", "aria-autocomplete": "list", autocomplete: "off", spellcheck: "false", placeholder: t("Search pages, or type > for actions"), "aria-label": t("Search") },
+      attrs: { type: "search", role: "combobox", "aria-expanded": "true", "aria-controls": "srch-list", "aria-autocomplete": "list", autocomplete: "off", spellcheck: "false", placeholder: t("Search pages, or type > for commands"), "aria-label": t("Search") },
     });
     const busy = h("span", { class: "srch__busy", attrs: { "aria-hidden": "true" } });
     const head = h("div", { class: "srch__head" }, h("span", { class: "srch__glass" }, iconNode("search")), input, busy);
     const chip = (label: string) => h("button", { class: "chip-btn", attrs: { type: "button", "aria-pressed": "false" } }, h("span", { text: label }), iconNode("chevron-down"));
     const titleChip = h("button", { class: "chip-btn", attrs: { type: "button", "aria-pressed": "false" } }, h("span", { text: t("Title only") }));
     const byChip = chip(t("Created by"));
+    const teamChip = chip(t("Shared space"));
     const inChip = chip(t("In"));
     const dateChip = chip(t("Date"));
     const sortChip = chip(t("Best match"));
     const webChip = h("button", { class: "chip-btn", attrs: { type: "button", "aria-pressed": "false" } }, h("span", { text: t("Include the web") }));
     webChip.hidden = true;
-    const filterRow = h("div", { class: "srch__filters", attrs: { role: "group", "aria-label": t("Filters") } }, titleChip, byChip, inChip, dateChip, webChip, h("span", { class: "srch__spacer" }), sortChip);
+    const filterRow = h("div", { class: "srch__filters", attrs: { role: "group", "aria-label": t("Filters") } }, titleChip, byChip, teamChip, inChip, dateChip, webChip, h("span", { class: "srch__spacer" }), sortChip);
+    teamChip.addEventListener("click", () => {
+      const set = (team: Filters["team"]) => {
+        filters.team = team;
+        paintChips();
+        schedule(0);
+      };
+      const teams = engine.pages.teamspaces(workspace());
+      openMenu(
+        teamChip,
+        [
+          { label: t("Any shared space"), checked: !filters.team, run: () => set(null) },
+          ...(teams.length ? [{ kind: "separator" as const }] : []),
+          ...teams.map((s) => ({ label: s.name || t("Untitled"), lead: pageIcon(s.icon, "page"), checked: filters.team?.id === s.id, run: () => set({ id: s.id, name: s.name || t("Untitled") }) })),
+        ],
+        { side: "bottom", align: "start", label: t("Shared space") },
+      );
+    });
     webChip.addEventListener("click", () => setAttr(webChip, "aria-pressed", String(webChip.getAttribute("aria-pressed") !== "true")));
     void api.ai.answerOptions().then(
       (o) => {
@@ -189,25 +215,96 @@ export function mountSearch(engine: Engine): void {
       openMenu(byChip, entries, { side: "bottom", align: "start", label: t("Created by") });
     });
     inChip.addEventListener("click", () => {
-      const r = state.get("route");
-      const here = r.name === "page" ? engine.pages.get(r.id) : undefined;
+      if (inChip.getAttribute("aria-expanded") === "true" || performance.now() - Number(inChip.dataset.closedAt ?? 0) < 350) return;
       const set = (p: { id: string; title: string } | null) => {
         filters.parent = p;
         paintChips();
         schedule(0);
       };
-      const entries: MenuEntry[] = [{ label: t("Anywhere in the workspace"), checked: !filters.parent, run: () => set(null) }];
-      if (here) {
-        entries.push({ kind: "heading", label: t("Inside") });
-        const chain: Page[] = [];
-        let cur: Page | undefined = here;
-        for (let i = 0; cur && i < 32; i++) {
-          chain.unshift(cur);
-          cur = cur.parent_id ? engine.pages.get(cur.parent_id) : undefined;
+      const field = h("input", { class: "input input--sm srch-pick__input", attrs: { type: "search", placeholder: t("Find a page"), "aria-label": t("Find a page"), autocomplete: "off", spellcheck: "false" } });
+      const box = h("div", { class: "srch-pick__list", attrs: { role: "listbox", "aria-label": t("Pages") } });
+      const pop = h("div", { class: "menu srch-pick", attrs: { role: "dialog", "aria-label": t("In") } }, field, box);
+      type Opt = { key: string; page: Page | null; sub: string };
+      let opts: Opt[] = [];
+      let at = 0;
+      const r = state.get("route");
+      const here = r.name === "page" ? engine.pages.get(r.id) : undefined;
+      const fill = () => {
+        const q = field.value.trim().toLowerCase();
+        let pages: Page[];
+        if (q) pages = engine.pages.all(workspace()).filter((p) => !p.trashed_at && (p.title || t("Untitled")).toLowerCase().includes(q));
+        else {
+          const chain = here ? [here, ...engine.pages.ancestors(here.id).reverse()] : [];
+          const seen = new Set(chain.map((p) => p.id));
+          pages = [...chain, ...recents.map((x) => engine.pages.get(x.id)).filter((p): p is Page => !!p && !seen.has(p.id))];
         }
-        for (const p of chain.reverse()) entries.push({ label: p.title || t("Untitled"), lead: pageIcon(p.icon, p.kind === "collection" ? "database" : "page"), checked: filters.parent?.id === p.id, run: () => set({ id: p.id, title: p.title || t("Untitled") }) });
-      }
-      openMenu(inChip, entries, { side: "bottom", align: "start", label: t("In") });
+        opts = [{ key: "any", page: null, sub: "" }, ...pages.slice(0, 40).map((p) => ({ key: p.id, page: p, sub: engine.pages.ancestors(p.id).map((a) => a.title || t("Untitled")).join(" / ") }))];
+        at = Math.min(at, opts.length - 1);
+        reconcile(
+          box,
+          opts.map((o, i) => ({ o, i })),
+          (x) => x.o.key,
+          () => h("button", { class: "menu__item srch-pick__item", attrs: { type: "button", role: "option", tabindex: "-1" } }, h("span", { class: "srch-pick__icon" }), h("span", { class: "srch-pick__text" }, h("span", { class: "srch-pick__label" }), h("span", { class: "srch-pick__sub" })), h("span", { class: "menu__check" })),
+          (el, { o, i }) => {
+            el.dataset.index = String(i);
+            const icon = el.querySelector(".srch-pick__icon") as HTMLElement;
+            const sig = o.page ? `${o.page.icon}|${o.page.kind}` : "any";
+            if (icon.dataset.sig !== sig) {
+              icon.dataset.sig = sig;
+              icon.replaceChildren(o.page ? pageIcon(o.page.icon, o.page.kind === "collection" ? "database" : "page") : iconNode("search"));
+            }
+            setText(el.querySelector(".srch-pick__label") as HTMLElement, o.page ? o.page.title || t("Untitled") : t("Anywhere in the workspace"));
+            setText(el.querySelector(".srch-pick__sub") as HTMLElement, o.page ? o.sub || t("Top level") : "");
+            const on = o.page ? filters.parent?.id === o.page.id : !filters.parent;
+            const check = el.querySelector(".menu__check") as HTMLElement;
+            if (!!check.firstChild !== on) check.replaceChildren(...(on ? [iconNode("check")] : []));
+            setAttr(el, "aria-selected", String(i === at));
+          },
+        );
+      };
+      const pick = (i: number) => {
+        const o = opts[i];
+        if (!o) return;
+        closePick();
+        set(o.page ? { id: o.page.id, title: o.page.title || t("Untitled") } : null);
+      };
+      field.addEventListener("input", () => {
+        at = 0;
+        fill();
+      });
+      field.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          at = Math.max(0, Math.min(opts.length - 1, at + (e.key === "ArrowDown" ? 1 : -1)));
+          fill();
+          box.querySelector<HTMLElement>(`[data-index="${at}"]`)?.scrollIntoView({ block: "nearest" });
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          pick(at);
+        }
+      });
+      box.addEventListener("click", (e) => {
+        const el = (e.target as Element).closest<HTMLElement>("[data-index]");
+        if (el) pick(Number(el.dataset.index));
+      });
+      fill();
+      byId("overlay-root").append(pop);
+      const release = anchorTo(pop, inChip, { side: "bottom", align: "start", offset: 4 });
+      setAttr(inChip, "aria-expanded", "true");
+      requestAnimationFrame(() => pop.classList.add("is-visible"));
+      const closePick = openLayer({
+        el: pop,
+        modal: false,
+        dismissOnOutside: true,
+        initialFocus: field,
+        returnFocus: parts?.input ?? null,
+        onClose: () => {
+          release();
+          setAttr(inChip, "aria-expanded", "false");
+          inChip.dataset.closedAt = String(performance.now());
+          pop.remove();
+        },
+      });
     });
     dateChip.addEventListener("click", () => {
       const set = (change: Partial<Filters>) => {
@@ -215,7 +312,7 @@ export function mountSearch(engine: Engine): void {
         paintChips();
         schedule(0);
       };
-      const ranges: [DateRange, string][] = [["any", t("Any time")], ["today", t("Today")], ["week", t("Last 7 days")], ["month", t("Last 30 days")], ["year", t("Last 12 months")]];
+      const ranges: [DateRange, string][] = [["any", t("Any time")], ["today", t("Today")], ["week", t("Last 7 days")], ["month", t("Last 30 days")]];
       openMenu(
         dateChip,
         [
@@ -238,13 +335,15 @@ export function mountSearch(engine: Engine): void {
         sortChip,
         [
           { label: t("Best match"), checked: filters.sort === "best", run: () => set("best") },
-          { label: t("Last edited"), checked: filters.sort === "edited", run: () => set("edited") },
-          { label: t("Created"), checked: filters.sort === "created", run: () => set("created") },
+          { label: t("Edited, newest first"), checked: filters.sort === "edited", run: () => set("edited") },
+          { label: t("Edited, oldest first"), checked: filters.sort === "edited_old", run: () => set("edited_old") },
+          { label: t("Created, newest first"), checked: filters.sort === "created", run: () => set("created") },
+          { label: t("Created, oldest first"), checked: filters.sort === "created_old", run: () => set("created_old") },
         ],
         { side: "bottom", align: "end", label: t("Sort") },
       );
     });
-    return { scrim, dialog, input, busy, list, titleChip, webChip, byChip, inChip, dateChip, sortChip, took: foot.querySelector(".srch__took") as HTMLElement, answer, answerText, answerNote, sourcesEl };
+    return { scrim, dialog, input, busy, list, titleChip, webChip, byChip, teamChip, inChip, dateChip, sortChip, took: foot.querySelector(".srch__took") as HTMLElement, answer, answerText, answerNote, sourcesEl };
   }
 
   const paintChips = () => {
@@ -254,12 +353,14 @@ export function mountSearch(engine: Engine): void {
     const names = filters.creators.map((id) => people.find((m) => m.user_id === id)?.name ?? "").filter(Boolean);
     setText(p.byChip.firstElementChild as HTMLElement, names.length ? t("By {names}", { names: names.join(", ") }) : t("Created by"));
     setAttr(p.byChip, "aria-pressed", String(filters.creators.length > 0));
+    setText(p.teamChip.firstElementChild as HTMLElement, filters.team ? filters.team.name : t("Shared space"));
+    setAttr(p.teamChip, "aria-pressed", String(!!filters.team));
     setText(p.inChip.firstElementChild as HTMLElement, filters.parent ? t("In {page}", { page: filters.parent.title }) : t("In"));
     setAttr(p.inChip, "aria-pressed", String(!!filters.parent));
     const rangeLabel: Record<DateRange, string> = { any: t("Date"), today: t("Today"), week: t("Last 7 days"), month: t("Last 30 days"), year: t("Last 12 months") };
     setText(p.dateChip.firstElementChild as HTMLElement, filters.date === "any" ? t("Date") : `${filters.dateField === "created" ? t("Created") : t("Edited")} ${rangeLabel[filters.date].toLowerCase()}`);
     setAttr(p.dateChip, "aria-pressed", String(filters.date !== "any"));
-    const sortLabel = { best: t("Best match"), edited: t("Last edited"), created: t("Created") }[filters.sort];
+    const sortLabel = { best: t("Best match"), edited: t("Edited, newest first"), edited_old: t("Edited, oldest first"), created: t("Created, newest first"), created_old: t("Created, oldest first") }[filters.sort];
     setText(p.sortChip.firstElementChild as HTMLElement, sortLabel);
   };
 
@@ -268,8 +369,10 @@ export function mountSearch(engine: Engine): void {
 
   const actions = (q: string): Item[] => {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-    const chords = new Map<string, string>();
-    for (const s of keymap.list(new Set(["global", "view", "editor"]))) if (s.chords[0]) chords.set(s.command, s.chords[0].join("+"));
+    const chord = (id: string) => {
+      const c = keymap.chordsFor(id)[0];
+      return c ? keymap.text(c) : "";
+    };
     return commands
       .list()
       .filter((c) => c.enabled?.() !== false && !c.id.startsWith("layers.") && c.id !== "search.open")
@@ -277,8 +380,29 @@ export function mountSearch(engine: Engine): void {
         const hay = `${c.label()} ${c.group()}`.toLowerCase();
         return words.every((w) => hay.includes(w));
       })
+      .map((c) => [c, words.length && c.label().toLowerCase().startsWith(words[0] ?? "") ? 1 : 0] as const)
+      .sort((a, b) => b[1] - a[1])
+      .map(([c]) => c)
       .slice(0, q ? 30 : 8)
-      .map((command) => ({ kind: "action" as const, key: `a:${command.id}`, command, chord: chords.get(command.id) ?? "" }));
+      .map((command) => ({ kind: "action" as const, key: `a:${command.id}`, command, chord: chord(command.id) }));
+  };
+
+  const destinations = (q: string): Item[] => {
+    const s = q.toLowerCase();
+    if (s.length < 3) return [];
+    const all: (Extract<Item, { kind: "dest" }> & { words: string[] })[] = [
+      { kind: "dest", key: "d:home", words: ["home", "start"], label: t("Home"), detail: t("The start page of this workspace"), icon: "dashboard", run: () => engine.navigate({ name: "home" }) },
+      {
+        kind: "dest",
+        key: "d:settings",
+        words: ["settings", "preferences"],
+        label: t("Settings"),
+        detail: t("Your account, appearance and preferences"),
+        icon: "settings",
+        run: () => (commands.get("prefs.open") ? commands.run("prefs.open") : engine.openOverlay("account")),
+      },
+    ];
+    return all.filter((d) => d.words.some((w) => w.startsWith(s) || s.startsWith(w))).map(({ words: _w, ...d }) => d);
   };
 
   const compose = () => {
@@ -286,12 +410,13 @@ export function mountSearch(engine: Engine): void {
     const next: Item[] = [];
     if (actionMode()) {
       const list = actions(q.slice(1).trim());
-      next.push({ kind: "heading", key: "h:actions", label: t("Actions") }, ...(list.length ? list : [{ kind: "empty" as const, key: "e:actions", label: t("No action matches") }]));
+      next.push({ kind: "heading", key: "h:actions", label: t("Commands") }, ...(list.length ? list : [{ kind: "empty" as const, key: "e:actions", label: t("No command matches") }]));
     } else if (!q) {
-      if (recents.length) next.push({ kind: "heading", key: "h:recent", label: t("Recent") }, ...recents.map((hit) => ({ kind: "page" as const, key: `r:${hit.id}`, hit })));
-      const list = actions("");
-      if (list.length) next.push({ kind: "heading", key: "h:actions", label: t("Actions") }, ...list);
+      if (recents.length) next.push({ kind: "heading", key: "h:recent", label: t("Recently visited") }, ...recents.map((hit) => ({ kind: "page" as const, key: `r:${hit.id}`, hit })));
+      else next.push({ kind: "empty", key: "e:recent", label: t("Pages you open will show up here.") });
     } else {
+      const dests = destinations(q);
+      if (dests.length) next.push({ kind: "heading", key: "h:dest", label: t("Go to") }, ...dests);
       const ask: Item[] = [
         { kind: "heading", key: "h:ai", label: t("AI") },
         { kind: "ask", key: "ask" },
@@ -303,15 +428,15 @@ export function mountSearch(engine: Engine): void {
       else next.push({ kind: "empty", key: "e:pages", label: t("No pages match") });
       if (more) next.push({ kind: "more", key: "more" });
       if (!questionLike) next.push(...ask);
-      const list = actions(q).slice(0, 4);
-      if (list.length) next.push({ kind: "heading", key: "h:actions", label: t("Actions") }, ...list);
+      const list = actions(q).slice(0, 3);
+      if (list.length) next.push({ kind: "heading", key: "h:actions", label: t("Commands") }, ...list);
     }
     items = next;
     if (!selectable(items[active])) active = firstSelectable(0, 1);
     paint();
   };
 
-  const selectable = (it: Item | undefined) => !!it && (it.kind === "page" || it.kind === "action" || it.kind === "more" || it.kind === "ask");
+  const selectable = (it: Item | undefined) => !!it && (it.kind === "page" || it.kind === "action" || it.kind === "dest" || it.kind === "more" || it.kind === "ask");
 
   let asked = "";
   let answering: AbortController | null = null;
@@ -413,6 +538,7 @@ export function mountSearch(engine: Engine): void {
         if (it.kind === "ask") return h("div", { class: "srch__row srch__row--ask", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("ai-chip")), h("span", { class: "srch__main" }, h("span", { class: "srch__title" }), h("span", { class: "srch__path" })), h("span", { class: "srch__meta" }));
         if (it.kind === "action")
           return h("div", { class: "srch__row srch__row--action", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode("keyboard")), h("span", { class: "srch__main" }, h("span", { class: "srch__title" }), h("span", { class: "srch__path" })), h("span", { class: "srch__meta" }));
+        if (it.kind === "dest") return h("div", { class: "srch__row srch__row--dest", attrs: { role: "option" } }, h("span", { class: "srch__icon" }, iconNode(it.icon)), h("span", { class: "srch__main" }, h("span", { class: "srch__title" }), h("span", { class: "srch__path" })), h("span", { class: "srch__meta" }));
         return h(
           "div",
           { class: "srch__row", attrs: { role: "option" } },
@@ -443,6 +569,12 @@ export function mountSearch(engine: Engine): void {
           setText(el.querySelector(".srch__title") as HTMLElement, it.command.label());
           setText(el.querySelector(".srch__path") as HTMLElement, it.command.group());
           setText(el.querySelector(".srch__meta") as HTMLElement, it.chord);
+          el.classList.toggle("is-off", it.command.enabled?.() === false);
+          return;
+        }
+        if (it.kind === "dest") {
+          setText(el.querySelector(".srch__title") as HTMLElement, it.label);
+          setText(el.querySelector(".srch__path") as HTMLElement, it.detail);
           return;
         }
         const hit = it.hit;
@@ -458,7 +590,10 @@ export function mountSearch(engine: Engine): void {
         const text = [hit.heading, hit.snippet].filter(Boolean).join("  ·  ");
         snip.hidden = !text;
         fillMarked(snip, text);
-        setText(el.querySelector(".srch__meta") as HTMLElement, hit.updated_at ? formatRelative(hit.updated_at) : "");
+        const seen = it.key.startsWith("r:") ? visited.get(hit.id) : undefined;
+        const meta = el.querySelector(".srch__meta") as HTMLElement;
+        setText(meta, seen ? formatRelative(seen) : hit.updated_at ? formatRelative(hit.updated_at) : "");
+        setAttr(meta, "title", seen ? t("Visited") : t("Edited"));
       },
     );
     const cur = active >= 0 ? p.list.querySelector<HTMLElement>(`#srch-opt-${active}`) : null;
@@ -498,21 +633,31 @@ export function mountSearch(engine: Engine): void {
       setTimeout(() => commands.run(it.command.id), 0);
       return;
     }
+    if (it.kind === "dest") {
+      setTimeout(it.run, 0);
+      return;
+    }
     engine.openPage(it.hit.id, { newTab });
   };
 
-  const request = (offset: number): SearchQuery => {
-    const q: SearchQuery = { q: query(), workspace_id: workspace(), limit: PAGE_SIZE, offset };
+  const request = (offset: number): FinderQuery => {
+    const q: FinderQuery = { q: query(), workspace_id: workspace(), limit: PAGE_SIZE, offset };
     if (filters.titleOnly) q.in = "title";
     if (filters.creators.length) q.creator = filters.creators;
+    if (filters.team) q.teamspace = filters.team.id;
     if (filters.parent) q.parent = filters.parent.id;
     if (filters.date !== "any") {
       q.date = filters.dateField;
       q.from = rangeStart(filters.date, Date.now());
     }
-    if (filters.sort !== "best") q.sort = filters.sort;
+    if (filters.sort !== "best") {
+      q.sort = filters.sort.startsWith("created") ? "created" : "edited";
+      if (filters.sort.endsWith("_old")) q.dir = "asc";
+    }
     return q;
   };
+
+  const runSearch = (q: FinderQuery, signal: AbortSignal): Promise<SearchResult> => api.pages.search(q, signal);
 
   const fetchHits = async (append: boolean) => {
     if (!parts) return;
@@ -521,9 +666,20 @@ export function mountSearch(engine: Engine): void {
     inflight?.abort();
     const ctl = new AbortController();
     inflight = ctl;
-    const done = delayedIndicator(() => p.busy.classList.add("is-on"), () => p.busy.classList.remove("is-on"), 220, 300);
+    const done = delayedIndicator(
+      () => {
+        p.busy.classList.add("is-on");
+        p.list.classList.add("is-stale");
+      },
+      () => {
+        p.busy.classList.remove("is-on");
+        p.list.classList.remove("is-stale");
+      },
+      220,
+      300,
+    );
     try {
-      const res = await api.pages.search(request(append ? hits.length : 0), ctl.signal);
+      const res = await runSearch(request(append ? hits.length : 0), ctl.signal);
       if (mine !== seq) return;
       hits = append ? [...hits, ...res.hits.filter((x) => !hits.some((y) => y.id === x.id))] : res.hits;
       more = res.more;
@@ -557,8 +713,12 @@ export function mountSearch(engine: Engine): void {
       const r = await api.pages.recent(12);
       recents = r.pages
         .filter((x) => x.workspace_id === ws && !x.trashed_at)
-        .slice(0, 6)
-        .map((x) => ({ id: x.id, title: x.title, title_hl: "", icon: x.icon, kind: x.kind, row: !!x.row, path: [], match: "title", heading: "", snippet: "", created_at: x.created_at, created_by: "", updated_at: x.updated_at }));
+        .slice(0, 8)
+        .map((x) => {
+          visited.set(x.id, x.visited_at);
+          const path = engine.pages.ancestors(x.id).map((a) => ({ id: a.id, title: a.title, icon: a.icon }));
+          return { id: x.id, title: x.title, title_hl: "", icon: x.icon, kind: x.kind, row: !!x.row, path, match: "title" as const, heading: "", snippet: "", created_at: x.created_at, created_by: "", updated_at: x.updated_at };
+        });
       if (!query()) compose();
     } catch {
       recents = [];
@@ -578,6 +738,9 @@ export function mountSearch(engine: Engine): void {
       void loadRecents();
       const ws = workspace();
       if (ws) void api.workspaces.members(ws).then((r) => ((people = r.members), paintChips()), () => undefined);
+      const teams = engine.pages.teamspaces(ws);
+      if (filters.team && !teams.some((s) => s.id === filters.team?.id)) filters.team = null;
+      p.teamChip.hidden = !teams.length;
       paintChips();
     }
     p.scrim.hidden = false;

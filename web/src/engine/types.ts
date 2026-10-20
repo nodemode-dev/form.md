@@ -1041,6 +1041,8 @@ export interface SearchQuery {
   from?: number;
   to?: number;
   sort?: "best" | "edited" | "created";
+  dir?: "asc";
+  teamspace?: string;
   limit?: number;
   offset?: number;
 }

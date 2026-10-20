@@ -105,7 +105,7 @@ func (m module) Mount(r *httpx.Router, _ *app.Deps) error {
 		q := r.URL.Query()
 		in := Query{
 			Q: q.Get("q"), WorkspaceID: q.Get("workspace_id"), In: q.Get("in"), Parent: q.Get("parent"),
-			Date: q.Get("date"), Sort: q.Get("sort"),
+			Date: q.Get("date"), Sort: q.Get("sort"), Dir: q.Get("dir"), Teamspace: q.Get("teamspace"),
 		}
 		for _, c := range strings.Split(q.Get("creator"), ",") {
 			if c = strings.TrimSpace(c); c != "" {
@@ -348,6 +348,8 @@ type Query struct {
 	Parent      string
 	Date        string
 	Sort        string
+	Dir         string
+	Teamspace   string
 	Creators    []string
 	From        int64
 	To          int64
@@ -420,11 +422,20 @@ func (s *Service) Search(ctx context.Context, p *policy.Principal, in Query) (*R
 	scope := `{ws} : "` + in.WorkspaceID + `" AND `
 	var cte, cond strings.Builder
 	var cteArgs, condArgs []any
+	var ctes []string
 	if in.Parent != "" {
-		cte.WriteString("WITH RECURSIVE sub(id) AS (SELECT ? UNION SELECT c.id FROM pages c JOIN sub ON c.parent_id = sub.id) ")
+		ctes = append(ctes, "sub(id) AS (SELECT ? UNION SELECT c.id FROM pages c JOIN sub ON c.parent_id = sub.id)")
 		cteArgs = append(cteArgs, in.Parent)
 		cond.WriteString(" AND sp.page_id IN (SELECT id FROM sub) AND sp.page_id != ?")
 		condArgs = append(condArgs, in.Parent)
+	}
+	if in.Teamspace != "" {
+		ctes = append(ctes, "team(id) AS (SELECT id FROM pages WHERE workspace_id = ? AND parent_id IS NULL AND teamspace_id = ? UNION SELECT c.id FROM pages c JOIN team ON c.parent_id = team.id)")
+		cteArgs = append(cteArgs, in.WorkspaceID, in.Teamspace)
+		cond.WriteString(" AND sp.page_id IN (SELECT id FROM team)")
+	}
+	if len(ctes) > 0 {
+		cte.WriteString("WITH RECURSIVE " + strings.Join(ctes, ", ") + " ")
 	}
 	if len(in.Creators) > 0 {
 		cond.WriteString(" AND p.created_by IN (" + strings.TrimSuffix(strings.Repeat("?,", len(in.Creators)), ",") + ")")
@@ -445,7 +456,7 @@ func (s *Service) Search(ctx context.Context, p *policy.Principal, in Query) (*R
 		condArgs = append(condArgs, in.To)
 	}
 	pool := candidates
-	if len(condArgs) > 0 {
+	if len(condArgs) > 0 || in.Teamspace != "" {
 		pool = 20 * candidates
 	}
 	seen := map[string]bool{}
@@ -502,15 +513,19 @@ func (s *Service) Search(ctx context.Context, p *policy.Principal, in Query) (*R
 	}
 	switch in.Sort {
 	case "edited", "created":
-		order := " ORDER BY p.updated_at DESC"
+		dir := " DESC"
+		if in.Dir == "asc" {
+			dir = " ASC"
+		}
+		order := " ORDER BY p.updated_at" + dir + ", p.id"
 		if in.Sort == "created" {
-			order = " ORDER BY p.created_at DESC"
+			order = " ORDER BY p.created_at" + dir + ", p.id"
 		}
 		m := "(" + expr + ")"
 		if in.In == "title" {
 			m = "{title} : (" + expr + ")"
 		}
-		newest := "SELECT rowid FROM search_fts WHERE search_fts MATCH ? ORDER BY rowid DESC LIMIT " + strconv.Itoa(recent)
+		newest := "SELECT rowid FROM search_fts WHERE search_fts MATCH ? ORDER BY rowid" + dir + " LIMIT " + strconv.Itoa(recent)
 		read, rerr := run(newest, []any{m}, order)
 		if rerr == nil && !res.More && read == recent {
 			_, rerr = run(newest, []any{scope + m}, order)
