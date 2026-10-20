@@ -2200,3 +2200,108 @@ Two optional query parameters; requests without them behave as before. `teamspac
 - logged: v0.44.0 · 2026-10-20
 
 The document renderer in internal/doc works from a CRDT fragment and its Markdown-to-fragment writer is unexported, so previews are rendered here with goldmark (already a dependency) using its table, strikethrough and task list extensions. Raw HTML is never passed through: a high-priority HTMLBlock renderer turns only `<details>`/`<summary>` into an escaped toggle and `<!-- toc -->` into a list of the h2 headings, and drops everything else; inline raw HTML is dropped by goldmark's safe default, which also refuses dangerous link schemes. GitHub-style alerts become `.tplp-callout` with the same tone map the editor uses. Database previews show the first view only: a board grouped by its group property when the first view is a board, cards for a gallery, otherwise a table of the title plus four properties; every value is escaped. Results are cached per starter per UTC day, since `{{date}}` and relative dates change at midnight. The response also carries sections (h2 headings), views, properties and the sample row count for the gallery's detail pane. If doc ever exports a Markdown-to-HTML helper, switch `markdownHTML` to it so previews match published pages exactly. `POST /api/templates/use` now takes an optional `title` that names the new page or the copy.
+
+## Phase 19 · template engine {#p19-engine}
+
+### internal/templates/build.go · templates that are whole projects
+- refers-to: internal/templates/build.go :: `build`, `create`, `fillDatabase`, `buildState.fill`, `dateValue`, `relationValue`, `placeholder`; internal/templates/starters.go :: `prop` (new fields), `Starter.children`, `key`, `Featured`, `Pages`, `schemaWith`, `count`; internal/templates/templates.go :: `Use`, `values`
+- kind: explainer
+- logged: v0.45.0 · 2026-10-20
+
+Owner's request of 2026-10-20: example projects that arrive pre-filled. A starter can now hold `children`, created as sub-pages in list order, depth first. Anything that is referred to gets a `key`. Pages and databases are created first, with every document's Markdown held back and written at the end, so `{{db:KEY}}` (an inline view, `<!-- database:ID -->`) and `{{page:KEY}}` (a page mention, `[Title](/p/ID)`) can point at any page in the tree, including ones created later. A relation property names its target as `Collection: "@KEY"`, resolved to the created database's id; the target must be created earlier, because the schema is validated when its database is created. Relation values in rows are the titles of rows in the target, mapped to their ids as those rows are made. Dates accept the relative "+3d" form also inside `{"start","end"}` ranges, for timelines. `prop` carries display, precision, max, formula, relation and rollup fields so templates can use the full property set. Proven with a throwaway project: relation, rollup sum, formula, date ranges, inline databases and a page mention all resolved.
+
+### internal/templates/catalog.go · checked at start-up
+- refers-to: internal/templates/catalog.go :: `checkTree`, `init`, `categoryOrder` (charts, examples first)
+- kind: warning-context
+- logged: v0.45.0 · 2026-10-20
+
+The server refuses to start (panics in `init`) when a template id repeats, a key repeats, a database has no view, a relation points at a key not created before it, or a placeholder names a key the template does not have. That turns a content mistake into an error at build-and-run time rather than a broken page for the person who clicks the template. Categories "Data & charts" and "Example projects" come first.
+
+## Phase 19 · previews that draw {#p19-preview}
+
+### internal/templates/preview_data.go · sample rows evaluated in Go
+- refers-to: internal/templates/preview_data.go :: `pvTree`, `newTree`, `value`, `rollup`, `aggregate`, `match`, `keysOf`, `buckets`, `measure`, `chart`
+- kind: explainer
+- kind: decision
+- logged: v0.45.0 · 2026-10-20
+
+Owner's request of 2026-10-20: the chart templates are the main thing on Home, so their previews must show the charts, not a table. Previews are drawn from the starter's own sample rows without creating anything: `newTree` indexes every database in a template tree by key, `value` turns a row value into a `formula.Value` the same way internal/collection's evaluator does (relations become page values titled by the related row, rollups aggregate the related rows of the keyed sibling database, formulas compile with internal/collection/formula against the starter schema and evaluate through `pvEnv`, person values read as "You", created and edited times read as now). `chart` mirrors `Service.Chart`: the view filter and the chart filter are combined, `x` is bucketed with the same rules as `bucketise`/`groupKeys` (option order with empty options kept, status groups, checkbox, date by day, week from Monday, month, year, weekday, hour or relative, numbers by step, text by lower-cased value, "No X" last and dropped when empty), series lanes, the measure functions of `aggregateRollup`, value sorts, limit and cumulative. Filters cover empty, text, number, option, list, checkbox and simple date conditions; anything else passes. This is a copy of server logic on purpose: the real evaluator needs a store, users and a snapshot, and a preview must not touch the database. If chart bucketing changes in internal/collection, change `keysOf` and `buckets` with it.
+
+### internal/templates/preview_svg.go and preview_views.go · miniatures
+- refers-to: internal/templates/preview_svg.go :: `drawChart`, `drawBars`, `drawLines`, `drawRound`, `drawGauge`, `drawMatrix`, `drawHistogram`, `drawCompare`, `drawDots`, `calendarSVG`, `pvFmt`; internal/templates/preview_views.go :: `visualHTML`, `dashboardHTML`, `kpiSVG`, `heatHTML`, `calendarHTML`, `timelineHTML`, `mapHTML`, `graphHTML`, `galleryHTML`, `cellOf`; internal/templates/preview.go :: `databaseHTML`, `previewFor`
+- kind: explainer
+- kind: warning-context
+- logged: v0.45.0 · 2026-10-20
+
+A database whose first view is a chart, dashboard, heatmap, calendar, timeline, map, graph or gallery is drawn as inline SVG or plain markup at the preview page's content width (592 units). All 13 chart kinds follow web/src/extensions/database/views/chartdraw.ts and chartkinds.ts in shape and maths (nice ticks, grouped and stacked bars, monotone smoothing, donut and radial legends, gauge with target, histogram with cumulative share, compare of the last two windows, beeswarm dots, matrix and year calendars with five heat levels). Dashboards draw their first six widgets on the same four-column grid (`size` s, m, l or `wide`), KPI widgets with a sparkline and the change against the previous period. Heatmap views show this year, or the last N months for the month domain; week and day domains fall back to six months because sample dates carry no hours. Timelines show up to eleven bars on a date axis with a today line; calendars show this month; graphs lay out rows and related rows with a short deterministic force simulation; maps put pins on preview_world.go. No colour is written into the markup: marks carry `data-color` (option colours, global rules in database.css) or `data-p` (palette index), and templates.css maps them to `--accent` and `--c-*`, so previews follow the theme. Every string is escaped, nothing carries a script or event handler, and table, board and gallery previews are capped (12 rows, 4 cards a column, two rows of cards) so large sample sets stay small. Cached per starter per UTC day as before; a large project renders in a few milliseconds.
+
+### internal/templates/preview_world.go · world outline
+- refers-to: internal/templates/preview_world.go :: `worldPath`, `worldW`, `worldH`
+- kind: decision
+- logged: v0.45.0 · 2026-10-20
+
+The map preview needs land without fetching the client's basemap. `worldPath` is the Natural Earth 1:110m admin-0 outline the client already ships (web/public/maps/world-110m.json, public domain), converted from its Mercator frame to equirectangular at two units per degree (latitude 84 to -60, Antarctica dropped), simplified with Douglas-Peucker at two units and small islands removed: about 7.7 KB. Pins use the same projection and the view box zooms to the pins.
+
+### internal/templates/preview_project.go and preview_diagram.go · example projects
+- refers-to: internal/templates/preview_project.go :: `PreviewNode`, `treeOf`, `docHTML`, `inlineHTML`; internal/templates/preview_diagram.go :: `diagramHTML`, `flowSVG`; internal/templates/preview.go :: `Preview.Pages`, `Preview.Databases`, `Preview.Tree`, `Preview.Featured`
+- kind: explainer
+- logged: v0.45.0 · 2026-10-20
+
+A document preview resolves the template placeholders: `{{page:KEY}}` becomes a link labelled with the page's name and `{{db:KEY}}` becomes the inline database drawn with the same miniatures (the first eight; later ones show their name only). Mermaid fences become a drawn flowchart when they are `flowchart` or `graph` (nodes, labelled edges, back edges dashed, layered by longest path); other diagram kinds show their kind and the first lines of their source. The preview JSON gains `tree` (every page and database under the root with icon, depth, row count and first view), `pages`, `databases`, `rows` (sample rows in the whole tree) and `featured`; the old fields are unchanged.
+
+## Phase 19 · example projects A {#p19-examples-a}
+
+### internal/templates/tpl_examples_a.go · seven pre-filled projects
+- refers-to: internal/templates/tpl_examples_a.go :: `exampleStartersA`, `xaLaunch`, `xaStartup`, `xaMarketing`, `xaSales`, `xaEngineering`, `xaSuccess`, `xaResearch`
+- kind: explainer
+- kind: decision
+- logged: v0.45.0 · 2026-10-20
+
+Owner's request of 2026-10-20: projects "already pre-filled with things so people can see what is possible". Seven of the fourteen live here: product launch HQ (Lanternfish Software), startup operating system (Fernway), marketing analytics (Tidewater Goods), sales and revenue (Ridgeline Software), engineering team (Harbor Tickets), customer success (Lighthouse Analytics) and research lab (Coastal Acoustics Lab). Each is a doc home page that tells the story, links its pages and embeds its most visual databases; the embedded database's first view is the one meant to be seen there (a dashboard, timeline, map, graph or chart), and every database also has a table. The large row sets are generated by plain Go loops at package init from small fixed tables and `xaNoise` (a deterministic integer hash, so every install gets the same numbers). Sums the documents quote (sign-ups, MRR, runway, pipeline, funnel counts, NPS, words written) are computed from those same rows and injected with `xaFill`, so the pages and the charts always agree. Monthly rows use `xaMonthAgo` (k times 30.4375 days back), which keeps one row per calendar month as long as the template is used between roughly the 4th and the 26th; near a month boundary one month can show two rows and its neighbour none. All helpers carry the `xa` prefix to stay clear of tpl_examples_b.go.
+
+### internal/templates/tpl_examples_a.go · working around engine and client limits
+- refers-to: internal/templates/tpl_examples_a.go :: `xaCards`, `xaThisMonth`; internal/templates/build.go :: `Service.create`, `relationValue`; internal/templates/catalog.go :: `checkTree`; web/src/extensions/database/props.ts :: `formatNumber`; web/src/extensions/database/views/kpi.ts :: `drawKpi`
+- kind: warning-context
+- logged: v0.45.0 · 2026-10-20
+
+Relations in a template are one-way and point only at a database created earlier, so a rollup lives on the later database: milestones list their tasks, objectives list their key results, sprints list their issues. A database cannot relate to itself (`schemaWith` runs before the page exists and `checkTree` rejects the own key), so the research lab's citation network is papers citing a separate "Classic works" database and the services graph links services to shared dependencies; supporting `@self` would need build.go to create the schema with `self` and set relation values in a second pass after all rows exist. Card views show a property only when the view lists it with `"hidden": false`, which `xaCards` writes. Boards use `hide_empty` on the group so the "No X" column does not appear. Percentages are kept as fractions rounded to two places by a formula (`round(x * 100) / 100` with format percent), because a percent or currency number without a precision prints up to eight decimals and currency always prints cents; a KPI widget draws its value under the change badge, so long currency values sit in plain number widgets (no `kpi`) and sales amounts use the comma format with "(USD)" in the name. "This month" filters use on-or-after one week ago, which matches only the newest monthly row.
+
+## Phase 19 · example projects B {#p19-examples-b}
+
+### internal/templates/tpl_examples_b.go · seven everyday example projects
+- refers-to: internal/templates/tpl_examples_b.go :: `exampleStartersB`, `xbFinance`, `xbFitness`, `xbTrip`, `xbEvent`, `xbRenovation`, `xbCourse`, `xbCafe`
+- kind: explainer
+- logged: v0.45.0 · 2026-10-20
+
+Owner's request of 2026-10-20: pre-filled projects that show what form.md does for everyday life and small organisations. Seven projects, each a doc home page that tells the story, links its pages with `{{page:KEY}}` and embeds its most visual databases with `{{db:KEY}}` (the first view of each of those databases is the one meant to be seen inline: a dashboard, map, heatmap, timeline or a table with number bars). Household money (accounts, 70 transactions, a monthly budget that rolls up its transactions against each category's budget, savings goals with rings fed by a rollup of the account balance), Health and fitness (workouts heatmap, runs with a pace formula and dots of pace by distance, training weeks rolling up runs against the plan, meals, goals with gauges), Two weeks in Japan (23 real sights with coordinates on a map, itinerary calendar and graph to places, bookings timeline, planned against paid budget, packing board with a packed-share meter), Harbour Makers Week (speakers gallery, sessions timeline, calendar and heatmap, 47 attendees on a map with a registration form, sponsors pipeline, organiser tasks board with progress meters), Home renovation (contractors, quotes, tasks with a self relation drawn as timeline dependencies, purchases, rooms rolling up labour and materials against budget, a decisions log feed), Physics 10 (students with a join form, assignments, 60 grades with a percent formula, histogram, averages, a student-by-assignment heatmap, class calendar, a syllabus with equations) and Corner Cup Cafe (suppliers on a map, stock with gauges and a reorder formula, menu margins, 60 days of sales with a KPI, compare, weekday heatmap and takings calendar). Every project uses in a fraction of a second.
+
+### internal/templates/tpl_examples_b.go · data built in Go, dates aligned to weekdays
+- refers-to: internal/templates/tpl_examples_b.go :: `xbRand`, `xbWhere`, `xbWeekday`, `xbTidy`, `xbCols`, `xbShow`
+- kind: decision
+- kind: warning-context
+- logged: v0.45.0 · 2026-10-20
+
+Large row sets (transactions, workouts, runs, meals, attendees, grades, daily sales) are generated at package start by a small deterministic generator (`xbRand`, a fixed seed per project), so the numbers are realistic and repeatable. Because a rollup lives on the later database, the later rows list the earlier rows by title, computed with `xbWhere` from a shared field (budget categories list their transactions, training weeks their runs, rooms their jobs and purchases), so those titles are unique on purpose. Where the weekday matters (cafe takings peak on Saturday, long runs on Saturday, lessons on school days, the festival starting on a Monday) the relative offsets are aligned to the weekday of `time.Now()` when the package starts. A server that runs for days keeps the offsets of its start day, so the pattern drifts by that many days until the next restart; nothing breaks, the busy day is just mislabelled. `xbTidy` adds `hide_empty` to every `group` so boards and grouped tables show no empty "No X" group, and `xbCols` writes a view's column order, widths and hidden columns.
+
+## Phase 19 · data and charts templates {#p19-charts}
+
+### internal/templates/tpl_charts.go · fifteen templates that cover every visual
+- refers-to: internal/templates/tpl_charts.go :: `chartStarters`, `chartSales`, `chartAnalytics`, `chartPortfolio`, `chartFinance`, `chartSurvey`, `chartInventory`, `chartCapacity`, `chartCustomers`, `chartFitness`, `chartHabits`, `chartKnowledge`, `chartFormulas`, `chartLibrary`, `chartReport`, `chartDiagrams`
+- kind: explainer
+- logged: v0.45.0 · 2026-10-20
+
+Owner's request of 2026-10-20: templates for the data visualisation side of the build, featured first on Home, so people see the full range. The "Data & charts" set is fifteen templates, all `Featured`, chosen so that together they use all 13 chart kinds (bar, hbar, line, area, donut, number, radial, gauge, histogram, dots, compare, heatmap, calendar), stacked and grouped series, cumulative and smoothed lines, gauge targets, labels and legends, week, month, weekday and day grouping, filters inside a chart, KPI widgets with sparklines and every view type (table with footer calcs, grouping, number bars and rings and formulas; board with card meters, column progress and column totals; list; gallery; calendar; timeline with date ranges; form; chart; map; feed; dashboard with small, medium and wide widgets; heatmap; graph). Relations, rollups and formulas feed charts in the portfolio (risk level formulas drive the likelihood by impact heatmap), inventory (stock status formula drives a board and a stacked bar), formula playground (rollups of formula columns drive bars, a radial and a donut) and knowledge graph (notes link to topics, places and, through `@self`, to other notes). The diagram gallery holds every Mermaid kind the bundled 11.17 renders in the sandbox (flowchart, sequence, class, state, ER, journey, Gantt, timeline, mind map, pie, quadrant, XY, sankey, git graph, kanban, radar, treemap) plus math, all five callouts and toggles. The quarterly report embeds a dashboard database and computes its headline table, tip and quarterly XY chart from the same generated rows, so the prose and the charts agree.
+
+### internal/templates/tpl_charts.go · generated rows and their limits
+- refers-to: internal/templates/tpl_charts.go :: `chartRng`, `chartToday`, `chartMonth`, `chartAgo`, `chartNames`; web/src/extensions/database/views/chartdraw.ts :: `paintSwatch`; web/src/styles/charts.css :: `[data-pal]`; web/src/extensions/database/views/graph.ts :: `readTheme`; web/src/extensions/database/views/kpi.ts :: `drawKpi`
+- kind: warning-context
+- logged: v0.45.0 · 2026-10-20
+
+Rows are generated at package start by `chartRng` (xorshift with a fixed seed per template), so every install gets the same story: seasonal sales with a December peak and a July dip, weekend dips and a launch spike in traffic, a holiday gap in the habits, an illness gap in training, a crunch in team hours. Calendar months come from `chartMonth` and weekdays from `chartToday`, both taken when the package starts; a server that runs across midnight keeps those offsets until restart, so a weekend dip can drift by a day. Gauges whose target is "this month" carry a target computed at start. Known client limits seen while building, left for the client owner: series without option colours use `data-pal` 0 (the accent) and 1 (violet), which look alike under the default violet accent, so formula-driven stacked series (inventory status, invoice status) are hard to tell apart; the survey keeps its promoter group as a coloured select for that reason. A graph view reached by switching tabs paints every node grey because `readTheme` resolves option colours while the view is not yet attached; opened as the first view it is coloured. A KPI widget draws a long currency value under its change badge in small or narrow cards, so currency KPIs use medium widgets. Gallery covers need uploaded image files, which a starter cannot carry, so the galleries use `cover: none`.
+
+### internal/templates · self relations, page and database counts, diagram fences
+- refers-to: internal/templates/build.go :: `fillDatabase` (second pass), `buildState.fill` (mermaid preview); internal/templates/starters.go :: `schemaWith`, `databases`, `Docs`, `Databases`; internal/templates/catalog.go :: `checkTree`, `init`; internal/doc/parse.go (FencedCodeBlock view); internal/doc/markdown.go (code_block info string)
+- kind: explainer
+- logged: v0.45.0 · 2026-10-20
+
+A relation to `"@self"` or the database's own key becomes `"self"` in the schema; its row values are left out when rows are created and set in a second pass once every row of that database exists, mapped from titles. The gallery JSON carries `docs` and `databases` beside the total `pages`, so a card reads "4 pages · 5 databases" like the preview pane. A fenced code block's info string may carry a view after the language (```mermaid preview, ```mermaid code); the importer keeps it as the block's `view` and the exporter writes it back, and template content turns every Mermaid fence into the preview form so example diagrams open as drawings.
