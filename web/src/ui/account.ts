@@ -1,17 +1,17 @@
-import type { Engine, Me, NotifyPrefs, Prefs, SessionInfo, ThemePref, Token } from "../engine";
-import { formatDateTime, formatRelative, weekStart } from "../engine/format";
-import { currentLang, LANGUAGES, t } from "../engine/i18n";
+import type { Engine, Me, NotifyPrefs, SessionInfo, Token } from "../engine";
+import { formatDateTime, formatRelative } from "../engine/format";
+import { t } from "../engine/i18n";
 import { agentsTab } from "./account-agents";
 import { avatar, COLORS, updateAvatar } from "./avatar";
 import { confirmDialog, overlayDialog, type Tab } from "./dialog";
 import { disclosure } from "./disclosure";
 import { h, setAttr, setText } from "./dom";
-import { actions, busy, button, choices, copyText, field, iconButton, input, section, select, status, toggle } from "./form";
+import { actions, busy, button, choices, copyText, field, iconButton, input, section, status, toggle } from "./form";
 import { iconNode } from "./icons";
 import { reconcile } from "./list";
 import { uploadPicture } from "./pickers";
+import { preferencesTab } from "./preferences";
 import { currentSubscription, disablePush, enablePush, pushSupported } from "./push";
-import { SLASH_KEY } from "../extensions/blocks/triggers";
 import { toast } from "./toast";
 
 const COLOR_LABEL: Record<string, () => string> = {
@@ -195,53 +195,10 @@ function profileTab(engine: Engine): Tab {
       const password = section(t("Password"), t("A new password signs out every other session and revokes your API tokens."));
       password.append(pwForm);
 
-      const theme = choices<ThemePref>(
-        "profile-theme",
-        [
-          ["dark", t("Dark")],
-          ["light", t("Light")],
-          ["auto", t("Match the system")],
-        ],
-        engine.state.get("themePref"),
-      );
-      theme.el.addEventListener("change", () => engine.state.set("themePref", theme.value()));
-      engine.state.watch("themePref", (v) => theme.set(v));
-      const font = toggle(t("Use the system font"), u.prefs.system_font, t("Instead of Inter for text and JetBrains Mono for code. Follows your account to every device."));
-      const fontStatus = status();
-      font.input.addEventListener("change", async () => {
-        fontStatus.clear();
-        try {
-          engine.setMe(await engine.api.me.update({ prefs: { ...me(engine).user.prefs, system_font: font.input.checked } }));
-        } catch (err) {
-          font.input.checked = !font.input.checked;
-          fontStatus.error(err);
-        }
-      });
-      const appearance = section(t("Appearance"), t("The theme is remembered on this device."));
-      appearance.append(field(t("Theme"), theme.el), font.el, fontStatus.el);
-      let slashOn = false;
-      try {
-        slashOn = localStorage.getItem(SLASH_KEY) === "1";
-      } catch {
-        slashOn = false;
-      }
-      const slash = toggle(t("Open the block menu only at the start of a line"), slashOn, t("Typing / in the middle of a sentence then stays a slash."));
-      slash.input.addEventListener("change", () => {
-        try {
-          if (slash.input.checked) localStorage.setItem(SLASH_KEY, "1");
-          else localStorage.removeItem(SLASH_KEY);
-        } catch {
-          slash.input.checked = !slash.input.checked;
-        }
-      });
-      const writing = section(t("Writing"), t("Remembered on this device."));
-      writing.append(slash.el);
-
-      panel.append(identity, appearance, writing, email, password);
+      panel.append(identity, email, password);
       return () => {
         paintEmail();
         updateAvatar(preview, me(engine).user.name, me(engine).user.color);
-        font.input.checked = me(engine).user.prefs.system_font;
       };
     },
   };
@@ -456,29 +413,7 @@ function notificationsTab(engine: Engine): Tab {
       const test = button(t("Send a test"), "ghost");
       const pushSec = section(t("Push notifications"), t("If you do not see a notification within ten seconds, this browser shows it even when form.md is in the background."));
       pushSec.append(pushState, actions(off, test, on), pushSt.el);
-      const viewSt = status();
-      const record = toggle(t("Show my name in page analytics"), true, t("When off, your visits still count toward view totals but your name is not listed."));
-      const viewSec = section(t("Page views"));
-      viewSec.append(record.el, viewSt.el);
-      panel.append(mailSec, pushSec, viewSec);
-      record.el.dataset.loading = "";
-      void engine.api.analytics
-        .prefs()
-        .then((r) => {
-          record.input.checked = r.record;
-        })
-        .catch(() => undefined)
-        .finally(() => delete record.el.dataset.loading);
-      record.input.addEventListener("change", async () => {
-        viewSt.clear();
-        try {
-          await engine.api.analytics.setPrefs(record.input.checked);
-          viewSt.say(t("Saved."), "success");
-        } catch (e) {
-          record.input.checked = !record.input.checked;
-          viewSt.error(e);
-        }
-      });
+      panel.append(mailSec, pushSec);
 
       let key = "";
       const refresh = async () => {
@@ -685,8 +620,6 @@ function tokensTab(engine: Engine): Tab {
   };
 }
 
-const REGIONS = ["US", "GB", "IE", "CA", "AU", "NZ", "IN", "ZA", "SG", "DE", "AT", "CH", "FR", "BE", "NL", "LU", "ES", "PT", "IT", "SE", "NO", "DK", "FI", "PL", "CZ", "BR", "MX", "JP", "KR", "CN"];
-
 const DEV_KEY = "fm.dev";
 
 function devOn(): boolean {
@@ -747,91 +680,6 @@ function advancedTab(engine: Engine): Tab {
   };
 }
 
-function languageTab(engine: Engine): Tab {
-  return {
-    id: "language",
-    label: t("Language and time"),
-    icon: "globe",
-    render(panel) {
-      const prefs = () => me(engine).user.prefs;
-      const detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const regionNames = new Intl.DisplayNames([currentLang()], { type: "region" });
-      const zones: string[] = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.("timeZone") ?? [detectedZone];
-
-      const lang = select(
-        [["", t("Automatic (browser)")], ...LANGUAGES] as ReadonlyArray<readonly [string, string]>,
-        prefs().lang,
-      );
-      const region = select(
-        [["", t("Automatic (from language)")] as const, ...REGIONS.map((r) => [r, regionNames.of(r) ?? r] as const).sort((a, b) => a[1].localeCompare(b[1]))],
-        prefs().region,
-      );
-      const zone = select([["", t("Automatic ({zone})", { zone: detectedZone })] as const, ...zones.map((z) => [z, z.replace(/_/g, " ")] as const)], prefs().time_zone);
-      const cycle = choices(
-        "hour-cycle",
-        [
-          ["", t("Automatic")],
-          ["h12", t("12-hour")],
-          ["h23", t("24-hour")],
-        ] as const,
-        prefs().hour_cycle,
-      );
-      const week = select(
-        [
-          ["", t("Automatic")],
-          ["monday", t("Monday")],
-          ["sunday", t("Sunday")],
-          ["saturday", t("Saturday")],
-        ] as const,
-        prefs().week_start,
-      );
-
-      const preview = h("p", { class: "preview-line" });
-      const paintPreview = () => {
-        const day = new Intl.DateTimeFormat(currentLang(), { weekday: "long" }).format(new Date(2024, 0, 7 + weekStart()));
-        setText(preview, t("Now: {time}. Weeks start on {day}.", { time: formatDateTime(Date.now()), day }));
-      };
-      paintPreview();
-
-      const st = status();
-      const reload = button(t("Reload now"), "default", "refresh");
-      reload.addEventListener("click", () => location.reload());
-      const reloadNote = h("div", { class: "callout" }, iconNode("info"), h("div", { class: "form-grid" }, h("p", { text: t("The new language applies everywhere after a reload.") }), actions(reload)));
-      reloadNote.hidden = true;
-
-      const save = async () => {
-        st.clear();
-        const before = prefs();
-        const next: Prefs = {
-          ...before,
-          lang: lang.value,
-          region: region.value,
-          time_zone: zone.value,
-          hour_cycle: cycle.value() as Prefs["hour_cycle"],
-          week_start: week.value as Prefs["week_start"],
-        };
-        try {
-          engine.setMe(await engine.api.me.update({ prefs: next }));
-          paintPreview();
-          st.say(t("Saved."), "success");
-          if (next.lang !== before.lang) reloadNote.hidden = false;
-        } catch (err) {
-          st.error(err);
-        }
-      };
-      for (const el of [lang, region, zone, week]) el.addEventListener("change", save);
-      cycle.el.addEventListener("change", save);
-
-      const s1 = section(t("Language"), t("Used for menus, dates and the sign-in page."));
-      s1.append(field(t("Language"), lang), reloadNote);
-      const s2 = section(t("Region and time"), t("How dates, times and numbers are written, and which day a calendar week starts on."));
-      s2.append(h("div", { class: "form-row" }, field(t("Region"), region), field(t("Time zone"), zone)), field(t("Clock"), cycle.el), field(t("Week starts on"), week), preview, st.el);
-      panel.append(s1, s2);
-      return paintPreview;
-    },
-  };
-}
-
 export function mountAccount(engine: Engine): void {
-  overlayDialog(engine, "account", t("Account settings"), [profileTab(engine), notificationsTab(engine), securityTab(engine), languageTab(engine), advancedTab(engine)]);
+  overlayDialog(engine, "account", t("Account settings"), [profileTab(engine), preferencesTab(engine), notificationsTab(engine), securityTab(engine), advancedTab(engine)]);
 }

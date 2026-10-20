@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN appearance TEXT NOT NULL DEFAULT '';

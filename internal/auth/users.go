@@ -22,13 +22,14 @@ import (
 var Colors = []string{"violet", "blue", "cyan", "teal", "green", "lime", "amber", "orange", "rose", "pink"}
 
 type Prefs struct {
-	Lang       string `json:"lang"`
-	Region     string `json:"region"`
-	TimeZone   string `json:"time_zone"`
-	HourCycle  string `json:"hour_cycle"`
-	WeekStart  string `json:"week_start"`
-	NotesMode  bool   `json:"notes_mode"`
-	SystemFont bool   `json:"system_font"`
+	Lang       string      `json:"lang"`
+	Region     string      `json:"region"`
+	TimeZone   string      `json:"time_zone"`
+	HourCycle  string      `json:"hour_cycle"`
+	WeekStart  string      `json:"week_start"`
+	NotesMode  bool        `json:"notes_mode"`
+	SystemFont bool        `json:"system_font"`
+	Appearance *Appearance `json:"appearance,omitempty"`
 }
 
 type User struct {
@@ -46,18 +47,20 @@ type User struct {
 }
 
 const userColumns = `id, email, name, color, avatar, role, email_verified, disabled, totp_enabled,
-	lang, region, time_zone, hour_cycle, week_start, notes_mode, system_font, created_at`
+	lang, region, time_zone, hour_cycle, week_start, notes_mode, system_font, appearance, created_at`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, error) {
 	u := &User{}
 	var verified, disabled, totp, notes, sysFont int
+	var look string
 	err := row.Scan(&u.ID, &u.Email, &u.Name, &u.Color, &u.Avatar, &u.Role, &verified, &disabled, &totp,
-		&u.Prefs.Lang, &u.Prefs.Region, &u.Prefs.TimeZone, &u.Prefs.HourCycle, &u.Prefs.WeekStart, &notes, &sysFont, &u.CreatedAt)
+		&u.Prefs.Lang, &u.Prefs.Region, &u.Prefs.TimeZone, &u.Prefs.HourCycle, &u.Prefs.WeekStart, &notes, &sysFont, &look, &u.CreatedAt)
 	if err != nil {
 		return nil, store.NoRows(err)
 	}
 	u.EmailVerified, u.Disabled, u.TOTPEnabled = verified == 1, disabled == 1, totp == 1
 	u.Prefs.NotesMode, u.Prefs.SystemFont = notes == 1, sysFont == 1
+	u.Prefs.Appearance = decodeAppearance(look)
 	return u, nil
 }
 
@@ -466,6 +469,13 @@ func (s *Service) handleUpdateMe(w http.ResponseWriter, r *http.Request, p *poli
 		}
 		sets = append(sets, "lang = ?", "region = ?", "time_zone = ?", "hour_cycle = ?", "week_start = ?", "notes_mode = ?", "system_font = ?")
 		args = append(args, pr.Lang, pr.Region, pr.TimeZone, pr.HourCycle, pr.WeekStart, store.Bool(pr.NotesMode), store.Bool(pr.SystemFont))
+		if pr.Appearance != nil {
+			look, err := pr.Appearance.encode()
+			if err != nil {
+				return err
+			}
+			sets, args = append(sets, "appearance = ?"), append(args, look)
+		}
 	}
 	if len(sets) > 0 {
 		sets = append(sets, "updated_at = ?")

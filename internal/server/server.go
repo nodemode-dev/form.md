@@ -411,6 +411,11 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 			if u.Prefs.SystemFont {
 				attrs["font"] = "system"
 			}
+			if a := u.Prefs.Appearance; a != nil {
+				if b, err := json.Marshal(a); err == nil {
+					attrs["look"] = string(b)
+				}
+			}
 		}
 		if list, ok := me["workspaces"].([]*workspace.Workspace); ok {
 			boot["seq"] = s.Hub.Seq()

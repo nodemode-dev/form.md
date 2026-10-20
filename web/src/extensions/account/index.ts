@@ -30,10 +30,10 @@ function setup(engine: Engine): void {
       id: "account.languageTime",
       label: () => t("Language and time"),
       group: ACCOUNT,
-      description: "Opens the language and time section of the account settings dialog.",
+      description: "Opens Preferences in the account settings dialog, where language and time are set.",
       mutates: false,
       enabled: signedIn,
-      run: () => engine.openOverlay("account", "language"),
+      run: () => engine.openOverlay("account", "preferences"),
     }),
     commands.register({
       id: "account.signOut",
@@ -41,7 +41,7 @@ function setup(engine: Engine): void {
       group: ACCOUNT,
       description: "Signs the person out on the server, clears the locally stored documents and goes to the login page.",
       mutates: true,
-      enabled: signedIn,
+      enabled: () => signedIn() && !(engine.state.get("me")?.instance as { desktop?: boolean } | undefined)?.desktop,
       run: async () => {
         await engine.api.auth.logout().catch(() => undefined);
         await engine.docs.clearLocal().catch(() => undefined);
