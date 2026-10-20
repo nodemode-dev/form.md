@@ -85,6 +85,24 @@ export function pageMenu(engine: Engine, id: string, handlers: PageMenuHandlers)
   if (!personal) entries.push({ label: t("Share"), icon: "users", run: () => openShareDialog(engine, id) });
   if (engine.can(id, "full")) entries.push({ label: t("Publish to the web"), icon: "globe", run: () => void openPublishDialog(engine, id) });
   if (engine.can(id, "content")) entries.push({ label: t("Add a page inside"), icon: "plus", run: handlers.addInside });
+  if (writable && !p.row)
+    entries.push({
+      label: t("Rename"),
+      icon: "pencil",
+      hint: "F2",
+      run: () => {
+        engine.openPage(id);
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            const el = document.querySelector<HTMLTextAreaElement>(".page-title");
+            if (el && !el.readOnly) {
+              el.focus();
+              el.select();
+            }
+          }),
+        );
+      },
+    });
   if (engine.can(id, "content") && p.kind !== "collection") {
     entries.push({
       label: t("Style"),

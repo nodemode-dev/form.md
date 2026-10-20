@@ -81,6 +81,6 @@ func (s *Service) handleDesktopEnter(w http.ResponseWriter, r *http.Request) err
 	}
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Cache-Control", "no-store")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/home?start=1", http.StatusSeeOther)
 	return nil
 }

@@ -104,3 +104,9 @@ kbd {
     animation-duration: 0.01ms !important;
   }
 }
+
+:root[data-switching] *,
+:root[data-switching] *::before,
+:root[data-switching] *::after {
+  transition: none !important;
+}

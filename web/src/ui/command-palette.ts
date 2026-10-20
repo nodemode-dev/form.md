@@ -80,10 +80,10 @@ class Palette {
     });
   }
 
-  show(): void {
-    this.all = this.engine.commands.list().filter((c) => !HIDDEN.has(c.id) && !Object.values(c.params ?? {}).some((p) => p.required));
+  show(typed = ""): void {
+    this.all = this.engine.commands.list().filter((c) => !HIDDEN.has(c.id) && !c.hidden?.() && !Object.values(c.params ?? {}).some((p) => p.required));
     clearTimeout(this.hideTimer);
-    this.input.value = "";
+    this.input.value = typed;
     this.filter();
     this.scrim.hidden = false;
     this.dialog.hidden = false;
@@ -201,7 +201,7 @@ class Palette {
 
 let palette: Palette | null = null;
 
-export function openPalette(engine: Engine): void {
+export function openPalette(engine: Engine, typed = ""): void {
   palette ??= new Palette(engine);
-  palette.show();
+  palette.show(typed);
 }

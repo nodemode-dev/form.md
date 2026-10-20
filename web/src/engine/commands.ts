@@ -15,6 +15,7 @@ export interface Command {
   group: () => string;
   run: (params?: Record<string, unknown>) => unknown;
   enabled?: () => boolean;
+  hidden?: () => boolean;
   description?: string;
   when?: string;
   params?: Record<string, CommandParam>;

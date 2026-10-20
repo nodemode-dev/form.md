@@ -203,7 +203,7 @@ export function createEngine(deps: EngineDeps): Engine {
 
   const lastPageKey = (ws: string) => `formmd.last.${ws}`;
   const bootDesktop = (deps.boot.me?.instance as { desktop?: boolean } | undefined)?.desktop === true;
-  let autoLand = startRoute.name === "home" && !(bootDesktop && startOnHome(deps.storage));
+  let autoLand = startRoute.name === "home" && (here.path === "/" || /(^|[?&])start=1(&|$)/.test(here.search)) && !(bootDesktop && startOnHome(deps.storage));
   const commit =(next: NavState, replace = false) => {
     const prev = state.get("route");
     const snapshot: NavState = { tabs: next.tabs, route: next.route };

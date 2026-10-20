@@ -42,6 +42,7 @@ function setup(engine: Engine): void {
       description: "Signs the person out on the server, clears the locally stored documents and goes to the login page.",
       mutates: true,
       enabled: () => signedIn() && !(engine.state.get("me")?.instance as { desktop?: boolean } | undefined)?.desktop,
+      hidden: () => (engine.state.get("me")?.instance as { desktop?: boolean } | undefined)?.desktop === true,
       run: async () => {
         await engine.api.auth.logout().catch(() => undefined);
         await engine.docs.clearLocal().catch(() => undefined);

@@ -188,6 +188,14 @@
   border-block-end: 1px solid var(--border);
 }
 
+.srch__filters > * {
+  flex: none;
+}
+
+.srch__filters > .srch__spacer {
+  flex: 1 0 var(--space-2);
+}
+
 .srch__spacer {
   flex: 1;
 }

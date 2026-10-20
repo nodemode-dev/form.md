@@ -83,7 +83,7 @@ export function mountShortcutsEditor(engine: Engine): { open(): void; close(): v
   const items = (): Item[] => {
     const groups = new Map<string, Command[]>();
     for (const c of commands.list()) {
-      if (Object.values(c.params ?? {}).some((p) => p.required)) continue;
+      if (c.hidden?.() || Object.values(c.params ?? {}).some((p) => p.required)) continue;
       const g = c.group();
       const list = groups.get(g) ?? [];
       list.push(c);

@@ -29,7 +29,7 @@ export function routePath(r: Route): string {
     case "inbox":
       return "/inbox";
     default:
-      return "/";
+      return "/home";
   }
 }
 

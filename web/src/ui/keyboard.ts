@@ -43,7 +43,25 @@ function registerFinder(engine: Engine): void {
     group: general,
     description: "Opens the command finder, a list of every action in the app that can be searched and run from the keyboard. Does not change any data.",
     mutates: false,
-    run: () => void import("./command-palette").then((m) => m.openPalette(engine), engine.reportError),
+    run: () => {
+      let typed = "";
+      const hold = (e: KeyboardEvent) => {
+        if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+        typed += e.key;
+        e.preventDefault();
+        e.stopPropagation();
+      };
+      window.addEventListener("keydown", hold, true);
+      void import("./command-palette")
+        .then((m) => {
+          window.removeEventListener("keydown", hold, true);
+          m.openPalette(engine, typed);
+        })
+        .catch((e: unknown) => {
+          window.removeEventListener("keydown", hold, true);
+          engine.reportError(e);
+        });
+    },
   });
   commands.register({
     id: "page.find",

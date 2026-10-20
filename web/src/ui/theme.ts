@@ -46,8 +46,16 @@ export function mountTheme(engine: Engine): void {
     if (meta && ground && meta.content !== ground) meta.content = ground;
   };
 
+  let stillFrame = 0;
+  const still = () => {
+    setAttr(root, "data-switching", "");
+    cancelAnimationFrame(stillFrame);
+    stillFrame = requestAnimationFrame(() => (stillFrame = requestAnimationFrame(() => setAttr(root, "data-switching", null))));
+  };
+
   const paintLook = () => {
     const l = looks.get("look");
+    still();
     setAttr(root, "data-dark-theme", l.dark);
     setAttr(root, "data-light-theme", l.light);
     setAttr(root, "data-density", l.density);
@@ -122,6 +130,7 @@ export function mountTheme(engine: Engine): void {
 
   const apply = () => {
     const pref = engine.state.get("themePref");
+    if (root.getAttribute("data-theme") !== engine.resolvedTheme()) still();
     setAttr(root, "data-theme", engine.resolvedTheme());
     setAttr(root, "data-theme-pref", pref);
     for (const b of buttons) setAttr(b, "aria-pressed", b.dataset.themeChoice === pref ? "true" : "false");

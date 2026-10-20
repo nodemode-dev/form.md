@@ -671,7 +671,7 @@
   }
 
   .sidebar__collapse {
-    opacity: 1;
+    display: none;
   }
 
   .sb-item {
@@ -741,5 +741,18 @@
 
   .sb-keys {
     display: none;
+  }
+}
+
+@media (max-width: 767px) and (hover: none) {
+  .tab__close {
+    min-inline-size: var(--hit-touch);
+    min-block-size: var(--hit-touch);
+  }
+
+  .crumbs__item,
+  .adder,
+  .page-tags__input {
+    min-block-size: var(--hit-touch);
   }
 }

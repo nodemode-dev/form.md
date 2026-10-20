@@ -317,12 +317,17 @@ export function mountTree(engine: Engine): void {
 
   const splitMode = () => engine.workspaceById(ws)?.sidebar_mode !== "tree";
 
+  const pageCount = () => {
+    const all = pages.all(ws);
+    return splitMode() ? all.filter((p) => p.kind !== "collection" || p.is_template || !!p.row).length : all.length;
+  };
+
   const renderRoot = () => {
     const top = pages.roots(ws, "");
     renderList(root, "", 0, splitMode() ? top.filter((p) => p.kind !== "collection" || p.is_template || !!p.row) : top);
     renderTeams();
     renderShared();
-    const n = pages.all(ws).length;
+    const n = pageCount();
     setText(tree.count, n ? String(n) : "");
     empty.hidden = !pages.isLoaded(ws) || root.childElementCount > 0;
     ensureRoving();
@@ -1116,7 +1121,7 @@ export function mountTree(engine: Engine): void {
             const li = nodes.get(p.id);
             if (li?.isConnected) patchRow(li, p, depthOf(li));
           }
-          setText(tree.count, String(pages.all(ws).length));
+          setText(tree.count, String(pageCount() || ""));
           empty.hidden = root.childElementCount > 0;
           if (!prev || prev.tags.join("\n") !== p.tags.join("\n")) {
             renderTags();
@@ -1135,7 +1140,7 @@ export function mountTree(engine: Engine): void {
         for (const pid of parents) if (!c.pages.some((x) => x.id === pid)) renderParent(pid);
         for (const p of c.pages) nodes.delete(p.id);
         if (parents.size) {
-          const n = pages.all(ws).length;
+          const n = pageCount();
           setText(tree.count, n ? String(n) : "");
           empty.hidden = root.childElementCount > 0;
           renderTags();

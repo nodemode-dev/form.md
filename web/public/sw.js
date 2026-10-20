@@ -55,7 +55,7 @@ async function fileRead(request) {
     throw err;
   }
 }
-const APP_ROUTES = /^\/(p\/[^/]+\/?|library\/?|trash\/?|inbox\/?)?$/;
+const APP_ROUTES = /^\/(p\/[^/]+\/?|home\/?|library\/?|trash\/?|inbox\/?)?$/;
 
 async function precache(all) {
   const res = await fetch("/offline.json", { cache: "no-store" });

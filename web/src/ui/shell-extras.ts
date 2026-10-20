@@ -118,7 +118,8 @@ function mountResize(): void {
     const step = e.key === "ArrowLeft" ? -16 : e.key === "ArrowRight" ? 16 : 0;
     if (!step) return;
     e.preventDefault();
-    const w = clamp(sidebar.getBoundingClientRect().width + step);
+    const set = Number.parseFloat(root.style.getPropertyValue("--sidebar-w"));
+    const w = clamp((Number.isFinite(set) ? set : sidebar.getBoundingClientRect().width) + step);
     apply(w);
     save(w);
   });

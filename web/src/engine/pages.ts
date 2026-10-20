@@ -151,6 +151,8 @@ export class PageStore {
       if (home(prev) !== home(next) || prev.sort_key !== next.sort_key) {
         this.unindex(prev);
         this.index(next);
+      } else {
+        this.sorted.delete(home(next));
       }
     } else {
       this.index(next);

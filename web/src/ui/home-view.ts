@@ -117,10 +117,8 @@ export function mountHome(engine: Engine): void {
     );
   };
 
-  const categoryName = (id: string) => {
-    const name = catalog?.categories.find((c) => c.id === id)?.name ?? "";
-    return name ? t(name) : "";
-  };
+  const chosenName = () => catalog?.categories.find((c) => c.id === category)?.name ?? "";
+  const categoryName = (name: string) => (name ? t(name) : "");
   const previews = new IntersectionObserver(
     (entries) => {
       for (const en of entries) {
@@ -145,7 +143,8 @@ export function mountHome(engine: Engine): void {
     setText(el.querySelector(".hcard__meta") as HTMLElement, [categoryName(s.category), s.kind === "database" ? t("Database") : t("Page")].filter(Boolean).join(" · "));
     setAttr(el, "title", s.description || null);
   };
-  const matches = (s: StarterSummary) => (!category || s.category === category) && (!query || `${s.name} ${s.description} ${categoryName(s.category)} ${s.tags.join(" ")}`.toLowerCase().includes(query));
+  const matches = (s: StarterSummary) =>
+    (!category || s.category === chosenName()) && (!query || `${s.name} ${s.description} ${s.category} ${categoryName(s.category)} ${s.tags.join(" ")}`.toLowerCase().includes(query));
   const paintTemplates = () => {
     if (!catalog) return;
     const all = [{ id: "", name: t("All"), count: catalog.starters.length }, ...catalog.categories.filter((c) => c.count > 0)];
