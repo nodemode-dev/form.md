@@ -47,11 +47,57 @@ const COLORS = ["default", "gray", "brown", "orange", "yellow", "green", "blue",
 
 const asIds = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : typeof v === "string" && v ? [v] : []);
 
-function resolveColor(probe: HTMLElement, name: string): string {
-  probe.setAttribute("data-color", name);
-  const c = getComputedStyle(probe).color;
+// Theme tones for rows linked in from other databases, with their rough hue so
+// the pick is the same in every theme.
+const EXT_TONES: [string, number][] = [
+  ["--c-teal", 175],
+  ["--c-pink", 330],
+  ["--c-cyan", 192],
+  ["--c-lime", 85],
+  ["--c-amber", 38],
+  ["--c-blue", 221],
+  ["--c-orange", 22],
+  ["--c-violet", 262],
+  ["--c-rose", 350],
+  ["--c-green", 142],
+];
+const OPTION_HUES: Record<string, number> = { red: 350, pink: 330, orange: 22, brown: 25, yellow: 38, green: 142, blue: 221, purple: 262 };
+const hueGap = (a: number, b: number) => {
+  const d = Math.abs(a - b) % 360;
+  return Math.min(d, 360 - d);
+};
+
+const toRgb = (c: string): string => {
   const m = /^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)$/.exec(c);
   if (m) return `rgb(${Math.round(Number(m[1]) * 255)}, ${Math.round(Number(m[2]) * 255)}, ${Math.round(Number(m[3]) * 255)})`;
+  return c;
+};
+
+const rgbParts = (c: string): [number, number, number] | null => {
+  const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(c);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+};
+
+const hueOf = (c: string): number | null => {
+  const p = rgbParts(c);
+  if (!p) return null;
+  const [r, g, b] = p.map((v) => v / 255) as [number, number, number];
+  const mx = Math.max(r, g, b);
+  const d = mx - Math.min(r, g, b);
+  if (d < 0.08) return null;
+  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+};
+
+function resolveColor(probe: HTMLElement, name: string): string {
+  probe.setAttribute("data-color", name);
+  return toRgb(getComputedStyle(probe).color);
+}
+
+function resolveVar(probe: HTMLElement, token: string): string {
+  probe.style.color = `var(${token})`;
+  const c = toRgb(getComputedStyle(probe).color);
+  probe.style.color = "";
   return c;
 }
 
@@ -84,7 +130,15 @@ export function graphView(host: ViewHost): ViewRenderer {
   let accent = "#8b7cf6";
   let textColor = "#ddd";
   let faint = "#666";
+  let muted = "#999";
   let sheet = "#111";
+  let fontFamily = "sans-serif";
+  let tones: string[] = [];
+  let extNames = new Map<string, string>();
+  let extFill = new Map<string, string>();
+  let usedColors: string[] = [];
+  let accentUsed = false;
+  const widths = new Map<string, number>();
 
   const canvas = h("canvas", { class: "graphv__canvas", attrs: { tabindex: "0", role: "img", "aria-label": t("Graph of rows and their links") } });
   const probe = h("span", { class: "graphv__probe", attrs: { "aria-hidden": "true" } });
@@ -116,15 +170,47 @@ export function graphView(host: ViewHost): ViewRenderer {
     accent = cs.getPropertyValue("--accent").trim() || accent;
     textColor = cs.getPropertyValue("--text").trim() || textColor;
     faint = cs.getPropertyValue("--text-faint").trim() || faint;
-    let behind: Element | null = el;
+    muted = cs.getPropertyValue("--text-muted").trim() || muted;
+    fontFamily = cs.fontFamily || fontFamily;
+    widths.clear();
+    let behind: Element | null = frame;
     let bg = "";
     while (behind && !bg) {
       const c = getComputedStyle(behind).backgroundColor;
-      if (c && c !== "transparent" && !/rgba\([^)]*,\s*0\)$/.test(c)) bg = c;
+      if (c && c !== "transparent" && !/rgba\([^)]*,\s*0\)$/.test(c) && !/ \/ 0\)$/.test(c)) bg = toRgb(c);
       behind = behind.parentElement;
     }
     sheet = bg || cs.getPropertyValue("--sheet").trim() || sheet;
     palette = new Map(COLORS.map((c) => [c, resolveColor(probe, c)] as [string, string]).filter(([, v]) => !!v));
+    tones = EXT_TONES.map(([v]) => resolveVar(probe, v));
+    assignExt();
+  };
+
+  // Rows linked in from other databases get one fill per source database:
+  // the tone whose hue is farthest from every hue already on the canvas.
+  const assignExt = () => {
+    const taken = usedColors.map((c) => OPTION_HUES[c]).filter((x): x is number => x !== undefined);
+    const ah = accentUsed ? hueOf(resolveVar(probe, "--accent")) : null;
+    if (ah !== null) taken.push(ah);
+    const free = EXT_TONES.map((_, j) => j);
+    extFill = new Map();
+    for (const col of extNames.keys()) {
+      let best = 0;
+      let bd = -1;
+      free.forEach((j, at) => {
+        const hue = (EXT_TONES[j] as [string, number])[1];
+        const d = taken.length ? Math.min(...taken.map((x) => hueGap(hue, x))) : 180;
+        if (d > bd) {
+          bd = d;
+          best = at;
+        }
+      });
+      const j = free.splice(best, 1)[0];
+      const tone = j === undefined ? "" : (tones[j] ?? "");
+      extFill.set(col, rgbParts(tone) ? tone : (palette.get("gray") ?? accent));
+      if (j !== undefined) taken.push((EXT_TONES[j] as [string, number])[1]);
+    }
+    for (const i of legend.querySelectorAll<HTMLElement>("i[data-ext]")) i.style.background = extFill.get(i.dataset.ext ?? "") ?? "";
   };
 
   const size = () => [frame.clientWidth, frame.clientHeight] as const;
@@ -201,15 +287,13 @@ export function graphView(host: ViewHost): ViewRenderer {
     nodes.forEach((n, i) => {
       const dim = (focus >= 0 && i !== focus && !near.has(i)) || (q && !match(n));
       g.globalAlpha = dim ? 0.18 : 1;
-      g.fillStyle = n.ext ? sheet : (palette.get(n.color) ?? accent);
+      g.fillStyle = n.ext ? (extFill.get(n.col) ?? palette.get("gray") ?? accent) : (palette.get(n.color || (n.group >= 0 ? "default" : "")) ?? accent);
       g.beginPath();
       g.arc(n.x, n.y, n.r, 0, Math.PI * 2);
       g.fill();
-      if (n.ext) {
-        g.strokeStyle = faint;
-        g.lineWidth = 1.5 / k;
-        g.stroke();
-      }
+      g.strokeStyle = sheet;
+      g.lineWidth = 1.25 / k;
+      g.stroke();
       if (i === selected) {
         g.strokeStyle = textColor;
         g.lineWidth = 2.5 / k;
@@ -233,23 +317,111 @@ export function graphView(host: ViewHost): ViewRenderer {
       }
     }
     const lab = conf().labels ?? "auto";
-    if (lab !== "none") {
-      g.globalAlpha = 1;
-      g.font = `${12 / k}px ${getComputedStyle(el).fontFamily}`;
-      g.textAlign = "center";
-      g.textBaseline = "top";
-      nodes.forEach((n, i) => {
-        const show = i === focus || near.has(i) || (q && match(n) && q.length > 1) || lab === "all" || (lab === "auto" && n.r * k >= 9 && nodes.length <= 600) || (lab === "auto" && k >= 1.6);
-        if (!show) return;
-        const text = n.title || t("Untitled");
-        const ty0 = n.y + n.r + 3 / k;
-        g.lineWidth = 2.5 / k;
-        g.lineJoin = "round";
-        g.strokeStyle = sheet;
-        g.strokeText(text.length > 40 ? `${text.slice(0, 39)}…` : text, n.x, ty0);
-        g.fillStyle = i === focus ? textColor : faint;
-        g.fillText(text.length > 40 ? `${text.slice(0, 39)}…` : text, n.x, ty0);
-      });
+    if (lab !== "none") paintLabels(g, dpr, W, H, lab, focus, near, q, match);
+    g.globalAlpha = 1;
+  }
+
+  // Labels are placed in screen space in order of importance (focus, selection,
+  // neighbours, search matches, then node size and degree). Each tries below,
+  // above, right and left of its node; a label that would overlap one already
+  // placed is skipped and shows on hover, focus or selection instead.
+  function paintLabels(g: CanvasRenderingContext2D, dpr: number, W: number, H: number, lab: "auto" | "all", focus: number, near: Set<number>, q: string, match: (n: GNode) => boolean): void {
+    const LH = 15;
+    const CELL = 48;
+    const PAD = 3;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = `12px ${fontFamily}`;
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.lineJoin = "round";
+    const cellsOf = (x0: number, y0: number, x1: number, y1: number): number[] => {
+      const out: number[] = [];
+      for (let cx = Math.floor(x0 / CELL); cx <= Math.floor(x1 / CELL); cx++) for (let cy = Math.floor(y0 / CELL); cy <= Math.floor(y1 / CELL); cy++) out.push((cx + 4096) * 8192 + cy + 4096);
+      return out;
+    };
+    const push = (grid: Map<number, number[]>, key: number, v: number) => {
+      let a = grid.get(key);
+      if (!a) grid.set(key, (a = []));
+      a.push(v);
+    };
+    const circles = new Map<number, number[]>();
+    const vis: number[] = [];
+    nodes.forEach((n, i) => {
+      const x = n.x * k + tx;
+      const y = n.y * k + ty;
+      const r = n.r * k;
+      if (x + r < -240 || x - r > W + 240 || y + r < -40 || y - r > H + 40) return;
+      vis.push(i);
+      for (const key of cellsOf(x - r, y - r, x + r, y + r)) push(circles, key, i);
+    });
+    const rank = (i: number): number => {
+      const n = nodes[i] as GNode;
+      return i === focus ? 0 : i === selected ? 1 : near.has(i) ? 2 : q.length > 1 && match(n) ? 3 : 4;
+    };
+    const roomy = vis.length <= 800 || k >= 1.6;
+    const order = vis
+      .filter((i) => lab === "all" || rank(i) < 4 || roomy || (nodes[i] as GNode).r * k >= 9)
+      .map((i) => [i, rank(i)] as const)
+      .sort((a, b) => a[1] - b[1] || (nodes[b[0]] as GNode).r - (nodes[a[0]] as GNode).r || (nodes[b[0]] as GNode).deg - (nodes[a[0]] as GNode).deg || Number((nodes[a[0]] as GNode).ext) - Number((nodes[b[0]] as GNode).ext) || a[0] - b[0]);
+    const boxes: number[][] = [];
+    const placed = new Map<number, number[]>();
+    const drawn: { i: number; text: string; x: number; y: number }[] = [];
+    const hitsLabel = (b: number[]) =>
+      cellsOf(b[0] as number, b[1] as number, b[2] as number, b[3] as number).some((key) =>
+        (placed.get(key) ?? []).some((j) => {
+          const o = boxes[j] as number[];
+          return (b[0] as number) < (o[2] as number) && (b[2] as number) > (o[0] as number) && (b[1] as number) < (o[3] as number) && (b[3] as number) > (o[1] as number);
+        }),
+      );
+    const hitsNode = (b: number[], self: number) =>
+      cellsOf(b[0] as number, b[1] as number, b[2] as number, b[3] as number).some((key) =>
+        (circles.get(key) ?? []).some((j) => {
+          if (j === self) return false;
+          const m = nodes[j] as GNode;
+          const x = m.x * k + tx;
+          const y = m.y * k + ty;
+          const dx = x - Math.max(b[0] as number, Math.min(x, b[2] as number));
+          const dy = y - Math.max(b[1] as number, Math.min(y, b[3] as number));
+          return dx * dx + dy * dy < (m.r * k) ** 2;
+        }),
+      );
+    for (const [i, rk] of order) {
+      const n = nodes[i] as GNode;
+      const raw = n.title || t("Untitled");
+      const text = raw.length > 40 ? `${raw.slice(0, 39)}…` : raw;
+      let w = widths.get(text);
+      if (w === undefined) {
+        if (widths.size > 5000) widths.clear();
+        w = g.measureText(text).width;
+        widths.set(text, w);
+      }
+      const x = n.x * k + tx;
+      const y = n.y * k + ty;
+      const r = n.r * k;
+      const spots = [
+        [x, y + r + PAD + LH / 2],
+        [x, y - r - PAD - LH / 2],
+        [x + r + PAD + 2 + w / 2, y],
+        [x - r - PAD - 2 - w / 2, y],
+      ].map(([cx, cy]) => [(cx as number) - w / 2 - 2, (cy as number) - LH / 2, (cx as number) + w / 2 + 2, (cy as number) + LH / 2]);
+      const clear = spots.filter((b) => !hitsLabel(b));
+      const soft = rk < 4 || lab === "all";
+      const box = clear.find((b) => !hitsNode(b, i)) ?? (soft ? clear[0] : undefined) ?? (rk <= 1 || lab === "all" ? spots[0] : undefined);
+      if (!box) continue;
+      const bi = boxes.push(box) - 1;
+      for (const key of cellsOf(box[0] as number, box[1] as number, box[2] as number, box[3] as number)) push(placed, key, bi);
+      drawn.push({ i, text, x: ((box[0] as number) + (box[2] as number)) / 2, y: ((box[1] as number) + (box[3] as number)) / 2 });
+    }
+    g.lineWidth = 3.5;
+    g.strokeStyle = sheet;
+    for (let d = drawn.length - 1; d >= 0; d--) {
+      const { i, text, x, y } = drawn[d] as (typeof drawn)[number];
+      const n = nodes[i] as GNode;
+      const dim = (focus >= 0 && i !== focus && !near.has(i)) || (q && !match(n));
+      g.globalAlpha = dim ? 0.35 : 1;
+      g.strokeText(text, x, y);
+      g.fillStyle = i === focus || i === selected ? textColor : muted;
+      g.fillText(text, x, y);
     }
     g.globalAlpha = 1;
   }
@@ -357,6 +529,7 @@ export function graphView(host: ViewHost): ViewRenderer {
     }
     const ne: GEdge[] = [];
     const seen = new Set<string>();
+    const names = new Map<string, string>();
     let extCount = 0;
     for (const r of rows) {
       const ai = index.get(r.id) as number;
@@ -368,6 +541,7 @@ export function graphView(host: ViewHost): ViewRenderer {
             if (other === host.colId || c.external === false || extCount >= MAX_EXTERNAL) continue;
             const ref = refs.get(id);
             add(id, ref?.title ?? "", true, other, "", -1, 0);
+            if (!names.has(other)) names.set(other, engine.pages.get(other)?.title || p.name);
             extCount++;
             bi = index.get(id) as number;
           }
@@ -394,6 +568,9 @@ export function graphView(host: ViewHost): ViewRenderer {
     edges = ne;
     selected = selId ? (index.get(selId) ?? -1) : -1;
     hover = -1;
+    extNames = names;
+    usedColors = (colorProp?.options ?? []).map((o) => o.color || "default");
+    accentUsed = next.some((n) => !n.ext && n.group < 0);
     setText(count, more ? t("First {n} rows, {m} links", { n: rows.length, m: edges.length }) : t("{n} rows, {m} links", { n: rows.length, m: edges.length }));
     paintLegend(colorProp);
     paintList();
@@ -421,7 +598,9 @@ export function graphView(host: ViewHost): ViewRenderer {
 
   const paintLegend = (p: Property | undefined) => {
     const items = (p?.options ?? []).map((o) => h("span", { class: "graphv__key" }, h("i", { attrs: { "data-color": o.color || "default" } }), h("span", { text: o.name })));
-    legend.replaceChildren(...items);
+    const ext = [...extNames].map(([col, name]) => h("span", { class: "graphv__key graphv__key--ext" }, h("i", { attrs: { "data-ext": col } }), h("span", { text: name || t("Untitled") })));
+    legend.replaceChildren(...items, ...ext);
+    assignExt();
   };
 
   let seq = 0;

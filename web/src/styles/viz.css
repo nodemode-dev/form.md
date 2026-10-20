@@ -198,6 +198,26 @@
   min-inline-size: 0;
 }
 
+.graphv [data-color="gray"] {
+  --oc: color-mix(in srgb, var(--text) 48%, var(--surface));
+}
+
+.graphv [data-color="default"] {
+  --oc: color-mix(in srgb, var(--text) 42%, var(--surface));
+}
+
+.graphv .graphv__key::before {
+  content: none;
+}
+
+.graphv .graphv__frame {
+  display: block;
+}
+
+.graphv .graphv__canvas {
+  block-size: 100%;
+}
+
 .graphv__bar {
   display: flex;
   align-items: center;
