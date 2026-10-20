@@ -100,7 +100,7 @@ Go 1.26 or newer & Node.js 22 or newer. The desktop app also needs Rust (`./buil
 build_app.bat        # Windows: .msi & a setup .exe
 ```
 
-The packages land in `src-tauri/target/release/bundle`. The app is a Tauri 2 window around the same form-md server, which it starts on this computer & stops when you quit; you are signed in as the owner w/o a password screen, & your pages live in `~/form.md` (set `FORMMD_DATA` before starting the app to use another folder). It answers only this computer. Agents still find it at http://127.0.0.1:8750 (another free port when 8750 is taken). `./form-md desktop dev` runs it from source; `./build_app --server-only` builds just the binary. CI builds every platform on each version tag (`.github/workflows/desktop.yml`).
+The packages land in `src-tauri/target/release/bundle`. The app is a Tauri 2 window around the same server binary, which it starts on this computer & stops when you quit; you are signed in as the owner w/o a password screen, & your pages live in `~/form.md` (set `FORMMD_DATA` before starting the app to use another folder). It answers only this computer. Agents still find it at http://127.0.0.1:8750 (another free port when 8750 is taken). `./form-md desktop dev` runs it from source; `./build_app --server-only` builds just the binary. CI builds every platform on each version tag (`.github/workflows/desktop.yml`).
 
 ### macOS & Linux
 

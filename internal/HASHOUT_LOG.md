@@ -2164,3 +2164,39 @@ The owner banned the three-star sparkle app-wide. Bolt replaces it for page icon
 - logged: v0.43.0 · 2026-10-20
 
 Owner's decision of 2026-10-20 (1a): the desktop app runs a private server on this computer with its owner signed in, no sign-in screen. `GET /desktop/enter?key=` answers 404 unless the key matches in constant time and the peer is a loopback address. On an empty data folder it creates the owner (name from the operating system account, email `owner@localhost`, no usable password, so nobody can sign in with a password until the owner sets one in account settings); otherwise it signs in the oldest enabled owner. A request that already carries that owner's live session gets no second session, so relaunching does not pile up sessions. It redirects to `/` with `no-referrer` and `no-store` so the key does not linger in history or a Referer. `desktop` in the policy and in `/api/me` lets the client hide Sign out, which would strand a desktop owner on a password screen.
+
+## Phase 18 · preferences {#p18-prefs}
+
+### internal/auth/appearance.go and users.go · the appearance preference
+- refers-to: internal/auth/appearance.go :: `Appearance`, `encode`, `decodeAppearance`; internal/auth/users.go :: `Prefs.Appearance`, `userColumns`, `scanUser`, `handleUpdateMe`; internal/store/migrations/0030_appearance.sql
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+The client's appearance choice (light, dark or system mode, the dark and light theme profile, accent, density, contrast and the time of the change `at`) is kept per user as one JSON text column, so another device gets the same look. `PATCH /api/me` changes it only when `prefs.appearance` is present: older clients that send prefs without it leave it alone. Values are checked against small allow-lists and patterns (theme ids are lowercase letters up to 12, the accent is empty or `#rrggbb`) and refused with `bad_appearance`; the client decides which copy is newer by `at`, the server just stores it. A stored value that fails to decode reads as no preference. Still to do in `internal/server/server.go · renderDocument` (not this area's file): write `attrs["look"]` as the JSON of `u.Prefs.Appearance` when it is set, so the head script can paint a newer account look on a device whose local copy is older without a first-frame change.
+
+## Phase 18 · finder {#p18-finder}
+
+### internal/search/search.go · shared space filter and sort direction
+- refers-to: internal/search/search.go :: `Query.Teamspace`, `Query.Dir`, `Search` (ctes, the edited and created branch), the `GET /api/search` handler
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+Two optional query parameters; requests without them behave as before. `teamspace=<id>` keeps pages whose top-level ancestor sits in that shared space, through a recursive `team` CTE that sits beside the `sub` CTE of `parent` in one WITH RECURSIVE clause, and widens the candidate pool like the other filters. `dir=asc` turns the edited and created sorts oldest first: the pool of matching passages is then read by ascending rowid, the mirror of the newest-first pool, and ties break on page id so pages stay in a stable order. Visibility is unchanged: every hit still goes through `pages.Filter`, the workspace check and the template exclusion, so a shared space the caller cannot see yields nothing rather than an error.
+
+## Phase 18 · templates {#p18-templates}
+
+### internal/templates · the template library
+- refers-to: internal/templates/catalog.go :: `categoryOrder`, `categories`, `init`, `o`, `so`; internal/templates/tpl_projects.go, tpl_docs.go, tpl_meetings.go, tpl_engineering.go, tpl_product.go, tpl_marketing.go, tpl_sales.go, tpl_team.go, tpl_personal.go; internal/templates/starters.go :: `Starter.Tags`, `prop.Prefix`
+- kind: explainer
+- kind: decision
+- logged: v0.44.0 · 2026-10-20
+
+61 starters in nine fixed categories (Projects, Docs & wikis, Meetings, Engineering, Product & design, Marketing, Sales & customers, Team & HR, Personal & school). Each category lives in its own file as a slice; `init` appends them to the original nine in starters.go, then stable-sorts by `categoryOrder`, so ids never change and the gallery reads category by category. `Category` on a starter is the display name; the category id (projects, docs, ...) exists only in `GET /api/templates` `categories`, with counts computed once at start. Personal & school holds ten because the original reading list, places and weekly review were moved there alongside the requested personal and school jobs. Sample values follow the existing conventions: option ids for select and status, `@me` for person, `+Nd`/`-Nd` for dates relative to today, `{{date}}` in Markdown. Markdown bodies are Go raw strings; code fences are spliced in with the `fence` constant because a raw string cannot hold a backtick. Every starter was instantiated against a fresh data folder before this entry was written; a starter whose icon, option colour, view type or config the server refuses fails `POST /api/templates/use` as a whole, so re-run that check after adding one.
+
+### internal/templates/preview.go · server-rendered previews
+- refers-to: internal/templates/preview.go :: `previewFor`, `markdownHTML`, `renderPreviewBlock`, `databaseHTML`, `boardHTML`, `cellHTML`; internal/templates/templates.go :: `GET /api/templates/{id}/preview`, `UseInput.Title`
+- kind: rationale
+- kind: warning-context
+- logged: v0.44.0 · 2026-10-20
+
+The document renderer in internal/doc works from a CRDT fragment and its Markdown-to-fragment writer is unexported, so previews are rendered here with goldmark (already a dependency) using its table, strikethrough and task list extensions. Raw HTML is never passed through: a high-priority HTMLBlock renderer turns only `<details>`/`<summary>` into an escaped toggle and `<!-- toc -->` into a list of the h2 headings, and drops everything else; inline raw HTML is dropped by goldmark's safe default, which also refuses dangerous link schemes. GitHub-style alerts become `.tplp-callout` with the same tone map the editor uses. Database previews show the first view only: a board grouped by its group property when the first view is a board, cards for a gallery, otherwise a table of the title plus four properties; every value is escaped. Results are cached per starter per UTC day, since `{{date}}` and relative dates change at midnight. The response also carries sections (h2 headings), views, properties and the sample row count for the gallery's detail pane. If doc ever exports a Markdown-to-HTML helper, switch `markdownHTML` to it so previews match published pages exactly. `POST /api/templates/use` now takes an optional `title` that names the new page or the copy.

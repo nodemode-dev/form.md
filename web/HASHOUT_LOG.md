@@ -1910,3 +1910,194 @@ Every disclosure is a native details element and only the summary chevron moves,
 - logged: v0.42.0 · 2026-10-19
 
 The empty-table hint is a sibling after the stage, so it appears below content and nothing above moves, and its hidden flag is written only when the state changes. Group, Properties, Layout and Rules share the existing More menu instead of a new button, and panels anchor to it. Toolbar buttons keep a fixed 28px height so labels widen the bar without changing its height. The common nine property types come first and the rest follow "More types" under plain names; type ids are untouched so stored schemas and the API are unchanged.
+
+## Phase 18 · shell {#p18-shell}
+
+### index.html · flat shell and the sidebar in the first frame
+- refers-to: web/index.html (body boot script, `#sidebar`, `.topbar__nav`, `act-edited`, `act-presence`, `help-btn`, `view-home`); src/styles/shell.css :: `.sidebar`, `.sheet`, `.sb-item`, `:root[data-route] .sb-item[data-route-link]`
+- kind: rationale
+- logged: v0.44.0 · 2026-10-20
+
+The main area is full-bleed beside the sidebar: no margin, border, radius or shadow on `.sheet`, and the sidebar carries `--surface` with a 1px end border, so the dotted ground in base.css only shows behind the sign-in card. Every sidebar row (Search, Home, Library, Templates, Import, Trash, Settings, Help) and the header buttons (collapse, Inbox, New) are static markup, so they paint in the first frame and the server localizes their text; scripts only bind them. Home, Library and Trash highlight from the root `data-route` in CSS, so the active row is right before any script runs. The body boot script, which already ran before `#app`, now also sets `data-daypart` (the greeting is three spans toggled by CSS, never a text swap), `data-desktop` from `me.instance.desktop`, and `--sidebar-w` from `formmd.sidebarWidth` when it is within 220 to 480. `status.ts` still binds `live-dot` and `version-text`: the dot sits next to the workspace switcher and the version text is kept for assistive tech and the Help menu. The theme control left the sidebar; theme choice belongs to Settings. The user chip stays on the web for the account menu and Sign out and is hidden by CSS under `data-desktop`.
+
+### src/ui/app.ts · back and forward know where they are
+- refers-to: src/ui/app.ts :: `navSpan`, `platformAdapter` pushHistory and replaceHistory, popstate listener
+- kind: warning-context
+- logged: v0.44.0 · 2026-10-20
+
+The browser does not say whether a back or forward entry exists, so every entry the app writes carries `nav`, its position, and the furthest position is kept in sessionStorage under `formmd.navTop` so forward survives a reload. A push truncates forward history, as the browser does. Position 0 is the first entry this tab wrote, so Back never leaves the app. The popstate listener must update the position before `restoreNav`, because route watchers repaint the buttons. The extra `nav` field is ignored by `isNavState`.
+
+### src/ui/shell-extras.ts · the shell's on-demand chunk
+- refers-to: src/ui/shell-extras.ts :: `mountHistory`, `mountResize`, `mountSidebarExtras`, `mountCrumbSiblings`, `mountPageMeta`, `mountHelp`; src/main.ts (dynamic import after `mountTopbar`)
+- kind: rationale
+- logged: v0.44.0 · 2026-10-20
+
+The up-front budget had about 1 KB left, so everything new in the shell that is not needed for the first frame loads as one chunk right after the top bar mounts: `nav.back` and `nav.forward` (Ctrl or Cmd with [ and ], disabled through `enabled` when `navSpan` says there is nowhere to go), the New menu, the Search shortcut hint, Home and Library row clicks, Settings (`prefs.open` when registered, else `account.open`), the resize handle, the breadcrumb sibling menu, the "Edited" time, presence avatars and the Help button. Until the chunk arrives the buttons are inert and back and forward stay disabled, which changes colour only. Resizing writes `--sidebar-w` on the root once per frame, turns the grid transition off through `data-resizing`, and saves on release; a double click resets, arrows step 16px. The sibling menu opens after 400 ms of hover, never takes focus (the editor keeps the caret) and is built while detached, then anchored. Presence reads the awareness states the server stamps with `user` (id, name, tint, avatar) and skips this window and this user; it waits for the page view to open the doc session, retrying for up to ten seconds.
+
+### src/ui/tree.ts · static rows and dropping on Trash
+- refers-to: src/ui/tree.ts :: `inboxRow`, `templatesRow`, `importRow`, `trashRow`, `resolveTarget`, `endDrag`, `autoscroll`, `paintWritable`
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+The Inbox, Templates, Import and Trash rows are bound by `data-ref` instead of created, and the sections now run Favorites, tag filter, notes, Shared spaces, Shared with me, the root tree, Databases, Tags. The root tree is labelled Private in a personal workspace and Pages otherwise, because in a shared workspace those pages are visible to members and the label must not claim otherwise. Trash lives in the pinned footer, outside the scrolling nav, so `resolveTarget` checks it before the nav bounds; dropping a tree row there trashes it with the usual undo toast. Autoscroll now runs only while the pointer is inside the nav's own band, so hovering Trash does not scroll the tree.
+
+### src/ui/home-view.ts and src/styles/home.css · Home as a start page
+- refers-to: src/ui/home-view.ts :: `mountHome`, `patchCards`, `handFiles`; web/index.html (`view-home` markup); src/styles/home.css; src/styles/doc.css (`data-when`, `.home-offline`)
+- kind: warning-context
+- logged: v0.44.0 · 2026-10-20
+
+Home is static markup with skeleton cards: six in the one-row Recently visited grid (later rows have zero height and are clipped) and ten in the Templates grid. `patchCards` puts each real card in a skeleton's place and drops the leftovers, so the grids keep their height while data arrives; the category chips row has a reserved height and scrolls sideways instead of wrapping. The template catalogue and previews come from templates-dialog.ts (`loadTemplateCatalog`, `mountTemplatePreview`, `openTemplates`), imported on first need; previews mount when a card nears the viewport. Dropped, chosen or pasted material goes to the existing import dialog: transfer-dialog.ts has no files parameter, so the files are put on its file input through a DataTransfer and a change event, the same path a person picking files takes. The drop area and Templates section are hidden for read-only access, which can move content for viewers once at load.
+
+## Phase 18 · preferences {#p18-prefs}
+
+### index.html · pre-paint appearance
+- refers-to: index.html :: inline `<script>` in head; src/engine/prefs.ts :: `PREF_KEYS.look`, `accentTone`; src/ui/theme.ts :: `paintLook`
+- kind: warning-context
+- logged: v0.44.0 · 2026-10-20
+
+The head script now also reads `formmd.look` (JSON: dark, light, accent, density, contrast, at) and writes `data-dark-theme`, `data-light-theme`, `data-density`, `data-contrast-pref`, `data-contrast="high"` (resolved against `prefers-contrast: more`), `data-accent` (the accent's tone) and the `--accent-pick` custom property through the CSSOM, which the `style-src 'self'` policy allows where a style attribute would be refused. Each block has its own try, so a corrupt look value never skips the sidebar and tab attributes. If the html tag carries `data-look` (the account's appearance as JSON, written by the server) and its `at` is newer than the local one, it wins, including its light, dark or system mode, so another device paints the account's choice from the first frame. The tone formula and the 132 threshold must stay identical to `accentTone` in prefs.ts, and the attribute values must match what `paintLook` writes (always the normalised id, never absent), or the first module run changes an attribute. The meta theme colour is set for light here and refined from `--ground` by theme.ts. The CSP hash is computed from the built file at server start, so editing the script needs no server change.
+
+### src/ui/theme/tokens.css · theme profiles, contrast, accent and density
+- refers-to: src/ui/theme/tokens.css :: `[data-dark-theme]`, `[data-light-theme]`, `[data-contrast="high"]`, `[data-accent]`, `[data-density]` rules, `.theme-swatch`
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+Profiles keep form.md's token names and only set the colour tokens (ground, sheet, surface, surface-2, border, border-strong, text, text-muted, text-faint; the high contrast ones also hover and active); everything else falls through from the base dark or light block. A dark profile applies only while `data-theme="dark"` and a light one only while light, so following the system keeps working with two separate choices. The palettes are formdeck's theme profiles mapped onto these tokens (sheet halfway between its primary and secondary background, surface its secondary, surface-2 its tertiary); Night and Graphite are formdeck's two brand-named dark profiles renamed, and Sage and Mist are new light ones so the light grid is not sparse. Each profile selector also matches `.theme-swatch[data-dark=id]` or `[data-light=id]`, and the base blocks match every swatch of their scheme, so a preferences swatch paints the real palette from the same values instead of a copy. The contrast and accent rules have three-part selectors and come after the profiles, so they win over a profile's (0,3,0) rules by order. A custom accent derives `--accent`, `--accent-hover`, `--accent-wash`, `--on-accent` and `--focus` with color-mix: lifted toward white in dark, darkened toward black in light, and darkened further when `data-accent="light"` (yellow, orange, green, teal) so white text on it stays readable. Density changes only `--control`, `--row` (which is also the sidebar row height), `--text-nav` and `--topbar-h`.
+
+### src/engine/prefs.ts · the look and the startup choice
+- refers-to: src/engine/prefs.ts :: `Look`, `ServerLook`, `DARK_THEMES`, `LIGHT_THEMES`, `ACCENTS`, `normalizeLook`, `normalizeServerLook`, `readLook`, `writeLook`, `accentTone`, `readStartup`, `writeStartup`, `startOnHome`
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+`normalizeLook` is the one validator for anything read from storage, the server or another tab: unknown ids fall back to the default dark or light, a bad accent to none, a missing `at` to 0. The theme id lists must match the selectors in tokens.css and the server's pattern (lowercase letters, at most 12). `at` is the time of the last change in milliseconds and decides which copy wins between this browser and the account. `startOnHome(store)` is the hook for the desktop app's "On startup" choice: it is true when the person chose Home, and the shell is expected to skip restoring the last page at boot in that case; "Continue where you left off" is the existing behaviour.
+
+### src/ui/theme.ts · the look store and account sync
+- refers-to: src/ui/theme.ts :: `currentLook`, `watchLook`, `setLook`, `mountTheme` (`paintLook`, `paintMeta`, `push`, `adopt`, storage listener)
+- kind: rationale
+- logged: v0.44.0 · 2026-10-20
+
+The look lives in its own small `State` beside the engine's, because it is a view concern and the preferences chunk reads and writes it without widening `EngineState`. Every change writes `formmd.look`, repaints in place through `setAttr` (an unchanged value writes nothing, so the first run after the head script changes no attribute) and, 800 ms after the last change, saves `appearance` with the mode into the account's prefs, which also covers the sidebar's light, system and dark buttons. A `me` update adopts the account's look when its `at` is newer, sets the mode too, and does not echo it back; when the local copy is newer it is pushed once (`sent` stops a server that does not store the field from causing a loop). A newer look written by another tab is adopted from the storage event. The meta theme colour follows the computed `--ground`, so it matches the profile in use.
+
+### src/ui/preferences.ts · the Preferences pane
+- refers-to: src/ui/preferences.ts :: `preferencesTab`, `appearanceGroup`, `languageGroup`, `writingGroup`, `privacyGroup`, `desktopGroup`, `radios`, `seg`, `themeGrid`; src/styles/prefs.css; src/ui/account.ts :: `mountAccount`
+- kind: rationale
+- logged: v0.44.0 · 2026-10-20
+
+The pane is a tab of the account settings dialog, so it loads in the settings chunk and adds nothing to the start bundle. The layout follows formdeck's Preferences dialog: small uppercase group titles, a fixed label column and the control beside it, a segmented control for each small choice, theme swatches 28px with the name underneath, round accent swatches with a custom colour well. Every control applies at once; there is no Save. Segmented controls, theme grids and accents are radio groups of buttons: one tab stop, arrow keys move and choose, and only `aria-checked` and `tabindex` change, so nothing re-renders. Preset accent swatches get their colour through `style.setProperty`, which the style policy allows. The pane listens to `themePref` and the look, so a command, the sidebar buttons or another device update it while open. "Start week on Monday" writes `monday` when on; turning it off returns to automatic, and saving other fields keeps an existing Sunday or Saturday choice. The Desktop app group shows only when `/api/me` says `instance.desktop`, and its choice is stored on this computer under `formmd.startup`.
+
+### src/ui/account.ts · moved into Preferences
+- refers-to: src/ui/account.ts :: `profileTab`, `notificationsTab`, `mountAccount` (former `languageTab`, `REGIONS`)
+- kind: removed-code
+- logged: v0.44.0 · 2026-10-20
+
+Profile's Appearance section (theme choices and the system font switch) and Writing section (the block menu switch), Notifications' Page views section (show my name in page analytics, now under Privacy) and the whole Language and time tab (language, region, time zone, clock, week start and the reload callout) moved into `src/ui/preferences.ts` with the same API calls and storage keys. The theme radio group became the Appearance segmented control; the week-start select became the Monday switch. The tab order is Profile, Preferences, Notifications, Security, Advanced.
+
+### src/extensions/shell/index.ts and src/extensions/account/index.ts · theme toggle and Preferences commands
+- refers-to: src/extensions/shell/index.ts :: `shell.theme.toggle`, `prefs.open`; src/extensions/account/index.ts :: `account.languageTime`; src-tauri/src/menu.rs :: `cmd:prefs.open`, `cmd:shell.theme.toggle`
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+`shell.toggleTheme` is renamed `shell.theme.toggle` (still Ctrl/Cmd+Shift+L), the id the desktop menubar already calls, next to `shell.theme.light`, `dark` and `auto`. `prefs.open` opens the account dialog on the Preferences tab and is what the menubar's Settings item runs. `account.languageTime` now opens Preferences because the Language and time tab is gone.
+
+## Phase 18 · finder {#p18-finder}
+
+### src/ui/search.ts · filters, sorts and fixed rows
+- refers-to: src/ui/search.ts :: `Filters`, `FinderQuery`, `searchURL`, `runSearch`, `destinations`, `compose`, the In picker; src/styles/search.css (.srch__row, .srch__main, .is-stale, .srch-pick)
+- kind: rationale
+- kind: warning-context
+- logged: v0.44.0 · 2026-10-20
+
+The filter row reads Title only, Created by, Shared space, In, Date, then Sort on the right; the Shared space chip is hidden when the workspace has none, decided before the dialog shows. In opens a small picker with its own field: empty it offers the open page and its parents, then recently visited pages; typed, it filters every page of the workspace by title, and the server keeps sub-pages of the pick. Sorts are Best match and edited or created, newest or oldest first; the oldest-first variants send `dir=asc`. The engine client (`engine/client.ts`, not owned here) does not forward `teamspace` or `dir`, so `runSearch` builds the URL itself only when one of them is set and otherwise keeps using `api.pages.search`; once the client forwards both, `runSearch` can call it unconditionally. Every option row is 48px with title on the first line and path plus snippet on the second, headings are 28px, so results swap in place by key without the list changing height. A request slower than 220 ms dims the rows it is about to replace rather than clearing them. Typing three or more letters of home or settings adds a Go to group above the pages; Settings runs `prefs.open` when that command exists and opens account settings otherwise. Up to three commands follow the pages under Commands. With an empty query only recently visited pages show, timed by when they were visited, not edited.
+
+### src/ui/command-palette.ts · Find a command
+- refers-to: src/ui/command-palette.ts :: `Palette`, `openPalette`, `readRecent`, `remember`; src/ui/keyboard.ts (palette.open); src/styles/finder.css (.cpal)
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+Ported from formdeck's palette: twelve rows are built once and rewritten in place, every query word must appear in the id, label or group, and ranking gives 4 when the label starts with the first word, 2 when the label holds every word and 1 when the command is enabled, then sorts by label. Disabled commands stay in the list, muted, and Enter ignores them. Commands with required parameters are left out because the palette cannot supply them. With an empty query the last five commands run from the palette (localStorage `formmd.palette.recent`) come first under Recently used; group labels use two of the twelve rows. Shortcuts come from `keymap.chordsFor` so a rebinding shows at once, and `keymap.text` joins Mac glyphs without separators and other platforms with plus signs. Ctrl or Cmd plus Shift plus P opens it from anywhere, the editor included; the module loads on first use.
+
+### src/ui/find-in-page.ts · find and replace in the page
+- refers-to: src/ui/find-in-page.ts :: `FindBar`, `findHits`, `openFind`; src/ui/keyboard.ts :: `findReady`, `findWanted`; src/styles/finder.css (.findbar, .find-hit)
+- kind: rationale
+- kind: warning-context
+- logged: v0.44.0 · 2026-10-20
+
+Highlights are a `decorations` prop set once on the page's EditorView with `setProps`, not a plugin added by `state.reconfigure`: reconfiguring rebuilds every plugin view, and the y-prosemirror sync and undo views would be torn down and recreated, which can lose undo history. `setProps` merges with the host's props, so the host's own `setProps` calls and its `updateState` on page switch keep it; the function returns nothing while the bar is closed. Matches are computed per textblock with inline nodes as one placeholder character, so a match never spans a mention or equation, and recomputed whenever the document object changes, which covers collaborators' edits. Replace and Replace all are ordinary transactions (all matches in one, applied from the end), so undo and collaborators see them. The bar is a non-modal layer: Escape closes it through the existing layer binding and selects the current match in the editor. Ctrl or Cmd plus F is taken only when an editor is bound to the open page and focus is not in a text field outside the page, so the browser's find still works everywhere else. Read-only and suggesting pages get Find only.
+
+### src/ui/shortcuts-editor.ts and src/engine/keymap.ts · rebinding
+- refers-to: src/ui/shortcuts-sheet.ts :: `mountShortcutsSheet`; src/ui/shortcuts-editor.ts :: `mountShortcutsEditor`; src/engine/keymap.ts :: `setCustom`, `loadCustoms`, `customs`, `chordsFor`, `defaultChords`, `conflicts`, `fromEvent`, `text`; src/ui/keyboard.ts :: `KEYS_STORAGE`
+- kind: explainer
+- kind: decision
+- logged: v0.44.0 · 2026-10-20
+
+The sheet module is now a hook that loads the editor chunk the first time the overlay opens, so the up-front bundle shrank. A custom binding is stored per command and replaces the chords of every binding of that command while keeping each binding's scope, typing rule and condition; a command with no binding gets a global one, active while typing only when the chord has a modifier. Customs live in localStorage `formmd.keys` and are loaded by `mountKeyboard` before any key is handled; they are read lazily, so commands registered later are covered. Recording sets `data-own-keys` on the dialog so no shortcut fires, Backspace clears (an empty list, which hides the defaults), Escape cancels, and a chord equal to the only default removes the custom entry. Conflicts are any two commands sharing a chord in a common scope and are shown under each row; the editor does not refuse them, because the scope order in `handle` already decides which runs. Default chords whose binding condition is false right now (the desktop-only new page shortcut in a browser) are not shown.
+
+### src/ui/keyboard.ts · new shortcuts
+- refers-to: src/ui/keyboard.ts :: `registerFinder`
+- kind: decision
+- logged: v0.44.0 · 2026-10-20
+
+Added: palette.open (Ctrl or Cmd plus Shift plus P, also while typing), page.find (Ctrl or Cmd plus F), page.copyLink (Ctrl or Cmd plus L, view scope, so never in a text field, where the browser's own use is left alone) and Ctrl or Cmd plus N for page.new only when `/api/me` says `instance.desktop`, since browsers keep that key. Ctrl or Cmd plus Shift plus L stays with the shell extension's theme toggle; if another module binds the same chord to a second theme command, the most recent registration runs alone and the shortcuts editor shows the overlap.
+
+## Phase 18 · templates {#p18-templates}
+
+### src/ui/templates-dialog.ts · the gallery
+- refers-to: src/ui/templates-dialog.ts :: `openTemplates`, `loadTemplateCatalog`, `useTemplate`; src/styles/templates.css (.tplgal, .tplcard); src/styles/automations.css (old .tplgal and .tplcard rules removed)
+- kind: explainer
+- kind: decision
+- logged: v0.44.0 · 2026-10-20
+
+One 1040 by 80vh dialog with two modes in the same element: browse (left rail with search and categories with live counts, right a card grid) and detail (large preview left, name, description, what is inside, title field and buttons right). The grid is built once when the catalogue arrives; search and category only toggle `hidden` on cards and rewrite count text, and switching modes toggles two containers, so nothing is rebuilt. Search needs every typed word somewhere in the name, description, category or tags, inside the selected category. Workspace templates sit first in All and alone under From this workspace; they have no server preview, so their box shows the page icon. A cached catalogue paints at once and is then refetched, and only workspace cards are patched by id. While detail is open the dialog carries `data-own-keys`, which stops the global Escape binding so the dialog's own handler goes back to the grid; a second Escape closes. Arrow keys move by column count measured from the first row's offsetTop, Up from the first row returns to search, Down or Enter in search reaches the first visible card. `opts.category` accepts a category id or name or `workspace`; `opts.preview` takes a starter id or a workspace template page id.
+
+### src/ui/templates-dialog.ts · mountTemplatePreview
+- refers-to: src/ui/templates-dialog.ts :: `mountTemplatePreview`, `loadPreview`, `paintPreview`, `rescale`, `watchSize`; src/styles/templates.css (.tplprev, .tplp)
+- kind: explainer
+- kind: warning-context
+- logged: v0.44.0 · 2026-10-20
+
+The preview is a 720 px page scaled with a CSS transform to the host's width; one shared ResizeObserver rescales and drops hosts that left the document. A sizer element carries the scaled height so `.tplprev--scroll` hosts (the detail pane) scroll the whole page, while cards clip it. The host gets `.tplprev` (sheet background, 16:9 by default) synchronously, before any fetch, so the box never blinks; callers that size the host themselves win over the default aspect ratio. Requests are memoised per id and the resolved previews kept, so a preview already seen paints in the same task with no empty frame. The HTML is the server's escaped preview markup inserted with innerHTML; it never contains scripts, handlers or raw HTML from users because starters are compiled into the server. Gallery cards mount through an IntersectionObserver rooted at the scrolling grid with a 240 px margin.
+
+## Phase 18 · integration {#p18-integration}
+
+### src/engine/index.ts · Home is a place you can stay
+- refers-to: src/engine/index.ts :: `landing`, `autoLand`, `bootDesktop`, `openPage`, `navigate`, `restoreNav`, the workspaceId watcher
+- kind: explainer
+- kind: decision
+- logged: v0.44.0 · 2026-10-20
+
+Before v0.44.0 `landing()` sent every arrival on the home route to the last page you had open, so Home was only ever seen in an empty workspace. Now it does that once: at boot when the start route is home, and after a workspace switch (`autoLand`). Any navigation by the person (`openPage`, `navigate`, `restoreNav`) clears it, so clicking Home, the Home menubar item or closing the last tab shows Home and stays there. In the desktop app (`boot.me.instance.desktop`) with Preferences, Desktop app, On startup set to Home (`startOnHome`), boot does not jump at all.
+
+### src/extensions/shell/index.ts · commands the menubar needed
+- refers-to: src/extensions/shell/index.ts :: `route.home`, `templates.open`, `transfer.import`; src/extensions/account/index.ts :: `account.signOut` (enabled)
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+The desktop menubar (src-tauri/src/menu.rs) calls commands by id; these three had no command before, so they are registered here and lazy-load their dialogs. Sign out is disabled inside the desktop app, where there is no password to sign back in with.
+
+### src/ui/keyboard.ts · the palette and find load early
+- refers-to: src/ui/keyboard.ts :: `registerFinder` (idle prefetch)
+- kind: explainer
+- logged: v0.44.0 · 2026-10-20
+
+The command palette and find-in-page chunks are fetched 1.5 s after start in an idle callback. On first use they otherwise loaded after the shortcut, and the first letters typed went into the page. They stay out of the start budget because they are dynamic imports.
+
+### src/ui/page-actions.ts and tools/bundlecheck · the start budget at 268 KB
+- refers-to: src/ui/page-actions.ts (Analytics item); tools/bundlecheck/main.go (budget default)
+- kind: decision
+- logged: v0.44.0 · 2026-10-20
+
+The interface rebuild (resizable sidebar, back and forward, preferences sync, theme profiles, custom shortcuts) put 266.0 KB gzip up front against a 262 KB budget. The page analytics dialog moved behind a dynamic import (1.8 KB back) and the budget rose to 268 KB, the same way it rose to 262 KB for formlit's icon art in v0.42.0. The next feature that needs start-up code should look at moving `page-actions` (4.6 KB) out of the first load before raising it again.
+
+### src/engine/client.ts and types.ts · search sends the shared space and direction
+- refers-to: src/engine/client.ts :: `pages.search`; src/engine/types.ts :: `SearchQuery` (teamspace, dir); src/ui/search.ts :: `runSearch`
+- kind: fix
+- logged: v0.44.0 · 2026-10-20
+
+The search window first sent requests with a shared-space filter or an oldest-first sort through its own fetch, which skipped the session guard that sends a signed-out window to the sign-in page. The client now carries both parameters and every search goes through it.
+
+### src/styles/home.css · Home fits its column
+- refers-to: src/styles/home.css :: `.home`, `.home-sec`, `.home-sec__head`
+- kind: fix
+- logged: v0.44.0 · 2026-10-20
+
+Grid tracks sized to content let the template chip strip (a flex row that scrolls sideways) widen the whole Home column past the window. `minmax(0, 1fr)` columns on `.home` and `.home-sec` and `min-inline-size: 0` on the section head keep it inside; measured in Chromium at 1440 px, nothing outside the strip's own scroller passes the column edge.
