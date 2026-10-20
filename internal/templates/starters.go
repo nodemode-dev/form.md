@@ -1,6 +1,10 @@
 package templates
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 type opt struct {
 	ID    string `json:"id"`
@@ -10,12 +14,20 @@ type opt struct {
 }
 
 type prop struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	Options []opt  `json:"options,omitempty"`
-	Format  string `json:"format,omitempty"`
-	Prefix  string `json:"prefix,omitempty"`
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	Type       string  `json:"type"`
+	Options    []opt   `json:"options,omitempty"`
+	Format     string  `json:"format,omitempty"`
+	Prefix     string  `json:"prefix,omitempty"`
+	Display    string  `json:"display,omitempty"`
+	Precision  int     `json:"precision,omitempty"`
+	Max        float64 `json:"max,omitempty"`
+	Expr       string  `json:"expr,omitempty"`
+	Collection string  `json:"collection,omitempty"`
+	Relation   string  `json:"relation,omitempty"`
+	Target     string  `json:"target,omitempty"`
+	Fn         string  `json:"fn,omitempty"`
 }
 
 type view struct {
@@ -38,16 +50,60 @@ type Starter struct {
 	Kind        string   `json:"kind"`
 	Category    string   `json:"category"`
 	Tags        []string `json:"tags"`
+	Featured    bool     `json:"featured,omitempty"`
+	Pages       int      `json:"pages,omitempty"`
+	Docs        int      `json:"docs,omitempty"`
+	Databases   int      `json:"databases,omitempty"`
+	key         string
 	markdown    string
 	schema      []prop
 	views       []view
 	rows        []row
 	templates   []row
+	children    []Starter
 }
 
 func (s Starter) schemaJSON() json.RawMessage {
 	b, _ := json.Marshal(s.schema)
 	return b
+}
+
+func (s Starter) schemaWith(refs map[string]string) (json.RawMessage, error) {
+	out := make([]prop, len(s.schema))
+	copy(out, s.schema)
+	for i, p := range out {
+		if k, ok := strings.CutPrefix(p.Collection, "@"); ok {
+			if k == "self" || (s.key != "" && k == s.key) {
+				out[i].Collection = "self"
+				continue
+			}
+			id, found := refs[k]
+			if !found {
+				return nil, fmt.Errorf("template %s: relation %s points at %q, which is not created before it", s.ID, p.ID, k)
+			}
+			out[i].Collection = id
+		}
+	}
+	return json.Marshal(out)
+}
+
+func (s Starter) count() int {
+	n := 1
+	for _, c := range s.children {
+		n += c.count()
+	}
+	return n
+}
+
+func (s Starter) databases() int {
+	n := 0
+	if s.Kind == "database" {
+		n = 1
+	}
+	for _, c := range s.children {
+		n += c.databases()
+	}
+	return n
 }
 
 var statusOpts = []opt{{ID: "todo", Name: "Not started", Color: "gray", Group: "todo"}, {ID: "doing", Name: "In progress", Color: "blue", Group: "doing"}, {ID: "done", Name: "Done", Color: "green", Group: "done"}}

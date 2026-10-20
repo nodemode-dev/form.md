@@ -93,7 +93,7 @@ func dayOffset(v string, now time.Time) (string, bool) {
 	return now.AddDate(0, 0, n).Format("2006-01-02"), true
 }
 
-func (s *Service) values(p *policy.Principal, schema []prop, in map[string]any) map[string]json.RawMessage {
+func (s *Service) values(p *policy.Principal, schema []prop, in map[string]any, rows map[string]map[string]string) map[string]json.RawMessage {
 	now := time.Now().UTC()
 	out := map[string]json.RawMessage{}
 	for _, sp := range schema {
@@ -107,11 +107,9 @@ func (s *Service) values(p *policy.Principal, schema []prop, in map[string]any) 
 				v = []string{p.UserID}
 			}
 		case "date":
-			if str, ok := v.(string); ok {
-				if d, ok := dayOffset(str, now); ok {
-					v = map[string]string{"start": d}
-				}
-			}
+			v = dateValue(v, now)
+		case "relation":
+			v = relationValue(v, sp, rows)
 		}
 		b, err := json.Marshal(v)
 		if err == nil {
@@ -165,68 +163,7 @@ func (s *Service) Use(ctx context.Context, p *policy.Principal, in UseInput) (*p
 	if title == "" {
 		title = st.Name
 	}
-	create := page.CreateInput{WorkspaceID: in.WorkspaceID, ParentID: in.ParentID, TeamspaceID: in.TeamspaceID, Title: title, Icon: st.Icon, Kind: "doc"}
-	if st.Kind == "database" {
-		create.Kind = "collection"
-		extra, _ := json.Marshal(map[string]any{"view": st.views[0].Type, "schema": st.schemaJSON()})
-		create.Extra = extra
-	}
-	m, err := s.pages.Create(ctx, p, create)
-	if err != nil {
-		return nil, err
-	}
-	if st.Kind == "doc" {
-		if err := s.docs.Write(ctx, p, m.ID, doc.WriteInput{Markdown: fill(st.markdown), Mode: "replace"}); err != nil {
-			return nil, err
-		}
-		return m, nil
-	}
-	out, err := s.cols.Get(ctx, p, m.ID)
-	if err != nil {
-		return nil, err
-	}
-	for i, v := range st.views {
-		cfg := json.RawMessage(v.Config)
-		name := v.Name
-		typ := v.Type
-		if i == 0 && len(out.Views) > 0 {
-			if _, err := s.cols.UpdateView(ctx, p, out.Views[0].ID, collection.ViewInput{Name: &name, Type: &typ, Config: &cfg}); err != nil {
-				return nil, err
-			}
-			continue
-		}
-		if _, err := s.cols.CreateView(ctx, p, m.ID, collection.ViewInput{Name: &name, Type: &typ, Config: &cfg}); err != nil {
-			return nil, err
-		}
-	}
-	for _, r := range st.rows {
-		row, err := s.cols.CreateRow(ctx, p, m.ID, collection.RowInput{Title: r.Title, Values: s.values(p, st.schema, r.Values)})
-		if err != nil {
-			return nil, err
-		}
-		if r.Markdown != "" {
-			if err := s.docs.Write(ctx, p, row.ID, doc.WriteInput{Markdown: fill(r.Markdown), Mode: "replace"}); err != nil {
-				return nil, err
-			}
-		}
-	}
-	for _, r := range st.templates {
-		t, err := s.cols.CreateTemplate(ctx, p, m.ID, r.Title)
-		if err != nil {
-			return nil, err
-		}
-		if vals := s.values(p, st.schema, r.Values); len(vals) > 0 {
-			if _, err := s.cols.UpdateRow(ctx, p, t.ID, collection.RowPatch{Values: vals}); err != nil {
-				return nil, err
-			}
-		}
-		if r.Markdown != "" {
-			if err := s.docs.Write(ctx, p, t.ID, doc.WriteInput{Markdown: fill(r.Markdown), Mode: "replace"}); err != nil {
-				return nil, err
-			}
-		}
-	}
-	return m, nil
+	return s.build(ctx, p, st, in, title)
 }
 
 func (s *Service) Module() app.Module { return module{s} }

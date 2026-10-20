@@ -172,7 +172,11 @@ func (w *mdWriter) block(el *crdt.YXmlElement) []string {
 		for strings.Contains(code, fence) {
 			fence += "`"
 		}
-		lines := []string{fence + attrString(el, "language")}
+		info := attrString(el, "language")
+		if v := attrString(el, "view"); info != "" && (v == "preview" || v == "code") {
+			info += " " + v
+		}
+		lines := []string{fence + info}
 		if code != "" {
 			lines = append(lines, strings.Split(code, "\n")...)
 		}

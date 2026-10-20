@@ -257,6 +257,11 @@ func (c *converter) block(n gast.Node) *pmNode {
 	case *gast.FencedCodeBlock:
 		cb := newNode("code_block")
 		cb.attrs["language"] = strings.ToLower(string(x.Language(c.src)))
+		if x.Info != nil {
+			if f := strings.Fields(string(x.Info.Segment.Value(c.src))); len(f) > 1 && (f[1] == "preview" || f[1] == "code") {
+				cb.attrs["view"] = f[1]
+			}
+		}
 		cb.runs = codeRuns(strings.TrimSuffix(c.rawLines(x), "\n"))
 		return cb
 	case *gast.CodeBlock:
