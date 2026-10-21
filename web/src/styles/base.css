@@ -4,6 +4,14 @@
   box-sizing: border-box;
 }
 
+* {
+  scrollbar-width: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
