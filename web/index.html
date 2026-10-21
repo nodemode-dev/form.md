@@ -17,7 +17,7 @@
   </head>
   <body>
     <script type="application/json" id="boot">null</script>
-    <script>(function(){var d=document.documentElement,h=new Date().getHours();d.setAttribute("data-daypart",h<12?"morning":h<18?"afternoon":"evening");try{var b=JSON.parse(document.getElementById("boot").textContent||"null"),p=b&&b.pages;d.setAttribute("data-home",p&&p.length?"back":"new");if(b&&b.me&&b.me.user&&b.me.user.role==="owner")d.setAttribute("data-owner","");if(b&&b.me&&b.me.instance&&b.me.instance.desktop)d.setAttribute("data-desktop","");if(localStorage.getItem("fm.dev")==="1")d.setAttribute("data-dev","");var w=parseInt(localStorage.getItem("formmd.sidebarWidth")||"",10);if(w>=220&&w<=480)d.style.setProperty("--sidebar-w",w+"px")}catch(e){}})()</script>
+    <script>(function(){var d=document.documentElement,h=new Date().getHours();d.setAttribute("data-daypart",h<12?"morning":h<18?"afternoon":"evening");try{var b=JSON.parse(document.getElementById("boot").textContent||"null"),p=b&&b.pages;d.setAttribute("data-home",p&&p.length?"back":"new");if(b&&b.me&&b.me.user&&b.me.user.role==="owner")d.setAttribute("data-owner","");if(b&&b.me&&b.me.instance&&b.me.instance.desktop)d.setAttribute("data-desktop","");if(localStorage.getItem("fm.dev")==="1")d.setAttribute("data-dev","");if(localStorage.getItem("formmd.homeSide")==="closed")d.setAttribute("data-home-side","closed");var w=parseInt(localStorage.getItem("formmd.sidebarWidth")||"",10);if(w>=220&&w<=480)d.style.setProperty("--sidebar-w",w+"px")}catch(e){}})()</script>
     <div id="app" class="app">
       <aside class="sidebar" id="sidebar" aria-label="Sidebar">
         <div class="sidebar__inner">
@@ -114,56 +114,18 @@
           <section class="view view--inbox" data-view="inbox" data-ref="view-inbox" aria-label="Inbox"></section>
           <section class="view view--home" data-view="home" data-ref="view-home" aria-labelledby="home-title">
             <div class="home">
+              <div class="home__main">
               <header class="home__head">
                 <div class="home__heading">
                   <p class="home__eyebrow" data-ref="home-eyebrow"><!--slot:ws-name--></p>
                   <h1 class="home__title" id="home-title"><span data-daypart="morning">Good morning</span><span data-daypart="afternoon">Good afternoon</span><span data-daypart="evening">Good evening</span></h1>
                   <p class="home__lead" data-when="new">Write notes, plan a project or keep a table of things. Begin with a blank page, pick a template, or bring in what you already have.</p>
                 </div>
-                <button class="btn btn--primary home__new" type="button" data-command="page.new" data-ref="home-new"><i data-icon="plus"></i><span>New page</span></button>
+                <div class="home__actions">
+                  <button class="btn btn--ghost home__side-toggle" type="button" data-ref="home-side-toggle" aria-controls="home-side" aria-expanded="true"><i data-icon="gallery"></i><span>Templates</span></button>
+                  <button class="btn btn--primary home__new" type="button" data-command="page.new" data-ref="home-new"><i data-icon="plus"></i><span>New page</span></button>
+                </div>
               </header>
-              <section class="home-sec home-feature" data-ref="home-feat-sec" aria-labelledby="home-feat-title">
-                <div class="home-sec__head home-sec__head--lead">
-                  <div class="home-sec__intro">
-                    <h2 class="home-feature__title" id="home-feat-title">Data &amp; charts</h2>
-                    <p class="home-sec__lead">Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.</p>
-                  </div>
-                  <button class="btn btn--ghost home-sec__more" type="button" data-ref="home-feat-all">See all</button>
-                </div>
-                <div class="home-grid home-grid--big" data-ref="home-feat-grid">
-                  <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                </div>
-              </section>
-              <section class="home-sec" data-ref="home-ex-sec" aria-labelledby="home-ex-title">
-                <div class="home-sec__head home-sec__head--lead">
-                  <div class="home-sec__intro">
-                    <h2 class="home-sec__title" id="home-ex-title">Example projects</h2>
-                    <p class="home-sec__lead">Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.</p>
-                  </div>
-                  <button class="btn btn--ghost home-sec__more" type="button" data-ref="home-ex-all">See all</button>
-                </div>
-                <div class="home-grid home-grid--ex" data-ref="home-ex-grid">
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
-                </div>
-              </section>
               <div class="home-drop" data-ref="home-material">
                 <span class="home-drop__icon"><i data-icon="upload"></i></span>
                 <div class="home-drop__text">
@@ -211,7 +173,45 @@
                 <p class="home-empty" data-ref="home-tpl-empty" hidden>No template matches. Try another word or category.</p>
                 <div class="home-sec__foot"><button class="btn btn--ghost" type="button" data-ref="home-templates"><i data-icon="gallery"></i><span>Browse all templates</span></button></div>
               </section>
+              <section class="home-sec" data-ref="home-ex-sec" aria-labelledby="home-ex-title">
+                <div class="home-sec__head home-sec__head--lead">
+                  <div class="home-sec__intro">
+                    <h2 class="home-sec__title" id="home-ex-title">Example projects</h2>
+                    <p class="home-sec__lead">Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.</p>
+                  </div>
+                  <button class="btn btn--ghost home-sec__more" type="button" data-ref="home-ex-all">See all</button>
+                </div>
+                <div class="home-grid home-grid--ex" data-ref="home-ex-grid">
+                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                </div>
+              </section>
               <p class="home-offline" data-ref="home-offline" role="status" hidden>You are offline. Pages saved on this device stay open and sync when you are back online.</p>
+              </div>
+              <aside class="home-side" id="home-side" data-ref="home-side" aria-label="Templates">
+                <div class="home-side__inner">
+                  <div class="home-side__head">
+                    <p class="home-side__eyebrow">Templates</p>
+                    <button class="icon-btn home-side__close" type="button" data-ref="home-side-close" aria-label="Close" data-tip="Close"><i data-icon="close"></i></button>
+                  </div>
+                  <section class="home-sec home-feature" data-ref="home-feat-sec" aria-labelledby="home-feat-title">
+                    <div class="home-sec__head home-sec__head--lead">
+                      <div class="home-sec__intro">
+                        <h2 class="home-feature__title" id="home-feat-title">Data &amp; charts</h2>
+                        <p class="home-sec__lead">Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.</p>
+                      </div>
+                    </div>
+                    <div class="home-grid home-grid--big" data-ref="home-feat-grid">
+                      <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                      <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                      <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                    </div>
+                    <div class="home-sec__foot"><button class="btn btn--ghost" type="button" data-ref="home-feat-all"><i data-icon="chart"></i><span>See all</span></button></div>
+                  </section>
+                </div>
+              </aside>
             </div>
           </section>
         </div>

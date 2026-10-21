@@ -10,6 +10,7 @@ const RECENT_SHOWN = 8;
 const TEMPLATES_SHOWN = 10;
 const FEATURE_SHOWN = 6;
 const SHOWCASE = ["charts", "examples"];
+const SIDE_KEY = "formmd.homeSide";
 const ACCEPT = ".zip,.md,.markdown,.txt,.html,.htm,.enex,.xml,.docx,.xlsx,.csv,.tsv,.json,.opml,.pdf";
 
 function patchCards<T>(host: HTMLElement, items: readonly T[], key: (x: T) => string, make: (x: T) => HTMLElement, update: (el: HTMLElement, x: T) => void): void {
@@ -55,6 +56,17 @@ export function mountHome(engine: Engine): void {
   const featGrid = ref("home-feat-grid");
   const exSec = ref("home-ex-sec");
   const exGrid = ref("home-ex-grid");
+  const side = ref("home-side");
+  const sideToggle = ref("home-side-toggle");
+  const setSide = (open: boolean, keep = true) => {
+    setAttr(root, "data-home-side", open ? null : "closed");
+    setAttr(sideToggle, "aria-expanded", String(open));
+    if (keep)
+      try {
+        if (open) localStorage.removeItem(SIDE_KEY);
+        else localStorage.setItem(SIDE_KEY, "closed");
+      } catch {}
+  };
   let recent: Page[] = [];
   let token = 0;
   let catalog: TemplateCatalog | null = null;
@@ -90,6 +102,8 @@ export function mountHome(engine: Engine): void {
     if (tplSec.hidden === w) tplSec.hidden = !w;
     if (featSec.hidden === w) featSec.hidden = !w;
     if (exSec.hidden === w) exSec.hidden = !w;
+    if (side.hidden === w) side.hidden = !w;
+    if (sideToggle.hidden === w) sideToggle.hidden = !w;
   };
 
   const makeRecent = () => cardShell(h("span", { class: "hcard__doc" }, pageIcon("", "page"), h("span", { class: "hcard__doc-title" }), h("span", { class: "hcard__doc-text" })));
@@ -300,6 +314,11 @@ export function mountHome(engine: Engine): void {
   ref("home-feat-all").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { category: "charts" }), engine.reportError));
   ref("home-ex-all").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { category: "examples" }), engine.reportError));
   ref("home-templates").addEventListener("click", () => void templatesModule().then((m) => m.openTemplates(engine, {}, { ...(category ? { category } : {}), ...(query ? { query: tplSearch.value.trim() } : {}) }), engine.reportError));
+  sideToggle.addEventListener("click", () => setSide(root.getAttribute("data-home-side") === "closed"));
+  ref("home-side-close").addEventListener("click", () => {
+    setSide(false);
+    sideToggle.focus();
+  });
   ref("home-choose").addEventListener("click", chooseFiles);
   ref("home-paste").addEventListener("click", pasteText);
   material.addEventListener("dragover", (e) => {
@@ -340,6 +359,7 @@ export function mountHome(engine: Engine): void {
   engine.state.watch("health", (health) => {
     offline.hidden = health.phase !== "down";
   });
+  setSide(root.getAttribute("data-home-side") !== "closed", false);
   paintMode();
   paintWrite();
   loadRecent();
