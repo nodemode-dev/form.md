@@ -2167,3 +2167,26 @@ The owner saw a white outer edge once the icon sat on a dark background: the v0.
 
 v0.45.2 rebuilt the icons from art1024.png alone, which is the stage before the final touch-up and still carries the mockup's first tag (a white pill with dark ".MD"), so the owner's chosen tag (white ".MD" in a white outline on the tile) was lost. The owner sent back the approved full, macOS and logo files (byte-identical to v0.45.1); the full icon is kept as `approved1024.png` and `cut_tile` takes every pixel it holds opaque, eroded 4 px from its old edge, exactly, with art1024.png only for the outer pixels the new superellipse cut reaches. Checked: the 953,276 inside pixels of the new 1024 icon equal the approved file with no difference, the tag and pointer included, and the edge check over every file still finds no light pixel.
 
+### Home · the Templates side panel and a left-aligned page
+- refers-to: index.html :: `.home__main`, `#home-side`, `home-side-toggle`, `home-side-close`; src/ui/home-view.ts :: `setSide`, `SIDE_KEY`; src/styles/home.css :: `.home`, `.home__main`, `.home-side*`, `.home-chips`
+- kind: rationale
+- logged: v0.46.0 · 2026-10-21
+
+The owner asked for Home itself (Start from your material, Recently visited, Templates) to be the first thing seen, with Data & charts moved into a templates side panel and Example projects shown below Home's templates as well as in the gallery. Home is now a two-column grid: `.home__main` on the left and the `aside.home-side` (360 px, sticky, its own scroll) on the right; under 1080 px of view width (a container query on `.view--home`) the panel drops below the main column. The page sits at the left edge of the view (`margin-inline: 0`, up to 1600 px) instead of a centred 1120 px column, so the title and lead line up with the page and not with a centred box. The panel opens by default; the head's Templates button and the panel's close button toggle `data-home-side="closed"` on the root and keep the choice in `localStorage` `formmd.homeSide`; the boot script in index.html sets the attribute before first paint so a closed panel never flashes open. The panel and its button hide with the other template sections for read-only members. All labels reuse strings already translated (Templates, Close, See all), so no locale file changed.
+
+The template chips sat between the title and the search and wrapped to as many rows as the width allowed once the catalogue arrived, which moved the grid below (CLS 0.013 under 4x CPU and a slow network in the narrower column). They now take their own full row under the title and search, never wrap (`flex-wrap: nowrap`, horizontal scroll with the scrollbar hidden), so the 28 px row is reserved from the first paint and the shift is gone (CLS 0).
+
+### Dropdowns · items shown without scrolling
+- refers-to: src/ui/floating.ts :: `computePlacement`; src/styles/panels.css :: `.menu`; src/styles/pages.css :: `.popover`; src/styles/editor.css :: `.listbox`; src/styles/database.css :: `.opt-editor__list`; src/styles/viz.css :: `.picklist__list`; src/styles/search.css :: `.srch-pick__list`
+- kind: fix
+- logged: v0.46.0 · 2026-10-21
+
+Menus, popovers and pickers had fixed caps (300 to 520 px) and scrolled long lists. On the owner's request they now grow to the window: menus, popovers and listboxes up to the viewport less 16 px, lists inside a popover up to the viewport less 56 px. `computePlacement` clamped only the cross axis, so a tall menu that fitted neither below nor above ran off the screen; it now clamps both axes, letting a very tall menu cover its anchor rather than leave the window. A list longer than the whole window still scrolls, with the scrollbar hidden.
+
+### Scrollbars · hidden everywhere, scrolling kept
+- refers-to: src/styles/base.css :: `*`, `*::-webkit-scrollbar`
+- kind: rationale
+- logged: v0.46.0 · 2026-10-21
+
+The owner wants every scrollbar in the app hidden with no exceptions while wheel, trackpad, keyboard and touch scrolling keep working. The reset sets `scrollbar-width: none` on every element and hides `::-webkit-scrollbar` (WebKit in the macOS app, Chromium), both `!important` so the older per-panel `scrollbar-width: thin` and `scrollbar-color` rules no longer show a bar. Those rules are left in place; they are inert now and can be removed when their files are next touched.
+
