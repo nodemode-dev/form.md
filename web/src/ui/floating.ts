@@ -63,8 +63,8 @@ export function computePlacement(anchor: Rect, float: { width: number; height: n
     }
   }
   const clamp = (v: number, size: number, max: number) => Math.min(Math.max(v, padding), Math.max(padding, max - size - padding));
-  if (chosen === "top" || chosen === "bottom") pos.x = clamp(pos.x, float.width, viewport.width);
-  else pos.y = clamp(pos.y, float.height, viewport.height);
+  pos.x = clamp(pos.x, float.width, viewport.width);
+  pos.y = clamp(pos.y, float.height, viewport.height);
   return { x: Math.round(pos.x), y: Math.round(pos.y), side: chosen };
 }
 

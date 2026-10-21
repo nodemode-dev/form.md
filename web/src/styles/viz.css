@@ -586,7 +586,7 @@
 
 .picklist__list {
   display: grid;
-  max-block-size: 300px;
+  max-block-size: calc(100dvh - var(--space-14));
   margin: 0;
   padding: 0;
   overflow-y: auto;

@@ -1632,7 +1632,7 @@ a.mention:hover {
 .listbox {
   min-inline-size: 260px;
   max-inline-size: 400px;
-  max-block-size: min(360px, calc(100dvh - var(--space-8)));
+  max-block-size: calc(100dvh - var(--space-4));
   overflow-y: auto;
   padding: var(--space-1);
 }
