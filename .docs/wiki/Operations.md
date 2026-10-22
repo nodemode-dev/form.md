@@ -119,7 +119,7 @@ At start look for `form.md listening url=... version=... data=...`, and with a k
 
 ## Update check
 
-With `update.check` on (the default; Instance settings, General, Housekeeping, "Check for new versions", or `FORMMD_UPDATE_CHECK`), the server asks for the latest release 5 seconds after start and then once a day. It reads only the release's `tag_name`: from GitHub's releases API, or from `FORMMD_UPDATE_URL` when set (any address that answers the same JSON, for a mirror on a closed network). A failed check is logged as `update check failed` and tried again after 6 hours. Nothing is downloaded or installed.
+With `update.check` on (the default; Instance settings, General, Housekeeping, "Check for new versions", or `FORMMD_UPDATE_CHECK`), the server asks for the latest release 5 seconds after start and then once a day. It reads only the `tag_name` of a small JSON file: from formcompiler's rolling `form.md-updates` release (`https://github.com/nodemode-ai/formcompiler/releases/download/form.md-updates/latest.json`, where formcompiler keeps the newest version), or from `FORMMD_UPDATE_URL` when set (any address that answers the same JSON, for a mirror on a closed network). A failed check is logged as `update check failed` and tried again after 6 hours. Nothing is downloaded or installed.
 
 When the latest release is newer than the running version:
 

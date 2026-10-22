@@ -1723,6 +1723,22 @@ The client catalogs (web/src/i18n/<lang>/*.json) are embedded and merged after t
 
 Five seconds after start and then daily, while `update.check` is on, the server reads the latest release tag (or `FORMMD_UPDATE_URL`); `/healthz` reports `latest` only when it is newer than the running version.
 
+### internal/app/update.go, install.sh · the latest version from formcompiler
+- refers-to: internal/app/update.go :: `releasesURL`; install.sh :: `REPO`, the latest lookup, `BASE`
+- kind: decision
+- logged: v0.46.1 · 2026-10-22
+
+Releases now live on formcompiler's release page (`nodemode-ai/formcompiler`), shared by every form* app, so GitHub's "latest release" of that repository may be another app. The check and the installer therefore read `form.md-updates/latest.json`, a rolling release formcompiler keeps with the newest version, in the same shape the releases API answered (`{"tag_name":"vX.Y.Z"}`), so `fetchTag` and the installer's sed are unchanged. Downloads come from the `form.md-vX.Y.Z` release; asset names are unchanged. formcompiler must upload `latest.json` (and `install.sh`) to `form.md-updates` when it publishes.
+
+```text
+const releasesURL = "https://api.github.com/repos/nodemode-ai/form.md/releases/latest"
+REPO="nodemode-ai/form.md"
+  VERSION=$(fetch_text "https://api.github.com/repos/$REPO/releases/latest" | sed -n 's/.*"tag_name": *"\(v[0-9][0-9.]*\)".*/\1/p' | head -n 1)
+BASE="${FORMMD_DOWNLOAD_URL:-https://github.com/$REPO/releases/download/$VERSION}"
+```
+
+Verified: go vet ./internal/app and go build ./... clean; sh -n install.sh; the installer's sed reads v0.46.1 from `{"tag_name":"v0.46.1"}`. Not run: a check against formcompiler (no feed yet).
+
 ### internal/tunnel · the Cloudflare tunnel
 - refers-to: internal/tunnel/tunnel.go :: `Service.Start`, `Stop`, `supervise`, `watch`, `Middleware`, `binary`
 - kind: warning-context

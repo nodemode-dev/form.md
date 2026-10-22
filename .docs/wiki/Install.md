@@ -31,14 +31,14 @@ A macOS build downloaded from a release is unsigned unless the release workflow 
 
 ## The installer
 
-The installer is `install.sh` at the repo root, and the release workflow attaches it to every release. Download it, read it, run it:
+The installer is `install.sh` at the repo root, and formcompiler attaches it to every release on its release page (tag `form.md-vX.Y.Z`). Download it, read it, run it:
 
 ```sh
-curl -fsSL -o install.sh https://github.com/nodemode-ai/form.md/releases/download/vX.Y.Z/install.sh
+curl -fsSL -o install.sh https://github.com/nodemode-ai/formcompiler/releases/download/form.md-vX.Y.Z/install.sh
 sh install.sh --version=vX.Y.Z
 ```
 
-Without `--version` it asks the GitHub API for the latest release.
+Without `--version` it reads the latest version from formcompiler's `form.md-updates/latest.json`.
 
 What it checks, in order, and stops on:
 

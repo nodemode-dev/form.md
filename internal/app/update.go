@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const releasesURL = "https://api.github.com/repos/nodemode-ai/form.md/releases/latest"
+const releasesURL = "https://github.com/nodemode-ai/formcompiler/releases/download/form.md-updates/latest.json"
 
 var latest atomic.Pointer[string]
 
