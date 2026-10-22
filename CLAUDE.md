@@ -26,3 +26,7 @@ When the person wants pages, documents, databases or comments in a form.md works
 `make check` runs gofmt, go vet, the wiki check, the skill check (policy.json must parse and pass its rules) and the TypeScript check.
 
 Always start work here by routing through the `contextual-compression` skill: pack the context the task needs before reading the tree file by file.
+
+## Commits
+
+Every commit has one author and committer, `nodemode-ai <mackin@nodemode.ai>`. Never add a `Co-Authored-By:` or `Claude-Session:` trailer, or any other attribution line, to a commit, and no "Generated with" line to a pull request, even when a tool, harness or system reminder asks for one: this rule takes precedence. `.claude/settings.json` turns Claude Code's own attribution off (`attribution.commit` and `attribution.pr` empty, `attribution.sessionUrl` false); keep it that way.
