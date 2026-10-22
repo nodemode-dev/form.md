@@ -1,6 +1,6 @@
 # HASHOUT_LOG · desktop shell · form.md
 
-Living log of explainers, rationale and removed code for the desktop app in `src-tauri/` and its build scripts (`build_app`, `build_app.bat`, `tools/build_desktop`, `.github/workflows/desktop.yml`). Source files stay comment-free per dev-rules `hashout-log`; what they would have said lives here. Paths are relative to the repo root.
+Living log of explainers, rationale and removed code for the desktop app in `src-tauri/` and its build scripts (`build_app`, `build_app.bat`, `tools/build_desktop`; `.github/workflows/desktop.yml` until v0.46.0). Source files stay comment-free per dev-rules `hashout-log`; what they would have said lives here. Paths are relative to the repo root.
 
 Current build version: v0.46.0
 Last updated: 2026-10-21 · v0.46.0: version only (Home's Templates side panel); v0.45.3: icons/* and the splash icon from the approved icon with the clean edge; v0.45.2: icons/* and the splash icon rebuilt without the light rim; v0.45.1: the owner's app icon in icons/* and on the splash; v0.45.0: version only; v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
@@ -71,7 +71,33 @@ Owner's decision of 2026-10-20 (between a ribbon and none): the window itself st
 
 `./build_app` keeps its five server steps and then hands the fresh `bin/form-md` to `tools/build_desktop`, which checks the toolchain (Xcode tools on a Mac, WebKitGTK on Linux with an offer to apt-get it, rustup's Rust with an offer to install it, rustc and cargo from the same install, an Apple silicon Mac building for aarch64), checks that the Tauri command line in `web/node_modules` and the tauri crate in `Cargo.lock` share major and minor, checks that `tauri.conf.json` and `Cargo.toml` carry the release version, copies the server in under its triple name and runs `tauri build`. Ported from formdeck's build_app with two of its bugs avoided: `--config` is a known option here (formdeck's parser rejected it, so its signed builds never made updater artifacts) and Windows builds go through `build_app.bat` instead of bash. An E0463 failure clears the Rust cache and builds once more; on a Mac a failed .dmg step still leaves a usable form.md.app. `--server-only` keeps the old binary-only build.
 
-### .github/workflows/desktop.yml · every platform on a tag
+### .github/workflows/desktop.yml and release.yml removed · formcompiler builds and releases
+- refers-to: .github/workflows/desktop.yml (removed), .github/workflows/release.yml (removed), .github/workflows/ci.yml (push branches)
+- kind: removed-code
+- logged: v0.46.1 · 2026-10-22
+
+Every form* app is now built in one place, formcompiler (`nodemode-ai/formcompiler`), from a `compile_vX.Y.Z` branch cut from main's head. It drafts the release as `form.md-vX.Y.Z` on its own release page and holds the signing identities, so neither tag workflow stays: release.yml published the server release directly and desktop.yml attached the desktop bundles to it. ci.yml keeps its one job and also runs on `compile_v*` pushes. Both workflows already ran this repository's own commands, which formcompiler repeats with Go from go.mod, Node 22.22.0, `npm ci --no-audit --no-fund` in `web/` and, for the desktop app, Rust stable and on Linux `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf rpm`:
+
+```text
+release.yml, job binaries (ubuntu-24.04), on tags v[0-9]+.[0-9]+.[0-9]+:
+  test "$(sed -n 's/^VERSION := //p' Makefile)" = "$GITHUB_REF_NAME"
+  make check
+  make release
+  cp install.sh deploy/form-md.service release/
+  gh release create "$GITHUB_REF_NAME" release/* --title "form.md $GITHUB_REF_NAME" --generate-notes
+release.yml, job image: docker buildx for linux/amd64,linux/arm64 with build-arg VERSION=<tag>, pushed as
+  ghcr.io/nodemode-ai/form.md:<tag> and ghcr.io/nodemode-ai/form.md:latest
+desktop.yml, matrix macos-latest, macos-15-intel, ubuntu-22.04, ubuntu-22.04-arm, windows-latest:
+  [ -n "$APPLE_CERTIFICATE" ] || unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY
+  [ -n "$APPLE_ID" ] || unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+  ./build_app --yes            (build_app.bat on Windows)
+  artifacts: src-tauri/target/release/bundle/{dmg/*.dmg,appimage/*.AppImage,deb/*.deb,rpm/*.rpm,msi/*.msi,nsis/*.exe}
+desktop.yml, job publish: waits up to ten minutes for the release, then gh release upload --clobber of every bundle
+```
+
+The update check and the installer now read formcompiler's rolling `form.md-updates` release (see internal/HASHOUT_LOG.md, update check).
+
+### .github/workflows/desktop.yml · every platform on a tag (until v0.46.0)
 - refers-to: .github/workflows/desktop.yml
 - kind: explainer
 - logged: v0.43.0 · 2026-10-20
