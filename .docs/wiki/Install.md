@@ -8,7 +8,7 @@ Since v0.43.0 each release also carries the desktop app: `form.md_X.Y.Z_aarch64.
 
 The app is a window around the same `form-md` binary. It starts the server on this computer when it opens and stops it when you quit, signs you in as the owner without a password screen, and keeps your data in `~/form.md` (start the app with `FORMMD_DATA` set to use another folder). The server listens on `127.0.0.1:8750` so agents and `form-md mcp` find it at the usual address, or on another free port when 8750 is taken. It never listens beyond this computer; to share a workspace with other people, run the server on its own as below.
 
-A macOS build downloaded from a release is unsigned unless the release workflow had Apple signing secrets: allow it once under System Settings, Privacy and Security, Open Anyway.
+A macOS build downloaded from a release is unsigned unless formcompiler, which builds the releases, signed it with the Apple identity it holds: allow it once under System Settings, Privacy and Security, Open Anyway.
 
 ## Layout
 
@@ -114,7 +114,7 @@ With no command the binary runs `serve`. `form-md help` prints every command and
 
 ## Docker
 
-The `Dockerfile` builds the client with Node 22, the server with Go (`CGO_ENABLED=0`), and copies the binary into `gcr.io/distroless/static-debian12:nonroot`. The image sets `FORMMD_DATA=/data` and `FORMMD_ADDR=0.0.0.0:8750`, declares `/data` as a volume, exposes 8750, runs as user 65532, and its command is `serve`. The release workflow pushes `ghcr.io/nodemode-ai/form.md:vX.Y.Z` and `:latest` for `linux/amd64` and `linux/arm64`.
+The `Dockerfile` builds the client with Node 22, the server with Go (`CGO_ENABLED=0`), and copies the binary into `gcr.io/distroless/static-debian12:nonroot`. The image sets `FORMMD_DATA=/data` and `FORMMD_ADDR=0.0.0.0:8750`, declares `/data` as a volume, exposes 8750, runs as user 65532, and its command is `serve`. formcompiler pushes `ghcr.io/nodemode-ai/form.md:vX.Y.Z` and `:latest` for `linux/amd64` and `linux/arm64`.
 
 ```sh
 docker run -d --name form-md --restart unless-stopped \

@@ -38,7 +38,7 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 | Cloudflare tunnel | Working, **in testing** against a stand-in, not yet against real Cloudflare · see [[Tunnel]] |
 | Gmail and Microsoft 365 sending | Working, **in testing** against a stub provider, not yet against Google or Microsoft · see [[Mail]] |
 | Automatic HTTPS from Instance settings, browser backup download, update check | Working since v0.11.0 · see [[TLS-and-ACME]], [[Backup-and-restore]], [[Operations]] |
-| `install.sh`, systemd unit, container image, release workflow | Written and tried locally (the image built and answered `/healthz`), **not yet exercised by a pushed tag** · see [[Install]] |
+| `install.sh`, systemd unit, container image, releases through formcompiler | Written and tried locally (the image built and answered `/healthz`), **not yet exercised by a formcompiler release** · see [[Install]] |
 | SAML and SCIM | Tested against a local identity provider only, not yet against Okta, Entra or Google Workspace |
 | AI providers | Verified against a local stand-in, not yet against live provider keys |
 | Windows scripts (`*.bat`) | Written, **not yet run** on a Windows host |

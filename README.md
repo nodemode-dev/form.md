@@ -138,10 +138,10 @@ form-md.bat
 ### Servers
 
 ```shell
-curl -fsSL https://github.com/nodemode-ai/form.md/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/nodemode-ai/formcompiler/releases/download/form.md-updates/install.sh | sh
 ```
 
-The installer verifies the download against `SHA256SUMS`, installs `/usr/local/bin/form-md` & on systemd hosts a hardened `form-md` service w/ its data in `/var/lib/form-md`. With Docker: `docker run -p 8750:8750 -v form-md:/data ghcr.io/nodemode-ai/form.md`. Both are published by the release workflow from v0.11.0 on; the wiki in `.docs/wiki` covers install, encryption, TLS, backups & operations.
+The installer verifies the download against `SHA256SUMS`, installs `/usr/local/bin/form-md` & on systemd hosts a hardened `form-md` service w/ its data in `/var/lib/form-md`. With Docker: `docker run -p 8750:8750 -v form-md:/data ghcr.io/nodemode-ai/form.md`. Both are published from formcompiler (`nodemode-ai/formcompiler`, releases `form.md-vX.Y.Z`) from v0.46.1 on, and by this repository's release workflow from v0.11.0 to v0.46.0; the wiki in `.docs/wiki` covers install, encryption, TLS, backups & operations.
 
 ### Ports
 
@@ -316,7 +316,7 @@ On macOS, `Ctrl` reads as `Cmd`. Changed keys are kept on this device.
 
 ## Development
 
-- Branch model in `BRANCHING.md`: `main` only, releases are annotated `vX.Y.Z` tags that the release workflow builds
+- Branch model in `BRANCHING.md`: `main` only, releases are `compile_vX.Y.Z` branches that formcompiler builds and drafts as `form.md-vX.Y.Z`
 - Conventions: surgical edits only, zero emojis anywhere incl. markdown, every colour & layer from the token files, no icon libraries, no UI framework, semver tags from `main`
 - `make check` runs gofmt, `go vet`, the wiki-versus-code check & the client type check
 

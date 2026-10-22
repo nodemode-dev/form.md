@@ -30,7 +30,7 @@ How the repository is laid out, how to run both halves while changing them, and 
 | `web/public/` | Served as is: `sw.js` (service worker), `maps/` |
 | `tools/` | `boot_backend`, `oc_install` (Go side), `notices/` (generates `NOTICES.md`), `wikicheck/` (checks this wiki against the code), `skillcheck/` (checks the skill's `policy.json`), `bundlecheck/` (fails `make build` when the JavaScript the first page loads, the entry plus its modulepreloads gzipped, passes 260 KB; `-budget` changes the limit) |
 | `deploy/`, `install.sh`, `Dockerfile` | Systemd unit, installer, container image |
-| `.github/workflows/` | `ci.yml` (every push to `main` and every pull request), `release.yml` (tags) |
+| `.github/workflows/` | `ci.yml` (every push to `main` or a `compile_v*` branch and every pull request); releases are built by formcompiler |
 
 ## Dev loop
 
