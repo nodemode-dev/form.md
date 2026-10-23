@@ -109,6 +109,8 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | github.com/jonboulle/clockwork | v0.5.0 | Apache-2.0 |
 | github.com/ledongthuc/pdf | v0.0.0-20260907135840-6c8c28e0e8a0 | BSD-3-Clause |
 | github.com/mattermost/xml-roundtrip-validator | v0.1.0 | Apache-2.0 |
+| github.com/mattn/go-isatty | v0.0.24 | MIT |
+| github.com/ncruces/go-strftime | v1.0.0 | MIT |
 | github.com/reearth/ygo | v1.51.0 | MIT |
 | github.com/remyoudompheng/bigfft | v0.0.0-20230129092748-24d4a6f8daec | BSD-3-Clause |
 | github.com/russellhaering/gosaml2 | v0.12.0 | Apache-2.0 |
@@ -126,7 +128,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | internmap | 1.0.1 | ISC |
 | internmap | 2.0.3 | ISC |
 | isomorphic.js | 0.2.5 | MIT |
-| katex | 0.18.9 | MIT |
+| katex | 0.18.9 | MIT (code); OFL-1.1 (fonts) |
 | khroma | 2.1.0 | MIT |
 | layout-base | 1.0.2 | MIT |
 | layout-base | 2.0.1 | MIT |
@@ -3621,6 +3623,46 @@ Apache License
    limitations under the License.
 ```
 
+## github.com/mattn/go-isatty v0.0.24
+
+```text
+Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
+
+MIT License (Expat)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+## github.com/ncruces/go-strftime v1.0.0
+
+```text
+MIT License
+
+Copyright (c) 2022 Nuno Cruces
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## github.com/reearth/ygo v1.51.0
 
 ```text
@@ -4473,6 +4515,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+The KaTeX font files (dist/fonts, KaTeX_*) are licensed under the SIL Open Font License, Version 1.1, whose text is reproduced in the Inter entry of this file. The code above is MIT.
 ```
 
 ## khroma 2.1.0

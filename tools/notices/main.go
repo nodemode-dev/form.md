@@ -77,13 +77,19 @@ func stdlib() component {
 }
 
 func goModules(root string) []component {
-	out, err := exec.Command("go", "list", "-deps", "-f",
-		"{{with .Module}}{{if not .Main}}{{.Path}}\t{{.Version}}\t{{.Dir}}{{end}}{{end}}",
-		"./cmd/form-md").Output()
-	check(err)
+	var lines []string
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		cmd := exec.Command("go", "list", "-deps", "-f",
+			"{{with .Module}}{{if not .Main}}{{.Path}}\t{{.Version}}\t{{.Dir}}{{end}}{{end}}",
+			"./cmd/form-md")
+		cmd.Env = append(os.Environ(), "GOOS="+goos)
+		out, err := cmd.Output()
+		check(err)
+		lines = append(lines, strings.Split(strings.TrimSpace(string(out)), "\n")...)
+	}
 	seen := map[string]bool{}
 	var comps []component
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+	for _, line := range lines {
 		if line == "" || seen[line] {
 			continue
 		}
@@ -147,6 +153,10 @@ func webPackages(root string) []component {
 		text := webLicense(dir, n, m.License, m.Author)
 		if m.License == "" {
 			m.License = classify(text)
+		}
+		if n == "katex" {
+			m.License = "MIT (code); OFL-1.1 (fonts)"
+			text += "\n\nThe KaTeX font files (dist/fonts, KaTeX_*) are licensed under the SIL Open Font License, Version 1.1, whose text is reproduced in the Inter entry of this file. The code above is MIT."
 		}
 		comps = append(comps, component{name: label, version: m.Version, license: m.License, text: text})
 	}
