@@ -74,7 +74,7 @@ export class SyncedView implements NodeView {
     private readonly ctx: EditorCtx,
   ) {
     this.label = h("span", { class: "synced__label" });
-    const more = h("button", { class: "icon-btn synced__more", attrs: { type: "button", "aria-label": t("Synced block options"), "data-tip": t("Synced block options") } }, iconNode("more"));
+    const more = h("button", { class: "icon-btn synced__more", attrs: { type: "button", "aria-label": t("Mirrored block options"), "data-tip": t("Mirrored block options") } }, iconNode("more"));
     more.addEventListener("click", () => this.menu(more));
     this.bar = h("div", { class: "synced__bar", attrs: { contenteditable: "false" } }, iconNode("refresh"), this.label, more);
     this.body = h("div", { class: "synced__body" });
@@ -95,7 +95,7 @@ export class SyncedView implements NodeView {
     setAttr(this.dom, "data-key", String(this.node.attrs.key ?? ""));
     this.dom.classList.toggle("is-original", this.original());
     const src = this.ctx.engine.pages.get(String(this.node.attrs.page));
-    setText(this.label, this.original() ? t("Synced block, original") : t("Synced from {title}", { title: src?.title || t("Untitled") }));
+    setText(this.label, this.original() ? t("Mirrored block, original") : t("Mirrored from {title}", { title: src?.title || t("Untitled") }));
   }
 
   private connect(): void {
@@ -116,7 +116,7 @@ export class SyncedView implements NodeView {
   private deny(): void {
     this.inner?.destroy();
     this.inner = null;
-    this.body.replaceChildren(h("p", { class: "synced__notice", text: t("This synced block comes from a page you cannot open.") }));
+    this.body.replaceChildren(h("p", { class: "synced__notice", text: t("This mirrored block comes from a page you cannot open.") }));
   }
 
   private writable(): boolean {
@@ -187,7 +187,7 @@ export class SyncedView implements NodeView {
       this.body.replaceChildren();
       this.inner = new EditorView(
         { mount: this.body },
-        { state, nodeViews: nodeViews(sub), editable: () => this.writable(), attributes: { class: "synced__body", "aria-label": t("Synced block") } },
+        { state, nodeViews: nodeViews(sub), editable: () => this.writable(), attributes: { class: "synced__body", "aria-label": t("Mirrored block") } },
       );
       kit.attach(this.inner);
     }
@@ -206,7 +206,7 @@ export class SyncedView implements NodeView {
       entries.push({ label: t("Go to the original"), icon: "external", run: () => this.ctx.engine.openPage(String(this.node.attrs.page)) });
       if (this.view.editable) entries.push({ kind: "separator" }, { label: t("Unsync"), icon: "close", run: () => this.unsync(true) });
     } else if (this.view.editable) entries.push({ kind: "separator" }, { label: t("Unsync all"), icon: "close", run: () => this.unsyncAll() });
-    openMenu(anchor, entries, { side: "bottom", align: "end", label: t("Synced block") });
+    openMenu(anchor, entries, { side: "bottom", align: "end", label: t("Mirrored block") });
   }
 
   private copy(): void {

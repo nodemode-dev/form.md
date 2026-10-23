@@ -265,7 +265,7 @@ form.md/
 - **Encryption at rest:** built. File sizes & WAL frame headers (w/ their checksums) stay visible; there is no key rotation yet.
 - **Operations & packaging:** built. The systemd branch of the installer, the arm64 image & the workflows were not run in this sandbox; the tunnel was checked w/ a stand-in for cloudflared.
 - **Pages & the shell:** built: tree, tabs, favorites, tags, notes mode, library, trash, covers, icons, uploads, live updates.
-- **Editor & realtime co-editing:** built, incl. equations, a breadcrumb block, columns made by dragging, link cards filled by the server, media from links & pasted pages, embeds, Mermaid diagrams drawn in a sandbox & synced blocks across pages. Table cells cannot be merged, & a synced block has no slash menu inside it yet.
+- **Editor & realtime co-editing:** built, incl. equations, a breadcrumb block, columns made by dragging, link cards filled by the server, media from links & pasted pages, embeds, Mermaid diagrams drawn in a sandbox & mirrored blocks across pages. Table cells cannot be merged, & a mirrored block has no slash menu inside it yet.
 - **Search:** built: titles, bodies w/ heading paths & database properties, filters & sorts, from a palette (Ctrl or Cmd+K). The text of uploaded PDFs is not indexed yet; imported PDFs become pages whose text is.
 - **Databases:** built: 21 property types, seven views, formulas, relations & rollups, groups & calculations, inline databases, row pages, public forms, CSV import & export, chart, dashboard, map & feed views, the button property, sub-items & calendar subscriptions.
 - **Automations, buttons & templates:** built. Mail from automations goes only to workspace members; webhooks to private addresses need `FORMMD_FETCH_PRIVATE`.

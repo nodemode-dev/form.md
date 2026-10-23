@@ -121,7 +121,7 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: "synced",
-    label: () => t("Synced block"),
+    label: () => t("Mirrored block"),
     section: LAYOUT,
     icon: "refresh",
     keywords: "synced sync mirror shared reuse transclude same content",

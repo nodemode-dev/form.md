@@ -93,7 +93,7 @@ func (w *htmlWriter) synced(el *crdt.YXmlElement, id string) {
 		if html, ok := w.foreign[syncedRef{pg, key}]; ok && html != syncedDenied {
 			w.b.WriteString(html)
 		} else if ok {
-			w.b.WriteString(`<p class="synced__notice">This synced block comes from a page you cannot open.</p>`)
+			w.b.WriteString(`<p class="synced__notice">This mirrored block comes from a page you cannot open.</p>`)
 		}
 	}
 	w.b.WriteString("</div></div>")

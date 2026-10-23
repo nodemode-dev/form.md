@@ -2190,3 +2190,10 @@ Menus, popovers and pickers had fixed caps (300 to 520 px) and scrolled long lis
 
 The owner wants every scrollbar in the app hidden with no exceptions while wheel, trackpad, keyboard and touch scrolling keep working. The reset sets `scrollbar-width: none` on every element and hides `::-webkit-scrollbar` (WebKit in the macOS app, Chromium), both `!important` so the older per-panel `scrollbar-width: thin` and `scrollbar-color` rules no longer show a bar. Those rules are left in place; they are inert now and can be removed when their files are next touched.
 
+### Blocks · the mirrored block's own name
+- refers-to: src/extensions/blocks/catalog.ts :: the block entry; src/extensions/blocks/handle.ts :: Turn into a mirrored block, its error toast; src/extensions/blocks/synced.ts :: label, menu, notice; internal/doc/synced.go :: the published-page notice; src/i18n/*/01.json
+- kind: rationale
+- logged: v0.46.2 · 2026-10-23
+
+The family IP plan approved by the owner on 2026-10-23 renamed the block from another product's feature name to Mirrored block. Labels only: the node type, the `synced` files and classes, the `s:<key>` roots and every stored document are unchanged, and the generic verbs (Copy and sync, Unsync, Unsync all) stay. The seven English keys were renamed in place in all 25 tables with new translations built on each language's word for mirrored, because the old ones followed the other product's localized name.
+

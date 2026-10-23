@@ -225,7 +225,7 @@ export class BlockHandle {
       { label: t("Duplicate"), icon: "copy", run: () => duplicateBlock(view, ref) },
       ...(ref.node.type.name === "synced" || ITEMS.has(ref.node.type.name) || !view.editable
         ? []
-        : [{ label: t("Turn into a synced block"), icon: "refresh" as const, run: () => this.makeSynced(view, ref) }]),
+        : [{ label: t("Turn into a mirrored block"), icon: "refresh" as const, run: () => this.makeSynced(view, ref) }]),
       { label: t("Copy link to block"), icon: "link", run: () => this.copyLink(ref) },
       { label: t("Comment"), icon: "comment-plus", run:() => commentUI(view)?.startThread(ref.pos, ref.pos + ref.node.nodeSize, "block") },
       { kind: "separator" },
@@ -242,7 +242,7 @@ export class BlockHandle {
     try {
       view.dispatch(view.state.tr.replaceWith(ref.pos, ref.pos + cur.nodeSize, node));
     } catch {
-      toast({ id: "synced-fail", tone: "danger", message: t("This block cannot become a synced block here.") });
+      toast({ id: "synced-fail", tone: "danger", message: t("This block cannot become a mirrored block here.") });
     }
   }
 
