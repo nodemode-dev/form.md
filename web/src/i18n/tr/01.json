@@ -291,6 +291,8 @@
   "Autofill stopped.": "Otomatik doldurma durduruldu.",
   "a property": "bir özellik",
   "When a page is added": "Bir sayfa eklendiğinde",
+  "When a response is received": "Bir yanıt alındığında",
+  "Also when a page is added by hand": "Ayrıca bir sayfa elle eklendiğinde",
   "When {props} changes": "{props} değiştiğinde",
   "When any property changes": "Herhangi bir özellik değiştiğinde",
   "Every {n} hours": "Her {n} saatte bir",

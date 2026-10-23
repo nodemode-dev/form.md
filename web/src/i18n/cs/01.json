@@ -291,6 +291,8 @@
   "Autofill stopped.": "Automatické vyplnění zastaveno.",
   "a property": "vlastnost",
   "When a page is added": "Když je přidána stránka",
+  "When a response is received": "Když dorazí odpověď",
+  "Also when a page is added by hand": "Také když je stránka přidána ručně",
   "When {props} changes": "Když se změní {props}",
   "When any property changes": "Když se změní jakákoli vlastnost",
   "Every {n} hours": "Každých {n} hod.",

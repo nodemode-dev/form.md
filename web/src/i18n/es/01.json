@@ -291,6 +291,8 @@
   "Autofill stopped.": "Se detuvo el autorrelleno.",
   "a property": "una propiedad",
   "When a page is added": "Cuando se añade una página",
+  "When a response is received": "Cuando se recibe una respuesta",
+  "Also when a page is added by hand": "También cuando se añade una página a mano",
   "When {props} changes": "Cuando cambia {props}",
   "When any property changes": "Cuando cambia cualquier propiedad",
   "Every {n} hours": "Cada {n} horas",

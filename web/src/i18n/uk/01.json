@@ -291,6 +291,8 @@
   "Autofill stopped.": "Автозаповнення зупинено.",
   "a property": "властивість",
   "When a page is added": "Коли додано сторінку",
+  "When a response is received": "Коли отримано відповідь",
+  "Also when a page is added by hand": "Також коли сторінку додано вручну",
   "When {props} changes": "Коли змінюється {props}",
   "When any property changes": "Коли змінюється будь-яка властивість",
   "Every {n} hours": "Кожні {n} год",

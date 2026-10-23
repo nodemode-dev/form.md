@@ -363,7 +363,7 @@ export interface AutomationAction {
   page?: string;
 }
 
-export type AutomationTriggerKind = "row_added" | "prop_edited" | "schedule";
+export type AutomationTriggerKind = "row_added" | "response_received" | "prop_edited" | "schedule";
 
 export interface AutomationTrigger {
   props?: string[];
@@ -373,6 +373,7 @@ export interface AutomationTrigger {
   at?: string;
   weekday?: number;
   tz?: string;
+  manual?: boolean;
 }
 
 export interface Automation {

@@ -291,6 +291,8 @@
   "Autofill stopped.": "Đã dừng tự động điền.",
   "a property": "một thuộc tính",
   "When a page is added": "Khi thêm một trang",
+  "When a response is received": "Khi nhận được phản hồi",
+  "Also when a page is added by hand": "Cả khi trang được thêm thủ công",
   "When {props} changes": "Khi {props} thay đổi",
   "When any property changes": "Khi bất kỳ thuộc tính nào thay đổi",
   "Every {n} hours": "Mỗi {n} giờ",

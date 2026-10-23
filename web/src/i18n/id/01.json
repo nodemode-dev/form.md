@@ -291,6 +291,8 @@
   "Autofill stopped.": "Isi otomatis dihentikan.",
   "a property": "sebuah properti",
   "When a page is added": "Saat halaman ditambahkan",
+  "When a response is received": "Saat tanggapan diterima",
+  "Also when a page is added by hand": "Juga saat halaman ditambahkan secara manual",
   "When {props} changes": "Saat {props} berubah",
   "When any property changes": "Saat properti apa pun berubah",
   "Every {n} hours": "Setiap {n} jam",

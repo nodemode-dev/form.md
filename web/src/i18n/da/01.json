@@ -291,6 +291,8 @@
   "Autofill stopped.": "Autoudfyldning stoppet.",
   "a property": "en egenskab",
   "When a page is added": "Når en side tilføjes",
+  "When a response is received": "Når et svar modtages",
+  "Also when a page is added by hand": "Også når en side tilføjes manuelt",
   "When {props} changes": "Når {props} ændres",
   "When any property changes": "Når en egenskab ændres",
   "Every {n} hours": "Hver {n}. time",

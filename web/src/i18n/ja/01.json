@@ -291,6 +291,8 @@
   "Autofill stopped.": "自動入力を停止しました。",
   "a property": "プロパティ",
   "When a page is added": "ページが追加されたとき",
+  "When a response is received": "回答を受信したとき",
+  "Also when a page is added by hand": "ページが手動で追加されたときも",
   "When {props} changes": "{props} が変更されたとき",
   "When any property changes": "いずれかのプロパティが変更されたとき",
   "Every {n} hours": "{n} 時間ごと",

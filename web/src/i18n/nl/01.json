@@ -291,6 +291,8 @@
   "Autofill stopped.": "Automatisch invullen gestopt.",
   "a property": "een eigenschap",
   "When a page is added": "Wanneer een pagina wordt toegevoegd",
+  "When a response is received": "Wanneer een antwoord binnenkomt",
+  "Also when a page is added by hand": "Ook wanneer een pagina handmatig wordt toegevoegd",
   "When {props} changes": "Wanneer {props} verandert",
   "When any property changes": "Wanneer een eigenschap verandert",
   "Every {n} hours": "Elke {n} uur",

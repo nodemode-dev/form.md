@@ -291,6 +291,8 @@
   "Autofill stopped.": "自動填入已停止。",
   "a property": "一個屬性",
   "When a page is added": "新增頁面時",
+  "When a response is received": "收到回覆時",
+  "Also when a page is added by hand": "手動新增頁面時也觸發",
   "When {props} changes": "{props} 變更時",
   "When any property changes": "任何屬性變更時",
   "Every {n} hours": "每 {n} 小時",

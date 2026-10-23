@@ -291,6 +291,8 @@
   "Autofill stopped.": "หยุดการเติมอัตโนมัติแล้ว",
   "a property": "คุณสมบัติหนึ่ง",
   "When a page is added": "เมื่อมีการเพิ่มหน้า",
+  "When a response is received": "เมื่อได้รับคำตอบ",
+  "Also when a page is added by hand": "รวมถึงเมื่อเพิ่มหน้าด้วยตนเอง",
   "When {props} changes": "เมื่อ {props} เปลี่ยน",
   "When any property changes": "เมื่อคุณสมบัติใดเปลี่ยน",
   "Every {n} hours": "ทุก {n} ชั่วโมง",

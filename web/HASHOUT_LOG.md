@@ -2197,3 +2197,9 @@ The owner wants every scrollbar in the app hidden with no exceptions while wheel
 
 The family IP plan approved by the owner on 2026-10-23 renamed the block from another product's feature name to Mirrored block. Labels only: the node type, the `synced` files and classes, the `s:<key>` roots and every stored document are unchanged, and the generic verbs (Copy and sync, Unsync, Unsync all) stay. The seven English keys were renamed in place in all 25 tables with new translations built on each language's word for mirrored, because the old ones followed the other product's localized name.
 
+
+## v0.47.0 · response-received trigger
+
+- logged: v0.47.0 · 2026-10-23
+
+The automation editor (`extensions/database/automations.ts`) lists **When a response is received** as its own trigger beside **When a page is added**. It shows the condition field (the condition is judged on the submitted answers) and a checkbox, **Also when a page is added by hand**, which sets `trigger.manual`. Both labels are in all 25 locale files (`i18n/*/01.json`). Types: `AutomationTriggerKind` gains `response_received`, `AutomationTrigger` gains `manual`.

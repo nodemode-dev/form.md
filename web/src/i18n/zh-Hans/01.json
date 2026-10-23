@@ -291,6 +291,8 @@
   "Autofill stopped.": "自动填充已停止。",
   "a property": "一个属性",
   "When a page is added": "添加页面时",
+  "When a response is received": "收到回复时",
+  "Also when a page is added by hand": "手动添加页面时也触发",
   "When {props} changes": "{props} 更改时",
   "When any property changes": "任何属性更改时",
   "Every {n} hours": "每 {n} 小时",

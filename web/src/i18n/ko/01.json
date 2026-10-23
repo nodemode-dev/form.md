@@ -291,6 +291,8 @@
   "Autofill stopped.": "자동 채우기가 중지됐어요.",
   "a property": "속성",
   "When a page is added": "페이지가 추가될 때",
+  "When a response is received": "응답을 받았을 때",
+  "Also when a page is added by hand": "페이지를 직접 추가할 때도",
   "When {props} changes": "{props}이(가) 바뀔 때",
   "When any property changes": "속성이 바뀔 때",
   "Every {n} hours": "{n}시간마다",

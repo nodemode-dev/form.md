@@ -291,6 +291,8 @@
   "Autofill stopped.": "Автозаполнение остановлено.",
   "a property": "свойство",
   "When a page is added": "При добавлении страницы",
+  "When a response is received": "При получении ответа",
+  "Also when a page is added by hand": "Также при добавлении страницы вручную",
   "When {props} changes": "При изменении {props}",
   "When any property changes": "При изменении любого свойства",
   "Every {n} hours": "Каждые {n} ч",

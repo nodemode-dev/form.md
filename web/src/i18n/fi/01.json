@@ -291,6 +291,8 @@
   "Autofill stopped.": "Automaattitäyttö pysäytetty.",
   "a property": "ominaisuus",
   "When a page is added": "Kun sivu lisätään",
+  "When a response is received": "Kun vastaus vastaanotetaan",
+  "Also when a page is added by hand": "Myös kun sivu lisätään käsin",
   "When {props} changes": "Kun {props} muuttuu",
   "When any property changes": "Kun mikä tahansa ominaisuus muuttuu",
   "Every {n} hours": "Joka {n}. tunti",

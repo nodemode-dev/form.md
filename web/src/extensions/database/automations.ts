@@ -12,6 +12,7 @@ import { automationApi } from "../automation/api";
 
 const KINDS: [AutomationTriggerKind, string][] = [
   ["row_added", "When a page is added"],
+  ["response_received", "When a response is received"],
   ["prop_edited", "When a property is edited"],
   ["schedule", "On a schedule"],
 ];
@@ -27,6 +28,9 @@ function describe(col: Collection, a: Automation): string {
   switch (a.trigger_kind) {
     case "row_added":
       when = t("When a page is added");
+      break;
+    case "response_received":
+      when = t("When a response is received");
       break;
     case "prop_edited":
       when = tr.props?.length ? t("When {props} changes", { props: tr.props.map((id) => propName(col, id)).join(", ") }) : t("When any property changes");
@@ -96,6 +100,9 @@ function editor(engine: Engine, col: Collection, a: Automation | null, done: () 
       const day = select(DAYS.map((d, i) => [String(i), t(d)] as const), String(a?.trigger.weekday ?? 1));
       const fProps = field(t("Properties"), props.el, t("Leave all unticked to react to any property."));
       const fCond = field(t("Condition"), cond.el);
+      const manual = h("input", { attrs: { type: "checkbox" } });
+      manual.checked = a?.trigger.manual === true;
+      const fManual = field(t("Also when a page is added by hand"), manual);
       const fEvery = field(t("Repeat"), every);
       const fN = field(t("Hours"), n);
       const fAt = field(t("Time"), at);
@@ -104,6 +111,7 @@ function editor(engine: Engine, col: Collection, a: Automation | null, done: () 
         const k = kind.value;
         fProps.hidden = k !== "prop_edited";
         fCond.hidden = k === "schedule";
+        fManual.hidden = k !== "response_received";
         fEvery.hidden = k !== "schedule";
         fN.hidden = k !== "schedule" || every.value !== "hours";
         fAt.hidden = fDay.hidden = k !== "schedule" || every.value === "hours";
@@ -122,13 +130,14 @@ function editor(engine: Engine, col: Collection, a: Automation | null, done: () 
         acts = ed;
         slot.append(ed.el);
       });
-      const form = h("form", { class: "form-grid automation-form", attrs: { novalidate: "" } }, field(t("Name"), name), field(t("Trigger"), kind), fProps, fEvery, fN, fAt, fDay, fCond, field(t("Do this"), slot), st.el, actions(cancel, save));
+      const form = h("form", { class: "form-grid automation-form", attrs: { novalidate: "" } }, field(t("Name"), name), field(t("Trigger"), kind), fProps, fEvery, fN, fAt, fDay, fCond, fManual, field(t("Do this"), slot), st.el, actions(cancel, save));
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         st.clear();
         const k = kind.value as AutomationTriggerKind;
         const trigger: AutomationTrigger = {};
         if (k === "prop_edited") trigger.props = props.read();
+        if (k === "response_received" && manual.checked) trigger.manual = true;
         if (k !== "schedule") {
           const f = cond.read();
           if (f) trigger.filter = f;

@@ -291,6 +291,8 @@
   "Autofill stopped.": "Az automatikus kitöltés leállt.",
   "a property": "egy tulajdonság",
   "When a page is added": "Amikor egy oldal hozzáadódik",
+  "When a response is received": "Amikor válasz érkezik",
+  "Also when a page is added by hand": "Akkor is, ha egy oldalt kézzel adnak hozzá",
   "When {props} changes": "Amikor ez változik: {props}",
   "When any property changes": "Amikor bármelyik tulajdonság változik",
   "Every {n} hours": "{n} óránként",
