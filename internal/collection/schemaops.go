@@ -360,7 +360,7 @@ func (s *Service) pruneOptions(ctx context.Context, tx *sql.Tx, collectionID str
 }
 
 func (s *Service) eachRow(ctx context.Context, tx *sql.Tx, collectionID string, fn func(id string, vals map[string]json.RawMessage) (bool, error)) error {
-	rows, err := tx.QueryContext(ctx, "SELECT page_id, vals FROM collection_rows WHERE collection_id = ?", collectionID)
+	rows, err := tx.QueryContext(ctx, "SELECT page_id, vals, response FROM collection_rows WHERE collection_id = ?", collectionID)
 	if err != nil {
 		return err
 	}
@@ -370,14 +370,14 @@ func (s *Service) eachRow(ctx context.Context, tx *sql.Tx, collectionID string, 
 	}
 	var items []item
 	for rows.Next() {
-		var id, raw string
-		if err := rows.Scan(&id, &raw); err != nil {
+		var id, raw, resp string
+		if err := rows.Scan(&id, &raw, &resp); err != nil {
 			rows.Close()
 			return err
 		}
 		m := map[string]json.RawMessage{}
 		_ = json.Unmarshal([]byte(raw), &m)
-		items = append(items, item{id, m})
+		items = append(items, item{id, effectiveVals(m, parseResponse(resp))})
 	}
 	rows.Close()
 	for _, it := range items {

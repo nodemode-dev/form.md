@@ -320,5 +320,6 @@ func (s *Service) submit(ctx context.Context, p *policy.Principal, m *page.Meta,
 	if _, ok := values[TTitle]; !ok {
 		values[TTitle] = mustJSON("Response " + time.Now().UTC().Format("2006-01-02 15:04"))
 	}
-	return s.createRow(ctx, p, m, RowInput{Values: values}, author)
+	rec := &Response{FormID: v.ID, Version: v.UpdatedAt, SubmittedAt: store.NowMS()}
+	return s.createRow(ctx, p, m, RowInput{Values: values, form: rec}, author)
 }

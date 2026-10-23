@@ -179,6 +179,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	hooks.OnEvent(crew.OnEvent)
 	flows := automation.New(automation.Deps{Store: st, Auth: authSvc, Gate: gate, Pages: pages, Cols: cols, Inbox: notes, Mail: mailer, Hooks: hooks, Box: box, Public: func() string { return set.Get("instance.public_url") }, Log: log})
 	hooks.OnEvent(flows.OnEvent)
+	cols.OnResponse(flows.OnResponse)
 	docs.OnRefs(func(ctx context.Context, pageID, actor string, _ []string, _ []doc.Reminder) {
 		var wsID string
 		if st.R.QueryRowContext(ctx, "SELECT workspace_id FROM pages WHERE id = ?", pageID).Scan(&wsID) == nil {

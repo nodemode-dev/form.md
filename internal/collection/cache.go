@@ -24,6 +24,7 @@ type Row struct {
 	Snippet   string
 	SortKey   string
 	Vals      map[string]json.RawMessage
+	Response  *Response
 	Number    int64
 	Version   int64
 	CreatedAt int64
@@ -125,13 +126,13 @@ func (c *cache) bump() {
 	c.mu.Unlock()
 }
 
-const rowColumns = `p.id, p.title, p.icon, p.cover, p.thumb, p.snippet, p.sort_key, r.vals, r.number, r.version, p.created_at, p.created_by, p.updated_at, p.updated_by, p.is_template`
+const rowColumns = `p.id, p.title, p.icon, p.cover, p.thumb, p.snippet, p.sort_key, r.vals, r.response, r.number, r.version, p.created_at, p.created_by, p.updated_at, p.updated_by, p.is_template`
 
 func scanRow(sc interface{ Scan(...any) error }) (*Row, error) {
 	var r Row
-	var vals string
+	var vals, response string
 	var tpl int
-	if err := sc.Scan(&r.ID, &r.Title, &r.Icon, &r.Cover, &r.Thumb, &r.Snippet, &r.SortKey, &vals, &r.Number, &r.Version, &r.CreatedAt, &r.CreatedBy, &r.UpdatedAt, &r.UpdatedBy, &tpl); err != nil {
+	if err := sc.Scan(&r.ID, &r.Title, &r.Icon, &r.Cover, &r.Thumb, &r.Snippet, &r.SortKey, &vals, &response, &r.Number, &r.Version, &r.CreatedAt, &r.CreatedBy, &r.UpdatedAt, &r.UpdatedBy, &tpl); err != nil {
 		return nil, err
 	}
 	r.Template = tpl == 1
@@ -141,6 +142,8 @@ func scanRow(sc interface{ Scan(...any) error }) (*Row, error) {
 			r.Vals = map[string]json.RawMessage{}
 		}
 	}
+	r.Response = parseResponse(response)
+	r.Vals = effectiveVals(r.Vals, r.Response)
 	return &r, nil
 }
 

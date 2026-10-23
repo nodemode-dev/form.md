@@ -35,6 +35,7 @@ type Service struct {
 	stash     *stash
 	results   *resultCache
 
+	responders  []func(ctx context.Context, e ResponseEvent)
 	rowWatchers []func(ctx context.Context, collectionID string, ids []string)
 	assigners   []func(ctx context.Context, p *policy.Principal, rowID string, users []string)
 }
@@ -291,9 +292,9 @@ func (s *Service) onDuplicated(ctx context.Context, tx *sql.Tx, mapping map[stri
 	}
 	for _, old := range from {
 		nid := mapping[old]
-		var colID, vals string
+		var colID, vals, response string
 		var number int64
-		err := tx.QueryRowContext(ctx, "SELECT collection_id, vals, number FROM collection_rows WHERE page_id = ?", old).Scan(&colID, &vals, &number)
+		err := tx.QueryRowContext(ctx, "SELECT collection_id, vals, number, response FROM collection_rows WHERE page_id = ?", old).Scan(&colID, &vals, &number, &response)
 		if errors.Is(err, sql.ErrNoRows) {
 			continue
 		}
@@ -312,6 +313,8 @@ func (s *Service) onDuplicated(ctx context.Context, tx *sql.Tx, mapping map[stri
 		_ = json.Unmarshal([]byte(raw), &schema)
 		m := map[string]json.RawMessage{}
 		_ = json.Unmarshal([]byte(vals), &m)
+		rec := parseResponse(response)
+		m = effectiveVals(m, rec)
 		for _, p := range schema {
 			if p.Type != TRelation {
 				continue
@@ -339,8 +342,8 @@ func (s *Service) onDuplicated(ctx context.Context, tx *sql.Tx, mapping map[stri
 				return err
 			}
 		}
-		vb, _ := json.Marshal(m)
-		if _, err := tx.ExecContext(ctx, "INSERT INTO collection_rows (page_id, collection_id, vals, number) VALUES (?, ?, ?, ?)", nid, target, string(vb), number); err != nil {
+		vb, _ := json.Marshal(storedVals(m, rec))
+		if _, err := tx.ExecContext(ctx, "INSERT INTO collection_rows (page_id, collection_id, vals, number, response) VALUES (?, ?, ?, ?, ?)", nid, target, string(vb), number, response); err != nil {
 			return err
 		}
 	}
@@ -798,6 +801,7 @@ type RowInput struct {
 	Top      bool                       `json:"top"`
 	Template string                     `json:"template_id"`
 	template bool
+	form     *Response
 
 	ID string `json:"id"`
 }
@@ -913,17 +917,19 @@ func diff(before, after []string) (added, removed []string) {
 }
 
 func readVals(ctx context.Context, q store.Querier, rowID string) (map[string]json.RawMessage, string, error) {
-	var raw, col string
-	if err := q.QueryRowContext(ctx, "SELECT vals, collection_id FROM collection_rows WHERE page_id = ?", rowID).Scan(&raw, &col); err != nil {
+	var raw, col, resp string
+	if err := q.QueryRowContext(ctx, "SELECT vals, collection_id, response FROM collection_rows WHERE page_id = ?", rowID).Scan(&raw, &col, &resp); err != nil {
 		return nil, "", store.NoRows(err)
 	}
 	m := map[string]json.RawMessage{}
 	_ = json.Unmarshal([]byte(raw), &m)
-	return m, col, nil
+	return effectiveVals(m, parseResponse(resp)), col, nil
 }
 
 func writeVals(ctx context.Context, tx *sql.Tx, rowID string, m map[string]json.RawMessage) error {
-	b, _ := json.Marshal(m)
+	var resp string
+	_ = tx.QueryRowContext(ctx, "SELECT response FROM collection_rows WHERE page_id = ?", rowID).Scan(&resp)
+	b, _ := json.Marshal(storedVals(m, parseResponse(resp)))
 	_, err := tx.ExecContext(ctx, "UPDATE collection_rows SET vals = ?, version = version + 1 WHERE page_id = ?", string(b), rowID)
 	return err
 }
@@ -1138,6 +1144,8 @@ func (s *Service) createRow(ctx context.Context, p *policy.Principal, m *page.Me
 	}
 	touched := map[string]map[string]bool{collectionID: {id: true}}
 	schemaChanged := false
+	var rec *Response
+	var respJSON string
 	err := s.st.Tx(ctx, func(tx *sql.Tx) error {
 		schema, err := s.loadSchema(ctx, tx, collectionID)
 		if err != nil {
@@ -1151,6 +1159,21 @@ func (s *Service) createRow(ctx context.Context, p *policy.Principal, m *page.Me
 		name := strings.TrimSpace(in.Title)
 		if title != nil {
 			name = *title
+		}
+		if in.form != nil {
+			// A form submission is stored whole; its columns are computed from it.
+			r := *in.form
+			r.Answers = map[string]json.RawMessage{}
+			for k, v := range vals {
+				r.Answers[k] = v
+			}
+			if title != nil {
+				r.Answers[TTitle] = mustJSON(*title)
+			}
+			rec = &r
+			rb, _ := json.Marshal(r)
+			respJSON = string(rb)
+			vals = map[string]json.RawMessage{}
 		}
 		key, err := s.rowKey(ctx, tx, collectionID, in.BeforeID, in.AfterID, in.Top)
 		if err != nil {
@@ -1166,7 +1189,7 @@ func (s *Service) createRow(ctx context.Context, p *policy.Principal, m *page.Me
 			return err
 		}
 		vb, _ := json.Marshal(vals)
-		if _, err := tx.ExecContext(ctx, "INSERT INTO collection_rows (page_id, collection_id, vals, number) VALUES (?, ?, ?, ?)", id, collectionID, string(vb), number); err != nil {
+		if _, err := tx.ExecContext(ctx, "INSERT INTO collection_rows (page_id, collection_id, vals, number, response) VALUES (?, ?, ?, ?, ?)", id, collectionID, string(vb), number, respJSON); err != nil {
 			return err
 		}
 		if err := s.syncPairs(ctx, tx, id, changes, touched); err != nil {
@@ -1193,6 +1216,13 @@ func (s *Service) createRow(ctx context.Context, p *policy.Principal, m *page.Me
 	s.finishWrite(ctx, collectionID, touched, schemaChanged)
 	if p != nil {
 		s.assignedTo(ctx, p, id, nc)
+	}
+	if rec != nil {
+		ev := ResponseEvent{WorkspaceID: m.WorkspaceID, CollectionID: collectionID, RowID: id, ActorLabel: "Public form", Response: rec}
+		if p != nil {
+			ev.ActorID, ev.ActorLabel = p.UserID, p.Name
+		}
+		s.respond(ctx, ev)
 	}
 	return id, nil
 }

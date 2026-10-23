@@ -44,6 +44,7 @@ type Trigger struct {
 	At      string             `json:"at,omitempty"`
 	Weekday int                `json:"weekday,omitempty"`
 	TZ      string             `json:"tz,omitempty"`
+	Manual  bool               `json:"manual,omitempty"`
 }
 
 type Action struct {
@@ -114,7 +115,7 @@ func New(d Deps) *Service {
 	return &Service{Deps: d, pending: map[string]*time.Timer{}, wake: make(chan struct{}, 1)}
 }
 
-var triggerKinds = map[string]bool{"row_added": true, "prop_edited": true, "schedule": true}
+var triggerKinds = map[string]bool{"row_added": true, "response_received": true, "prop_edited": true, "schedule": true}
 
 var serverKinds = map[string]bool{"edit": true, "add": true, "notify": true, "mail": true, "webhook": true}
 
@@ -233,7 +234,7 @@ func (s *Service) checkInput(ctx context.Context, p *policy.Principal, workspace
 		a.Name = "Automation"
 	}
 	if !triggerKinds[a.TriggerKind] {
-		return bad("bad_trigger", "the trigger is row_added, prop_edited or schedule")
+		return bad("bad_trigger", "the trigger is row_added, response_received, prop_edited or schedule")
 	}
 	if len(a.Trigger.Props) > 50 {
 		return bad("bad_trigger", "up to 50 properties")

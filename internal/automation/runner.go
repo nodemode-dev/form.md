@@ -50,17 +50,17 @@ func (s *Service) OnEvent(ctx context.Context, e webhook.Event) {
 	if s.Store.R.QueryRowContext(ctx, "SELECT is_template FROM pages WHERE id = ?", e.PageID).Scan(&tpl) != nil || tpl == 1 {
 		return
 	}
-	rows, err := s.Store.R.QueryContext(ctx, "SELECT "+cols+" FROM automations WHERE collection_id = ? AND enabled = 1 AND trigger_kind = ?", colID, kind)
-	if err != nil {
+	if kind == "row_added" && s.Cols.ResponseOf(ctx, e.PageID) != nil {
 		return
 	}
-	var list []*Automation
-	for rows.Next() {
-		if a, err := scan(rows); err == nil {
-			list = append(list, a)
+	list := s.enabledFor(ctx, colID, kind)
+	if kind == "row_added" {
+		for _, a := range s.enabledFor(ctx, colID, "response_received") {
+			if a.Trigger.Manual {
+				list = append(list, a)
+			}
 		}
 	}
-	rows.Close()
 	if len(list) == 0 {
 		return
 	}
@@ -82,11 +82,41 @@ func (s *Service) OnEvent(ctx context.Context, e webhook.Event) {
 				continue
 			}
 		}
-		s.debounce(a.ID, e.PageID, e.Actor.ID, e.Actor.Label, kind)
+		s.debounce(a.ID, e.PageID, e.Actor.ID, e.Actor.Label, kind, nil)
 	}
 }
 
-func (s *Service) debounce(automationID, rowID, actorID, actorName, kind string) {
+func (s *Service) enabledFor(ctx context.Context, colID, kind string) []*Automation {
+	rows, err := s.Store.R.QueryContext(ctx, "SELECT "+cols+" FROM automations WHERE collection_id = ? AND enabled = 1 AND trigger_kind = ?", colID, kind)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var list []*Automation
+	for rows.Next() {
+		if a, err := scan(rows); err == nil {
+			list = append(list, a)
+		}
+	}
+	return list
+}
+
+// OnResponse is the "response received" event. It carries the validated
+// response as submitted; the automation's condition judges those answers.
+// A "row added" automation on a database that takes form responses is
+// carried over, so it keeps running for a response too.
+func (s *Service) OnResponse(ctx context.Context, e collection.ResponseEvent) {
+	var tpl int
+	if s.Store.R.QueryRowContext(ctx, "SELECT is_template FROM pages WHERE id = ?", e.RowID).Scan(&tpl) != nil || tpl == 1 {
+		return
+	}
+	list := append(s.enabledFor(ctx, e.CollectionID, "response_received"), s.enabledFor(ctx, e.CollectionID, "row_added")...)
+	for _, a := range list {
+		s.debounce(a.ID, e.RowID, e.ActorID, e.ActorLabel, "response_received", e.Response)
+	}
+}
+
+func (s *Service) debounce(automationID, rowID, actorID, actorName, kind string, rec *collection.Response) {
 	key := automationID + ":" + rowID
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -94,7 +124,7 @@ func (s *Service) debounce(automationID, rowID, actorID, actorName, kind string)
 		t.Stop()
 	}
 	delay := debounceDelay
-	if kind == "row_added" {
+	if kind == "row_added" || kind == "response_received" {
 		delay = 300 * time.Millisecond
 	}
 	s.pending[key] = time.AfterFunc(delay, func() {
@@ -107,18 +137,27 @@ func (s *Service) debounce(automationID, rowID, actorID, actorName, kind string)
 		if err != nil || !a.Enabled {
 			return
 		}
-		s.fire(ctx, a, rowID, actorID, actorName, kind)
+		s.fire(ctx, a, rowID, actorID, actorName, kind, rec)
 	})
 }
 
-func (s *Service) fire(ctx context.Context, a *Automation, rowID, actorID, actorName, cause string) Outcome {
+func (s *Service) fire(ctx context.Context, a *Automation, rowID, actorID, actorName, cause string, rec *collection.Response) Outcome {
 	p, err := s.runAs(ctx, a)
 	if err != nil {
 		s.record(ctx, a, rowID, "failed", "the automation's owner can no longer act here")
 		return Outcome{Failed: []string{"owner unavailable"}}
 	}
 	if rowID != "" && a.Trigger.Filter != nil {
-		ok, err := s.Cols.RowMatches(ctx, p, rowID, a.Trigger.Filter)
+		if rec == nil && (a.TriggerKind == "response_received" || a.TriggerKind == "row_added") {
+			rec = s.Cols.ResponseOf(ctx, rowID)
+		}
+		var ok bool
+		var err error
+		if rec != nil {
+			ok, err = s.Cols.ResponseMatches(ctx, p, collection.ResponseEvent{CollectionID: a.CollectionID, RowID: rowID, Response: rec}, a.Trigger.Filter)
+		} else {
+			ok, err = s.Cols.RowMatches(ctx, p, rowID, a.Trigger.Filter)
+		}
 		if err != nil || !ok {
 			return Outcome{}
 		}
@@ -150,7 +189,7 @@ func (s *Service) RunNow(ctx context.Context, p *policy.Principal, id, rowID str
 			return nil, httpx.Fail(http.StatusBadRequest, "bad_row", "that page is not in this database")
 		}
 	}
-	o := s.fire(ctx, a, rowID, p.UserID, p.Name, "manual")
+	o := s.fire(ctx, a, rowID, p.UserID, p.Name, "manual", nil)
 	return &o, nil
 }
 
@@ -179,7 +218,7 @@ func (s *Service) due(ctx context.Context) {
 		go func(a *Automation) {
 			c, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Minute)
 			defer cancel()
-			s.fire(c, a, "", "", "", "schedule")
+			s.fire(c, a, "", "", "", "schedule", nil)
 		}(a)
 	}
 }
