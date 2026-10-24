@@ -2203,3 +2203,9 @@ The family IP plan approved by the owner on 2026-10-23 renamed the block from an
 - logged: v0.47.0 · 2026-10-23
 
 The automation editor (`extensions/database/automations.ts`) lists **When a response is received** as its own trigger beside **When a page is added**. It shows the condition field (the condition is judged on the submitted answers) and a checkbox, **Also when a page is added by hand**, which sets `trigger.manual`. Both labels are in all 25 locale files (`i18n/*/01.json`). Types: `AutomationTriggerKind` gains `response_received`, `AutomationTrigger` gains `manual`.
+
+## v0.47.1 · by nodemode.ai in About
+
+- logged: v0.47.1 · 2026-10-24
+
+Owner decision of 2026-10-23 for the form family: an app with an About box carries "by nodemode.ai" there. form.md's is the About tab of Admin settings (`ui/admin.ts`, `aboutTab`), so the credit is a third `row__meta` line under the form.md title and its version, static and marked `translate="no"`, with no catalog key since it is the same in every language. Checked in Chromium at 4x CPU and a slow network against a fresh instance: the tab opens with the line in place, CLS 0, no page error.
