@@ -330,4 +330,4 @@ Phases 1 to 10 (skeleton binary, accounts, workspaces, the policy gate, the work
 
 ### Licensing
 
-Apache-2.0, see [LICENSE](LICENSE). Third-party components & their licenses are listed in [NOTICES.md](NOTICES.md), which the binary also serves at `/notices`. The Inter & JetBrains Mono font files in `web/src/fonts/` are under the SIL Open Font License 1.1, w/ the license texts beside them. The map view's world outline in `web/public/maps/` is derived from Natural Earth (public domain) via world-atlas (ISC), w/ the notice beside it.
+Apache-2.0, see [LICENSE](LICENSE). Copyright 2026 NodeAgentc, Inc. Third-party components & their licenses are listed in [NOTICES.md](NOTICES.md), which the binary also serves at `/notices`. The Inter & JetBrains Mono font files in `web/src/fonts/` are under the SIL Open Font License 1.1, w/ the license texts beside them. The map view's world outline in `web/public/maps/` is derived from Natural Earth (public domain) via world-atlas (ISC), w/ the notice beside it.
