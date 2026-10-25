@@ -2209,3 +2209,10 @@ The automation editor (`extensions/database/automations.ts`) lists **When a resp
 - logged: v0.47.1 · 2026-10-24
 
 Owner decision of 2026-10-23 for the form family: an app with an About box carries "by nodemode.ai" there. form.md's is the About tab of Admin settings (`ui/admin.ts`, `aboutTab`), so the credit is a third `row__meta` line under the form.md title and its version, static and marked `translate="no"`, with no catalog key since it is the same in every language. Checked in Chromium at 4x CPU and a slow network against a fresh instance: the tab opens with the line in place, CLS 0, no page error.
+
+## v0.47.2 · zero npm audit findings
+
+- refers-to: package.json :: `dependencies.markdown-it`; package-lock.json :: `node_modules/dompurify` (both written by npm, not by hand)
+- logged: v0.47.2 · 2026-10-25
+
+Family rule from `FAMILY_DEV_PLAN.md` v0.4.x Phase 2b: every frontend installs with zero `npm audit` findings. This tree had two, and both reach the shipped bundle. DOMPurify 3.4.16 (critical: a SAFE_FOR_TEMPLATES bypass in shadow-root output, and IN_PLACE hooks leaving handlers armed) comes in through Mermaid 11.17.2, whose range `^3.4.12` already allows 3.4.17, so `npm update dompurify` moved the lock with no change to `package.json` and no new override. markdown-it 15.0.2 (high: quadratic-time inline HTML and multi-line link reference definitions) is pinned directly and moved to 15.0.3. Family ledger FB-001 and FB-002. After: `npm audit` 0, `npm run typecheck` clean, `vite build` clean, and a Node render of headings, emphasis, inline HTML, a reference link and a fenced block gave the same HTML as before, with the two pathological inputs rendering in 30 ms and 4 ms. Mermaid diagrams were not drawn in a browser for this change.
