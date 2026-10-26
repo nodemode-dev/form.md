@@ -10,6 +10,7 @@ form.md: a self-hosted workspace for people and agents in one Go binary. Go 1.26
 
 - `make build` builds the client and the binary into `bin/form-md`.
 - `make check` runs gofmt, go vet, the wiki check, the skill check and the TypeScript check. Run it before handing work back.
+- Tests live in `_test.go` files beside the code (`internal/server/`, `internal/config/`, `internal/store/`, `internal/app/`) and run in CI with `go test ./...`. Write only the tests FAMILY_TEST_PLAN or its successor names; never tests of wording, i18n, cosmetics, convenience features, third-party code or one-line wrappers. They use a temporary data folder and never reach the network.
 - `./bin/form-md` serves on `http://127.0.0.1:8750`; `./bin/form-md help` lists every command and variable.
 
 ## Context before code

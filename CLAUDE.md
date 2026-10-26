@@ -25,6 +25,8 @@ When the person wants pages, documents, databases or comments in a form.md works
 
 `make check` runs gofmt, go vet, the wiki check, the skill check (policy.json must parse and pass its rules) and the TypeScript check.
 
+Tests live in `_test.go` files beside the code they cover (`internal/server/`, `internal/config/`, `internal/store/`, `internal/app/`) and run in CI with `go test ./...`. Write only the tests FAMILY_TEST_PLAN (in the formai_dev planning sidecar) or its successor names: no tests of wording, i18n, cosmetics, convenience features, third-party code or one-line wrappers. Tests use a temporary data folder and never reach the network.
+
 Always start work here by routing through the `contextual-compression` skill: pack the context the task needs before reading the tree file by file.
 
 ## Commits
