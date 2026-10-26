@@ -663,10 +663,15 @@
 }
 
 .topbar__page-actions {
-  display: inline-grid;
-  grid-auto-flow: column;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
   column-gap: var(--space-1);
+  inline-size: 0;
+}
+
+.topbar__page-actions > * {
+  flex: none;
 }
 
 .topbar__page-actions[data-hidden="true"],

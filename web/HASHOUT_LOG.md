@@ -478,6 +478,13 @@ No component file writes a numeric `z-index`.
 
 Each topbar child has an explicit `grid-column`. Without it, hiding the menu button on desktop let auto-placement pull the action cluster into the flexible middle column, next to the breadcrumb, instead of the trailing edge. Found by the screenshot review during throttled verification.
 
+### src/styles/shell.css · topbar actions anchored at the trailing edge (FB-149)
+- refers-to: src/styles/shell.css :: `.topbar__actions`, `.crumbs`; src/styles/pages.css :: `.topbar__page-actions`; index.html :: `act-presence`, `act-mode`, `act-edited`
+- kind: warning-context
+- logged: v0.47.5 · 2026-10-26
+
+Wrong: on a page the action cluster was an auto-width grid column, so when "Edited ..." text, the mode button and the visibility and share buttons arrived after first paint (and the skeleton's first state differed from the route's), the cluster grew leftwards and its box moved: three to five layout shifts (about 0.0004 each, 0.0018 in total) at 4x CPU and a slow network, found by the new window smoke (F7). Why it matters: the zero-shift law counts any move of a painted box. Changed: `.topbar__actions` and `.topbar__page-actions` are zero-width flex boxes with `justify-content: flex-end`, so their items overflow towards the leading edge and the right-hand items never move; `.crumbs` takes the room back with `padding-inline-end` (25rem, 15rem under 768px); in `index.html` the late arrivals come first (presence, mode, then the edited text), so one arriving never pushes an item that is already painted. Still moving by design: the edited text changes width when its relative time changes (once a minute), which moves the items left of it; not reserved here. Verified: window smoke 3 of 3 pass, shift 0, from 0.0018 before.
+
 ### src/styles/shell.css · collapse animation
 - refers-to: src/styles/shell.css :: `.app`, `.sidebar`, `.sidebar__inner`
 - kind: rationale
