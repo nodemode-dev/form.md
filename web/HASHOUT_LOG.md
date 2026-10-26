@@ -23,6 +23,7 @@ web/
 ├── public/
 │   ├── favicon.svg                  brand mark on dark tile
 │   └── sw.js                        service worker: push, asset cache, offline shell for app navigations
+├── tests/window/test_window.py      F7 window smoke (pytest and Python Playwright), run in CI, never installed in the app
 ├── dist/                            build output, embedded into the Go binary (only .gitkeep is tracked)
 └── src/
     ├── main.ts                      read boot and auth, set language, create engine, mount, start
@@ -230,6 +231,15 @@ The whole shell is in the HTML so it paints before any JavaScript runs; `src/ui/
 - logged: v0.47.5 · 2026-10-26
 
 Wrong: the shell is server-rendered HTML that the browser parses in pieces, and under CPU and network load a paint can land between two pieces. Anything laid out from its later siblings then moves when the rest arrives: the sidebar head actions and version (58 to 88 px wide, FB-150), the sidebar foot (101 to 163 px tall, FB-151), the owner-only Claude Code button and the topbar icons beside it (1404 to 1372 px, FB-155), the page actions (125 or 93 to 189 px wide, FB-156) and Home's drop icon (37 px down, FB-157). Each showed in about 1 load in 5 under 4x CPU and a slow network, found by the window smoke (F7). Changed: the `expect` link blocks rendering until `#overlay-root`, the last element of the shell, is parsed, so the first paint always has the whole shell. Browsers that do not know the link ignore it and behave as before. Reproduce each by sending the page cut before `sb-new`, `sb-settings`, `topbar__claude`, `act-favorite` or `home-drop__text`, waiting 1.2 s, then sending the rest: each moved (4.3e-5, 1.3e-3, 2.7e-5, 4.9e-4, 9.2e-5) before and none after. The marker must stay after everything the shell paints; an element added after `#overlay-root` is not covered.
+
+### tests/window/test_window.py · the window smoke (F7)
+- refers-to: tests/window/test_window.py :: `test_window_loads_throttled_without_shift_errors_or_refusals`
+- kind: rationale
+- logged: v0.47.5 · 2026-10-26
+
+Starts the Go server built from this repo (`FORMMD_TEST_BIN`, default `bin/form-md`; `go build ./cmd/form-md` after `npm run build`, because `embed.go` embeds `web/dist`) on a free loopback port with a temporary data folder and HOME, `FORMMD_FAMILY=off` and a dead update URL. The server runs in desktop mode, which stops it when stdin closes, so the script keeps stdin open as a pipe like the desktop shell. The window is signed in the way the shell does it: `/desktop/enter?key=...`, then a doc is created over the API. Three documents are loaded in Chromium at 4x CPU and 150 ms, 1.6 Mbps: `/home` (waits for data-auth app and data-route home), `/p/<id>` (waits for an editable ProseMirror, so it cannot pass on a sign-in page) and `/sandbox.html` (the Mermaid renderer, a separate document). Each must have a title, no 4xx or 5xx, no failed request, no console or page error, and layout shift 0 after load, a bounded network idle wait (20 s, timeout ignored, the window keeps an events poll open) and a 3 s settle. A shift message names each node with its rect before and after.
+
+One allowance: Chromium reports a fetch that completed with a 204 (the page-visit POST) as `requestfailed` with `net::ERR_ABORTED` after the response arrived; the page's own fetch resolves with 204 (checked in the page) and the server sent a plain 204. A failed request is therefore ignored only when the same request already answered 204. IGNORED_REQUESTS stays empty. Run locally: `FORMMD_TEST_BIN=... python -m pytest web/tests/window -q`.
 
 ### index.html · icon placeholders
 - refers-to: index.html :: `<i data-icon="...">`
