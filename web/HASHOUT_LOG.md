@@ -224,6 +224,13 @@ Runs before the stylesheet link so the first painted frame already has `data-the
 
 The whole shell is in the HTML so it paints before any JavaScript runs; `src/ui/*` binds to these nodes by `data-ref` and id and only patches text and attributes afterwards. Dynamic values (version, status fields) have reserved space in CSS. Overlay and toast roots are direct children of `body` per the stacking rules.
 
+### index.html · first paint waits for the whole shell (FB-150, FB-151, FB-155, FB-156, FB-157)
+- refers-to: index.html :: `<link rel="expect" href="#overlay-root" blocking="render">`
+- kind: warning-context
+- logged: v0.47.5 · 2026-10-26
+
+Wrong: the shell is server-rendered HTML that the browser parses in pieces, and under CPU and network load a paint can land between two pieces. Anything laid out from its later siblings then moves when the rest arrives: the sidebar head actions and version (58 to 88 px wide, FB-150), the sidebar foot (101 to 163 px tall, FB-151), the owner-only Claude Code button and the topbar icons beside it (1404 to 1372 px, FB-155), the page actions (125 or 93 to 189 px wide, FB-156) and Home's drop icon (37 px down, FB-157). Each showed in about 1 load in 5 under 4x CPU and a slow network, found by the window smoke (F7). Changed: the `expect` link blocks rendering until `#overlay-root`, the last element of the shell, is parsed, so the first paint always has the whole shell. Browsers that do not know the link ignore it and behave as before. Reproduce each by sending the page cut before `sb-new`, `sb-settings`, `topbar__claude`, `act-favorite` or `home-drop__text`, waiting 1.2 s, then sending the rest: each moved (4.3e-5, 1.3e-3, 2.7e-5, 4.9e-4, 9.2e-5) before and none after. The marker must stay after everything the shell paints; an element added after `#overlay-root` is not covered.
+
 ### index.html · icon placeholders
 - refers-to: index.html :: `<i data-icon="...">`
 - kind: explainer
