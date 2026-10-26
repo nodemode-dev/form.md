@@ -24,6 +24,9 @@ jobs:
       - name: install web dependencies
         run: npm ci --no-audit --no-fund
         working-directory: web
+      - name: audit web dependencies
+        run: npm audit --audit-level=low
+        working-directory: web
       - name: format, vet and typecheck
         run: make check
       - name: build
@@ -40,3 +43,12 @@ jobs:
           FORMMD_DATA="$RUNNER_TEMP/data" ./bin/form-md backup "$RUNNER_TEMP/backup.tgz"
           FORMMD_DATA="$RUNNER_TEMP/data" ./bin/form-md doctor || true
           kill %1
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: go tests
+        run: go test -count=1 ./...
