@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const releasesURL = "https://github.com/nodemode-ai/formcompiler/releases/download/form.md-updates/latest.json"
+const releasesURL = "https://dl.formai.studio/form.md/updates/latest.json"
 
 var latest atomic.Pointer[string]
 
@@ -57,7 +57,7 @@ func fetchTag(ctx context.Context, client *http.Client, url string) (string, err
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", Product+"/"+Version)
 	resp, err := client.Do(req)
 	if err != nil {

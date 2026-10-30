@@ -31,14 +31,14 @@ A macOS build downloaded from a release is unsigned unless formcompiler, which b
 
 ## The installer
 
-The installer is `install.sh` at the repo root, and formcompiler attaches it to every release on its release page (tag `form.md-vX.Y.Z`). Download it, read it, run it:
+The installer is `install.sh` at the repo root, and formcompiler attaches it to every release (tag `form.md-vX.Y.Z`) and copies it to `https://dl.formai.studio/form.md/X.Y.Z/`. Download it, read it, run it:
 
 ```sh
-curl -fsSL -o install.sh https://github.com/nodemode-ai/formcompiler/releases/download/form.md-vX.Y.Z/install.sh
+curl -fsSL -o install.sh https://dl.formai.studio/form.md/X.Y.Z/install.sh
 sh install.sh --version=vX.Y.Z
 ```
 
-Without `--version` it reads the latest version from formcompiler's `form.md-updates/latest.json`.
+Without `--version` it reads the latest version from `https://dl.formai.studio/form.md/updates/latest.json`, which formcompiler refreshes on every stable release, and downloads from `https://dl.formai.studio/form.md/X.Y.Z/`.
 
 What it checks, in order, and stops on:
 

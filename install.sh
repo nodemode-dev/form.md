@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-REPO="nodemode-ai/formcompiler"
+DOWNLOADS="https://dl.formai.studio/form.md"
 VERSION="${FORMMD_VERSION:-latest}"
 BIN_DIR="${FORMMD_BIN_DIR:-/usr/local/bin}"
 DATA_DIR="${FORMMD_DATA_DIR:-/var/lib/form-md}"
@@ -27,7 +27,7 @@ need() { command -v "$1" >/dev/null 2>&1 || die "this installer needs $1"; }
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 case "$os" in
   linux|darwin) ;;
-  *) die "unsupported system $os; download a release by hand from https://github.com/$REPO/releases" ;;
+  *) die "unsupported system $os; download form.md by hand from https://formai.studio" ;;
 esac
 arch=$(uname -m)
 case "$arch" in
@@ -47,14 +47,14 @@ else
 fi
 
 if [ "$VERSION" = "latest" ] && [ -z "${FORMMD_DOWNLOAD_URL:-}" ]; then
-  VERSION=$(fetch_text "https://github.com/$REPO/releases/download/form.md-updates/latest.json" | sed -n 's/.*"tag_name": *"\(v[0-9][0-9.]*\)".*/\1/p' | head -n 1)
+  VERSION=$(fetch_text "$DOWNLOADS/updates/latest.json" | sed -n 's/.*"tag_name": *"\(v[0-9][0-9.]*\)".*/\1/p' | head -n 1)
   [ -n "$VERSION" ] || die "could not find the latest release; set FORMMD_VERSION=vX.Y.Z"
 fi
 case "$VERSION" in
   v[0-9]*.[0-9]*.[0-9]*) ;;
   *) die "version must look like v1.2.3, got $VERSION" ;;
 esac
-BASE="${FORMMD_DOWNLOAD_URL:-https://github.com/$REPO/releases/download/form.md-$VERSION}"
+BASE="${FORMMD_DOWNLOAD_URL:-$DOWNLOADS/${VERSION#v}}"
 asset="form-md_${VERSION}_${os}_${arch}"
 
 if command -v sha256sum >/dev/null 2>&1; then
