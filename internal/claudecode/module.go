@@ -77,12 +77,23 @@ func (s *Service) enabled() bool {
 	return Local(s.addr)
 }
 
-func (s *Service) gate(p *policy.Principal) error {
+func (s *Service) forced() bool {
+	switch strings.ToLower(os.Getenv("FORMMD_TERMINAL")) {
+	case "on", "1", "true":
+		return true
+	}
+	return false
+}
+
+func (s *Service) gate(r *http.Request, p *policy.Principal) error {
 	if !p.IsSession() {
 		return httpx.ErrSessionOnly
 	}
 	if !s.enabled() {
 		return httpx.Fail(http.StatusForbidden, "terminal_off", "the terminal and Claude Code run only on a form.md listening on this computer; set FORMMD_TERMINAL=on to allow them on a server")
+	}
+	if !s.forced() && !Direct(r) {
+		return httpx.Fail(http.StatusForbidden, "terminal_off", "the terminal and Claude Code answer only requests made on this computer, not through a proxy or tunnel; set FORMMD_TERMINAL=on to allow them")
 	}
 	if !p.IsOwner() {
 		return httpx.Fail(http.StatusForbidden, "owner_only", "only the instance owner can open a terminal or Claude Code")
@@ -101,7 +112,11 @@ func (s *Service) claudeArgv(ctx context.Context, p *policy.Principal, extra ...
 	if err != nil {
 		return nil, err
 	}
-	argv := []string{info.Path, "--mcp-config", MCPConfig(EngineURL(s.addr), token), "--allowedTools", ToolPrefix, "--append-system-prompt", Note}
+	cfg, err := MCPConfigFile(s.dataDir, p.UserID, EngineURL(s.addr), token)
+	if err != nil {
+		return nil, err
+	}
+	argv := []string{info.Path, "--mcp-config", cfg, "--allowedTools", ToolPrefix, "--append-system-prompt", Note}
 	return Launch(append(argv, extra...)), nil
 }
 
@@ -153,14 +168,14 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("GET /api/terminal", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		httpx.JSON(w, http.StatusOK, map[string]any{"terminals": s.Terms.List(p.UserID)})
 		return nil
 	}))
 	r.HandleFunc("POST /api/terminal", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		var in struct {
@@ -190,7 +205,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("POST /api/claude/open", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		var in struct {
@@ -219,7 +234,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("POST /api/terminal/{id}/input", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		sess, err := s.terminalOf(p, r.PathValue("id"))
@@ -240,7 +255,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("GET /api/terminal/{id}/read", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		sess, err := s.terminalOf(p, r.PathValue("id"))
@@ -262,7 +277,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("POST /api/terminal/{id}/resize", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		sess, err := s.terminalOf(p, r.PathValue("id"))
@@ -281,7 +296,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("POST /api/terminal/{id}/restart", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		sess, err := s.Terms.Restart(p.UserID, r.PathValue("id"))
@@ -292,14 +307,14 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("DELETE /api/terminal/{id}", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		httpx.JSON(w, http.StatusOK, map[string]any{"closed": s.Terms.Close(p.UserID, r.PathValue("id"))})
 		return nil
 	}))
 	r.HandleFunc("GET /api/terminal/{id}/attach", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		sess := s.Terms.Get(p.UserID, r.PathValue("id"))
@@ -315,14 +330,14 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 	}))
 
 	r.HandleFunc("GET /api/claude/chat", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		httpx.JSON(w, http.StatusOK, s.Chats.of(p.UserID).snapshot())
 		return nil
 	}))
 	r.HandleFunc("POST /api/claude/chat", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		var in struct {
@@ -353,6 +368,10 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 			return httpx.Fail(http.StatusBadRequest, "claude_missing", Install)
 		}
 		token, err := s.Auth.AppToken(r.Context(), p.UserID)
+		if err != nil {
+			return err
+		}
+		mcpFile, err := MCPConfigFile(s.dataDir, p.UserID, EngineURL(s.addr), token)
 		if err != nil {
 			return err
 		}
@@ -394,7 +413,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		send("start", map[string]any{"text": shown, "note": strings.TrimSpace(in.Note)})
 		done := make(chan struct{})
 		go func() {
-			ch.run(chatArgv(info.Path, prompt, session, MCPConfig(EngineURL(s.addr), token)), agentDir(s.dataDir), s.env(), send)
+			ch.run(chatArgv(info.Path, prompt, session, mcpFile), agentDir(s.dataDir), s.env(), send)
 			close(done)
 		}()
 		select {
@@ -407,14 +426,14 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("POST /api/claude/chat/cancel", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		httpx.JSON(w, http.StatusOK, map[string]any{"stopped": s.Chats.of(p.UserID).cancel()})
 		return nil
 	}))
 	r.HandleFunc("POST /api/claude/chat/reset", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		ch := s.Chats.of(p.UserID)
@@ -427,7 +446,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("GET /api/claude/chat/events", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		ch := s.Chats.of(p.UserID)
@@ -467,7 +486,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		}
 	}))
 	r.HandleFunc("GET /api/claude/sessions", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		cur := s.Chats.of(p.UserID).snapshot().Session
@@ -475,7 +494,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		return nil
 	}))
 	r.HandleFunc("POST /api/claude/adopt", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		if err := s.gate(p); err != nil {
+		if err := s.gate(r, p); err != nil {
 			return err
 		}
 		var in struct {
