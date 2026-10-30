@@ -200,10 +200,14 @@ func (s *Service) UpdateProvider(ctx context.Context, p *policy.Principal, id st
 		r.name = strings.TrimSpace(*in.Name)
 	}
 	if in.BaseURL != nil {
-		r.base = strings.TrimRight(strings.TrimSpace(*in.BaseURL), "/")
-		if !validBase(r.base) || (r.kind == "compatible" && r.base == "") {
+		base := strings.TrimRight(strings.TrimSpace(*in.BaseURL), "/")
+		if !validBase(base) || (r.kind == "compatible" && base == "") {
 			return httpx.Fail(http.StatusBadRequest, "bad_base_url", "the base URL must be http or https")
 		}
+		if base != r.base {
+			r.key = ""
+		}
+		r.base = base
 	}
 	if in.APIKey != nil {
 		r.key = ""
