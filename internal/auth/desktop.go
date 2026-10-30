@@ -97,3 +97,8 @@ func loopbackHost(hostport string) bool {
 	ip := net.ParseIP(host)
 	return ip != nil && ip.IsLoopback()
 }
+
+func viaSocket(r *http.Request) bool {
+	_, unix := r.Context().Value(http.LocalAddrContextKey).(*net.UnixAddr)
+	return unix
+}

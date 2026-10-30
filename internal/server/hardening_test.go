@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -96,6 +97,10 @@ func TestTerminalAnswersOnlyDirectRequests(t *testing.T) {
 			t.Errorf("%s: %d %s, want 403 terminal_off", name, rec.Code, rec.Body)
 		}
 	}
+	status := direct(e, "GET", "/api/claude", cookie, cases["forwarded for"])
+	if status.Code != http.StatusOK || strings.Contains(status.Body.String(), `"enabled":true`) {
+		t.Errorf("the status route offers the terminal behind a proxy: %d %s", status.Code, status.Body)
+	}
 	t.Setenv("FORMMD_TERMINAL", "on")
 	if rec := direct(e, "GET", "/api/terminal", cookie, cases["forwarded for"]); rec.Code != http.StatusOK {
 		t.Fatalf("FORMMD_TERMINAL=on behind a proxy: %d %s", rec.Code, rec.Body)
@@ -118,6 +123,13 @@ func TestDesktopAnswersOnlyItsOwnAddress(t *testing.T) {
 	}
 	if rec := direct(e, "GET", "/api/me", "", nil); rec.Code == http.StatusMisdirectedRequest {
 		t.Fatal("the desktop app refused its own address")
+	}
+	tunnelled := direct(e, "GET", "/api/me", "", func(r *http.Request) {
+		r.Host = "quick-words.trycloudflare.com"
+		*r = *r.WithContext(context.WithValue(r.Context(), http.LocalAddrContextKey, &net.UnixAddr{Name: "/data/tunnel.sock", Net: "unix"}))
+	})
+	if tunnelled.Code == http.StatusMisdirectedRequest {
+		t.Error("the desktop app refused a request from its own tunnel socket")
 	}
 	if r := newEnv(t, "").client().do("GET", "/api/me", nil, func(r *http.Request) { r.Host = "md.example.test" }); r.Status == http.StatusMisdirectedRequest {
 		t.Fatal("a self-hosted server refused a public host name")

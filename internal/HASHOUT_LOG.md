@@ -2367,4 +2367,8 @@ Changing an AI provider's base URL to a different address clears its sealed key 
 
 The update check and `install.sh` read `https://dl.formai.studio/form.md/updates/latest.json` and download from `https://dl.formai.studio/form.md/<version>/`, which formcompiler's feed.yml fills on every stable release (`<app>/updates/` and `<app>/<version>/`). formcompiler's GitHub releases are private, so the old addresses answered 404 to everyone outside the account. `FORMMD_UPDATE_URL` and `FORMMD_DOWNLOAD_URL` still override them.
 
-Tests: internal/server/hardening_test.go (six, each failing on v0.47.6) and internal/claudecode/claude_test.go; 37 in all.
+After review: the desktop Host guard lets through requests that arrive on the tunnel's Unix socket (`viaSocket`), since DNS rebinding can only reach the TCP listener and the tunnel is an owner's choice to share the desktop instance; the terminal still refuses those requests (`Direct` sees the TLS mark). Shells in the terminal get `FORMMD_IN_TERMINAL=1` instead of `FORMMD_TERMINAL=1`, which `forced` reads as on, so a form.md started inside a terminal no longer skips both local-only checks. `GET /api/claude` reports `enabled` with the same per-request test, so the window does not offer a terminal that every action then refuses.
+
+Not changed: when the desktop app's preferred port 8750 is taken, `app.Run` falls back to a free port, but `claudecode` keeps `127.0.0.1:8750` from the config, so the MCP config and `FORMMD_URL` point at whatever holds 8750. Passing the listener's address back to the module is a larger change, left for the owner.
+
+Tests: internal/server/hardening_test.go (six, each failing on v0.47.6) and internal/claudecode/claude_test.go (two); 38 in all.

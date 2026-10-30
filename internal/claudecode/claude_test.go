@@ -48,3 +48,12 @@ func TestMCPConfigIsAPrivateFileNotAnArgument(t *testing.T) {
 		t.Fatalf("temporary files were left behind: %d entries", len(entries))
 	}
 }
+
+func TestTerminalShellsDoNotInheritTheTerminalSwitch(t *testing.T) {
+	t.Setenv("FORMMD_TERMINAL", "on")
+	for _, kv := range childEnv("http://127.0.0.1:8750") {
+		if strings.HasPrefix(kv, "FORMMD_TERMINAL=") {
+			t.Fatalf("a shell in the terminal gets %q, so a form.md started there skips the local-only checks", kv)
+		}
+	}
+}

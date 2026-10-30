@@ -65,7 +65,7 @@ func Launch(argv []string) []string {
 }
 
 func childEnv(engineURL string) []string {
-	out := []string{"TERM=xterm-256color", "COLORTERM=truecolor", "FORMMD_TERMINAL=1", "FORMMD_URL=" + engineURL, "FORMMD_MCP_URL=" + engineURL + "/mcp"}
+	out := []string{"TERM=xterm-256color", "COLORTERM=truecolor", "FORMMD_IN_TERMINAL=1", "FORMMD_URL=" + engineURL, "FORMMD_MCP_URL=" + engineURL + "/mcp"}
 	for _, kv := range os.Environ() {
 		k, _, _ := strings.Cut(kv, "=")
 		if k == "TERM" || k == "COLORTERM" || strings.HasPrefix(k, "FORMMD_") {

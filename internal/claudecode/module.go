@@ -155,7 +155,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 	s := m.s
 	a := s.Auth
 	r.HandleFunc("GET /api/claude", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
-		on := s.enabled() && p.IsOwner()
+		on := s.enabled() && p.IsOwner() && (s.forced() || Direct(r))
 		out := map[string]any{"enabled": on, "windows": runtimeWindows(), "folder": agentDir(s.dataDir), "engine_url": EngineURL(s.addr)}
 		if on {
 			out["claude"] = Detect(s.env(), r.URL.Query().Get("fresh") == "1")
