@@ -45,6 +45,12 @@ func newEnv(t *testing.T, key string) *env {
 
 func newEnvAt(t *testing.T, key, dir string) *env {
 	t.Helper()
+	return newEnvWith(t, config.Config{Addr: "127.0.0.1:0", DataDir: dir, DesktopKey: key, Family: "off"})
+}
+
+func newEnvWith(t *testing.T, cfg config.Config) *env {
+	t.Helper()
+	dir := cfg.DataDir
 	i18nOnce.Do(func() {
 		if err := i18n.LoadFS(os.DirFS("../../web/src/i18n")); err != nil {
 			t.Fatalf("catalogs: %v", err)
@@ -60,7 +66,6 @@ func newEnvAt(t *testing.T, key, dir string) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg := config.Config{Addr: "127.0.0.1:0", DataDir: dir, DesktopKey: key, Family: "off"}
 	dist := fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("<!doctype html><title>t</title>")}}
 	srv, err := server.Build(ctx, cfg, log, st, dist, os.DirFS("../../.claude/skills/contextual-compression"), "", id)
 	if err != nil {
