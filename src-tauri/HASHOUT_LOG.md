@@ -112,3 +112,12 @@ Five runners (macOS arm64 and Intel, Linux x64 and arm64, Windows x64) build on 
 - logged: v0.45.1 · 2026-10-20
 
 The icon files are the owner's redesign (see web/HASHOUT_LOG.md, app-icon-family). The splash drew the old F as inline SVG; it now shows `icon.png` (the 256 px icon, a copy of `icons/128x128@2x.png`) at 64 px, since `splash` is the frontendDist and is bundled whole. The window stays 360 by 180; the icon, label and bar fit with room.
+
+## Media playback on Linux {#linux-media}
+
+### src-tauri/tauri.conf.json · GStreamer for the meeting recorder
+- refers-to: src-tauri/tauri.conf.json :: bundle.linux (deb.recommends, rpm.recommends, appimage.bundleMediaFramework); formcompiler apps/form.md.json :: toolchain.linux_packages
+- kind: rationale
+- logged: v0.47.7 · 2026-10-31
+
+The meeting recorder (`web/src/extensions/blocks/meeting.ts`, MediaRecorder) runs in WebKitGTK on Linux, which records and plays through GStreamer. The config now follows formdeck: the deb recommends `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good` and `gstreamer1.0-libav`, the rpm recommends `gstreamer1-plugins-base` and `gstreamer1-plugins-good`, and the AppImage bundles the media framework. formcompiler installs the base and good sets on the Linux runner so the AppImage step finds them. apt and dnf install recommends by default; `dpkg -i` and `--no-install-recommends` skip them. On Ubuntu 24.04 `libwebkit2gtk-4.1-0` already depends on base and good but only suggests `gstreamer1.0-libav` (the H.264 and AAC decoders), so the deb recommends it. The AppImage carries base and good only, since libav would copy the runner's own FFmpeg into the app. Checked: the config parses and formcompiler's `registry.py check` passes; no Linux build was run here.
