@@ -138,10 +138,10 @@ form-md.bat
 ### Servers
 
 ```shell
-curl -fsSL https://github.com/nodemode-ai/formcompiler/releases/download/form.md-updates/install.sh | sh
+curl -fsSL https://dl.formai.studio/form.md/updates/install.sh | sh
 ```
 
-The installer verifies the download against `SHA256SUMS`, installs `/usr/local/bin/form-md` & on systemd hosts a hardened `form-md` service w/ its data in `/var/lib/form-md`. With Docker: `docker run -p 8750:8750 -v form-md:/data ghcr.io/nodemode-ai/form.md`. Both are published from formcompiler (`nodemode-ai/formcompiler`, releases `form.md-vX.Y.Z`) from v0.46.1 on, and by this repository's release workflow from v0.11.0 to v0.46.0; the wiki in `.docs/wiki` covers install, encryption, TLS, backups & operations.
+The installer verifies the download against `SHA256SUMS`, installs `/usr/local/bin/form-md` & on systemd hosts a hardened `form-md` service w/ its data in `/var/lib/form-md`. With Docker: `docker run -p 8750:8750 -v form-md:/data ghcr.io/nodemode-ai/form.md`. Both are published from formcompiler (`nodemode-ai/formcompiler`, releases `form.md-vX.Y.Z`, copied to `https://dl.formai.studio/form.md/`) from v0.46.1 on, and by this repository's release workflow from v0.11.0 to v0.46.0; the wiki in `.docs/wiki` covers install, encryption, TLS, backups & operations.
 
 ### Ports
 

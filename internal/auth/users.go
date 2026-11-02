@@ -157,6 +157,9 @@ func (s *Service) CreateAccount(ctx context.Context, tx *sql.Tx, email, name, pa
 }
 
 func (s *Service) handleSetup(w http.ResponseWriter, r *http.Request) error {
+	if s.Desktop() {
+		return httpx.Fail(http.StatusNotFound, "not_found", "not found")
+	}
 	var in credentials
 	if err := httpx.Decode(r, &in); err != nil {
 		return err

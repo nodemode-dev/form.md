@@ -14,6 +14,7 @@ import (
 func desktopEnter(e *env, remote, key string, hdr map[string]string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest("GET", "/desktop/enter?key="+key, nil)
 	req.RemoteAddr = remote
+	req.Host = "127.0.0.1:8750"
 	for k, v := range hdr {
 		req.Header.Set(k, v)
 	}

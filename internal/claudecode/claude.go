@@ -2,8 +2,11 @@ package claudecode
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,7 +65,7 @@ func Launch(argv []string) []string {
 }
 
 func childEnv(engineURL string) []string {
-	out := []string{"TERM=xterm-256color", "COLORTERM=truecolor", "FORMMD_TERMINAL=1", "FORMMD_URL=" + engineURL, "FORMMD_MCP_URL=" + engineURL + "/mcp"}
+	out := []string{"TERM=xterm-256color", "COLORTERM=truecolor", "FORMMD_IN_TERMINAL=1", "FORMMD_URL=" + engineURL, "FORMMD_MCP_URL=" + engineURL + "/mcp"}
 	for _, kv := range os.Environ() {
 		k, _, _ := strings.Cut(kv, "=")
 		if k == "TERM" || k == "COLORTERM" || strings.HasPrefix(k, "FORMMD_") {
@@ -179,4 +182,63 @@ func MCPConfig(engineURL, token string) string {
 		"type": "http", "url": engineURL + "/mcp", "headers": map[string]string{"Authorization": "Bearer " + token},
 	}}})
 	return string(raw)
+}
+
+var forwardHeaders = []string{"Forwarded", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Real-Ip", "Cf-Connecting-Ip", "True-Client-Ip"}
+
+func Direct(r *http.Request) bool {
+	if r.TLS != nil {
+		return false
+	}
+	for _, h := range forwardHeaders {
+		if r.Header.Get(h) != "" {
+			return false
+		}
+	}
+	peer, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return false
+	}
+	if ip := net.ParseIP(peer); ip == nil || !ip.IsLoopback() {
+		return false
+	}
+	host := r.Host
+	if h, _, err := net.SplitHostPort(r.Host); err == nil {
+		host = h
+	}
+	host = strings.Trim(host, "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func MCPConfigFile(dataDir, userID, engineURL, token string) (string, error) {
+	dir := filepath.Join(dataDir, "agent-config")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256([]byte(userID))
+	path := filepath.Join(dir, "mcp-"+hex.EncodeToString(sum[:8])+".json")
+	tmp, err := os.CreateTemp(dir, ".mcp-*")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(tmp.Name())
+	if err := tmp.Chmod(0o600); err != nil && runtime.GOOS != "windows" {
+		tmp.Close()
+		return "", err
+	}
+	if _, err := tmp.WriteString(MCPConfig(engineURL, token)); err != nil {
+		tmp.Close()
+		return "", err
+	}
+	if err := tmp.Close(); err != nil {
+		return "", err
+	}
+	if err := os.Rename(tmp.Name(), path); err != nil {
+		return "", err
+	}
+	return path, nil
 }

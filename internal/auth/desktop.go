@@ -84,3 +84,21 @@ func (s *Service) handleDesktopEnter(w http.ResponseWriter, r *http.Request) err
 	http.Redirect(w, r, "/home?start=1", http.StatusSeeOther)
 	return nil
 }
+
+func loopbackHost(hostport string) bool {
+	host := hostport
+	if h, _, err := net.SplitHostPort(hostport); err == nil {
+		host = h
+	}
+	host = strings.Trim(host, "[]")
+	if strings.EqualFold(host, "localhost") || strings.EqualFold(host, "tauri.localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func viaSocket(r *http.Request) bool {
+	_, unix := r.Context().Value(http.LocalAddrContextKey).(*net.UnixAddr)
+	return unix
+}

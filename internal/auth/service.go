@@ -386,6 +386,10 @@ var originExempt = map[string]bool{"/api/auth/saml/acs": true, "/oauth/token": t
 
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.Desktop() && !loopbackHost(r.Host) && !viaSocket(r) {
+			httpx.Problem(w, r, s.log, httpx.Fail(http.StatusMisdirectedRequest, "bad_host", "the desktop app answers only on this computer's own address"))
+			return
+		}
 		if httpx.IsUnsafe(r.Method) && bearer(r) == "" && !originExempt[r.URL.Path] && !s.originOK(r) {
 			httpx.Problem(w, r, s.log, httpx.Fail(http.StatusForbidden, "bad_origin", "cross-site request refused"))
 			return

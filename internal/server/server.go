@@ -100,6 +100,17 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	if err != nil {
 		return nil, err
 	}
+	if domain := strings.ToLower(strings.TrimSpace(set.Get("https.domain"))); !cfg.TLS() && set.Bool("https.auto") && domain != "" {
+		if cfg.DesktopKey != "" {
+			log.Warn("automatic HTTPS is ignored in the desktop app, which listens on this computer only", "domain", domain)
+		} else {
+			cfg.ACMEDomains = []string{domain}
+			if cfg.Addr == "127.0.0.1:8750" {
+				cfg.Addr = ":443"
+			}
+			log.Info("automatic HTTPS from Instance settings", "domain", domain, "addr", cfg.Addr)
+		}
+	}
 	gate := policy.NewGate(st)
 	al := audit.New(st)
 	mailer := mail.New(set)
@@ -232,13 +243,6 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 	})
 
 	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks, Runs: runs, OAuth: grants, AI: brain, Crew: crew, Flows: flows}
-	if domain := strings.ToLower(strings.TrimSpace(set.Get("https.domain"))); !cfg.TLS() && set.Bool("https.auto") && domain != "" {
-		cfg.ACMEDomains = []string{domain}
-		if cfg.Addr == "127.0.0.1:8750" {
-			cfg.Addr = ":443"
-		}
-		log.Info("automatic HTTPS from Instance settings", "domain", domain, "addr", cfg.Addr)
-	}
 	s.Tunnel = tunnel.New(set, log, cfg.DataDir)
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
