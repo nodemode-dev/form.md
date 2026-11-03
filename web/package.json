@@ -1,7 +1,7 @@
 {
   "name": "form-md-web",
   "private": true,
-  "version": "0.47.7",
+  "version": "0.47.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
