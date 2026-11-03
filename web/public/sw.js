@@ -193,7 +193,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { title: event.data ? event.data.text() : "" };
   }
-  const options = { body: data.body || "", data: { url: data.url || "/inbox" }, icon: "/favicon.svg" };
+  const options = { body: data.body || "", data: { url: data.url || "/inbox" }, icon: "/favicon.png" };
   if (data.tag) options.tag = data.tag;
   event.waitUntil(self.registration.showNotification(data.title || "form.md", options));
 });
