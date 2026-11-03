@@ -28,3 +28,49 @@
 :root[data-style-align="center"] .view--page .doc-body :is(p, h1, h2, h3, h4, h5, h6, blockquote) {
   text-align: center;
 }
+
+.view--page[data-kind="collection"] .page-head {
+  --head-w: max(100%, calc(100cqi - 2 * var(--space-10)));
+  inline-size: var(--head-w);
+  margin-inline-start: calc((100% - var(--head-w)) / 2);
+}
+
+:root[data-style-header="center"] .view--page .page-head {
+  justify-items: center;
+  text-align: center;
+}
+
+:root[data-style-header="right"] .view--page .page-head {
+  justify-items: end;
+  text-align: end;
+}
+
+:root[data-style-header="center"] .view--page .page-head__icon {
+  justify-self: center;
+  margin-inline: 0;
+}
+
+:root[data-style-header="right"] .view--page .page-head__icon {
+  justify-self: end;
+  margin-inline: 0 calc(var(--space-1) * -1);
+}
+
+:root[data-style-header="center"] .view--page :is(.page-head__adders, .page-tags) {
+  justify-content: center;
+  margin-inline: 0;
+}
+
+:root[data-style-header="right"] .view--page :is(.page-head__adders, .page-tags) {
+  justify-content: flex-end;
+  margin-inline: 0 calc(var(--space-2) * -1);
+}
+
+:root:is([data-style-header="center"], [data-style-header="right"]) .view--page :is(.page-title, .page-desc) {
+  text-align: inherit;
+}
+
+:root:is([data-style-header="center"], [data-style-header="right"]) .view--page .page-tags__input {
+  flex: 0 1 auto;
+  min-inline-size: 4ch;
+  field-sizing: content;
+}

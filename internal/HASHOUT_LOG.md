@@ -2389,3 +2389,12 @@ Agents: the MCP tools `extensions_list` and `extension_command` and the CLI `for
 No new test: the family test plan names none for this round; the verification is the browser run recorded in the sidecar (`ext-host/TEST_PLAN.md`).
 
 Integration pass: Go's `ServeMux` answers a path with `..`, `.` or `//` with a 307 to the cleaned path, so a raw `/api/extensions/files/x/1.0.0/../../../../etc/passwd` was redirected to the app's own `/etc/passwd` route (the SPA) instead of answering 404. The module now adds a middleware that answers 404 with the contract headers for any unclean path under the files prefix, before the mux sees it. The contract headers (`nosniff`, `no-store`, CORP, `Access-Control-Allow-Origin`) are on every answer of the route, 404s included. The resolver follows the kit's wording: a manifest whose `api` is not "1", or missing, is refused with "it needs extension API {value}; this form.md offers API 1" (the kit briefly used other wording at 10:02 and went back to this line in v0.50.1 so all thirteen Form apps say the same). form.md's origin guard applies to unsafe methods only, so GET and HEAD on the files prefix already pass with `Origin: null` and no exception is needed; form.md runs as a server too, so the route is not limited to loopback. NOTICES.md's kit row is kept by hand, like the demo rows: `go run ./tools/notices` writes only the generated components and would drop all four.
+
+## Phase 23 · header alignment {#p23-header}
+
+### internal/pagestyle · header alignment
+- refers-to: internal/pagestyle/pagestyle.go :: `Style.Header`, `allowed`, `Clean`, `Merge`, `Style.Attrs`; internal/server/server.go :: `renderDocument` (style attrs)
+- kind: feature
+- logged: v0.48.0 · 2026-11-03
+
+Owner request of 2026-11-03 (first made for formpunchlist, brought back to form.md): the page header (icon, the cover, description and comment adders, title, description, tags) sits on the left by default, with a per-page choice of left, center or right. A sixth page style key, `header`, with `left` as the default, so it follows the same path as the other five: saved per page, inherited from the workspace default, kept in saved styles, and written as `data-style-header` on the root by `renderDocument` for the first frame. `left` is skipped there and in `Attrs`, like `start` and `sans`, so a default page carries no attribute. Published sites receive `data-style-header` on `.site-main` through `Attrs`, but the site stylesheet has no rule for it yet, so published pages keep their own header layout.
