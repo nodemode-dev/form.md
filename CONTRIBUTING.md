@@ -52,23 +52,35 @@ Playwright.
 - Keep each pull request to one change, with tests for what it adds or fixes.
 - Write commit subjects the way the history does: `feat(web): ...`,
   `fix(collection): ...`, `docs(...)`, with the scopes listed on the Development page of
-  the wiki and in [BRANCHING.md](BRANCHING.md). Leave the version alone; the maintainer
+  the wiki and in [BRANCHING.md](BRANCHING.md). Leave the version alone; a maintainer
   bumps it when releasing.
 - `.claude/skills/contextual-compression/policy.json` is read by the server as well as
   the skill: changing a number there changes the server.
 - Some features were declined for patent risk and will not be added back: form answers
   written into each mapped property of the new row, form automations that analyse the
   stored properties of the new row, and synced blocks held as child blocks under the
-  synced block. `CLAUDE.md` says how each works instead.
+  synced block. Instead, a submission is stored as one response record on the row
+  and the columns are read from it, form automations run on the response-received
+  event, and synced content stays in its own fragment addressed by key.
+
+## Maintainers
+
+Form.md is maintained by:
+
+- the [nodemode-dev](https://github.com/nodemode-dev) organisation on GitHub
+- [@nodemode-ai](https://github.com/nodemode-ai)
+- [@gbarnai](https://github.com/gbarnai)
+
+Reach them through issues and pull requests.
 
 ## How changes land
 
-Only the maintainer pushes to `main`. Everyone else forks the repository and opens a pull request into `main`. A pull request merges when all three checks pass on an up-to-date branch and the maintainer has approved it after its last push.
+Only a maintainer pushes to `main`. Everyone else forks the repository and opens a pull request into `main`. A pull request merges when all three checks pass on an up-to-date branch and a maintainer has approved it after its last push.
 
 ## Releases
 
-A release is a version, and only the maintainer makes one: after the version is bumped on
-`main`, the maintainer cuts a `compile_vX.Y.Z` branch, and formcompiler
+A release is a version, and only a maintainer makes one: after the version is bumped on
+`main`, a maintainer cuts a `compile_vX.Y.Z` branch, and formcompiler
 (`nodemode-dev/formcompiler`) builds every platform and publishes them together. No
 push from a contributor starts a release. See [BRANCHING.md](BRANCHING.md).
 
