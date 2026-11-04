@@ -1,8 +1,8 @@
 [package]
 name = "form-md-desktop"
-version = "0.47.7"
+version = "0.47.8"
 description = "form.md desktop app"
-authors = ["nodemode-ai"]
+authors = ["NodeAgentc, Inc."]
 license = "Apache-2.0"
 edition = "2021"
 rust-version = "1.77.2"

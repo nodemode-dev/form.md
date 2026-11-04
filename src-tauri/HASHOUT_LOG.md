@@ -2,8 +2,8 @@
 
 Living log of explainers, rationale and removed code for the desktop app in `src-tauri/` and its build scripts (`build_app`, `build_app.bat`, `tools/build_desktop`; `.github/workflows/desktop.yml` until v0.46.0). Source files stay comment-free per dev-rules `hashout-log`; what they would have said lives here. Paths are relative to the repo root.
 
-Current build version: v0.46.1
-Last updated: 2026-10-22 · v0.46.1: desktop.yml and release.yml removed, formcompiler builds the app; v0.46.0: version only (Home's Templates side panel); v0.45.3: icons/* and the splash icon from the approved icon with the clean edge; v0.45.2: icons/* and the splash icon rebuilt without the light rim; v0.45.1: the owner's app icon in icons/* and on the splash; v0.45.0: version only; v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
+Current build version: v0.47.8
+Last updated: 2026-11-03 · v0.47.8 the bundle names the publisher and the licence; 2026-10-22 · v0.46.1: desktop.yml and release.yml removed, formcompiler builds the app; v0.46.0: version only (Home's Templates side panel); v0.45.3: icons/* and the splash icon from the approved icon with the clean edge; v0.45.2: icons/* and the splash icon rebuilt without the light rim; v0.45.1: the owner's app icon in icons/* and on the splash; v0.45.0: version only; v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
 
 ---
 
@@ -121,3 +121,12 @@ The icon files are the owner's redesign (see web/HASHOUT_LOG.md, app-icon-family
 - logged: v0.47.7 · 2026-10-31
 
 The meeting recorder (`web/src/extensions/blocks/meeting.ts`, MediaRecorder) runs in WebKitGTK on Linux, which records and plays through GStreamer. The config now follows formdeck: the deb recommends `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good` and `gstreamer1.0-libav`, the rpm recommends `gstreamer1-plugins-base` and `gstreamer1-plugins-good`, and the AppImage bundles the media framework. formcompiler installs the base and good sets on the Linux runner so the AppImage step finds them. apt and dnf install recommends by default; `dpkg -i` and `--no-install-recommends` skip them. On Ubuntu 24.04 `libwebkit2gtk-4.1-0` already depends on base and good but only suggests `gstreamer1.0-libav` (the H.264 and AAC decoders), so the deb recommends it. The AppImage carries base and good only, since libav would copy the runner's own FFmpeg into the app. Checked: the config parses and formcompiler's `registry.py check` passes; no Linux build was run here.
+
+## The publisher and the licence in the bundle {#publisher}
+
+### tauri.conf.json, Cargo.toml · publisher, copyright, license, licenseFile, authors
+- refers-to: src-tauri/tauri.conf.json :: bundle.publisher, bundle.copyright, bundle.license, bundle.licenseFile; src-tauri/Cargo.toml :: authors
+- kind: decision
+- logged: v0.47.8 · 2026-11-03
+
+The launch punch list (2026-11-03): the About of a downloaded app says NodeAgentc, Inc., not nodemode-ai, and lists the licence. The window's About is the admin dialog's About tab (`web/src/ui/admin.ts`); the macOS application menu's About panel reads the bundle's copyright, and Tauri's default About metadata takes its authors from `bundle.publisher`. The bundle now names the publisher, carries the SPDX id in its copyright line as formMCP and formskills already did, and sets `license` and `licenseFile` (`../LICENSE` from `src-tauri`); `authors` is the company, which is the .deb's Maintainer, and tauri-build writes `CompanyName` from `bundle.publisher` into the Windows version resource. Checked here: the JSON parses; no desktop build was run.
