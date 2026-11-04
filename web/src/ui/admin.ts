@@ -1035,7 +1035,7 @@ function aboutTab(engine: Engine): Tab {
         h(
           "div",
           { class: "rows" },
-          h("div", { class: "row" }, iconNode("logo"), h("div", { class: "row__main" }, h("span", { class: "row__title", text: "form.md" }), version, h("span", { class: "row__meta", text: "by nodemode.ai", attrs: { translate: "no" } })), h("span")),
+          h("div", { class: "row" }, iconNode("logo"), h("div", { class: "row__main" }, h("span", { class: "row__title", text: "form.md" }), version, h("span", { class: "row__meta", text: "Copyright 2026 NodeAgentc, Inc.", attrs: { translate: "no" } }), h("a", { class: "row__meta", text: "Apache License 2.0", attrs: { href: "https://github.com/nodemode-dev/form.md/blob/main/LICENSE", target: "_blank", rel: "noopener", translate: "no" } })), h("span")),
           h("div", { class: "row" }, iconNode("page"), h("div", { class: "row__main" }, h("span", { class: "row__title", text: t("Storage") }), storage), h("span")),
         ),
         h("p", { class: "section__lead", text: t("Everything form.md is built on, with each licence in full.") }),
