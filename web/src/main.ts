@@ -6,7 +6,7 @@ import account from "./extensions/account";
 import blocks from "./extensions/blocks";
 import database from "./extensions/database";
 import { loadDatabase } from "./extensions/database/load";
-import formext from "./extensions/formext";
+import formext from "./extensions/formext/load";
 import pagesExtension from "./extensions/pages";
 import { activateAll, register } from "./extensions/registry";
 import harness from "./extensions/harness";
