@@ -21,7 +21,15 @@ Operations that run on your own input:
 7. Board view grouped by any select or status property, with drag between lanes.
 8. Table to database turns the first Markdown table on a page into a database. A database exports as CSV or a Markdown table, or inserts into a page.
 
-Built-in samples are original and generated in the page: a welcome page, a trail report, meeting notes and a 26-row Trail survey database. Reset samples restores them. Nothing is stored beyond the open tab except the theme and sidebar choice in localStorage.
+The demo opens on a small workspace of real material, each piece credited in [CREDITS.md](CREDITS.md):
+
+- A field notebook welcome page over a Pexels observatory photograph.
+- Galileo on the Moon, 1610: two passages from Project Gutenberg's Sidereal Messenger with Galileo's own engravings, and a table of the Galilean moons from NASA.
+- Moon missions: NASA photographs of Apollo 8, Apollo 11 and Artemis II with NASA's own captions.
+- Dark sky weekend: a field plan with a gear list, a targets table and Pexels photographs.
+- A database of 66 real planets from the NASA Exoplanet Archive, in table and board views.
+
+Click a photo on a page to enlarge it. Pages carry a cover image like the real app. Photographs are plain files in `assets/media/`; the exoplanet rows are a script pack (`assets/media/exoplanets.js`) loaded on demand, because Chrome will not fetch local files from file://. If that pack cannot load, the demo falls back to a generated Trail survey database. Reset restores the workspace. Nothing is stored beyond the open tab except the theme and sidebar choice in localStorage.
 
 ## Not in the demo
 
@@ -34,7 +42,7 @@ The committed files (`index.html` and `assets/`) are the build output. To rebuil
 ```
 cd web
 npm ci
-rm -rf ../demo/assets
+rm -f ../demo/assets/demo.js ../demo/assets/style.css
 npx vite build --config vite.demo.config.ts
 ```
 
@@ -44,4 +52,4 @@ Type check the demo sources with `web/node_modules/.bin/tsc --noEmit -p demo/tsc
 
 ## Dependencies
 
-No new dependencies. Everything comes from `web/package-lock.json`.
+No new dependencies. Everything comes from `web/package-lock.json`. Media and data are licensed as listed in [CREDITS.md](CREDITS.md), not under the repository licence.

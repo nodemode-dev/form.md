@@ -118,7 +118,7 @@ All form.md builds are compiled and released from [FormCompiler](https://github.
 
 ## Demo
 
-[`demo/`](demo/README.md) is an offline browser demo: open `demo/index.html` to edit Markdown pages in the real editor core and work a database in table and board views, on built-in samples or your own `.md` and `.csv` files. No server, no network.
+[`demo/`](demo/README.md) is an offline browser demo: open `demo/index.html` to edit Markdown pages in the real editor core and work a database in table and board views, on a workspace of real public-domain and freely licensed material (credited in `demo/CREDITS.md`) or your own `.md` and `.csv` files. No server, no network.
 
 ## Run it from source
 
