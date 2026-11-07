@@ -5,6 +5,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | Component | Version | License |
 | --- | --- | --- |
 | Go standard library | go1.26.9 | BSD-3-Clause |
+| Demo media in demo/assets/media (not in the binary), credited in demo/CREDITS.md | see demo/CREDITS.md | Pexels License, US public domain, NASA media guidelines |
 | @antfu/install-pkg | 2.1.0 | MIT |
 | @braintree/sanitize-url | 7.1.2 | MIT |
 | @chevrotain/types | 11.1.2 | Apache-2.0 |
