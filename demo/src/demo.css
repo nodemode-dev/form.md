@@ -6,6 +6,26 @@
   cursor: default;
 }
 
+.demo-links {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) 0;
+  font-size: var(--text-xs);
+}
+
+.demo-links__a {
+  color: var(--text-faint);
+  text-decoration: none;
+}
+
+.demo-links__a:hover {
+  color: var(--text);
+}
+
+.demo-links__a[aria-current="page"] {
+  color: var(--text-muted);
+}
+
 .demo-search {
   display: flex;
   align-items: center;

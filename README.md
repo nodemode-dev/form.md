@@ -118,7 +118,11 @@ All form.md builds are compiled and released from [FormCompiler](https://github.
 
 ## Demo
 
-[`demo/`](demo/README.md) is an offline browser demo: open `demo/index.html` to edit Markdown pages in the real editor core and work a database in table and board views, on a workspace of real public-domain and freely licensed material (credited in `demo/CREDITS.md`) or your own `.md` and `.csv` files. No server, no network.
+Three offline browser demos, each a double click on its `index.html`, on real public-domain and freely licensed material or your own files. No server, no network.
+
+- [`demo/`](demo/README.md), editor and databases: edit Markdown pages in the real editor core and work a database in table and board views (credits in `demo/CREDITS.md`).
+- [`demos/views/`](demos/views/README.md), database views: one dataset of US crewed spaceflight as table, board, gallery, list, calendar, timeline, chart and heatmap, with relations, rollups and formulas (credits in `demos/views/CREDITS.md`).
+- [`demos/publish/`](demos/publish/README.md), writing and publishing: the whole window on a long illustrated page with comments, page history, a published page view and Markdown and HTML export (credits in `demos/publish/CREDITS.md`).
 
 ## Run it from source
 
