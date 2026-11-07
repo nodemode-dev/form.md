@@ -59,6 +59,7 @@ export class App {
   private readonly tools = ref("tools");
   private readonly iconHost = ref("page-icon");
   private readonly viewPage = ref("view-page");
+  private readonly coverImg = ref<HTMLImageElement>("cover-img");
   private readonly dbHost = ref("db-host");
   private readonly editorHost = ref("editor");
   private readonly searchEl = ref<HTMLInputElement>("search");
@@ -120,6 +121,10 @@ export class App {
       void this.importFiles(files);
     });
     this.searchEl.addEventListener("input", () => this.renderTree());
+    this.editorHost.addEventListener("click", (e) => {
+      const img = (e.target as HTMLElement).closest<HTMLImageElement>(".media--image img");
+      if (img) this.zoom(img);
+    });
     document.addEventListener("click", (e) => {
       if ((e.target as HTMLElement).closest('[data-command="layers.closeTop"]')) closeTop();
     });
@@ -181,6 +186,20 @@ export class App {
     });
   }
 
+  private zoom(img: HTMLImageElement): void {
+    const caption = img.closest(".media")?.querySelector(".media__caption")?.textContent ?? "";
+    simpleDialog(
+      caption || img.alt || "Photo",
+      (body) => {
+        const big = h("img", { class: "demo-zoom", attrs: { src: img.currentSrc || img.src, alt: img.alt } });
+        body.append(h("div", { class: "demo-zoomwrap" }, big));
+        return big;
+      },
+      undefined,
+      "lg",
+    );
+  }
+
   private sidebar(open: boolean): void {
     this.root.setAttribute("data-sidebar", open ? "expanded" : "collapsed");
     remember(SIDEBAR_KEY, open ? "expanded" : "collapsed");
@@ -207,6 +226,8 @@ export class App {
     this.root.setAttribute("data-route", "page");
     setAttr(this.viewPage, "data-kind", item.kind === "collection" ? "collection" : "page");
     paintIcon(this.bigIcon, item.icon, fallbackGlyph(item.kind));
+    this.viewPage.classList.toggle("has-cover", !!item.cover);
+    if (item.cover && this.coverImg.getAttribute("src") !== item.cover) this.coverImg.setAttribute("src", item.cover);
     if (this.titleEl.value !== item.title) this.titleEl.value = item.title;
     this.tools.hidden = item.kind !== "page";
     this.stats.hidden = item.kind !== "page";
@@ -276,11 +297,16 @@ export class App {
       [...list()],
       (i) => i.id,
       (i) => {
-        const card = h("a", { class: "hcard", attrs: { href: `#${i.id}` } }, h("span", { class: "hcard__preview" }, h("span", { class: "hcard__glyph" }, pageIcon("", "page"))), h("span", { class: "hcard__body" }, h("span", { class: "hcard__name" }), h("span", { class: "hcard__meta" })));
+        const card = h("a", { class: "hcard", attrs: { href: `#${i.id}` } }, h("span", { class: "hcard__preview" }, h("span", { class: "hcard__glyph" }, pageIcon("", "page")), h("img", { class: "hcard__img", attrs: { alt: "", decoding: "async", draggable: "false" } })), h("span", { class: "hcard__body" }, h("span", { class: "hcard__name" }), h("span", { class: "hcard__meta" })));
         return card;
       },
       (card, i) => {
         card.setAttribute("href", `#${i.id}`);
+        const shot = card.querySelector(".hcard__img") as HTMLImageElement;
+        const glyph = card.querySelector(".hcard__glyph") as HTMLElement;
+        shot.hidden = !i.cover;
+        glyph.hidden = !!i.cover;
+        if (i.cover && shot.getAttribute("src") !== i.cover) shot.setAttribute("src", i.cover);
         setText(card.querySelector(".hcard__name") as HTMLElement, i.title || "Untitled");
         setText(card.querySelector(".hcard__meta") as HTMLElement, i.kind === "collection" ? `Database, ${i.rows.length} rows` : "Page");
         paintIcon(card.querySelector(".page-icon") as HTMLElement, i.icon, fallbackGlyph(i.kind));

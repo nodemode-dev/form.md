@@ -155,6 +155,31 @@
   display: none;
 }
 
+.hcard__img {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.hcard__glyph[hidden] {
+  display: none;
+}
+
+.demo-zoomwrap {
+  grid-column: 1 / -1;
+  padding: var(--space-3);
+}
+
+.demo-zoom {
+  display: block;
+  inline-size: 100%;
+  block-size: 58vh;
+  object-fit: contain;
+  border-radius: var(--radius);
+}
+
 .tree-title[data-untitled="true"] {
   color: var(--text-faint);
 }

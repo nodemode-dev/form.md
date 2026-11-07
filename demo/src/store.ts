@@ -7,13 +7,16 @@ import type { Property, RowData } from "../../web/src/engine/types";
 import { MarkdownWriter, markdownReady, markdownToDOM } from "../../web/src/extensions/blocks/markdown";
 import { buildTable, parseDelimited, type Table } from "./csv";
 import { freshView, type ViewState } from "./query";
-import { MEETING_MD, TRAIL_MD, WELCOME_MD, trailCsv } from "./samples";
+import { EXOPLANETS, PAGES } from "./content";
+import { loadPack } from "./packs";
+import { trailCsv } from "./samples";
 
 export interface PageItem {
   kind: "page";
   id: string;
   title: string;
   icon: string;
+  cover: string;
   ydoc: Y.Doc;
   edited: number;
 }
@@ -23,6 +26,7 @@ export interface DataItem {
   id: string;
   title: string;
   icon: string;
+  cover: string;
   schema: Property[];
   rows: RowData[];
   view: ViewState;
@@ -78,20 +82,20 @@ export function fullMarkdown(page: PageItem): string {
   return page.title ? `# ${page.title}\n\n${body}` : body;
 }
 
-export async function addPage(title: string, md: string, icon = ""): Promise<PageItem> {
+export async function addPage(title: string, md: string, icon = "", cover = ""): Promise<PageItem> {
   const doc = await docFromMarkdown(md);
   const ydoc = new Y.Doc();
   ydoc.transact(() => {
     prosemirrorToYXmlFragment(doc, ydoc.getXmlFragment(ROOT));
   });
-  const page: PageItem = { kind: "page", id: newBlockId(), title, icon, ydoc, edited: Date.now() };
+  const page: PageItem = { kind: "page", id: newBlockId(), title, icon, cover, ydoc, edited: Date.now() };
   items.push(page);
   emit();
   return page;
 }
 
-export function addCollection(title: string, table: Table, icon = ""): DataItem {
-  const data: DataItem = { kind: "collection", id: newBlockId(), title, icon, schema: table.schema, rows: table.rows, view: freshView(), edited: Date.now() };
+export function addCollection(title: string, table: Table, icon = "", cover = ""): DataItem {
+  const data: DataItem = { kind: "collection", id: newBlockId(), title, icon, cover, schema: table.schema, rows: table.rows, view: freshView(), edited: Date.now() };
   const board = table.schema.find((p) => p.type === "status") ?? table.schema.find((p) => p.type === "select");
   if (board) data.view.boardBy = board.id;
   items.push(data);
@@ -122,9 +126,15 @@ export function baseName(file: string): string {
 
 export async function seed(): Promise<string> {
   items.length = 0;
-  const welcome = await addPage("Welcome to the form.md demo", WELCOME_MD, "i:rocket");
-  await addPage("Trail report: Ridgeline Loop", TRAIL_MD, "i:note");
-  await addPage("Crew meeting notes", MEETING_MD, "i:checklist");
-  addCollection("Trail survey", buildTable(parseDelimited(trailCsv())));
-  return welcome.id;
+  const csv = await loadPack(EXOPLANETS.pack, EXOPLANETS.file);
+  let first = "";
+  for (const p of PAGES) {
+    const page = await addPage(p.title, p.md, p.icon, p.cover);
+    first ||= page.id;
+  }
+  if (csv) {
+    const data = addCollection(EXOPLANETS.title, buildTable(parseDelimited(csv)), "i:globe", EXOPLANETS.cover);
+    data.view.calcs = { p7: "median", p9: "min" };
+  } else addCollection("Trail survey", buildTable(parseDelimited(trailCsv())));
+  return first;
 }
