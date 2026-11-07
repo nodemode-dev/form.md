@@ -116,6 +116,10 @@ The window's commands, the REST API and the MCP server all act on the same pages
 
 All form.md builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
 
+## Demo
+
+[`demo/`](demo/README.md) is an offline browser demo: open `demo/index.html` to edit Markdown pages in the real editor core and work a database in table and board views, on built-in samples or your own `.md` and `.csv` files. No server, no network.
+
 ## Run it from source
 
 Prefer it in your browser, or want to contribute? Run the web UI straight from this repo.
