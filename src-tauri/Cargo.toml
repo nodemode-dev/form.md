@@ -1,6 +1,6 @@
 [package]
 name = "form-md-desktop"
-version = "0.50.0"
+version = "0.50.1"
 description = "form.md desktop app"
 authors = ["NodeAgentc, Inc."]
 license = "Apache-2.0"
