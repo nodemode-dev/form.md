@@ -66,4 +66,42 @@ func (s *Server) registerWindow() {
 			}
 			return v, "", nil
 		}})
+	s.add(&Tool{Name: "extensions_list", Title: "List the window's extensions", Brief: true,
+		Description: "The Form extensions installed for form.md (from FormPortal, or a folder run from form.ext) as the open window sees them: id, name, version, source, state (ready, needs-permission or refused, with the reason) and the commands each contributes. Empty when none is installed.",
+		Run: func(ctx context.Context, x *exec, raw json.RawMessage) (any, string, error) {
+			out, err := s.Window.RunCommand(ctx, x.p, "extensions.list", map[string]any{})
+			if err != nil {
+				return nil, "", fail(err.Error())
+			}
+			var v any
+			if json.Unmarshal(out, &v) != nil {
+				v = string(out)
+			}
+			return v, "", nil
+		}})
+	s.add(&Tool{Name: "extension_command", Title: "Run an extension command",
+		Description: "Runs a command an extension contributes, in the open form.md window, exactly as if the person chose it from the Extensions menu. The window asks the person to allow the extension first when this version has not been allowed yet; a refusal fails the call. Returns what the command reports when it finishes.",
+		Props:       map[string]any{"id": str("Extension id from extensions_list"), "command": str("Command id from the extension's commands"), "args": obj(map[string]any{})}, Required: []string{"id", "command"},
+		Run: func(ctx context.Context, x *exec, raw json.RawMessage) (any, string, error) {
+			var in struct {
+				ID      string         `json:"id"`
+				Command string         `json:"command"`
+				Args    map[string]any `json:"args"`
+			}
+			if err := decode(raw, &in); err != nil {
+				return nil, "", err
+			}
+			if in.Args == nil {
+				in.Args = map[string]any{}
+			}
+			out, err := s.Window.RunCommand(ctx, x.p, "extensions.run", map[string]any{"id": in.ID, "command": in.Command, "args": in.Args})
+			if err != nil {
+				return nil, "", fail(err.Error())
+			}
+			var v any
+			if json.Unmarshal(out, &v) != nil {
+				v = string(out)
+			}
+			return v, "", nil
+		}})
 }

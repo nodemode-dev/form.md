@@ -99,6 +99,10 @@ The window's commands, the REST API and the MCP server all act on the same pages
 
 `.mcp.json` and `.cursor/mcp.json` are already wired in this repo. The server also answers MCP over HTTP at `/mcp` and publishes its REST reference at `/api/docs`. See [`AGENTS.md`](AGENTS.md).
 
+## Extensions
+
+form.md loads Form extensions (Form Extension Contract, API 1): install them with FormPortal, or run a folder from form.ext. They appear under Extensions in the sidebar (and the desktop menu bar), in the Extensions panel on the right and in Find a Command; each runs in a sandboxed frame and changes the page only through form.md's own `doc.*` commands, as one undo step, after you allow it. Agents reach them with the MCP tools `extensions_list` and `extension_command`, or `./form-md cli extensions`. The API for extension authors is [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md); the wiki page is Extensions.
+
 ## Under the hood
 
 - **Go server:** pure-Go SQLite, a Yjs-compatible CRDT in Go, one writer connection and a query-only reader pool.

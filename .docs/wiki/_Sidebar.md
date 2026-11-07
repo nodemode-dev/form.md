@@ -21,6 +21,7 @@
 - [[Form-family]]
 - [[Context-and-knowledge]]
 - [[Terminal-and-Claude-Code]]
+- [[Extensions]]
 
 **Changing the code**
 
