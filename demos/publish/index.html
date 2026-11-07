@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en" data-auth="app" data-theme="dark" data-theme-pref="dark" data-sidebar="expanded" data-drawer="closed" data-dark-theme="dark" data-light-theme="light" data-density="standard">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="form.md offline demo: write a long page, comment, keep history, publish and export." />
+    <title>form.md publish demo</title>
+    <meta name="theme-color" content="#08080a" />
+    <script>(function(){var d=document.documentElement,p="dark";try{var s=localStorage.getItem("formmd.theme");if(s==="light"||s==="dark")p=s;else if(s===null)localStorage.setItem("formmd.theme","dark");if(localStorage.getItem("formmd.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed")}catch(e){}d.setAttribute("data-theme",p);d.setAttribute("data-theme-pref",p);d.setAttribute("data-home","back");d.setAttribute("data-owner","")})()</script>
+    <script defer src="./assets/publish.js"></script>
+    <link rel="stylesheet" href="./assets/style.css">
+  </head>
+  <body>
+    
+    
+    
+    <div id="app" class="app">
+      <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+        <div class="sidebar__inner">
+          <header class="sidebar__head">
+            <button class="ws-switch" type="button" data-ref="ws-switch" aria-haspopup="menu" aria-expanded="false" data-tip="Switch workspace" data-tip-side="bottom">
+              <span class="tile" data-color="" data-kind="" data-ref="ws-tile"></span>
+              <span class="ws-switch__name" data-ref="ws-name"></span>
+              <svg class="icon ws-switch__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" fill="currentColor" stroke="none"/></svg>
+            </button>
+            <span class="sidebar__version" data-ref="version"><span class="live-dot" data-ref="live-dot" aria-hidden="true"></span><span class="sidebar__version-text" data-ref="version-text"></span></span>
+            <div class="sidebar__head-actions">
+              <button class="icon-btn sidebar__collapse" type="button" data-command="shell.toggleSidebar" data-tip="Hide sidebar" aria-label="Hide sidebar">
+                <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.5 6.5 6 12l5.5 5.5M18 6.5 12.5 12l5.5 5.5"/></svg>
+              </button>
+              <button class="icon-btn sidebar__inbox" type="button" data-ref="sb-inbox" data-tip="Inbox" aria-label="Inbox">
+                <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 13.5 6.25 5.5a1.5 1.5 0 0 1 1.45-1h8.6a1.5 1.5 0 0 1 1.45 1L20 13.5V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18Z"/><path d="M4 13.5h4.5l1.25 2h4.5l1.25-2H20"/></svg><span class="sidebar__badge" data-ref="sb-inbox-count"></span>
+              </button>
+              <button class="icon-btn" type="button" data-ref="sb-new" aria-haspopup="menu" aria-expanded="false" data-tip="New" aria-label="New">
+                <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V13"/><path d="M17.25 3.75l3 3-7.75 7.75H9.5v-3Z"/></svg>
+              </button>
+            </div>
+          </header>
+          <div class="sidebar__top">
+            <button class="sb-item" type="button" data-command="search.open">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M10.5 7.5v2M9.5 8.5h2" stroke-width="1.4"/></svg></span><span class="sb-label">Search</span><span class="sb-keys" data-ref="sb-search-keys"></span>
+            </button>
+            <a class="sb-item" href="/home" data-ref="sb-home" data-route-link="home">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 10.25 12 4l7.5 6.25V19a1.5 1.5 0 0 1-1.5 1.5h-3.75v-5.75h-4.5v5.75H6A1.5 1.5 0 0 1 4.5 19Z"/></svg></span><span class="sb-label">Home</span>
+            </a>
+            <a class="sb-item" href="/library" data-ref="sb-library" data-route-link="library">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5v15M9 4.5v15"/><path d="m13 5.25 3.4-.9 3.6 13.5-3.4.9Z"/><path d="M3.5 19.5h17"/></svg></span><span class="sb-label">Library</span>
+            </a>
+          </div>
+          <nav class="sidebar__nav" data-ref="nav" aria-label="Pages"></nav>
+          <footer class="sidebar__foot">
+            <button class="sb-item" type="button" data-ref="sb-templates">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2"/></svg></span><span class="sb-label">Templates</span>
+            </button>
+            <button class="sb-item" type="button" data-ref="sb-import">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" fill="currentColor" stroke="none"/></svg></span><span class="sb-label">Import</span>
+            </button>
+            <a class="sb-item" href="/trash" data-ref="sb-trash" data-route-link="trash">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor" stroke="none"/></svg></span><span class="sb-label">Trash</span>
+            </a>
+            <button class="sb-item" type="button" data-ref="sb-settings">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" fill="currentColor" stroke="none"/></svg></span><span class="sb-label">Settings</span>
+            </button>
+            <button class="sb-item" type="button" data-command="shell.showShortcuts">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.45 2.45 0 0 1 4.75.85c0 1.65-2.35 2.15-2.35 3.75M12 17h.01"/></svg></span><span class="sb-label">Help</span>
+            </button>
+            <button class="user-chip" type="button" data-ref="user-chip" aria-haspopup="menu" aria-expanded="false">
+              <span class="avatar" data-color="" data-kind="" data-ref="user-avatar"></span>
+              <span class="user-chip__name" data-ref="user-name"></span>
+              <svg class="icon user-chip__more" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5.5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg>
+            </button>
+          </footer><nav class="demo-links" aria-label="Demos"><span class="demo-links__label">Demos</span><a class="demo-links__item" href="../../demo/index.html" title="Editor and databases">1 Editor</a><a class="demo-links__item" href="../views/index.html" title="Database views">2 Views</a><a class="demo-links__item" href="./index.html" title="Write and publish" aria-current="page">3 Publish</a></nav>
+        </div>
+        <div class="sidebar__resize" data-ref="sb-resize" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" aria-valuemin="220" aria-valuemax="480" tabindex="0"></div>
+      </aside>
+      <div class="drawer-scrim" aria-hidden="true"></div>
+      <main class="sheet" id="sheet">
+        <header class="topbar" data-ref="topbar">
+          <button class="icon-btn topbar__menu" type="button" data-command="shell.toggleSidebar" data-tip="Show sidebar" aria-label="Show sidebar">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg>
+          </button>
+          <span class="topbar__nav">
+            <button class="icon-btn" type="button" data-command="nav.back" data-ref="nav-back" data-tip="Back" aria-label="Back" disabled><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5M10.5 6.5 5 12l5.5 5.5"/></svg></button>
+            <button class="icon-btn" type="button" data-command="nav.forward" data-ref="nav-forward" data-tip="Forward" aria-label="Forward" disabled><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13.5 6.5 19 12l-5.5 5.5"/></svg></button>
+          </span>
+          <nav class="crumbs" data-ref="crumbs" aria-label="Breadcrumb"></nav>
+          <div class="topbar__actions">
+            <span class="topbar__page-actions" data-ref="page-actions">
+              <span class="topbar__presence" data-ref="act-presence"></span>
+              <button class="btn btn--ghost topbar__mode" type="button" data-ref="act-mode" aria-haspopup="menu" aria-expanded="false" hidden></button>
+              <span class="topbar__edited" data-ref="act-edited"></span>
+              <button class="btn btn--ghost topbar__share" type="button" data-ref="act-share">Share</button>
+              <button class="icon-btn" type="button" data-ref="act-visibility" aria-label="Visibility"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0.6-3.6 3-5.8 6-5.8s5.4 2.2 6 5.8"/><path d="M15.5 4.9a3.2 3.2 0 0 1 0 6.2M18 14.6c1.6 0.8 2.7 2.7 3 5.4"/></svg></button>
+              <button class="icon-btn topbar__comments" type="button" data-ref="act-comments" aria-pressed="false" aria-label="Comments"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5.5 5h13a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3.5V17h-1.5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg><span class="topbar__count" data-ref="act-comments-count"></span></button>
+              <button class="icon-btn" type="button" data-ref="act-favorite" aria-pressed="false" aria-label="Add to favorites"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5l2.6 5.3 5.9 0.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-0.9z"/></svg></button>
+              <button class="icon-btn" type="button" data-ref="act-more" aria-haspopup="menu" aria-expanded="false" aria-label="More actions" data-tip="More actions"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5.5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg></button>
+            </span>
+            <button class="icon-btn" type="button" data-ref="act-agent" aria-pressed="false" data-tip="Agent" aria-label="Agent"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4.5h12a3.5 3.5 0 0 1 3.5 3.5v6a3.5 3.5 0 0 1-3.5 3.5h-6.5L7 21v-3.5H6A3.5 3.5 0 0 1 2.5 14V8A3.5 3.5 0 0 1 6 4.5z"/><circle cx="9.2" cy="11" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.8" cy="11" r="1.3" fill="currentColor" stroke="none"/></svg></button>
+            <button class="icon-btn topbar__claude" type="button" data-command="dock.toggle" data-tip="Claude Code" aria-label="Claude Code"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="7.5" width="16" height="12" rx="4"/><path d="M12 7.5V4.5"/><circle cx="12" cy="3.6" r="1.1"/><circle cx="9.3" cy="13.3" r="1.35" fill="currentColor" stroke="none"/><circle cx="14.7" cy="13.3" r="1.35" fill="currentColor" stroke="none"/><path d="M2 12.2v2.8M22 12.2v2.8"/></svg></button>
+            <button class="icon-btn topbar__dev topbar__devonly" type="button" data-command="dock.toggle" data-tip="Terminal" aria-label="Terminal"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h4.5"/></svg></button>
+            <button class="icon-btn topbar__sync topbar__dev topbar__devonly" type="button" data-command="shell.sync" data-tip="Sync now" aria-label="Sync now"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+          </div>
+        </header>
+        <div class="tabbar" data-ref="tabbar" role="tablist" aria-label="Open pages"></div>
+        <div class="banner" data-ref="banner" role="status"></div>
+        <div class="scroller" data-ref="scroller">
+          <section class="view view--page has-cover" data-view="page" data-ref="view-page" aria-label="Page"><div class="doc-body" data-ref="doc-body" data-page=""></div></section>
+          <section class="view view--library" data-view="library" data-ref="view-library" aria-label="Library"></section>
+          <section class="view view--trash" data-view="trash" data-ref="view-trash" aria-label="Trash"></section>
+          <section class="view view--inbox" data-view="inbox" data-ref="view-inbox" aria-label="Inbox"></section>
+          <section class="view view--home" data-view="home" data-ref="view-home" aria-labelledby="home-title">
+            <div class="home">
+              <div class="home__main">
+              <header class="home__head">
+                <div class="home__heading">
+                  <p class="home__eyebrow" data-ref="home-eyebrow"></p>
+                  <h1 class="home__title" id="home-title"><span data-daypart="morning">Good morning</span><span data-daypart="afternoon">Good afternoon</span><span data-daypart="evening">Good evening</span></h1>
+                  <p class="home__lead" data-when="new">Write notes, plan a project or keep a table of things. Begin with a blank page, pick a template, or bring in what you already have.</p>
+                </div>
+                <div class="home__actions">
+                  <button class="btn btn--ghost home__side-toggle" type="button" data-ref="home-side-toggle" aria-controls="home-side" aria-expanded="true"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2"/></svg><span>Templates</span></button>
+                  <button class="btn btn--primary home__new" type="button" data-command="page.new" data-ref="home-new"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg><span>New page</span></button>
+                </div>
+              </header>
+              <div class="home-drop" data-ref="home-material">
+                <span class="home-drop__icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" fill="currentColor" stroke="none"/></svg></span>
+                <div class="home-drop__text">
+                  <p class="home-drop__title">Start from your material</p>
+                  <p class="home-drop__sub">Drop notes, documents, spreadsheets or a whole export here. Each file becomes a page or a database you can keep editing.</p>
+                  <p class="home-drop__formats"><span>MD</span><span>CSV</span><span>HTML</span><span>PDF</span><span>DOCX</span><span>XLSX</span><span>ZIP</span><span>ENEX</span><span>OPML</span><span>JSON</span><span>TXT</span></p>
+                </div>
+                <div class="home-drop__actions">
+                  <button class="btn" type="button" data-ref="home-choose"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" fill="currentColor" stroke="none"/></svg><span>Choose files</span></button>
+                  <button class="btn btn--ghost" type="button" data-ref="home-paste"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg><span>Paste text</span></button>
+                </div>
+              </div>
+              <section class="home-sec" data-when="back" aria-labelledby="home-recent-title">
+                <div class="home-sec__head">
+                  <h2 class="home-sec__title" id="home-recent-title">Recently visited</h2>
+                  <button class="btn btn--ghost home-sec__more" type="button" data-ref="home-see-all">See all</button>
+                </div>
+                <div class="home-grid home-grid--row" data-ref="home-recent">
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                </div>
+              </section>
+              <section class="home-sec" data-ref="home-tpl-sec" aria-labelledby="home-tpl-title">
+                <div class="home-sec__head">
+                  <h2 class="home-sec__title" id="home-tpl-title">Templates</h2>
+                  <div class="home-chips" data-ref="home-chips" role="group" aria-label="Template categories"></div>
+                  <label class="home-search"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M10.5 7.5v2M9.5 8.5h2" stroke-width="1.4"/></svg><input type="search" data-ref="home-tpl-search" placeholder="Search templates" aria-label="Search templates" autocomplete="off" /></label>
+                </div>
+                <div class="home-grid" data-ref="home-tpl-grid">
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                </div>
+                <p class="home-empty" data-ref="home-tpl-empty" hidden>No template matches. Try another word or category.</p>
+                <div class="home-sec__foot"><button class="btn btn--ghost" type="button" data-ref="home-templates"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2"/></svg><span>Browse all templates</span></button></div>
+              </section>
+              <section class="home-sec" data-ref="home-ex-sec" aria-labelledby="home-ex-title">
+                <div class="home-sec__head home-sec__head--lead">
+                  <div class="home-sec__intro">
+                    <h2 class="home-sec__title" id="home-ex-title">Example projects</h2>
+                    <p class="home-sec__lead">Whole workspaces already filled in: a home page, sub-pages and linked databases. Add one and look around.</p>
+                  </div>
+                  <button class="btn btn--ghost home-sec__more" type="button" data-ref="home-ex-all">See all</button>
+                </div>
+                <div class="home-grid home-grid--ex" data-ref="home-ex-grid">
+                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                  <div class="hcard hcard--ex is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                </div>
+              </section>
+              <p class="home-offline" data-ref="home-offline" role="status" hidden>You are offline. Pages saved on this device stay open and sync when you are back online.</p>
+              </div>
+              <aside class="home-side" id="home-side" data-ref="home-side" aria-label="Templates">
+                <div class="home-side__inner">
+                  <div class="home-side__head">
+                    <p class="home-side__eyebrow">Templates</p>
+                    <button class="icon-btn home-side__close" type="button" data-ref="home-side-close" aria-label="Close" data-tip="Close"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor" stroke="none"/></svg></button>
+                  </div>
+                  <section class="home-sec home-feature" data-ref="home-feat-sec" aria-labelledby="home-feat-title">
+                    <div class="home-sec__head home-sec__head--lead">
+                      <div class="home-sec__intro">
+                        <h2 class="home-feature__title" id="home-feat-title">Data &amp; charts</h2>
+                        <p class="home-sec__lead">Charts, dashboards, heatmaps, maps and timelines, each filled with sample data so you can see what your tables can become.</p>
+                      </div>
+                    </div>
+                    <div class="home-grid home-grid--big" data-ref="home-feat-grid">
+                      <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                      <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                      <div class="hcard hcard--big is-skeleton" aria-hidden="true"><span class="hcard__preview"></span><span class="hcard__body"><span class="hcard__name">&nbsp;</span><span class="hcard__desc">&nbsp;</span><span class="hcard__meta">&nbsp;</span></span></div>
+                    </div>
+                    <div class="home-sec__foot"><button class="btn btn--ghost" type="button" data-ref="home-feat-all"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z" fill="currentColor" stroke="none"/></svg><span>See all</span></button></div>
+                  </section>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </div>
+        <button class="help-fab" type="button" data-ref="help-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Help" data-tip="Help" data-tip-side="left"><span aria-hidden="true">?</span></button>
+      </main>
+    </div>
+    <main id="auth" class="auth">
+      <div class="auth__card">
+        <div class="auth__brand"><svg class="icon auth__mark" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="3.5" width="4.75" height="17" rx="1.6" fill="currentColor" stroke="none"/><rect x="10.25" y="3.5" width="9.75" height="4.75" rx="1.6" fill="currentColor" stroke="none"/><rect x="10.25" y="9.75" width="6.25" height="4.75" rx="1.6" fill="currentColor" stroke="none" opacity="0.62"/></svg><span></span></div>
+
+        <form class="auth__panel" data-panel="setup" novalidate>
+          <h1 class="auth__title">Create your account</h1>
+          <p class="auth__lead">Welcome! Create your account. You will be the admin and can invite others later.</p>
+          <label class="field"><span class="field__label">Name</span><input class="input" name="name" autocomplete="name" required /></label>
+          <label class="field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="email" required /></label>
+          <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required /><span class="field__hint">At least 8 characters.</span></label>
+          <p class="form-status" role="alert"></p>
+          <button class="btn btn--primary btn--block" type="submit">Create account</button>
+        </form>
+
+        <form class="auth__panel" data-panel="login" data-step="password" novalidate>
+          <h1 class="auth__title">Sign in</h1>
+          <div class="auth__step" data-for="password">
+            <label class="field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="username" required /></label>
+            <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>
+          </div>
+          <div class="auth__step" data-for="totp">
+            <p class="auth__lead">Enter the six-digit code from your authenticator app.</p>
+            <label class="field" data-ref="totp-field"><span class="field__label">Code</span><input class="input input--code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" /></label>
+            <label class="field" data-ref="recovery-field" hidden><span class="field__label">Recovery code</span><input class="input input--code" name="recovery" autocomplete="off" /></label>
+            <button class="link-btn" type="button" data-ref="toggle-recovery">Use a recovery code instead</button>
+          </div>
+          <p class="form-status" role="alert"></p>
+          <button class="btn btn--primary btn--block" type="submit">Sign in</button>
+          <div class="auth__sso">
+            <p class="auth__divider"><span>or</span></p>
+            <a class="btn btn--block auth__sso-btn" data-sso-id="saml" href="/api/auth/sso/saml/start" data-ref="saml-btn">Continue with </a>
+            <a class="btn btn--block auth__sso-btn" data-sso-id="google" href="/api/auth/sso/google/start">Continue with Google</a>
+            <a class="btn btn--block auth__sso-btn" data-sso-id="microsoft" href="/api/auth/sso/microsoft/start">Continue with Microsoft</a>
+            <a class="btn btn--block auth__sso-btn" data-sso-id="oidc" href="/api/auth/sso/oidc/start" data-ref="oidc-btn">Continue with single sign-on</a>
+          </div>
+          <p class="auth__alt auth__alt--signup">No account yet? <a href="/signup">Create one</a></p>
+          <p class="auth__alt auth__alt--owner"><button class="link-btn" type="button" data-ref="owner-password">Sign in with email and password instead</button></p>
+        </form>
+
+        <form class="auth__panel" data-panel="signup" novalidate>
+          <h1 class="auth__title">Create your account</h1>
+          <label class="field"><span class="field__label">Name</span><input class="input" name="name" autocomplete="name" required /></label>
+          <label class="field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="email" required /></label>
+          <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required /><span class="field__hint">At least 8 characters.</span></label>
+          <p class="form-status" role="alert"></p>
+          <button class="btn btn--primary btn--block" type="submit">Create account</button>
+          <p class="auth__alt">Already have an account? <a href="/login">Sign in</a></p>
+        </form>
+
+        <form class="auth__panel" data-panel="invite" data-mode="loading" novalidate>
+          <h1 class="auth__title" data-ref="invite-title">Invitation</h1>
+          <p class="auth__lead" data-ref="invite-lead">Checking the invitation.</p>
+          <div class="auth__step" data-for="signed-in">
+            <p class="auth__note" data-ref="invite-signed-in"></p>
+          </div>
+          <div class="auth__step" data-for="new">
+            <label class="field"><span class="field__label">Name</span><input class="input" name="name" autocomplete="name" /></label>
+            <label class="field" data-ref="invite-email-field"><span class="field__label">Email</span><input class="input" name="email" type="email" autocomplete="email" /></label>
+            <label class="field"><span class="field__label">Password</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" /><span class="field__hint">At least 8 characters.</span></label>
+          </div>
+          <div class="auth__step" data-for="existing">
+            <p class="auth__note">You already have an account. Confirm it to join.</p>
+            <label class="field"><span class="field__label">Password</span><input class="input" name="existing-password" type="password" autocomplete="current-password" /></label>
+            <label class="field" data-ref="invite-code-field" hidden><span class="field__label">Code</span><input class="input input--code" name="existing-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" /></label>
+          </div>
+          <p class="form-status" role="alert"></p>
+          <button class="btn btn--primary btn--block" type="submit" data-ref="invite-submit">Join workspace</button>
+        </form>
+
+        <form class="auth__panel" data-panel="consent" novalidate>
+          <h1 class="auth__title">Connect </h1>
+          <p class="auth__lead consent__expired">This connection request has expired or was already answered. Start again from the app that asked.</p>
+          <p class="auth__lead consent__ask"><b></b> at <span class="consent__host"></span> asks to work in form.md as you.</p>
+          <fieldset class="consent__group">
+            <legend class="field__label">Access</legend>
+            <div class="option-cards"></div>
+          </fieldset>
+          <fieldset class="consent__group">
+            <legend class="field__label">Workspaces</legend>
+            <div class="check-list consent__workspaces"></div>
+          </fieldset>
+          <p class="auth__note consent__ask">It can do what you can do in these workspaces, within each workspace's agent policy and rules. Disconnect it any time under Account settings, Connected apps.</p>
+          <p class="form-status" role="alert"></p>
+          <div class="consent__actions">
+            <button class="btn btn--ghost" type="button" data-ref="consent-deny">Deny</button>
+            <button class="btn btn--primary" type="submit">Allow</button>
+          </div>
+        </form>
+      </div>
+    </main>
+    <div id="overlay-root"></div>
+    <div id="toast-root" aria-live="polite" aria-relevant="additions"></div>
+  
+  </body>
+</html>
