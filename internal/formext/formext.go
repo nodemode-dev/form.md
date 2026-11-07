@@ -216,11 +216,8 @@ func Check(ext *Extension, product, appVersion, appName string) *Extension {
 	if !versionRE.MatchString(ext.Version) {
 		return refuse("its version is not x.y.z")
 	}
-	if manifest["api"] == nil {
-		return refuse(fmt.Sprintf("it does not say which extension API it needs; this %s offers API %s", appName, API))
-	}
 	if manifest["api"] != API {
-		return refuse(fmt.Sprintf("this extension needs a newer %s (it asks for extension API %s; this %s offers API %s)", appName, pyStr(manifest["api"]), appName, API))
+		return refuse(fmt.Sprintf("it needs extension API %s; this %s offers API %s", pyStr(manifest["api"]), appName, API))
 	}
 	if truthy(manifest["native"]) {
 		return refuse(fmt.Sprintf("native extensions are not supported by %s", appName))
