@@ -151,6 +151,7 @@ const PATHS = {
   "arrow-left": '<path d="M19 12H5M10.5 6.5 5 12l5.5 5.5"/>',
   "arrow-right": '<path d="M5 12h14M13.5 6.5 19 12l-5.5 5.5"/>',
   help: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.45 2.45 0 0 1 4.75.85c0 1.65-2.35 2.15-2.35 3.75M12 17h.01"/>',
+  puzzle: '<path d="M10 4.5a2 2 0 0 1 4 0V6h3.5a1 1 0 0 1 1 1v3.5H20a2 2 0 0 1 0 4h-1.5V18a1 1 0 0 1-1 1H14v-1.5a2 2 0 0 0-4 0V19H6.5a1 1 0 0 1-1-1v-3.5H7a2 2 0 0 0 0-4H5.5V7a1 1 0 0 1 1-1H10Z"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

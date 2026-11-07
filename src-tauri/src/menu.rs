@@ -66,6 +66,13 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&item(app, "app:reload", "Reload", Some("CmdOrCtrl+R"))?)
         .fullscreen()
         .build()?;
+    let extensions = SubmenuBuilder::new(app, "Extensions")
+        .item(&item(app, "cmd:extensions.menu", "Extension Commands...", None)?)
+        .separator()
+        .item(&item(app, "cmd:extensions.panel", "Extensions Panel", None)?)
+        .item(&item(app, "cmd:extensions.reload", "Reload Extensions", None)?)
+        .item(&item(app, "cmd:extensions.manage", "Manage in FormPortal", None)?)
+        .build()?;
     let window = SubmenuBuilder::new(app, "Window")
         .minimize()
         .maximize()
@@ -79,7 +86,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&item(app, "app:notices", "Third-Party Notices", None)?)
         .build()?;
     MenuBuilder::new(app)
-        .items(&[&app_menu, &file, &edit, &view, &window, &help])
+        .items(&[&app_menu, &file, &edit, &view, &extensions, &window, &help])
         .build()
 }
 

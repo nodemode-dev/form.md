@@ -6,6 +6,7 @@ import account from "./extensions/account";
 import blocks from "./extensions/blocks";
 import database from "./extensions/database";
 import { loadDatabase } from "./extensions/database/load";
+import formext from "./extensions/formext";
 import pagesExtension from "./extensions/pages";
 import { activateAll, register } from "./extensions/registry";
 import harness from "./extensions/harness";
@@ -127,6 +128,7 @@ async function start(): Promise<void> {
   register(database);
   register(harness);
   register(writing);
+  register(formext);
   activateAll(engine);
   const commands = engine.commands;
   (window as unknown as { __formmdRun?: (id: string) => boolean }).__formmdRun = (id: string) => commands.run(id);
