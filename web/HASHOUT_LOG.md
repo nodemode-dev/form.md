@@ -366,6 +366,13 @@ Shows a busy state only if work takes longer than 300 ms and then keeps it at le
 
 ---
 
+### src/ui/dom.ts · revealApp
+- refers-to: src/ui/dom.ts :: `revealApp`; src/main.ts :: `start`
+- kind: explainer
+- logged: v0.49.2 · 2026-11-07
+
+In the desktop app the main window stays unseen behind the splash until the page says its first content is in place. `start` calls `revealApp` after `engine.start()` (and in the public-form branch); it waits three animation frames, so fonts and the shell settle, then invokes the Tauri command `app_ready` through `__TAURI_INTERNALS__`, once. Outside the desktop app the global does not exist and nothing happens, and no @tauri-apps/api dependency is added. The shell side is in src-tauri/HASHOUT_LOG.md, splash-icon.
+
 ## src/ui/icons.ts {#src-ui-icons-ts}
 
 ### src/ui/icons.ts · provenance and grid

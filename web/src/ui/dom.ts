@@ -53,6 +53,15 @@ export function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
 
+let revealed = false;
+
+export function revealApp(): void {
+  const tauri = (window as unknown as { __TAURI_INTERNALS__?: { invoke(cmd: string): Promise<unknown> } }).__TAURI_INTERNALS__;
+  if (revealed || !tauri) return;
+  revealed = true;
+  requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => void tauri.invoke("app_ready").catch(() => undefined))));
+}
+
 export function delayedIndicator(show: () => void, hide: () => void, delay = 300, minVisible = 250): () => void {
   let shownAt = 0;
   const timer = setTimeout(() => {

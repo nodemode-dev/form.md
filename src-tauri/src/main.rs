@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod menu;
+mod reveal;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -116,12 +117,13 @@ fn open_main(handle: &AppHandle, port: u16, key: &str) -> tauri::Result<()> {
         .download_dir()
         .unwrap_or_else(|_| data_dir(handle));
     let finished = handle.clone();
-    WebviewWindowBuilder::new(handle, "main", WebviewUrl::External(url))
+    let window = WebviewWindowBuilder::new(handle, "main", WebviewUrl::External(url))
         .title("form.md")
         .inner_size(width, height)
         .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)
         .center()
-        .background_color(tauri::webview::Color(17, 17, 19, 255))
+        .visible(reveal::BUILD_VISIBLE)
+        .background_color(reveal::BACKGROUND)
         .disable_drag_drop_handler()
         .on_navigation(move |url| {
             if is_local(url, port) || url.scheme() == "about" || url.scheme() == "blob" || url.scheme() == "data" {
@@ -156,6 +158,7 @@ fn open_main(handle: &AppHandle, port: u16, key: &str) -> tauri::Result<()> {
             _ => true,
         })
         .build()?;
+    reveal::conceal(&window);
     Ok(())
 }
 
@@ -207,7 +210,7 @@ fn start(handle: AppHandle) {
                         if let Ok(found) = rest.trim_end_matches('/').parse::<u16>() {
                             port = Some(found);
                             match open_main(&handle, found, &key) {
-                                Ok(()) => close_splash(&handle),
+                                Ok(()) => {}
                                 Err(err) => {
                                     fail(&handle, &format!("form.md could not open its window: {err}"));
                                     return;
@@ -263,6 +266,7 @@ fn stop_server(handle: &AppHandle) {
 }
 
 fn main() {
+    reveal::mark_launch();
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| focus_main(app)))
         .plugin(tauri_plugin_shell::init())
@@ -275,7 +279,9 @@ fn main() {
         })
         .manage(menu::Zoom(Mutex::new(1.0)))
         .on_menu_event(menu::handle)
+        .invoke_handler(tauri::generate_handler![reveal::app_ready])
         .setup(|app| {
+            reveal::round_splash(app.handle());
             if cfg!(target_os = "macos") {
                 let bar = menu::build(app.handle())?;
                 app.set_menu(bar)?;

@@ -16,6 +16,7 @@ import { mountAuth } from "./ui/auth";
 import { mountCommentsPane } from "./ui/comments-pane";
 import { mountInboxView } from "./ui/inbox-view";
 import { listenForPushClicks } from "./ui/push";
+import { revealApp } from "./ui/dom";
 import { errorMessage } from "./ui/errors";
 import { prefetchPageDialogs } from "./ui/page-actions";
 import { mountPageView } from "./ui/page-view";
@@ -134,6 +135,7 @@ async function start(): Promise<void> {
   if (auth === "form") {
     document.documentElement.dataset.auth = "form";
     void loadDatabase().then((m) => m.mountPublicForm(engine as Engine), (e: unknown) => toast({ id: "error", tone: "danger", message: errorMessage(e) }));
+    revealApp();
     return;
   }
   mountAuth(engine);
@@ -228,6 +230,7 @@ async function start(): Promise<void> {
     setTimeout(() => ("requestIdleCallback" in window ? requestIdleCallback(prefetch) : prefetch()), 2500);
     engine.start();
   }
+  revealApp();
 }
 
 void start();
