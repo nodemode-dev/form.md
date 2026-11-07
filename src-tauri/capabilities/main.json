@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-ready",
+  "description": "The main window shows the page the bundled server serves on 127.0.0.1, a remote origin to Tauri. It may call one command, app_ready, which tells the shell the page has drawn its first content.",
+  "windows": ["main"],
+  "remote": { "urls": ["http://127.0.0.1:*"] },
+  "permissions": ["allow-app-ready"]
+}

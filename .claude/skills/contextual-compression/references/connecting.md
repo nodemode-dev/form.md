@@ -10,6 +10,7 @@ How Claude Code, Codex, Cursor and other MCP clients reach a form.md workspace, 
 - Codex
 - Cursor
 - Other clients and the stdio bridge
+- Extensions in the window
 - When a call fails
 
 ## The tools
@@ -73,6 +74,10 @@ Add a project rule in `.cursor/rules/` that tells the agent to take a `context_p
 ## Other clients and the stdio bridge
 
 `form-md mcp` reads JSON-RPC messages from standard input, one per line, forwards each to `[FORMMD_MCP_URL]/mcp` with the token, and writes each answer to standard output. Any client that can start a command can use it. `--url` and `--token` override the environment.
+
+## Extensions in the window
+
+Form extensions installed with FormPortal or run from form.ext live in the person's open window. `extensions_list` shows them (id, version, source, state, commands) and `extension_command` runs one of their commands with `id`, `command` and `args`. Both go through the window like `window_command_run`, so they fail when no window is open, and the window asks the person to allow an extension version the first time; a refusal is the person's answer, not a fault to retry. From a terminal: `form-md cli extensions` and `form-md cli extension ID COMMAND`.
 
 ## When a call fails
 

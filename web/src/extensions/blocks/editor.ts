@@ -44,6 +44,7 @@ export class EditorHost implements EditorCtx {
   private modeListeners = new Set<(m: EditMode) => void>();
   private mode: EditMode = "edit";
   private snaps = new Map<string, string>();
+  private updates = new Set<(view: EditorView, prev: EditorState) => void>();
 
   constructor(
     readonly engine: Engine,
@@ -226,6 +227,11 @@ export class EditorHost implements EditorCtx {
     return () => this.listeners.delete(fn);
   }
 
+  onUpdate(fn: (view: EditorView, prev: EditorState) => void): () => void {
+    this.updates.add(fn);
+    return () => this.updates.delete(fn);
+  }
+
   ssrPage(): string {
     return this.ed ? "" : (this.mount.dataset.page ?? "");
   }
@@ -315,6 +321,14 @@ export class EditorHost implements EditorCtx {
       yCursorPlugin(s.awareness, { cursorBuilder, selectionBuilder }),
       suggestPlugin(this),
       yUndoPlugin(),
+      new Plugin({
+        key: new PluginKey("formmd-updates"),
+        view: () => ({
+          update: (view, prev) => {
+            for (const fn of host.updates) fn(view, prev);
+          },
+        }),
+      }),
       triggerPlugin(this),
       rulesPlugin(),
       mathKeys(),

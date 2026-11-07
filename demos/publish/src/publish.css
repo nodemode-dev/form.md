@@ -1,0 +1,105 @@
+[data-ref="act-agent"],
+.topbar__claude,
+.topbar__dev,
+[data-ref="sb-library"],
+[data-ref="sb-templates"],
+[data-ref="sb-settings"] {
+  display: none !important;
+}
+
+.demo-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-block-start: 1px solid var(--border);
+  font-size: var(--text-xs);
+}
+
+.demo-links__label {
+  margin-inline-end: auto;
+  color: var(--text-faint, var(--text-muted));
+}
+
+.view--page.has-cover .page-desc:not([hidden]) {
+  min-block-size: 2lh;
+}
+
+.pubview {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+  background: var(--sheet);
+}
+
+.pubview[hidden] {
+  display: none;
+}
+
+.pubview__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-inline: var(--space-4);
+  border-block-end: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.pubview__bar .segmented {
+  grid-auto-columns: auto;
+}
+
+.pubview__dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--success, #2f9e6f);
+}
+
+.pubview__url {
+  margin-inline-end: auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.pubview__stage {
+  display: grid;
+  justify-items: center;
+  min-block-size: 0;
+  background: var(--surface-sunken, var(--surface));
+}
+
+.pubview__frame {
+  inline-size: 100%;
+  block-size: 100%;
+  border: 0;
+  background: var(--sheet);
+}
+
+.pubview[data-width="phone"] .pubview__frame {
+  inline-size: 390px;
+  max-inline-size: 100%;
+  border-inline: 1px solid var(--border);
+}
+
+.demo-links__item {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+}
+
+.demo-links__item:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.demo-links__item[aria-current="page"] {
+  color: var(--text);
+  background: var(--active, var(--hover));
+}

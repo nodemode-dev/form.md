@@ -34,6 +34,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/family"
 	"github.com/nodemode-ai/form.md/internal/feed"
 	"github.com/nodemode-ai/form.md/internal/files"
+	"github.com/nodemode-ai/form.md/internal/formext"
 	"github.com/nodemode-ai/form.md/internal/graph"
 	"github.com/nodemode-ai/form.md/internal/httpx"
 	"github.com/nodemode-ai/form.md/internal/i18n"
@@ -276,6 +277,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 		filler.Module(),
 		crew.Module(),
 		harness.Module(),
+		formext.New(authSvc).Module(),
 		flows.Module(),
 		feed.New(st, authSvc, cols, docs, comments).Module(),
 		templates.New(st, authSvc, gate, pages, docs, cols).Module(),

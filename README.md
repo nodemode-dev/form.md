@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version v0.48.0" src="https://img.shields.io/badge/version-v0.48.0-eef0f4?style=flat-square">
+  <img alt="version v0.50.1" src="https://img.shields.io/badge/version-v0.50.1-eef0f4?style=flat-square">
   <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=flat-square&logo=go&logoColor=white">
   <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -99,6 +99,10 @@ The window's commands, the REST API and the MCP server all act on the same pages
 
 `.mcp.json` and `.cursor/mcp.json` are already wired in this repo. The server also answers MCP over HTTP at `/mcp` and publishes its REST reference at `/api/docs`. See [`AGENTS.md`](AGENTS.md).
 
+## Extensions
+
+form.md loads Form extensions (Form Extension Contract, API 1): install them with FormPortal, or run a folder from form.ext. They appear under Extensions in the sidebar (and the desktop menu bar), in the Extensions panel on the right and in Find a Command; each runs in a sandboxed frame and changes the page only through form.md's own `doc.*` commands, as one undo step, after you allow it. Agents reach them with the MCP tools `extensions_list` and `extension_command`, or `./form-md cli extensions`. The API for extension authors is [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md); the wiki page is Extensions.
+
 ## Under the hood
 
 - **Go server:** pure-Go SQLite, a Yjs-compatible CRDT in Go, one writer connection and a query-only reader pool.
@@ -115,6 +119,14 @@ The window's commands, the REST API and the MCP server all act on the same pages
 | Linux | [Download form.md for Linux](https://formai.studio/get/formmd/linux) | [form.md releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=form.md-v&expanded=true) |
 
 All form.md builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
+
+## Demo
+
+Three offline browser demos, each a double click on its `index.html`, on real public-domain and freely licensed material or your own files. No server, no network.
+
+- [`demo/`](demo/README.md), editor and databases: edit Markdown pages in the real editor core and work a database in table and board views (credits in `demo/CREDITS.md`).
+- [`demos/views/`](demos/views/README.md), database views: one dataset of US crewed spaceflight as table, board, gallery, list, calendar, timeline, chart and heatmap, with relations, rollups and formulas (credits in `demos/views/CREDITS.md`).
+- [`demos/publish/`](demos/publish/README.md), writing and publishing: the whole window on a long illustrated page with comments, page history, a published page view and Markdown and HTML export (credits in `demos/publish/CREDITS.md`).
 
 ## Run it from source
 

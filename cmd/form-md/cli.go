@@ -19,6 +19,9 @@ func cliUsage(w io.Writer) {
   form-md cli list [text]           every command, or those matching text
   form-md cli describe ID           one command with its parameters
   form-md cli run ID [key=value...] run a command in the open window; values are JSON when they parse, text otherwise
+  form-md cli extensions            the extensions the open window has, with their state and commands
+  form-md cli extension ID COMMAND [key=value...]
+                                    run a command an extension contributes, with the window's consent
 
 Uses `+bridgeURLEnv+` (default http://127.0.0.1:8750) and `+bridgeTokenEnv+` (a personal API token from Account settings).`)
 }
@@ -135,9 +138,46 @@ func cli(args []string) int {
 			return fail(err)
 		}
 		show(out)
+	case "extensions":
+		out, err := cliCall("POST", "/api/commands/run", map[string]any{"id": "extensions.list", "params": map[string]any{}})
+		if err != nil {
+			return fail(err)
+		}
+		show(out)
+	case "extension":
+		if len(args) < 3 {
+			cliUsage(os.Stderr)
+			return 2
+		}
+		params, err := kvParams(args[3:])
+		if err != nil {
+			return fail(err)
+		}
+		out, err := cliCall("POST", "/api/commands/run", map[string]any{"id": "extensions.run", "params": map[string]any{"id": args[1], "command": args[2], "args": params}})
+		if err != nil {
+			return fail(err)
+		}
+		show(out)
 	default:
 		cliUsage(os.Stderr)
 		return 2
 	}
 	return 0
+}
+
+func kvParams(pairs []string) (map[string]any, error) {
+	params := map[string]any{}
+	for _, kv := range pairs {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok {
+			return nil, fmt.Errorf("%q is not key=value", kv)
+		}
+		var parsed any
+		if json.Unmarshal([]byte(v), &parsed) == nil {
+			params[k] = parsed
+		} else {
+			params[k] = v
+		}
+	}
+	return params, nil
 }

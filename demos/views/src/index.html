@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" data-auth="app" data-theme="dark" data-theme-pref="dark" data-sidebar="expanded" data-drawer="closed" data-route="page" data-density="standard" data-dark-theme="dark" data-light-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="form.md database views demo: one real dataset as a table, board, gallery, list, calendar, timeline, chart and heatmap, with relations, rollups and formulas." />
+    <title>form.md views demo</title>
+    <meta name="theme-color" content="#08080a" />
+    <script>(function(){var d=document.documentElement,p="dark";try{var s=localStorage.getItem("formmd.demo.theme");if(s==="light"||s==="dark")p=s;if(localStorage.getItem("formmd.demo.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed")}catch(e){}d.setAttribute("data-theme",p);d.setAttribute("data-theme-pref",p)})()</script>
+    <script type="module" src="./main.ts"></script>
+  </head>
+  <body>
+    <div id="app" class="app">
+      <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+        <div class="sidebar__inner">
+          <header class="sidebar__head">
+            <span class="ws-switch demo-ws">
+              <span class="tile" data-color="blue" data-kind="default">S</span>
+              <span class="ws-switch__name">Spaceflight</span>
+            </span>
+            <span class="sidebar__version"><span class="sidebar__version-text">views demo</span></span>
+            <div class="sidebar__head-actions">
+              <button class="icon-btn sidebar__collapse" type="button" data-ref="collapse" data-tip="Hide sidebar" aria-label="Hide sidebar"><i data-icon="chevrons-left"></i></button>
+            </div>
+          </header>
+          <div class="sidebar__top"><p class="demo-cap">Databases</p></div>
+          <nav class="sidebar__nav" data-ref="nav" aria-label="Databases">
+            <ul class="tree-group" role="tree">
+              <li class="tree-node" role="none"><div class="tree-row" role="treeitem" tabindex="0" data-id="col_missions" aria-current="page"><span class="tree-chev" aria-hidden="true"></span><span class="page-icon"><i data-icon="rocket"></i></span><span class="tree-title">Crewed missions</span></div></li>
+              <li class="tree-node" role="none"><div class="tree-row" role="treeitem" tabindex="0" data-id="col_astronauts"><span class="tree-chev" aria-hidden="true"></span><span class="page-icon"><i data-icon="users"></i></span><span class="tree-title">Astronauts</span></div></li>
+              <li class="tree-node" role="none"><div class="tree-row" role="treeitem" tabindex="0" data-id="col_programs"><span class="tree-chev" aria-hidden="true"></span><span class="page-icon"><i data-icon="database"></i></span><span class="tree-title">Programs</span></div></li>
+            </ul>
+          </nav>
+          <footer class="sidebar__foot">
+            <button class="sb-item" type="button" data-ref="sb-open"><span class="sb-icon"><i data-icon="upload"></i></span><span class="sb-label">Open a CSV</span></button>
+            <button class="sb-item" type="button" data-ref="sb-reset"><span class="sb-icon"><i data-icon="restore"></i></span><span class="sb-label">Reset data</span></button>
+            <button class="sb-item" type="button" data-ref="sb-theme"><span class="sb-icon"><i data-icon="sun"></i></span><span class="sb-label">Switch theme</span></button>
+            <nav class="demo-links" aria-label="Demos">
+              <a class="demo-links__a" href="../../demo/index.html">Editor</a>
+              <a class="demo-links__a" href="../views/index.html" aria-current="page">Views</a>
+              <a class="demo-links__a" href="../publish/index.html">Publish</a>
+            </nav>
+          </footer>
+        </div>
+      </aside>
+      <div class="drawer-scrim" aria-hidden="true"></div>
+      <main class="sheet" id="sheet">
+        <header class="topbar">
+          <button class="icon-btn topbar__menu" type="button" data-ref="expand" data-tip="Show sidebar" aria-label="Show sidebar"><i data-icon="panel-left"></i></button>
+          <nav class="crumbs" data-ref="crumbs" aria-label="Breadcrumb"></nav>
+          <div class="topbar__actions" data-ref="actions"></div>
+        </header>
+        <div class="scroller" data-ref="scroller">
+          <section class="view view--page has-cover" data-view="page" data-ref="view-page" data-kind="collection" aria-label="Database">
+            <div class="cover" data-ref="cover" aria-hidden="true"><img data-ref="cover-img" src="assets/media/cover-views.webp" alt="" width="1600" height="350" decoding="async" draggable="false" /></div>
+            <div class="page">
+              <header class="page-head">
+                <span class="page-head__icon" data-ref="page-icon"><span class="page-icon page-icon--lg"><i data-icon="rocket"></i></span></span>
+                <h1 class="page-title demo-title" data-ref="title">Crewed missions</h1>
+                <p class="demo-lead" data-ref="lead">Every US crewed flight from Mercury to Apollo 17. Switch views, then filter, sort, group and edit: relations, rollups and formulas recompute as you go.</p>
+              </header>
+              <div class="page-body">
+                <div class="page-db" data-ref="db-host"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+    <div id="overlay-root"></div>
+    <div id="toast-root" aria-live="polite" aria-relevant="additions"></div>
+    <input type="file" data-ref="file-input" accept=".csv,.tsv,text/csv,text/tab-separated-values" hidden />
+  </body>
+</html>

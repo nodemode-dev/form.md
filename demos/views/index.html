@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" data-auth="app" data-theme="dark" data-theme-pref="dark" data-sidebar="expanded" data-drawer="closed" data-route="page" data-density="standard" data-dark-theme="dark" data-light-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="form.md database views demo: one real dataset as a table, board, gallery, list, calendar, timeline, chart and heatmap, with relations, rollups and formulas." />
+    <title>form.md views demo</title>
+    <meta name="theme-color" content="#08080a" />
+    <script>(function(){var d=document.documentElement,p="dark";try{var s=localStorage.getItem("formmd.demo.theme");if(s==="light"||s==="dark")p=s;if(localStorage.getItem("formmd.demo.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed")}catch(e){}d.setAttribute("data-theme",p);d.setAttribute("data-theme-pref",p)})()</script>
+    <script defer src="./assets/views.js"></script>
+    <link rel="stylesheet" href="./assets/style.css">
+  </head>
+  <body>
+    <div id="app" class="app">
+      <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+        <div class="sidebar__inner">
+          <header class="sidebar__head">
+            <span class="ws-switch demo-ws">
+              <span class="tile" data-color="blue" data-kind="default">S</span>
+              <span class="ws-switch__name">Spaceflight</span>
+            </span>
+            <span class="sidebar__version"><span class="sidebar__version-text">views demo</span></span>
+            <div class="sidebar__head-actions">
+              <button class="icon-btn sidebar__collapse" type="button" data-ref="collapse" data-tip="Hide sidebar" aria-label="Hide sidebar"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.5 6.5 6 12l5.5 5.5M18 6.5 12.5 12l5.5 5.5"/></svg></button>
+            </div>
+          </header>
+          <div class="sidebar__top"><p class="demo-cap">Databases</p></div>
+          <nav class="sidebar__nav" data-ref="nav" aria-label="Databases">
+            <ul class="tree-group" role="tree">
+              <li class="tree-node" role="none"><div class="tree-row" role="treeitem" tabindex="0" data-id="col_missions" aria-current="page"><span class="tree-chev" aria-hidden="true"></span><span class="page-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13.5 4.5c3.25 0 6 2.75 6 6l-6.5 6.5-6-6Z"/><path d="m7 11-2.5.5L3.5 14l3 .5M13 17l-.5 2.5L10 20.5l-.5-3"/><path d="M14.75 9.25h.01"/></svg></span><span class="tree-title">Crewed missions</span></div></li>
+              <li class="tree-node" role="none"><div class="tree-row" role="treeitem" tabindex="0" data-id="col_astronauts"><span class="tree-chev" aria-hidden="true"></span><span class="page-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0.6-3.6 3-5.8 6-5.8s5.4 2.2 6 5.8"/><path d="M15.5 4.9a3.2 3.2 0 0 1 0 6.2M18 14.6c1.6 0.8 2.7 2.7 3 5.4"/></svg></span><span class="tree-title">Astronauts</span></div></li>
+              <li class="tree-node" role="none"><div class="tree-row" role="treeitem" tabindex="0" data-id="col_programs"><span class="tree-chev" aria-hidden="true"></span><span class="page-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5.5" rx="8" ry="2.8"/><path d="M4 5.5v13c0 1.5 3.6 2.8 8 2.8s8-1.3 8-2.8v-13"/><path d="M4 12c0 1.5 3.6 2.8 8 2.8s8-1.3 8-2.8"/></svg></span><span class="tree-title">Programs</span></div></li>
+            </ul>
+          </nav>
+          <footer class="sidebar__foot">
+            <button class="sb-item" type="button" data-ref="sb-open"><span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" fill="currentColor" stroke="none"/></svg></span><span class="sb-label">Open a CSV</span></button>
+            <button class="sb-item" type="button" data-ref="sb-reset"><span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 3.5V8H8"/></svg></span><span class="sb-label">Reset data</span></button>
+            <button class="sb-item" type="button" data-ref="sb-theme"><span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></span><span class="sb-label">Switch theme</span></button>
+            <nav class="demo-links" aria-label="Demos">
+              <a class="demo-links__a" href="../../demo/index.html">Editor</a>
+              <a class="demo-links__a" href="../views/index.html" aria-current="page">Views</a>
+              <a class="demo-links__a" href="../publish/index.html">Publish</a>
+            </nav>
+          </footer>
+        </div>
+      </aside>
+      <div class="drawer-scrim" aria-hidden="true"></div>
+      <main class="sheet" id="sheet">
+        <header class="topbar">
+          <button class="icon-btn topbar__menu" type="button" data-ref="expand" data-tip="Show sidebar" aria-label="Show sidebar"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg></button>
+          <nav class="crumbs" data-ref="crumbs" aria-label="Breadcrumb"></nav>
+          <div class="topbar__actions" data-ref="actions"></div>
+        </header>
+        <div class="scroller" data-ref="scroller">
+          <section class="view view--page has-cover" data-view="page" data-ref="view-page" data-kind="collection" aria-label="Database">
+            <div class="cover" data-ref="cover" aria-hidden="true"><img data-ref="cover-img" src="assets/media/cover-views.webp" alt="" width="1600" height="350" decoding="async" draggable="false" /></div>
+            <div class="page">
+              <header class="page-head">
+                <span class="page-head__icon" data-ref="page-icon"><span class="page-icon page-icon--lg"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13.5 4.5c3.25 0 6 2.75 6 6l-6.5 6.5-6-6Z"/><path d="m7 11-2.5.5L3.5 14l3 .5M13 17l-.5 2.5L10 20.5l-.5-3"/><path d="M14.75 9.25h.01"/></svg></span></span>
+                <h1 class="page-title demo-title" data-ref="title">Crewed missions</h1>
+                <p class="demo-lead" data-ref="lead">Every US crewed flight from Mercury to Apollo 17. Switch views, then filter, sort, group and edit: relations, rollups and formulas recompute as you go.</p>
+              </header>
+              <div class="page-body">
+                <div class="page-db" data-ref="db-host"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+    <div id="overlay-root"></div>
+    <div id="toast-root" aria-live="polite" aria-relevant="additions"></div>
+    <input type="file" data-ref="file-input" accept=".csv,.tsv,text/csv,text/tab-separated-values" hidden />
+  </body>
+</html>

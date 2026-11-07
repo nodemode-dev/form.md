@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" data-auth="app" data-theme="dark" data-theme-pref="dark" data-sidebar="expanded" data-drawer="closed" data-route="home" data-density="standard" data-dark-theme="dark" data-light-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="form.md offline demo: edit Markdown pages and work a database in your browser." />
+    <title>form.md demo</title>
+    <meta name="theme-color" content="#08080a" />
+    <script>(function(){var d=document.documentElement,p="dark";try{var s=localStorage.getItem("formmd.demo.theme");if(s==="light"||s==="dark")p=s;if(localStorage.getItem("formmd.demo.sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed")}catch(e){}d.setAttribute("data-theme",p);d.setAttribute("data-theme-pref",p)})()</script>
+    <script type="module" src="./main.ts"></script>
+  </head>
+  <body>
+    <div id="app" class="app">
+      <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+        <div class="sidebar__inner">
+          <header class="sidebar__head">
+            <span class="ws-switch demo-ws">
+              <span class="tile" data-color="violet" data-kind="default">D</span>
+              <span class="ws-switch__name">Demo workspace</span>
+            </span>
+            <span class="sidebar__version"><span class="sidebar__version-text">offline demo</span></span>
+            <div class="sidebar__head-actions">
+              <button class="icon-btn sidebar__collapse" type="button" data-ref="collapse" data-tip="Hide sidebar" aria-label="Hide sidebar"><i data-icon="chevrons-left"></i></button>
+              <button class="icon-btn" type="button" data-ref="sb-new" aria-haspopup="menu" aria-expanded="false" data-tip="New" aria-label="New"><i data-icon="compose"></i></button>
+            </div>
+          </header>
+          <div class="sidebar__top">
+            <label class="sb-item demo-search"><span class="sb-icon"><i data-icon="search"></i></span><input class="demo-search__input" type="search" data-ref="search" placeholder="Search pages" aria-label="Search pages" autocomplete="off" /></label>
+            <a class="sb-item" href="#home" data-ref="sb-home"><span class="sb-icon"><i data-icon="home"></i></span><span class="sb-label">Home</span></a>
+          </div>
+          <nav class="sidebar__nav" data-ref="nav" aria-label="Pages"></nav>
+          <footer class="sidebar__foot">
+            <button class="sb-item" type="button" data-ref="sb-open"><span class="sb-icon"><i data-icon="upload"></i></span><span class="sb-label">Open a file</span></button>
+            <button class="sb-item" type="button" data-ref="sb-reset"><span class="sb-icon"><i data-icon="restore"></i></span><span class="sb-label">Reset samples</span></button>
+            <button class="sb-item" type="button" data-ref="sb-theme"><span class="sb-icon"><i data-icon="sun"></i></span><span class="sb-label">Switch theme</span></button>
+            <nav class="demo-links" aria-label="Demos">
+              <a class="demo-links__a" href="./index.html" aria-current="page">Editor</a>
+              <a class="demo-links__a" href="../demos/views/index.html">Views</a>
+              <a class="demo-links__a" href="../demos/publish/index.html">Publish</a>
+            </nav>
+          </footer>
+        </div>
+      </aside>
+      <div class="drawer-scrim" aria-hidden="true"></div>
+      <main class="sheet" id="sheet">
+        <header class="topbar">
+          <button class="icon-btn topbar__menu" type="button" data-ref="expand" data-tip="Show sidebar" aria-label="Show sidebar"><i data-icon="panel-left"></i></button>
+          <nav class="crumbs" data-ref="crumbs" aria-label="Breadcrumb"></nav>
+          <div class="topbar__actions" data-ref="actions"></div>
+        </header>
+        <div class="scroller" data-ref="scroller">
+          <section class="view view--page" data-view="page" data-ref="view-page" data-kind="page" aria-label="Page">
+            <div class="cover" data-ref="cover" aria-hidden="true"><img data-ref="cover-img" alt="" decoding="async" draggable="false" /></div>
+            <div class="page">
+              <header class="page-head">
+                <span class="page-head__icon" data-ref="page-icon"></span>
+                <textarea class="page-title" data-ref="title" rows="1" placeholder="Untitled" aria-label="Title" maxlength="500" spellcheck="true"></textarea>
+                <div class="demo-stats" data-ref="stats"></div>
+                <div class="demo-tools" data-ref="tools"></div>
+              </header>
+              <div class="page-body">
+                <div class="page-db" data-ref="db-host" hidden></div>
+                <div class="editor" data-ref="editor"></div>
+              </div>
+            </div>
+          </section>
+          <section class="view view--home" data-view="home" data-ref="view-home" aria-labelledby="home-title">
+            <div class="home">
+              <div class="home__main">
+                <header class="home__head">
+                  <div class="home__heading">
+                    <p class="home__eyebrow">Demo workspace</p>
+                    <h1 class="home__title" id="home-title">form.md, in this tab</h1>
+                    <p class="home__lead">A notebook of real reading, photographs and data in the real form.md editor core and database cells, running offline. Nothing is uploaded: pages and tables live in this tab until you close it.</p>
+                  </div>
+                  <div class="home__actions">
+                    <button class="btn btn--primary home__new" type="button" data-ref="home-new"><i data-icon="plus"></i><span>New page</span></button>
+                  </div>
+                </header>
+                <div class="home-drop" data-ref="home-drop">
+                  <span class="home-drop__icon"><i data-icon="upload"></i></span>
+                  <div class="home-drop__text">
+                    <p class="home-drop__title">Drop your own file here</p>
+                    <p class="home-drop__sub">A Markdown file opens as an editable page. A CSV or TSV file opens as a database with typed columns, filters, sorting, grouping and a board. A second drop adds another page.</p>
+                    <p class="home-drop__formats"><span>MD</span><span>MARKDOWN</span><span>TXT</span><span>CSV</span><span>TSV</span></p>
+                  </div>
+                  <div class="home-drop__actions">
+                    <button class="btn" type="button" data-ref="home-choose"><i data-icon="upload"></i><span>Choose files</span></button>
+                    <button class="btn btn--ghost" type="button" data-ref="home-paste"><i data-icon="text"></i><span>Paste text</span></button>
+                  </div>
+                </div>
+                <section class="home-sec" aria-labelledby="home-samples-title">
+                  <div class="home-sec__head"><h2 class="home-sec__title" id="home-samples-title">In this workspace</h2></div>
+                  <div class="home-grid" data-ref="home-grid"></div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+    <div class="demo-dropveil" data-ref="veil" hidden><p>Drop to open</p></div>
+    <div id="overlay-root"></div>
+    <div id="toast-root" aria-live="polite" aria-relevant="additions"></div>
+    <input type="file" data-ref="file-input" accept=".md,.markdown,.txt,.csv,.tsv,text/markdown,text/plain,text/csv" multiple hidden />
+  </body>
+</html>
