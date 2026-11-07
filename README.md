@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version v0.49.3" src="https://img.shields.io/badge/version-v0.49.3-eef0f4?style=flat-square">
+  <img alt="version v0.50.0" src="https://img.shields.io/badge/version-v0.50.0-eef0f4?style=flat-square">
   <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=flat-square&logo=go&logoColor=white">
   <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
