@@ -14,7 +14,10 @@ const OPTIONS: { key: Key; title: string; values: [string, string][] }[] = [
   { key: "width", title: "Page width", values: [["default", "Default"], ["wide", "Wide"], ["full", "Full width"]] },
   { key: "spacing", title: "Line spacing", values: [["compact", "Compact"], ["default", "Default"], ["relaxed", "Relaxed"]] },
   { key: "align", title: "Text alignment", values: [["start", "Left"], ["justify", "Justified"], ["center", "Centred"]] },
+  { key: "header", title: "Header alignment", values: [["left", "Left"], ["center", "Centred"], ["right", "Right"]] },
 ];
+
+const DEFAULTS: Partial<Record<Key, string>> = { font: "sans", align: "start", header: "left" };
 
 export function effectiveStyle(engine: Engine, p: Page): PageStyle {
   return { ...(engine.workspaceById(p.workspace_id)?.page_style ?? {}), ...(p.style ?? {}) };
@@ -23,7 +26,7 @@ export function effectiveStyle(engine: Engine, p: Page): PageStyle {
 export function applyStyle(el: HTMLElement, s: PageStyle): void {
   for (const { key } of OPTIONS) {
     const v = s[key];
-    setAttr(el, `data-style-${key}`, v && v !== "default" && !(key === "font" && v === "sans") && !(key === "align" && v === "start") ? v : null);
+    setAttr(el, `data-style-${key}`, v && v !== "default" && v !== DEFAULTS[key] ? v : null);
   }
 }
 
@@ -151,7 +154,7 @@ export function openStyleMenu(engine: Engine, anchor: HTMLElement, p: Page): voi
   for (const o of OPTIONS) {
     entries.push({ kind: "heading", label: t(o.title) });
     for (const [v, label] of o.values) {
-      const on = (cur[o.key] ?? (o.key === "font" ? "sans" : o.key === "align" ? "start" : "default")) === v;
+      const on = (cur[o.key] ?? DEFAULTS[o.key] ?? "default") === v;
       entries.push({ label: t(label), checked: on, run: () => setStyle(engine, p, { [o.key]: v } as PageStyle) });
     }
     if (o.key === "font") {
@@ -185,7 +188,7 @@ export function registerStyleCommands(engine: Engine): Unsubscribe[] {
       id: "page.style",
       label: () => t("Set the page style"),
       group,
-      description: "Sets the open page's font, text size, page width, line spacing or text alignment; leave a field out to keep it.",
+      description: "Sets the open page's font, text size, page width, line spacing, text alignment or header alignment (left, center, right); leave a field out to keep it.",
       when: "Use when the person wants a page to look different: a serif or mono font, wider page, larger text, justified text.",
       params,
       mutates: true,

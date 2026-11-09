@@ -459,7 +459,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 						}
 					}
 					for k, v := range st {
-						if v != "" && v != "default" && !(k == "font" && v == "sans") && !(k == "align" && v == "start") {
+						if v != "" && v != "default" && !(k == "font" && v == "sans") && !(k == "align" && v == "start") && !(k == "header" && v == "left") {
 							attrs["style-"+k] = v
 						}
 					}

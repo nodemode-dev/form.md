@@ -1,5 +1,4 @@
 import type { Engine, Page } from "../engine";
-import { formatDateTime, formatRelative } from "../engine/format";
 import { t } from "../engine/i18n";
 import { navSpan } from "./app";
 import { avatar } from "./avatar";
@@ -24,13 +23,6 @@ interface Person {
 
 function chordText(engine: Engine, id: string): string {
   return engine.keymap.chordFor(id)?.join(" ") ?? "";
-}
-
-function currentPage(engine: Engine): Page | null {
-  const r = engine.state.get("route");
-  if (r.name !== "page") return null;
-  const d = engine.state.get("detail");
-  return engine.pages.get(r.id) ?? (d && d.id === r.id ? d : null);
 }
 
 function mountHistory(engine: Engine): void {
@@ -257,25 +249,8 @@ function mountCrumbSiblings(engine: Engine): void {
 }
 
 function mountPageMeta(engine: Engine): void {
-  const { state, pages } = engine;
-  const edited = ref("act-edited");
+  const { state } = engine;
   const people = ref("act-presence");
-
-  const paintEdited = () => {
-    const at = currentPage(engine)?.updated_at ?? 0;
-    setText(edited, at ? t("Edited {time}", { time: formatRelative(at) }) : "");
-    setAttr(edited, "title", at ? formatDateTime(at) : null);
-  };
-  state.watch("route", paintEdited);
-  state.watch("detail", paintEdited);
-  pages.subscribe((c) => {
-    const r = state.get("route");
-    if (c.kind === "loaded" || (c.kind === "upsert" && r.name === "page" && c.page.id === r.id)) paintEdited();
-  });
-  setInterval(() => {
-    if (state.get("route").name === "page" && document.visibilityState === "visible") paintEdited();
-  }, 60_000);
-  paintEdited();
 
   const paintPeople = (list: Person[]) => {
     const existing = new Map<string, HTMLElement>();

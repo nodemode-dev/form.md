@@ -66,6 +66,7 @@ export interface PageStyle {
   width?: "default" | "wide" | "full";
   spacing?: "compact" | "default" | "relaxed";
   align?: "start" | "justify" | "center";
+  header?: "left" | "center" | "right";
 }
 
 export interface Me {

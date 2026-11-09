@@ -15,6 +15,7 @@ type Style struct {
 	Width   string `json:"width,omitempty"`
 	Spacing string `json:"spacing,omitempty"`
 	Align   string `json:"align,omitempty"`
+	Header  string `json:"header,omitempty"`
 }
 
 var allowed = map[string]map[string]bool{
@@ -23,9 +24,10 @@ var allowed = map[string]map[string]bool{
 	"width":   {"": true, "default": true, "wide": true, "full": true},
 	"spacing": {"": true, "compact": true, "default": true, "relaxed": true},
 	"align":   {"": true, "start": true, "justify": true, "center": true},
+	"header":  {"": true, "left": true, "center": true, "right": true},
 }
 
-var errBad = httpx.Fail(http.StatusBadRequest, "bad_style", "a page style takes font (sans, serif, mono, rounded, slab, humanist), size (small, default, large), width (default, wide, full), spacing (compact, default, relaxed) and align (start, justify, center)")
+var errBad = httpx.Fail(http.StatusBadRequest, "bad_style", "a page style takes font (sans, serif, mono, rounded, slab, humanist), size (small, default, large), width (default, wide, full), spacing (compact, default, relaxed), align (start, justify, center) and header (left, center, right)")
 
 func Clean(raw json.RawMessage) (string, error) {
 	if len(raw) == 0 || string(raw) == "null" {
@@ -35,7 +37,7 @@ func Clean(raw json.RawMessage) (string, error) {
 	if err := json.Unmarshal(raw, &s); err != nil {
 		return "", errBad
 	}
-	for k, v := range map[string]string{"font": s.Font, "size": s.Size, "width": s.Width, "spacing": s.Spacing, "align": s.Align} {
+	for k, v := range map[string]string{"font": s.Font, "size": s.Size, "width": s.Width, "spacing": s.Spacing, "align": s.Align, "header": s.Header} {
 		if k == "font" && fontRef.MatchString(v) {
 			continue
 		}
@@ -164,13 +166,13 @@ func Merge(base, over string) Style {
 		}
 		return x
 	}
-	return Style{Font: pick(b.Font, o.Font), Size: pick(b.Size, o.Size), Width: pick(b.Width, o.Width), Spacing: pick(b.Spacing, o.Spacing), Align: pick(b.Align, o.Align)}
+	return Style{Font: pick(b.Font, o.Font), Size: pick(b.Size, o.Size), Width: pick(b.Width, o.Width), Spacing: pick(b.Spacing, o.Spacing), Align: pick(b.Align, o.Align), Header: pick(b.Header, o.Header)}
 }
 
 func (s Style) Attrs() [][2]string {
 	var out [][2]string
-	for _, kv := range [][2]string{{"font", s.Font}, {"size", s.Size}, {"width", s.Width}, {"spacing", s.Spacing}, {"align", s.Align}} {
-		if kv[1] != "" && kv[1] != "default" && kv[1] != "start" && kv[1] != "sans" && (allowed[kv[0]][kv[1]] || (kv[0] == "font" && fontRef.MatchString(kv[1]))) {
+	for _, kv := range [][2]string{{"font", s.Font}, {"size", s.Size}, {"width", s.Width}, {"spacing", s.Spacing}, {"align", s.Align}, {"header", s.Header}} {
+		if kv[1] != "" && kv[1] != "default" && kv[1] != "start" && kv[1] != "sans" && kv[1] != "left" && (allowed[kv[0]][kv[1]] || (kv[0] == "font" && fontRef.MatchString(kv[1]))) {
 			out = append(out, kv)
 		}
 	}

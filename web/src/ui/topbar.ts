@@ -1,5 +1,6 @@
 import type { Engine, Page } from "../engine";
 import { ApiError } from "../engine/api";
+import { formatDateTime, formatRelative } from "../engine/format";
 import { t } from "../engine/i18n";
 import { tile, updateTile } from "./avatar";
 import { h, ref, setAttr, setText } from "./dom";
@@ -304,4 +305,21 @@ export function mountTopbar(engine: Engine): void {
   });
   paint();
   paintBanner();
+
+  const edited = ref("act-edited");
+  const paintEdited = () => {
+    const at = currentPage()?.updated_at ?? 0;
+    setText(edited, at ? t("Edited {time}", { time: formatRelative(at) }) : "");
+    setAttr(edited, "title", at ? formatDateTime(at) : null);
+  };
+  state.watch("route", paintEdited);
+  state.watch("detail", paintEdited);
+  pages.subscribe((c) => {
+    const r = state.get("route");
+    if (c.kind === "loaded" || (c.kind === "upsert" && r.name === "page" && c.page.id === r.id)) paintEdited();
+  });
+  setInterval(() => {
+    if (state.get("route").name === "page" && document.visibilityState === "visible") paintEdited();
+  }, 60_000);
+  paintEdited();
 }
