@@ -102,7 +102,6 @@ export class DocSession {
       void idb.whenSynced.then(async () => {
         if (this.idb !== idb) return;
         this.local = true;
-        if (this.fragment.length > 0) this.markReady();
         const [gen, write] = await Promise.all([idb.get("gen").catch(() => undefined), idb.get("write").catch(() => undefined)]);
         if (this.idb !== idb) return;
         if (!this.live && write === 1 && !this.write) {
