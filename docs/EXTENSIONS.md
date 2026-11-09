@@ -122,6 +122,6 @@ Commands marked risky in the catalogue, and the `extensions.*` commands themselv
 
 ## Limits
 
-- `minimum_app` is compared with form.md's version (0.50.1 in this release; extensions need 0.50.0 or newer).
+- `minimum_app` is compared with form.md's version (0.51.0 in this release; extensions need 0.50.0 or newer).
 - A headless command has 120 s; through MCP the call returns an error after 60 s even if the command is still running in the window.
 - Consent is stored in the browser per extension id, version and permission set; another browser or the desktop app asks again.

@@ -59,6 +59,9 @@
             <a class="sb-item" href="/trash" data-ref="sb-trash" data-route-link="trash">
               <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor" stroke="none"/></svg></span><span class="sb-label">Trash</span>
             </a>
+            <button class="sb-item" type="button" data-ref="sb-extensions" aria-haspopup="menu" aria-expanded="false">
+              <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 4.5a2 2 0 0 1 4 0V6h3.5a1 1 0 0 1 1 1v3.5H20a2 2 0 0 1 0 4h-1.5V18a1 1 0 0 1-1 1H14v-1.5a2 2 0 0 0-4 0V19H6.5a1 1 0 0 1-1-1v-3.5H7a2 2 0 0 0 0-4H5.5V7a1 1 0 0 1 1-1H10Z"/></svg></span><span class="sb-label">Extensions</span>
+            </button>
             <button class="sb-item" type="button" data-ref="sb-settings">
               <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" fill="currentColor" stroke="none"/></svg></span><span class="sb-label">Settings</span>
             </button>
@@ -169,6 +172,19 @@
                 </div>
                 <p class="home-empty" data-ref="home-tpl-empty" hidden>No template matches. Try another word or category.</p>
                 <div class="home-sec__foot"><button class="btn btn--ghost" type="button" data-ref="home-templates"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2"/></svg><span>Browse all templates</span></button></div>
+              </section>
+              <section class="home-sec" data-ref="home-demos-sec" aria-labelledby="home-demos-title">
+                <div class="home-sec__head home-sec__head--lead">
+                  <div class="home-sec__intro">
+                    <h2 class="home-sec__title" id="home-demos-title">Demos</h2>
+                    <p class="home-sec__lead">Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.</p>
+                  </div>
+                </div>
+                <div class="home-grid home-grid--ex" data-ref="home-demos-grid">
+                  <button class="hcard hcard--ex" type="button" data-demo="editor"><span class="hcard__preview"><img class="hcard__img" src="/demo/assets/media/cover-observatory.webp" alt="" width="1600" height="480" loading="lazy" decoding="async" /></span><span class="hcard__body"><span class="hcard__name">Editor and databases</span><span class="hcard__desc">Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.</span></span></button>
+                  <button class="hcard hcard--ex" type="button" data-demo="views"><span class="hcard__preview"><img class="hcard__img" src="/demos/views/assets/media/ap-11.webp" alt="" width="1600" height="480" loading="lazy" decoding="async" /></span><span class="hcard__body"><span class="hcard__name">Database views</span><span class="hcard__desc">Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.</span></span></button>
+                  <button class="hcard hcard--ex" type="button" data-demo="publish"><span class="hcard__preview"><img class="hcard__img" src="/demos/publish/assets/media/cover-telescope.webp" alt="" width="1600" height="480" loading="lazy" decoding="async" /></span><span class="hcard__body"><span class="hcard__name">Writing and publishing</span><span class="hcard__desc">A long page with comments, page history, publishing to the web and export.</span></span></button>
+                </div>
               </section>
               <section class="home-sec" data-ref="home-ex-sec" aria-labelledby="home-ex-title">
                 <div class="home-sec__head home-sec__head--lead">
