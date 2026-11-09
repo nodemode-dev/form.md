@@ -52,6 +52,10 @@ Typing and the format bar in the real editor; comment on a selection, reply, res
 
 PDF export, real sign-in and sharing by email, live collaboration between people, and the Claude dock need the Go server. Exporting to PDF shows a short notice.
 
+## Inside the app (v0.51.0)
+
+The app embeds this build and opens it in a sandboxed frame from Home, Help and Find a command (see `web/HASHOUT_LOG.md` #src-ui-demos-ts). The shell taken from `web/index.html` now carries Home's Demos section, so `publish.css` hides `[data-ref="home-demos-sec"]` here, and the window code registers no demo commands when it runs from file:// or under `/demo/` or `/demos/`, so a demo never opens a demo. In the sandbox the workspace cookie cannot be written; `rememberWorkspace` now ignores that.
+
 ## Rebuild
 
 From `demos/publish`: `node ../../web/node_modules/vite/bin/vite.js build --config ./vite.config.mjs`. The config imports `web/` by relative path and never writes outside `demos/publish`.

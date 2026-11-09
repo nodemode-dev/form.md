@@ -103,3 +103,7 @@
   color: var(--text);
   background: var(--active, var(--hover));
 }
+
+[data-ref="home-demos-sec"] {
+  display: none;
+}

@@ -5,9 +5,9 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | Component | Version | License |
 | --- | --- | --- |
 | Go standard library | go1.26.9 | BSD-3-Clause |
-| Demo media in demo/assets/media (not in the binary), credited in demo/CREDITS.md | see demo/CREDITS.md | Pexels License, US public domain, NASA media guidelines |
-| Demo 2 media in demos/views/assets/media (not in the binary), credited in demos/views/CREDITS.md | see demos/views/CREDITS.md | US public domain, NASA media guidelines |
-| Demo 3 media in demos/publish/assets/media (not in the binary), credited in demos/publish/CREDITS.md | see demos/publish/CREDITS.md | Pexels License, US public domain, NASA media guidelines |
+| Demo media in demo/assets/media (in the binary since v0.51.0 as web/dist/demo, for the in-app demo), credited in demo/CREDITS.md | see demo/CREDITS.md | Pexels License, US public domain, NASA media guidelines |
+| Demo 2 media in demos/views/assets/media (in the binary since v0.51.0 as web/dist/demos/views, for the in-app demo), credited in demos/views/CREDITS.md | see demos/views/CREDITS.md | US public domain, NASA media guidelines |
+| Demo 3 media in demos/publish/assets/media (in the binary since v0.51.0 as web/dist/demos/publish, for the in-app demo), credited in demos/publish/CREDITS.md | see demos/publish/CREDITS.md | Pexels License, US public domain, NASA media guidelines |
 | Form Extension Contract kit (web/src/extensions/formext/host-bridge.ts, internal/formext resolver port), nodemode | API 1 | Apache-2.0 |
 | @antfu/install-pkg | 2.1.0 | MIT |
 | @braintree/sanitize-url | 7.1.2 | MIT |

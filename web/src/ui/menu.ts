@@ -4,7 +4,7 @@ import { type IconName, iconNode } from "./icons";
 import { openLayer } from "./layers";
 
 export type MenuEntry =
-  | { kind?: "item"; label: string; icon?: IconName; lead?: HTMLElement; hint?: string; checked?: boolean; danger?: boolean; run: () => void }
+  | { kind?: "item"; label: string; icon?: IconName; lead?: HTMLElement; hint?: string; checked?: boolean; danger?: boolean; command?: string; run: () => void }
   | { kind: "separator" }
   | { kind: "heading"; label: string };
 
@@ -39,6 +39,7 @@ export function openMenu(anchor: HTMLElement, entries: MenuEntry[], options: Men
     );
     if (entry.checked !== undefined) setAttr(btn, "aria-checked", entry.checked ? "true" : "false");
     if (entry.danger) btn.dataset.danger = "true";
+    if (entry.command) btn.dataset.menuCommand = entry.command;
     btn.addEventListener("click", () => {
       close();
       delete anchor.dataset.menuClosedAt;

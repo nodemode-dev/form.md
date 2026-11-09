@@ -179,6 +179,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		case p == "/sw.js":
 			w.Header().Set("Content-Security-Policy", "default-src 'none'; connect-src 'self'")
+		case strings.HasPrefix(p, "/demo/") || strings.HasPrefix(p, "/demos/"):
+			w.Header().Set("Content-Security-Policy", demoCSP)
+			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		case strings.HasPrefix(p, "/assets/"):
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}
@@ -310,6 +313,8 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, a *asset, docume
 		_, _ = w.Write(body)
 	}
 }
+
+const demoCSP = "sandbox allow-scripts allow-downloads; default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'"
 
 const sandboxCSP = "sandbox allow-scripts; default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data:; font-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'"
 

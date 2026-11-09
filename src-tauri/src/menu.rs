@@ -83,6 +83,10 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&item(app, "cmd:palette.open", "Find a Command...", Some("CmdOrCtrl+Shift+P"))?)
         .item(&item(app, "cmd:shell.showShortcuts", "Keyboard Shortcuts", None)?)
         .separator()
+        .item(&item(app, "cmd:demo.editor", "Demo: Editor and Databases", None)?)
+        .item(&item(app, "cmd:demo.views", "Demo: Database Views", None)?)
+        .item(&item(app, "cmd:demo.publish", "Demo: Writing and Publishing", None)?)
+        .separator()
         .item(&item(app, "app:notices", "Third-Party Notices", None)?)
         .build()?;
     MenuBuilder::new(app)

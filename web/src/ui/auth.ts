@@ -23,7 +23,11 @@ const SSO_ERRORS: Record<string, () => string> = {
 export const WORKSPACE_COOKIE = "formmd_ws";
 
 export function rememberWorkspace(id: string): void {
-  document.cookie = `${WORKSPACE_COOKIE}=${encodeURIComponent(id)}; path=/; max-age=31536000; samesite=lax`;
+  try {
+    document.cookie = `${WORKSPACE_COOKIE}=${encodeURIComponent(id)}; path=/; max-age=31536000; samesite=lax`;
+  } catch {
+    return;
+  }
 }
 
 function panel(name: string): HTMLFormElement {

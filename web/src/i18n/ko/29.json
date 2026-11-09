@@ -1,0 +1,14 @@
+{
+  "Demos": "데모",
+  "Demo": "데모",
+  "Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.": "이 창에서 열리는 샘플 워크스페이스입니다. 무엇이든 해 보세요. 그곳에서 한 일은 내 페이지에 닿지 않습니다.",
+  "Editor and databases": "편집기와 데이터베이스",
+  "Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.": "실제 편집기의 Markdown 페이지와 실제 외계 행성 66개의 데이터베이스를 표와 보드로.",
+  "Database views": "데이터베이스 보기",
+  "Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.": "프리덤 7부터 아폴로 17까지 미국 유인 우주 비행에 대한 8개 보기, 관계, 롤업, 수식.",
+  "Writing and publishing": "작성과 게시",
+  "A long page with comments, page history, publishing to the web and export.": "댓글, 페이지 기록, 웹 게시, 내보내기가 있는 긴 페이지.",
+  "Close demo": "데모 닫기",
+  "A sample workspace in this window. Nothing you do here reaches your own pages.": "이 창 안의 샘플 워크스페이스입니다. 여기서 한 일은 내 페이지에 닿지 않습니다.",
+  "Open demo: {title}": "데모 열기: {title}"
+}

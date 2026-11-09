@@ -1,0 +1,14 @@
+{
+  "Demos": "Bemutatók",
+  "Demo": "Bemutató",
+  "Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.": "Minta-munkaterületek, amelyek ebben az ablakban nyílnak meg. Próbáljon ki bármit: semmi, amit ott tesz, nem jut el a saját oldalaihoz.",
+  "Editor and databases": "Szerkesztő és adatbázisok",
+  "Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.": "Markdown-oldalak a valódi szerkesztőben és 66 valódi exobolygó adatbázisa táblázatként és táblaként.",
+  "Database views": "Adatbázisnézetek",
+  "Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.": "Nyolc nézet, kapcsolatok, összesítések és képletek az amerikai emberes űrrepülésekről a Freedom 7-től az Apollo 17-ig.",
+  "Writing and publishing": "Írás és közzététel",
+  "A long page with comments, page history, publishing to the web and export.": "Hosszú oldal megjegyzésekkel, oldalelőzményekkel, webes közzététellel és exportálással.",
+  "Close demo": "Bemutató bezárása",
+  "A sample workspace in this window. Nothing you do here reaches your own pages.": "Minta-munkaterület ebben az ablakban. Semmi, amit itt tesz, nem jut el a saját oldalaihoz.",
+  "Open demo: {title}": "Bemutató megnyitása: {title}"
+}

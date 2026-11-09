@@ -1,0 +1,14 @@
+{
+  "Demos": "デモ",
+  "Demo": "デモ",
+  "Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.": "このウィンドウで開くサンプルのワークスペースです。自由に試してください。そこでの操作があなたのページに届くことはありません。",
+  "Editor and databases": "エディターとデータベース",
+  "Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.": "本物のエディターで開く Markdown ページと、実在する 66 個の系外惑星のデータベース (テーブルとボード)。",
+  "Database views": "データベースのビュー",
+  "Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.": "フリーダム 7 からアポロ 17 までの米国の有人宇宙飛行を、8 つのビュー、リレーション、ロールアップ、数式で。",
+  "Writing and publishing": "執筆と公開",
+  "A long page with comments, page history, publishing to the web and export.": "コメント、ページ履歴、Web への公開、エクスポートを備えた長いページ。",
+  "Close demo": "デモを閉じる",
+  "A sample workspace in this window. Nothing you do here reaches your own pages.": "このウィンドウ内のサンプルのワークスペースです。ここでの操作があなたのページに届くことはありません。",
+  "Open demo: {title}": "デモを開く: {title}"
+}

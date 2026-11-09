@@ -1,0 +1,14 @@
+{
+  "Demos": "示範",
+  "Demo": "示範",
+  "Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.": "在此視窗中開啟的範例工作區。隨意嘗試：在那裡所做的一切都不會影響你自己的頁面。",
+  "Editor and databases": "編輯器與資料庫",
+  "Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.": "真實編輯器中的 Markdown 頁面，以及包含 66 顆真實系外行星的資料庫，以表格與看板呈現。",
+  "Database views": "資料庫檢視",
+  "Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.": "以八種檢視、關聯、彙總與公式呈現美國從自由 7 號到阿波羅 17 號的載人太空飛行。",
+  "Writing and publishing": "寫作與發布",
+  "A long page with comments, page history, publishing to the web and export.": "一個包含留言、頁面歷程、網頁發布與匯出的長頁面。",
+  "Close demo": "關閉示範",
+  "A sample workspace in this window. Nothing you do here reaches your own pages.": "此視窗中的範例工作區。在這裡所做的一切都不會影響你自己的頁面。",
+  "Open demo: {title}": "開啟示範：{title}"
+}

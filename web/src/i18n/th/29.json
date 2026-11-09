@@ -1,0 +1,14 @@
+{
+  "Demos": "เดโม",
+  "Demo": "เดโม",
+  "Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.": "พื้นที่ทำงานตัวอย่างที่เปิดในหน้าต่างนี้ ลองได้ทุกอย่าง สิ่งที่คุณทำในนั้นจะไม่ไปถึงหน้าของคุณเอง",
+  "Editor and databases": "ตัวแก้ไขและฐานข้อมูล",
+  "Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.": "หน้า Markdown ในตัวแก้ไขจริง และฐานข้อมูลดาวเคราะห์นอกระบบจริง 66 ดวง ทั้งแบบตารางและบอร์ด",
+  "Database views": "มุมมองฐานข้อมูล",
+  "Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.": "แปดมุมมอง ความสัมพันธ์ การสรุปรวม และสูตร ของการบินอวกาศแบบมีมนุษย์ของสหรัฐฯ ตั้งแต่ Freedom 7 ถึง Apollo 17",
+  "Writing and publishing": "การเขียนและการเผยแพร่",
+  "A long page with comments, page history, publishing to the web and export.": "หน้ายาวที่มีความคิดเห็น ประวัติหน้า การเผยแพร่บนเว็บ และการส่งออก",
+  "Close demo": "ปิดเดโม",
+  "A sample workspace in this window. Nothing you do here reaches your own pages.": "พื้นที่ทำงานตัวอย่างในหน้าต่างนี้ สิ่งที่คุณทำที่นี่จะไม่ไปถึงหน้าของคุณเอง",
+  "Open demo: {title}": "เปิดเดโม: {title}"
+}

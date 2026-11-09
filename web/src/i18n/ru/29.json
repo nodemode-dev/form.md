@@ -1,0 +1,14 @@
+{
+  "Demos": "Демо",
+  "Demo": "Демо",
+  "Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.": "Примеры рабочих пространств, которые открываются в этом окне. Пробуйте что угодно: ничего из сделанного там не попадёт на ваши страницы.",
+  "Editor and databases": "Редактор и базы данных",
+  "Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.": "Страницы Markdown в настоящем редакторе и база из 66 реальных экзопланет в виде таблицы и доски.",
+  "Database views": "Представления базы данных",
+  "Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.": "Восемь представлений, связи, сводки и формулы по пилотируемым полётам США от Freedom 7 до Apollo 17.",
+  "Writing and publishing": "Написание и публикация",
+  "A long page with comments, page history, publishing to the web and export.": "Длинная страница с комментариями, историей страницы, публикацией в интернете и экспортом.",
+  "Close demo": "Закрыть демо",
+  "A sample workspace in this window. Nothing you do here reaches your own pages.": "Пример рабочего пространства в этом окне. Ничего из сделанного здесь не попадёт на ваши страницы.",
+  "Open demo: {title}": "Открыть демо: {title}"
+}
