@@ -4,6 +4,12 @@ WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
+COPY demo/index.html /src/demo/index.html
+COPY demo/assets /src/demo/assets
+COPY demos/views/index.html /src/demos/views/index.html
+COPY demos/views/assets /src/demos/views/assets
+COPY demos/publish/index.html /src/demos/publish/index.html
+COPY demos/publish/assets /src/demos/publish/assets
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.26.9-bookworm AS server
