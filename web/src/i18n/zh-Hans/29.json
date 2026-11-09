@@ -1,0 +1,14 @@
+{
+  "Demos": "演示",
+  "Demo": "演示",
+  "Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.": "在此窗口中打开的示例工作区。随意尝试：在那里所做的一切都不会影响你自己的页面。",
+  "Editor and databases": "编辑器和数据库",
+  "Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.": "真实编辑器中的 Markdown 页面，以及一个包含 66 颗真实系外行星的数据库，以表格和看板呈现。",
+  "Database views": "数据库视图",
+  "Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.": "以八种视图、关联、汇总和公式呈现美国从自由 7 号到阿波罗 17 号的载人航天。",
+  "Writing and publishing": "写作与发布",
+  "A long page with comments, page history, publishing to the web and export.": "一个包含评论、页面历史、网页发布和导出的长页面。",
+  "Close demo": "关闭演示",
+  "A sample workspace in this window. Nothing you do here reaches your own pages.": "此窗口中的示例工作区。在这里所做的一切都不会影响你自己的页面。",
+  "Open demo: {title}": "打开演示：{title}"
+}

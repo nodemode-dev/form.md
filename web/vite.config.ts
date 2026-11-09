@@ -45,6 +45,38 @@ const iconTable: Plugin = {
   },
 };
 
+const REPO = resolve(import.meta.dirname, "..");
+const DEMO_DIRS = ["demo", "demos/views", "demos/publish"];
+const demoFiles = (dir: string): string[] => {
+  const base = join(REPO, dir);
+  const walk = (rel: string): string[] =>
+    readdirSync(join(base, rel)).flatMap((n) => {
+      const r = rel ? `${rel}/${n}` : n;
+      return statSync(join(base, r)).isDirectory() ? walk(r) : [r];
+    });
+  return ["index.html", ...walk("assets")];
+};
+const DEMO_TYPES: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".webp": "image/webp" };
+const demoBundles: Plugin = {
+  name: "form-md-demo-bundles",
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const url = (req.url ?? "").split("?")[0] ?? "";
+      const dir = DEMO_DIRS.find((d) => url.startsWith(`/${d}/`));
+      if (!dir) return next();
+      const rel = decodeURIComponent(url.slice(dir.length + 2));
+      if (!demoFiles(dir).includes(rel)) return next();
+      res.setHeader("Content-Type", DEMO_TYPES[rel.slice(rel.lastIndexOf("."))] ?? "application/octet-stream");
+      res.end(readFileSync(join(REPO, dir, rel)));
+    });
+  },
+  generateBundle() {
+    for (const dir of DEMO_DIRS) {
+      for (const rel of demoFiles(dir)) this.emitFile({ type: "asset", fileName: `${dir}/${rel}`, source: readFileSync(join(REPO, dir, rel)) });
+    }
+  },
+};
+
 const I18N_DIR = resolve(import.meta.dirname, "src/i18n");
 const I18N_ID = "virtual:i18n";
 const i18nCatalogs: Plugin = {
@@ -71,7 +103,7 @@ const i18nCatalogs: Plugin = {
 export default defineConfig({
   root: ".",
   publicDir: "public",
-  plugins: [i18nCatalogs, inlineIcons, iconTable, keepDistPlaceholder],
+  plugins: [i18nCatalogs, inlineIcons, iconTable, demoBundles, keepDistPlaceholder],
 
   server: {
     port: FRONTEND_PORT,

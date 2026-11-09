@@ -1,0 +1,14 @@
+{
+  "Demos": "Esittelyt",
+  "Demo": "Esittely",
+  "Sample workspaces that open in this window. Try anything: nothing you do there reaches your own pages.": "Esimerkkityötiloja, jotka avautuvat tähän ikkunaan. Kokeile mitä tahansa: mikään siellä tekemäsi ei päädy omille sivuillesi.",
+  "Editor and databases": "Editori ja tietokannat",
+  "Markdown pages in the real editor and a database of 66 real exoplanets, as a table and a board.": "Markdown-sivuja oikeassa editorissa ja 66 todellisen eksoplaneetan tietokanta taulukkona ja tauluna.",
+  "Database views": "Tietokantanäkymät",
+  "Eight views, relations, rollups and formulas over US crewed spaceflight from Freedom 7 to Apollo 17.": "Kahdeksan näkymää, relaatioita, koosteita ja kaavoja Yhdysvaltain miehitetyistä avaruuslennoista Freedom 7:stä Apollo 17:ään.",
+  "Writing and publishing": "Kirjoittaminen ja julkaiseminen",
+  "A long page with comments, page history, publishing to the web and export.": "Pitkä sivu, jossa on kommentteja, sivuhistoria, julkaisu verkkoon ja vienti.",
+  "Close demo": "Sulje esittely",
+  "A sample workspace in this window. Nothing you do here reaches your own pages.": "Esimerkkityötila tässä ikkunassa. Mikään täällä tekemäsi ei päädy omille sivuillesi.",
+  "Open demo: {title}": "Avaa esittely: {title}"
+}

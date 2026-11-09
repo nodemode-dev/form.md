@@ -142,3 +142,34 @@ def test_window_loads_throttled_without_shift_errors_or_refusals(engine, path, r
     assert not failed, f"failed requests: {failed}"
     assert not errors, f"console errors: {errors}"
     assert cls <= CLS_LIMIT, f"layout shift {cls}: {shifts}"
+
+
+DEMOS = [("editor", ".sidebar"), ("views", ".sidebar"), ("publish", ".ProseMirror")]
+
+
+def test_every_demo_opens_in_the_window_from_home_and_help(engine):
+    from playwright.sync_api import sync_playwright
+
+    errors = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context(viewport={"width": 1440, "height": 900})
+        sign_in_and_seed(context, engine)
+        page = context.new_page()
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(engine + "/home", wait_until="load", timeout=120_000)
+        page.wait_for_selector("[data-ref='home-demos-sec'][data-ready]", state="attached", timeout=60_000)
+        for via in ("home", "help"):
+            for demo, ready in DEMOS:
+                if via == "home":
+                    page.click(f"[data-ref='home-demos-grid'] [data-demo='{demo}']")
+                else:
+                    page.click("[data-ref='help-btn']")
+                    page.click(f".menu [data-menu-command='demo.{demo}']")
+                page.wait_for_selector(f"[data-demo-stage='{demo}'] iframe[data-demo-frame='{demo}']", timeout=30_000)
+                frame = page.frame_locator(f"iframe[data-demo-frame='{demo}']")
+                frame.locator(ready).first.wait_for(timeout=60_000)
+                page.click(f"[data-demo-stage='{demo}'] [data-demo-close]")
+                page.wait_for_selector("[data-demo-stage]", state="detached", timeout=10_000)
+        browser.close()
+    assert not errors, f"page errors: {errors}"

@@ -3,6 +3,7 @@ import { formatDateTime, formatRelative } from "../engine/format";
 import { t } from "../engine/i18n";
 import { navSpan } from "./app";
 import { avatar } from "./avatar";
+import { DEMOS, mountDemos } from "./demos";
 import { byId, h, ref, setAttr, setText } from "./dom";
 import { anchorTo } from "./floating";
 import type { IconName } from "./icons";
@@ -329,11 +330,13 @@ function mountPageMeta(engine: Engine): void {
 
 function mountHelp(engine: Engine): void {
   const { commands } = engine;
-  const item = (id: string, label: string, icon: IconName): MenuEntry[] => (commands.get(id) ? [{ label, icon, hint: chordText(engine, id), run: () => commands.run(id) }] : []);
+  const item = (id: string, label: string, icon: IconName): MenuEntry[] => (commands.get(id) ? [{ label, icon, hint: chordText(engine, id), command: id, run: () => commands.run(id) }] : []);
   menuButton(
     ref("help-btn"),
     () => {
       const entries: MenuEntry[] = [...item("shell.showShortcuts", t("Keyboard shortcuts"), "keyboard"), ...item("palette.open", t("Find a command"), "search")];
+      const demos = DEMOS.flatMap((d) => item(`demo.${d.id}`, d.title(), d.icon));
+      if (demos.length) entries.push({ kind: "separator" }, { kind: "heading", label: t("Demos") }, ...demos);
       const version = engine.state.get("health").version;
       if (version) entries.push({ kind: "separator" }, { kind: "heading", label: t("form.md {version}", { version }) });
       return entries;
@@ -347,5 +350,6 @@ export function mountShellExtras(engine: Engine): void {
   mountSidebarExtras(engine);
   mountCrumbSiblings(engine);
   mountPageMeta(engine);
+  mountDemos(engine);
   mountHelp(engine);
 }
