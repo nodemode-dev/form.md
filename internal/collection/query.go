@@ -77,6 +77,8 @@ type QueryInput struct {
 	Tree       string      `json:"tree,omitempty"`
 	Expanded   []string    `json:"expanded,omitempty"`
 	Cursor     string      `json:"cursor,omitempty"`
+	DateRange  *DateRange  `json:"date_range,omitempty"`
+	narrow     *Filter
 }
 
 type RowOut struct {
@@ -321,9 +323,18 @@ func (ev *evaluator) relativeDay(name string) (time.Time, bool) {
 }
 
 func (ev *evaluator) within(name string) (time.Time, time.Time, bool) {
-	today := dayStart(ev.now.In(ev.loc))
+	return withinSpan(name, dayStart(ev.now.In(ev.loc)), func() bool { return ev.s.mondayFirst(ev.ctx, ev.p) })
+}
+
+func withinSpan(name string, today time.Time, monday func() bool) (time.Time, time.Time, bool) {
 	end := today.AddDate(0, 0, 1)
 	switch name {
+	case "today":
+		return today, end, true
+	case "past_7_days":
+		return today.AddDate(0, 0, -6), end, true
+	case "past_30_days":
+		return today.AddDate(0, 0, -29), end, true
 	case "past_week":
 		return today.AddDate(0, 0, -7), end, true
 	case "next_week":
@@ -337,13 +348,13 @@ func (ev *evaluator) within(name string) (time.Time, time.Time, bool) {
 	case "next_year":
 		return today, today.AddDate(1, 0, 1), true
 	case "this_week":
-		s := weekStart(today, ev.s.mondayFirst(ev.ctx, ev.p))
+		s := weekStart(today, monday())
 		return s, s.AddDate(0, 0, 7), true
 	case "this_month":
-		s := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, ev.loc)
+		s := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, today.Location())
 		return s, s.AddDate(0, 1, 0), true
 	case "this_year":
-		s := time.Date(today.Year(), 1, 1, 0, 0, 0, 0, ev.loc)
+		s := time.Date(today.Year(), 1, 1, 0, 0, 0, 0, today.Location())
 		return s, s.AddDate(1, 0, 0), true
 	}
 	return time.Time{}, time.Time{}, false

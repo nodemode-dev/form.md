@@ -53,6 +53,7 @@ func (c *resultCache) ordered(ev *evaluator, sn *snap, cfg ViewConfig, in QueryI
 	_ = enc.Encode(cfg.Filter)
 	_ = enc.Encode(cfg.Sorts)
 	_ = enc.Encode(in.Range)
+	_ = enc.Encode(in.narrow)
 	h.Write([]byte(strings.ToLower(strings.TrimSpace(in.Search))))
 	usesNow := false
 	for _, p := range sn.schema {
@@ -61,7 +62,7 @@ func (c *resultCache) ordered(ev *evaluator, sn *snap, cfg ViewConfig, in QueryI
 		}
 	}
 	stamp := ""
-	if usesNow || cfg.Filter != nil {
+	if usesNow || cfg.Filter != nil || in.narrow != nil {
 		stamp = strconv.FormatInt(ev.now.Unix()/60, 10)
 	}
 	key := sn.id + "|" + ev.p.UserID + "|" + strconv.FormatInt(ev.s.epoch.Load(), 10) + "|" + stamp + "|" + hex.EncodeToString(h.Sum(nil))
@@ -82,6 +83,9 @@ func (c *resultCache) ordered(ev *evaluator, sn *snap, cfg ViewConfig, in QueryI
 			continue
 		}
 		if !ev.match(sn, r, cfg.Filter, 0) {
+			continue
+		}
+		if in.narrow != nil && !ev.matchOne(sn, r, in.narrow) {
 			continue
 		}
 		out = append(out, r)
