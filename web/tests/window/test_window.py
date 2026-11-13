@@ -173,3 +173,104 @@ def test_every_demo_opens_in_the_window_from_home_and_help(engine):
                 page.wait_for_selector("[data-demo-stage]", state="detached", timeout=10_000)
         browser.close()
     assert not errors, f"page errors: {errors}"
+
+
+def seed_traffic(context, base, views):
+    boot = context.request.get(f"{base}/api/me").json()
+    ws = boot.get("workspace") or (boot.get("workspaces") or [{}])[0]
+    made = context.request.post(f"{base}/api/pages", data={"workspace_id": ws.get("id", ""), "title": "Site traffic", "kind": "collection", "extra": {"view": "table"}})
+    assert made.ok, f"seed database: {made.status} {made.text()}"
+    col = made.json()["page"]["id"]
+    schema = context.request.post(f"{base}/api/collections/{col}/schema", data={"ops": [{"op": "add", "prop": {"id": "", "name": "Day", "type": "date"}}]}).json()["schema"]
+    day = next(p["id"] for p in schema if p["name"] == "Day")
+    today = time.localtime()
+    for title, back in (("Visit today", 0), ("Visit ten days ago", 10), ("Visit forty days ago", 40)):
+        d = time.strftime("%Y-%m-%d", time.localtime(time.mktime(today) - back * 86400))
+        row = context.request.post(f"{base}/api/collections/{col}/rows", data={"title": title, "values": {day: {"start": d}}})
+        assert row.ok, f"seed row: {row.status} {row.text()}"
+    for i in range(views - 1):
+        v = context.request.post(f"{base}/api/collections/{col}/views", data={"name": f"Traffic by referrer {i + 2:02d}", "type": "table"})
+        assert v.ok, f"seed view: {v.status} {v.text()}"
+    return col
+
+
+def test_many_view_tabs_stay_inside_the_database_and_stay_reachable(engine):
+    from playwright.sync_api import sync_playwright
+
+    errors = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context(viewport={"width": 1280, "height": 900})
+        sign_in_and_seed(context, engine)
+        col = seed_traffic(context, engine, 15)
+        page = context.new_page()
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(f"{engine}/p/{col}", wait_until="load", timeout=120_000)
+        page.wait_for_selector(".db__tabs [data-view][aria-selected='true']", timeout=60_000)
+        page.wait_for_selector(".db__tab--more:not([hidden])", timeout=10_000)
+        box = page.evaluate("""() => {
+            const r = (s) => document.querySelector(s).getBoundingClientRect();
+            const tabs = document.querySelector('.db__tabs');
+            return { db: r('.db').right, bar: r('.db__bar').right, views: r('.db__views').right, scroll: tabs.scrollWidth, client: tabs.clientWidth, count: document.querySelectorAll('.db__tabs [data-view]').length };
+        }""")
+        page.click(".db__tab--more")
+        items = page.locator(".menu .menu__item")
+        listed = items.count()
+        last = items.nth(listed - 1).inner_text().strip()
+        items.nth(listed - 1).click()
+        page.wait_for_selector(".db__tabs [data-view][aria-selected='true']:has-text('Traffic by referrer 15')", timeout=10_000)
+        shown = page.evaluate("""() => {
+            const t = document.querySelector('.db__tabs').getBoundingClientRect();
+            const a = document.querySelector('.db__tabs [aria-selected="true"]').getBoundingClientRect();
+            return a.left >= t.left - 1 && a.right <= t.right + 1;
+        }""")
+        browser.close()
+    assert box["count"] == 15, box
+    assert box["bar"] <= box["db"] + 1 and box["views"] <= box["db"] + 1, f"the tab strip overflows the database: {box}"
+    assert box["scroll"] > box["client"], f"15 tabs should scroll inside the strip at 1280 px: {box}"
+    assert listed >= 1 and last == "Traffic by referrer 15", f"the more menu lists {listed} views, last {last!r}"
+    assert shown, "the picked view's tab is scrolled into sight"
+    assert not errors, f"page errors: {errors}"
+
+
+def test_date_range_narrows_the_view_and_is_kept_per_viewer(engine):
+    from playwright.sync_api import sync_playwright
+
+    errors, bodies = [], []
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context(viewport={"width": 1440, "height": 900})
+        sign_in_and_seed(context, engine)
+        col = seed_traffic(context, engine, 1)
+        page = context.new_page()
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("request", lambda r: bodies.append(r.post_data or "") if r.url.endswith("/query") else None)
+        page.goto(f"{engine}/p/{col}", wait_until="load", timeout=120_000)
+        page.wait_for_selector(".db__stage :text('Visit forty days ago')", timeout=60_000)
+        page.click(".db__tool[aria-label='Date range']")
+        page.click(".menu .menu__item:has-text('Last 7 days')")
+        page.wait_for_selector(".db__stage :text('Visit forty days ago')", state="detached", timeout=10_000)
+        narrowed = page.locator(".db__stage").inner_text()
+        label = page.locator(".db__tool[aria-label='Date range'] .db__tool-label").inner_text()
+        page.add_init_script("""
+            window.__leak = false;
+            new MutationObserver(() => {
+              if (document.body && document.body.innerText.includes('Visit forty days ago')) window.__leak = true;
+            }).observe(document, { subtree: true, childList: true, characterData: true });
+        """)
+        page.reload(wait_until="load")
+        page.wait_for_selector(".db__stage :text('Visit today')", timeout=60_000)
+        page.wait_for_timeout(1500)
+        leaked = page.evaluate("window.__leak")
+        kept = page.locator(".db__tool[aria-label='Date range'] .db__tool-label").inner_text()
+        page.click(".db__tool[aria-label='Date range']")
+        page.click(".menu .menu__item:has-text('Custom range')")
+        page.fill(".daterange input[aria-label='Start date']", time.strftime("%Y-%m-%d", time.localtime(time.time() - 45 * 86400)))
+        page.press(".daterange input[aria-label='End date']", "Enter")
+        page.wait_for_selector(".db__stage :text('Visit forty days ago')", timeout=10_000)
+        browser.close()
+    assert "Visit today" in narrowed and "Visit ten days ago" not in narrowed, narrowed
+    assert label == "Last 7 days" and kept == "Last 7 days", (label, kept)
+    assert not leaked, "rows outside the kept range were painted on reload"
+    assert any('"date_range"' in b for b in bodies), bodies
+    assert not errors, f"page errors: {errors}"

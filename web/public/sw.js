@@ -4,7 +4,7 @@ const SHELL_URL = "/offline-shell";
 const API = "formmd-api";
 const API_READS = /^\/api\/(collections\/[^/]+|rows\/[^/]+|pages\/[^/]+)$/;
 const QUERY_READS = /^\/api\/collections\/[^/]+\/(query|chart|feed)$/;
-const SHAPED = ["group_key", "lane_key", "tree", "expanded", "filter", "pick"];
+const SHAPED = ["group_key", "lane_key", "tree", "expanded", "filter", "pick", "date_range"];
 const FILES = "formmd-files";
 
 async function queryKey(request) {

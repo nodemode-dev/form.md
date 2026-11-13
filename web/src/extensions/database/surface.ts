@@ -1,7 +1,7 @@
 import type { Engine } from "../../engine";
 import type { QuerySession, SessionOptions } from "../../engine/collections";
 import { t } from "../../engine/i18n";
-import type { Collection, CollectionView, RowData } from "../../engine/types";
+import type { Collection, CollectionView, DateRangeInput, RowData } from "../../engine/types";
 import { confirmDialog } from "../../ui/dialog";
 import { h, setAttr, setText } from "../../ui/dom";
 import { iconNode } from "../../ui/icons";
@@ -10,8 +10,10 @@ import { toast } from "../../ui/toast";
 import { openAutomations } from "./automations";
 import type { DbCtx } from "./cells";
 import { openCSVImport } from "./csv";
+import { dateProps, openRangeMenu, rangeLabel, readRange, writeRange } from "./daterange";
 import { openPanel } from "./panel";
 import { PHASE5_VIEWS, VIEW_INFO } from "./props";
+import { tabOverflow } from "./taboverflow";
 import { openFilterPanel, openGroupPanel, openPropsPanel, openSortPanel, viewOf } from "./toolbar";
 import { renderers } from "./views";
 import { defaultSpec } from "./views/chart";
@@ -31,6 +33,7 @@ export interface ViewHost {
   ctx(session: QuerySession): DbCtx;
   openRow(id: string, e?: MouseEvent | KeyboardEvent): void;
   search(): string;
+  dateRange(): DateRangeInput | undefined;
 }
 
 export interface ViewRenderer {
@@ -101,6 +104,8 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   const filterBadge = h("span", { class: "db__badge" });
   filterBtn.append(filterBadge);
   const sortBtn = btn("sort", t("Sort"), t("Sort"));
+  const rangeBtn = btn("calendar", t("Date range"), t("Date range"));
+  setAttr(rangeBtn, "aria-haspopup", "menu");
   const searchBtn = btn("search", t("Search"), t("Search"));
   const searchIn = h("input", { class: "db__search", attrs: { type: "search", placeholder: t("Type to search"), "aria-label": t("Search this view") } });
   const moreBtn = btn("more", t("More"), t("More"));
@@ -110,8 +115,14 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   const newBtn = h("button", { class: "btn btn--primary btn--sm db__new", attrs: { type: "button" } }, iconNode("plus"), h("span", { text: t("New") }));
   const newMenu = h("button", { class: "btn btn--primary btn--sm db__newmenu", attrs: { type: "button", "aria-label": t("New page from a template"), "aria-haspopup": "menu" } }, iconNode("chevron-down"));
   const newGroup = h("span", { class: "db__newgroup" }, newBtn, newMenu);
-  tools.append(filterBtn, sortBtn, searchBtn, searchIn, moreBtn, newGroup);
-  const bar = h("div", { class: "db__bar" }, tabs, tools);
+  tools.append(filterBtn, sortBtn, rangeBtn, searchBtn, searchIn, moreBtn, newGroup);
+  const overflow = tabOverflow(
+    tabs,
+    () => (col?.views ?? []).map((v) => ({ id: v.id, name: v.name, icon: VIEW_INFO[v.type]?.icon ?? "table" })),
+    (id) => void mountView(id),
+  );
+  const views = h("div", { class: "db__views" }, tabs, overflow.more, addView);
+  const bar = h("div", { class: "db__bar" }, views, tools);
   const head = h("div", { class: "db__head" });
   if (o.inline) head.append(title);
   head.append(bar);
@@ -127,10 +138,11 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
   let switching = 0;
   let lastSchema = col ? JSON.stringify(col.schema) : "";
   let search = "";
+  let range: DateRangeInput | undefined;
 
   const canWrite = () => !!col?.can_write;
   const canDesign = () => !!col?.can_design;
-  const makeHost = (viewId: string): ViewHost => ({
+  const makeHost = (viewId: string, hostRange = range): ViewHost => ({
     engine,
     colId,
     viewId,
@@ -140,13 +152,14 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     canWrite,
     canDesign,
     workspaceId: () => col?.workspace_id ?? engine.state.get("workspaceId"),
-    makeSession: (options = {}) => store.session(colId, viewId, options),
+    makeSession: (options = {}) => store.session(colId, viewId, hostRange ? { ...options, dateRange: hostRange } : options),
     ctx: (session) => ({ engine, colId, col: () => store.get(colId) ?? (col as Collection), session, canWrite, canDesign, workspaceId: () => col?.workspace_id ?? "" }),
     openRow: (id, e) => {
       const mod = e && (engine.platform.mac ? e.metaKey : e.ctrlKey);
       engine.openPage(id, { newTab: !!mod });
     },
     search: () => search,
+    dateRange: () => hostRange,
   });
 
   const paintTabs = () => {
@@ -172,8 +185,8 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
       else cursor = cursor.nextElementSibling;
     }
     for (const el of existing.values()) el.remove();
-    if (addView.parentElement !== tabs || tabs.lastElementChild !== addView) tabs.append(addView);
     addView.hidden = !canDesign();
+    overflow.update(activeId);
   };
 
   let offSession: (() => void) | undefined;
@@ -198,6 +211,9 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     const type = v?.type ?? "table";
     sortBtn.hidden = ["form", "chart", "dashboard"].includes(type);
     filterBtn.hidden = type === "form";
+    rangeBtn.hidden = type === "form" || dateProps(col).length === 0;
+    setText(rangeBtn.querySelector(".db__tool-label") as HTMLElement, rangeLabel(range));
+    setAttr(rangeBtn, "data-on", range ? "true" : null);
     searchBtn.hidden = type === "form";
     paintEmpty();
     newGroup.hidden = !canWrite() || type === "form";
@@ -216,6 +232,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     const factory = renderers[view.type] ?? renderers.table;
     if (!factory) return;
     const mine = ++switching;
+    range = view.type === "form" ? undefined : readRange(view.id, col);
     const r = factory(makeHost(view.id));
     const prev = current;
     activeId = view.id;
@@ -266,7 +283,10 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     const schema = JSON.stringify(c.schema);
     if (schema !== lastSchema) {
       lastSchema = schema;
-      current?.r.schemaChanged();
+      if (range && !readRange(activeId, c)) {
+        writeRange(activeId, undefined);
+        void mountView(activeId);
+      } else current?.r.schemaChanged();
     }
     const v = c.views.find((x) => x.id === activeId);
     if (!v) {
@@ -378,6 +398,13 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
     if (current) fn(current.r.ctx);
   };
   filterBtn.addEventListener("click", () => withCtx((ctx) => openFilterPanel(filterBtn, ctx, activeId)));
+  rangeBtn.addEventListener("click", () =>
+    openRangeMenu(rangeBtn, col, range, (next) => {
+      writeRange(activeId, next);
+      void mountView(activeId);
+      paintTools();
+    }),
+  );
   sortBtn.addEventListener("click", () => withCtx((ctx) => openSortPanel(sortBtn, ctx, activeId)));
   emptyNew.addEventListener("click", () => newBtn.click());
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -558,6 +585,7 @@ export function mountDatabase(engine: Engine, host: HTMLElement, colId: string, 
       offSession?.();
       off();
       offPages();
+      overflow.destroy();
       current?.r.destroy();
       current = null;
       root.remove();

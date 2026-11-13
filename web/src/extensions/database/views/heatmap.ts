@@ -148,7 +148,7 @@ export function heatmapView(host: ViewHost): ViewRenderer {
     }
     abort = new AbortController();
     try {
-      const r = await engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: s, search: host.search() || undefined }, abort.signal);
+      const r = await engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: s, search: host.search() || undefined, date_range: host.dateRange() }, abort.signal);
       if (mine !== seq || destroyed) return;
       values.clear();
       if (s.kind === "calendar") r.x.forEach((x, i) => values.set(x.key, r.series[0]?.values[i] ?? 0));
@@ -187,7 +187,7 @@ export function heatmapView(host: ViewHost): ViewRenderer {
     const title = (cell.querySelector("title")?.textContent ?? x).replace(/:[^:]*$/, "");
     const canAdd = host.canWrite() && host.col().schema.find((p) => p.id === cfg().prop)?.type === "date";
     void engine.api.collections
-      .chart(host.colId, { view_id: host.viewId, chart: s, search: host.search() || undefined, pick: hour ? { x, series: hour } : { x } })
+      .chart(host.colId, { view_id: host.viewId, chart: s, search: host.search() || undefined, date_range: host.dateRange(), pick: hour ? { x, series: hour } : { x } })
       .then((r) =>
         openPickList({
           engine,

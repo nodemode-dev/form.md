@@ -5,6 +5,7 @@ import type {
   Collection,
   CollectionView,
   ComputedValue,
+  DateRangeInput,
   Filter,
   GroupResult,
   Grouping,
@@ -126,7 +127,7 @@ export function createBackend(seed: () => Parameters<Backend["addCollection"]>[0
     errs = new Map<string, string>();
     visiting = new Set<string>();
     progs = new Map<string, F.Program | string>();
-    now = Date.now();
+    now = new Date().getTime();
 
     col(id: string): Col | undefined {
       return cols.get(id);
@@ -342,6 +343,12 @@ export function createBackend(seed: () => Parameters<Backend["addCollection"]>[0
       const end = t + DAY;
       const d = new Date(t);
       switch (name) {
+        case "today":
+          return [t, end];
+        case "past_7_days":
+          return [t - 6 * DAY, end];
+        case "past_30_days":
+          return [t - 29 * DAY, end];
         case "past_week":
           return [t - 7 * DAY, end];
         case "next_week":
@@ -680,7 +687,9 @@ export function createBackend(seed: () => Parameters<Backend["addCollection"]>[0
 
     ordered(col: Col, cfg: ViewConfig, input: QueryInput): Row[] {
       const q = (input.search ?? "").trim().toLowerCase();
-      const rows = col.rows.filter((r) => (!q || this.search(col, r, q)) && (!input.range || this.overlaps(col, r, input.range)) && this.match(col, r, cfg.filter));
+      const dr = input.date_range;
+      const narrow: Filter | undefined = dr ? (dr.within ? { prop: dr.prop, cond: "within", value: { within: dr.within } } : { prop: dr.prop, cond: "between", value: { date: dr.from, to: dr.to } }) : undefined;
+      const rows = col.rows.filter((r) => (!q || this.search(col, r, q)) && (!input.range || this.overlaps(col, r, input.range)) && this.match(col, r, cfg.filter) && (!narrow || this.matchOne(col, r, narrow)));
       return this.sort(col, rows, cfg.sorts ?? []);
     }
   }
@@ -872,11 +881,11 @@ export function createBackend(seed: () => Parameters<Backend["addCollection"]>[0
     return res;
   };
 
-  const chart = (c: Col, body: { view_id?: string; chart: ChartSpec; search?: string; pick?: { x: string; series?: string } }): ChartResult => {
+  const chart = (c: Col, body: { view_id?: string; chart: ChartSpec; search?: string; pick?: { x: string; series?: string }; date_range?: DateRangeInput }): ChartResult => {
     const e = ev();
     const spec = body.chart;
     const cfg = c.views.find((v) => v.id === body.view_id)?.config ?? {};
-    const rows = e.ordered(c, { ...cfg, ...(spec.filter ? { filter: spec.filter } : {}) }, { search: body.search ?? "" });
+    const rows = e.ordered(c, { ...cfg, ...(spec.filter ? { filter: spec.filter } : {}) }, { search: body.search ?? "", ...(body.date_range ? { date_range: body.date_range } : {}) });
     const xg: Grouping = spec.x ?? { prop: "title" };
     const buckets = e.bucketise(c, rows, { ...xg, hidden: [] });
     const fn = spec.fn ?? "count";

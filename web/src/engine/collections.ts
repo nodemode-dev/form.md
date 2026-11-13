@@ -64,6 +64,7 @@ export interface SessionOptions {
   groupLimit?: number;
   search?: string;
   range?: QueryInput["range"];
+  dateRange?: QueryInput["date_range"];
   noGroups?: boolean;
   filter?: QueryInput["filter"];
   ids?: string[];
@@ -127,6 +128,7 @@ export class QuerySession {
     if (o.groupLimit) input.group_limit = o.groupLimit;
     if (o.search) input.search = o.search;
     if (o.range) input.range = o.range;
+    if (o.dateRange) input.date_range = o.dateRange;
     if (o.noGroups) input.no_groups = true;
     if (o.filter) input.filter = o.filter;
     if (o.ids) input.ids = o.ids;
