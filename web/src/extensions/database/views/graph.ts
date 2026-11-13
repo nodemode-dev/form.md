@@ -609,9 +609,10 @@ export function graphView(host: ViewHost): ViewRenderer {
     const rows: RowData[] = [];
     const refs = new Map<string, RowRef>();
     let total = 0;
+    const range = host.dateRange();
     try {
       for (let offset = 0; offset < MAX_ROWS; offset += 1000) {
-        const r = await engine.api.collections.query(host.colId, { view_id: host.viewId, offset, limit: Math.min(1000, MAX_ROWS - offset), no_groups: true, ...(host.search() ? { search: host.search() } : {}) });
+        const r = await engine.api.collections.query(host.colId, { view_id: host.viewId, offset, limit: Math.min(1000, MAX_ROWS - offset), no_groups: true, ...(host.search() ? { search: host.search() } : {}), ...(range ? { date_range: range } : {}) });
         if (mine !== seq || destroyed) return;
         total = r.total;
         rows.push(...r.rows);

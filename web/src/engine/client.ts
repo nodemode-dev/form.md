@@ -16,6 +16,7 @@ import type {
   BreakGlassGrant,
   ChartResult,
   ChartSpec,
+  DateRangeInput,
   Collection,
   CollectionView,
   CommentListing,
@@ -361,7 +362,7 @@ export function createClient(f: FetchFn) {
       autofill: (id: string, property: string, rows: string[], onEvent: (event: string, data: { total?: number; row?: string; ok?: boolean; filled?: number }) => void, cancel?: AbortSignal) =>
         stream(f, `/api/collections/${enc(id)}/autofill`, { property, rows }, (e) => onEvent(e.event, e.data as { total?: number; row?: string; ok?: boolean; filled?: number }), cancel),
       query: (id: string, input: QueryInput, cancel?: AbortSignal) => request<QueryResult>(f, "POST", `/api/collections/${enc(id)}/query`, input, 15000, cancel),
-      chart: (id: string, input: { view_id?: string; chart: ChartSpec; search?: string | undefined; pick?: { x: string; series?: string } }, cancel?: AbortSignal) =>
+      chart: (id: string, input: { view_id?: string; chart: ChartSpec; search?: string | undefined; pick?: { x: string; series?: string }; date_range?: DateRangeInput | undefined }, cancel?: AbortSignal) =>
         request<ChartResult>(f, "POST", `/api/collections/${enc(id)}/chart`, input, 15000, cancel),
       search: (id: string, q: string, limit = 50) => get<{ rows: { id: string; title: string; icon: string }[] }>(`/api/collections/${enc(id)}/search?q=${enc(q)}&limit=${limit}`),
       createRow: (id: string, body: { title?: string; values?: Record<string, unknown>; before_id?: string; after_id?: string; top?: boolean }) =>

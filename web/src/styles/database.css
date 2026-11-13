@@ -183,8 +183,17 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  min-inline-size: 0;
   padding-block-end: var(--space-1);
   border-block-end: 1px solid var(--border);
+}
+
+.db__views {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-inline-size: 0;
+  max-inline-size: 100%;
 }
 
 .db__tabs {
@@ -193,6 +202,40 @@
   min-inline-size: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+
+.db__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.db__tabs[data-edge="end"] {
+  mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent);
+}
+
+.db__tabs[data-edge="start"] {
+  mask-image: linear-gradient(to left, black calc(100% - var(--space-6)), transparent);
+}
+
+.db__tabs[data-edge="both"] {
+  mask-image: linear-gradient(to right, transparent, black var(--space-6), black calc(100% - var(--space-6)), transparent);
+}
+
+.db__tab--more,
+.db__tab--add {
+  flex: none;
+}
+
+.db__tab--more {
+  gap: 2px;
+}
+
+.db__more-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.db__more-count:empty {
+  display: none;
 }
 
 .db__tab {
@@ -278,6 +321,17 @@
 
 .db__new {
   margin-inline-start: var(--space-1);
+}
+
+.daterange__field {
+  display: grid;
+  row-gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.daterange__field .input[aria-invalid="true"] {
+  border-color: var(--danger);
 }
 
 .db__tool-label {

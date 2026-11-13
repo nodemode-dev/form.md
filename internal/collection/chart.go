@@ -39,10 +39,11 @@ type ChartPick struct {
 }
 
 type ChartInput struct {
-	ViewID string     `json:"view_id"`
-	Chart  ChartSpec  `json:"chart"`
-	Search string     `json:"search,omitempty"`
-	Pick   *ChartPick `json:"pick,omitempty"`
+	ViewID    string     `json:"view_id"`
+	Chart     ChartSpec  `json:"chart"`
+	Search    string     `json:"search,omitempty"`
+	Pick      *ChartPick `json:"pick,omitempty"`
+	DateRange *DateRange `json:"date_range,omitempty"`
 }
 
 type ChartDot struct {
@@ -125,7 +126,11 @@ func (s *Service) Chart(ctx context.Context, p *policy.Principal, collectionID s
 	if sn == nil {
 		return nil, store.ErrNotFound
 	}
-	all := s.results.ordered(ev, sn, cfg, QueryInput{Search: in.Search})
+	narrow, err := in.DateRange.compile(sn.schema)
+	if err != nil {
+		return nil, err
+	}
+	all := s.results.ordered(ev, sn, cfg, QueryInput{Search: in.Search, narrow: narrow})
 	res := &ChartResult{Kind: spec.Kind, X: []ChartPoint{}, Series: []ChartSeries{}, Rows: len(all), Epoch: s.epoch.Load()}
 	var yp *Property
 	if spec.Kind == "dots" {

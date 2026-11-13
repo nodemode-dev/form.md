@@ -136,6 +136,7 @@ export const RELATIVE_DAYS: [string, string][] = [
 ];
 
 export const WITHIN: [string, string][] = [
+  ["today", "Today"], ["past_7_days", "Last 7 days"], ["past_30_days", "Last 30 days"],
   ["past_week", "The past week"], ["next_week", "The next week"], ["past_month", "The past month"], ["next_month", "The next month"],
   ["past_year", "The past year"], ["next_year", "The next year"], ["this_week", "This week"], ["this_month", "This month"], ["this_year", "This year"],
 ];

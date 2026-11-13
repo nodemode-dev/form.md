@@ -606,6 +606,11 @@ func (s *Service) Query(ctx context.Context, p *policy.Principal, collectionID s
 	if sn == nil {
 		return nil, store.ErrNotFound
 	}
+	narrow, err := in.DateRange.compile(sn.schema)
+	if err != nil {
+		return nil, err
+	}
+	in.narrow = narrow
 	res := &QueryResult{Rows: []RowOut{}, Order: []string{}, Refs: map[string]Ref{}, Epoch: s.epoch.Load()}
 	if len(in.IDs) > 0 {
 		for _, id := range in.IDs {

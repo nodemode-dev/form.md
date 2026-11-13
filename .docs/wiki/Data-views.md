@@ -89,7 +89,9 @@ The table renders only the rows near the viewport and asks the server for each w
 
 ## The API
 
-`POST /api/collections/{id}/chart` takes `{"chart": {...}, "view_id": "...", "search": "...", "pick": {"x": "...", "series": "..."}}`. The chart object has `kind`, `x` and `series` groupings (`prop`, `by`, `step`), `fn`, `prop`, `target`, `window`, `scale`, `filter`, `limit` and the style flags. A `pick` answers with `picked`, the ids of up to 500 rows behind that mark, instead of values. A `dots` chart answers with `points` (`id`, `title`, `group`, `value`). Calendar charts return up to 1,100 days.
+`POST /api/collections/{id}/chart` takes `{"chart": {...}, "view_id": "...", "search": "...", "pick": {"x": "...", "series": "..."}, "date_range": {...}}`. The chart object has `kind`, `x` and `series` groupings (`prop`, `by`, `step`), `fn`, `prop`, `target`, `window`, `scale`, `filter`, `limit` and the style flags. A `pick` answers with `picked`, the ids of up to 500 rows behind that mark, instead of values. A `dots` chart answers with `points` (`id`, `title`, `group`, `value`). Calendar charts return up to 1,100 days.
+
+`date_range`, on `POST /api/collections/{id}/query` and `/chart`, narrows the answer to rows whose date falls in a range: `{"prop": "<date property id>", "within": "today"}` with any Is within option (`today`, `past_7_days` and `past_30_days` are rolling whole days ending today, in the viewer's time zone), or `{"prop": "...", "from": "YYYY-MM-DD", "to": "YYYY-MM-DD"}` with both days included. It is ANDed with the view's filter, so it can only narrow what the view shows. The property must be a date, created time or edited time property of that database, `within` and `from`/`to` cannot be mixed, the days must be real dates and `from` must not be after `to`; anything else answers `400 bad_date_range`. The database toolbar's Date range control keeps each viewer's choice per view in the browser (`formmd.daterange.<view id>`) and sends it with every rows and chart request of that view.
 
 ## The contract
 

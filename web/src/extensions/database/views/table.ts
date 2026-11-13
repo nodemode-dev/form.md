@@ -395,7 +395,7 @@ export function tableView(host: ViewHost): ViewRenderer {
   computeCols();
   const boot = host.engine.collections.takeBootQuery(host.viewId);
   let ready: Promise<void>;
-  if (boot && !host.search() && !session.options.tree) {
+  if (boot && !host.search() && !session.options.dateRange && !session.options.tree) {
     session.seed(boot);
     paint();
     ready = Promise.resolve();

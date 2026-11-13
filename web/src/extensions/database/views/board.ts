@@ -145,7 +145,7 @@ export function boardView(host: ViewHost): ViewRenderer {
       return;
     }
     const base = { kind: "bar" as const, x: { ...g, hidden: [] }, limit: 500, ...(sub ? { series: { ...sub, hidden: [] } } : {}) };
-    const ask = (fn: string, prop?: string) => host.engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: { ...base, fn, ...(prop ? { prop } : {}) }, search: host.search() || undefined });
+    const ask = (fn: string, prop?: string) => host.engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: { ...base, fn, ...(prop ? { prop } : {}) }, search: host.search() || undefined, date_range: host.dateRange() });
     try {
       const [tr, pr] = await Promise.all([tot?.fn ? ask(tot.fn, tot.fn === "count" ? undefined : tot.prop) : Promise.resolve(null), prog ? ask(prog.type === "checkbox" ? "percent_checked" : "average", prog.id) : Promise.resolve(null)]);
       if (mine !== summarySeq || destroyed) return;

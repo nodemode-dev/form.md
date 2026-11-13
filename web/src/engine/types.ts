@@ -547,6 +547,13 @@ export interface QueryResult {
   offset: number;
 }
 
+export interface DateRangeInput {
+  prop: string;
+  within?: string;
+  from?: string;
+  to?: string;
+}
+
 export interface QueryInput {
   view_id?: string;
   filter?: Filter;
@@ -562,6 +569,7 @@ export interface QueryInput {
   no_groups?: boolean;
   tree?: string;
   expanded?: string[];
+  date_range?: DateRangeInput;
 }
 
 export interface RowDetail {

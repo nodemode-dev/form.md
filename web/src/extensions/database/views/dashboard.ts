@@ -110,7 +110,7 @@ export function dashboardView(host: ViewHost): ViewRenderer {
       const w = c.w;
       const search = host.search() || undefined;
       const sparkSpec = sparkSpecOf(w);
-      const [r, s] = await Promise.all([engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: w.chart, search }, c.abort.signal), sparkSpec ? engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: sparkSpec, search }, c.abort.signal) : Promise.resolve(null)]);
+      const [r, s] = await Promise.all([engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: w.chart, search, date_range: host.dateRange() }, c.abort.signal), sparkSpec ? engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: sparkSpec, search, date_range: host.dateRange() }, c.abort.signal) : Promise.resolve(null)]);
       if (mine !== c.seq || destroyed) return;
       c.result = r;
       c.spark = s ? { ...s, x: s.x.slice(-24), series: s.series.map((x) => ({ ...x, values: x.values.slice(-24) })) } : null;
@@ -149,7 +149,7 @@ export function dashboardView(host: ViewHost): ViewRenderer {
     menu.addEventListener("click", () => cardMenu(menu, w.id));
     grip.addEventListener("pointerdown", (e) => startMove(e, w.id, card));
     grip.addEventListener("keydown", (e) => keyMove(e, w.id));
-    chartClicks(svg, { engine, colId: host.colId, viewId: () => host.viewId, spec: () => cards.get(w.id)?.w?.chart ?? w.chart, search: host.search, openRow: host.openRow });
+    chartClicks(svg, { engine, colId: host.colId, viewId: () => host.viewId, spec: () => cards.get(w.id)?.w?.chart ?? w.chart, search: host.search, openRow: host.openRow, dateRange: host.dateRange });
     return card;
   };
 

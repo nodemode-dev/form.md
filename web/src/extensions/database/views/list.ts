@@ -141,7 +141,7 @@ function itemsView(host: ViewHost, kind: Kind): ViewRenderer {
 
   const boot = host.engine.collections.takeBootQuery(host.viewId);
   let ready: Promise<void>;
-  if (boot && !host.search()) {
+  if (boot && !host.search() && !session.options.dateRange) {
     session.seed(boot);
     paint();
     ready = Promise.resolve();

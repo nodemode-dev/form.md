@@ -300,7 +300,7 @@ export function chartSettings(pad: HTMLElement, ctx: DbCtx, start: ChartSpec, ch
   sync();
 }
 
-export function chartClicks(svg: SVGSVGElement, o: { engine: ViewHost["engine"]; colId: string; viewId: () => string; spec: () => ChartSpec; search: () => string; openRow: ViewHost["openRow"] }): void {
+export function chartClicks(svg: SVGSVGElement, o: { engine: ViewHost["engine"]; colId: string; viewId: () => string; spec: () => ChartSpec; search: () => string; openRow: ViewHost["openRow"]; dateRange: ViewHost["dateRange"] }): void {
   svg.addEventListener("click", (e) => {
     const target = e.target as Element;
     const row = target.closest("[data-row]");
@@ -314,7 +314,7 @@ export function chartClicks(svg: SVGSVGElement, o: { engine: ViewHost["engine"];
     const s = mark.getAttribute("data-s") ?? "";
     const title = (mark.querySelector("title")?.textContent ?? "").replace(/:[^:]*$/, "") || t("Rows");
     void o.engine.api.collections
-      .chart(o.colId, { view_id: o.viewId(), chart: o.spec(), search: o.search() || undefined, pick: s ? { x, series: s } : { x } })
+      .chart(o.colId, { view_id: o.viewId(), chart: o.spec(), search: o.search() || undefined, date_range: o.dateRange(), pick: s ? { x, series: s } : { x } })
       .then((r) => openPickList({ engine: o.engine, colId: o.colId, anchor: mark, title, ids: r.picked ?? [], truncated: r.truncated, openRow: o.openRow }))
       .catch(o.engine.reportError);
   });
@@ -337,7 +337,7 @@ export function chartView(host: ViewHost): ViewRenderer {
   const el = h("div", { class: "chartv", attrs: { "data-inline": host.inline ? "true" : "false" } }, frame, foot);
 
   const spec = () => chartOf(host.col(), host.view().config.layout);
-  chartClicks(svg, { engine, colId: host.colId, viewId: () => host.viewId, spec, search: host.search, openRow: host.openRow });
+  chartClicks(svg, { engine, colId: host.colId, viewId: () => host.viewId, spec, search: host.search, openRow: host.openRow, dateRange: host.dateRange });
   const draw = () => {
     if (destroyed) return;
     const s = spec();
@@ -354,7 +354,7 @@ export function chartView(host: ViewHost): ViewRenderer {
     abort?.abort();
     abort = new AbortController();
     try {
-      const r = await engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: spec(), search: host.search() || undefined }, abort.signal);
+      const r = await engine.api.collections.chart(host.colId, { view_id: host.viewId, chart: spec(), search: host.search() || undefined, date_range: host.dateRange() }, abort.signal);
       if (mine !== seq || destroyed) return;
       result = r;
       setAttr(el, "data-error", null);
