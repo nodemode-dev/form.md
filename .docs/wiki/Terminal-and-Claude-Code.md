@@ -4,7 +4,7 @@ Since v0.14.0 form.md has a bottom panel with terminals, Claude Code and a Claud
 
 ## Who can use it
 
-The instance owner, signed in, on a form.md that listens on this computer (`127.0.0.1`, the default for `./form-md` and the desktop case). A terminal is a shell as the user the server runs as, so on a server it is off unless you set `FORMMD_TERMINAL=on`; `FORMMD_TERMINAL=off` turns it off even locally. Agent tokens never reach it. A terminal tab is attached through the browser session that opened it: signing that session out (here, from another device in **Account settings, Sessions**, or by an admin) detaches it at once, while the shell keeps running for your other sessions. Windows servers report that the terminal needs macOS or Linux.
+The instance owner, signed in, on a form.md that listens on this computer (`127.0.0.1`, the default for `./form-md` and the desktop case). A terminal is a shell as the user the server runs as, so on a server it is off unless you set `FORMMD_TERMINAL=on`; `FORMMD_TERMINAL=off` turns it off even locally. Agent tokens never reach it. A terminal also attaches only from a page the server itself served (the page's origin must be the request's own host, or `tauri.localhost` for the desktop window), so a page served from another port on the same computer is refused. A terminal tab is attached through the browser session that opened it: signing that session out (here, from another device in **Account settings, Sessions**, or by an admin) detaches it at once, while the shell keeps running for your other sessions. Windows servers report that the terminal needs macOS or Linux.
 
 ## The panel
 
@@ -22,7 +22,7 @@ Claude Code must be installed and signed in once (`claude` in any terminal). for
 
 The chat runs the same Claude Code non-interactively and shows its answer, every form.md tool it calls and the memory it uses. **Open in Claude Code** continues the conversation in a terminal tab; **From Claude Code** brings a tab's conversation into the chat.
 
-Outside the app, `./form-md claude` starts Claude Code in your own terminal with form.md's tools, and `./form-md agents install` registers form.md with Claude Code for every project; both need `FORMMD_MCP_TOKEN` set to a personal API token.
+Outside the app, `./form-md claude` starts Claude Code in your own terminal with form.md's tools, and `./form-md agents install` registers form.md with Claude Code for every project; both need `FORMMD_MCP_TOKEN` set to a personal API token. `agents install` does not put the token on a command line: it registers the header `Authorization: Bearer ${FORMMD_MCP_TOKEN}` and Claude Code reads the variable from its environment when it connects, so keep `FORMMD_MCP_TOKEN` exported in the shell where you start `claude`. For Codex and Cursor the command only prints where to copy the configs from `examples/agents/`.
 
 ## Driving the window
 

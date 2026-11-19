@@ -10,7 +10,7 @@ form.md: a self-hosted workspace for people and agents in one Go binary. Go 1.26
 
 - `make build` builds the client and the binary into `bin/form-md`.
 - `make check` runs gofmt, go vet, the wiki check, the skill check and the TypeScript check. Run it before handing work back.
-- Tests live in `_test.go` files beside the code (`internal/server/`, `internal/config/`, `internal/store/`, `internal/app/`) and run in CI with `go test ./...`. Write only the tests FAMILY_TEST_PLAN or its successor names; never tests of wording, i18n, cosmetics, convenience features, third-party code or one-line wrappers. They use a temporary data folder and never reach the network.
+- Tests live in `_test.go` files beside the code (`internal/server/`, `internal/config/`, `internal/store/`, `internal/app/`, `internal/claudecode/`, `internal/collection/`) and run in CI with `go test ./...`. Write only the tests FAMILY_TEST_PLAN or its successor names; never tests of wording, i18n, cosmetics, convenience features, third-party code or one-line wrappers. They use a temporary data folder and never reach the network.
 - `./bin/form-md` serves on `http://127.0.0.1:8750`; `./bin/form-md help` lists every command and variable.
 
 ## Context before code
@@ -31,11 +31,11 @@ Every number the method uses (budgets, weights, half-lives, thresholds) is in th
 - Cursor: `.cursor/mcp.json` in this repo points at a local server; `.cursor/rules/contextual-compression.mdc` applies the method.
 - Claude Code: `.mcp.json` in this repo, `./form-md claude` (Claude Code with the tools attached), `./form-md agents install` (every project), or `claude mcp add --transport http form-md [address]/mcp`. In the app's terminal panel Claude Code is already connected and signed in.
 
-Make a personal API token in Account settings, Connected apps, and export it as `FORMMD_MCP_TOKEN`. The server is named `form-md` in every client, so tools appear as `mcp__form-md__...`.
+Make a personal API token in Account settings, Connected apps, and export it as `FORMMD_MCP_TOKEN`. The server is named `form-md` in every client, so tools appear as `mcp__form-md__...`. `./form-md agents install` does not put the token on a command line: it registers `Authorization: Bearer ${FORMMD_MCP_TOKEN}` and Claude Code reads the variable from its environment when it connects, so keep it exported where `claude` starts. For Codex and Cursor it prints where to copy `examples/agents/` configs from. `agents/manifest.json` lists the tools, which of them are read-only and the skills; `./form-md agents manifest` rewrites it and `--check` fails when it is out of date.
 
 ## Working on a workspace
 
-When the person wants pages, documents, databases or comments read or changed, use the `form-md` MCP tools, not the source. Call `whoami` first and follow the workspace rules it returns, then `context_pack`; find before you create, edit blocks by id, and pass a write's `run_id` to later writes of the same task so the person can undo them together. A refused call means the credential is read-only or the workspace is not granted: say so and stop. `form-md cli list` shows what the open window can do; `form-md mcp` starts a local server that is not running (`FORMMD_MCP_AUTOSTART=0` stops that).
+When the person wants pages, documents, databases or comments read or changed, use the `form-md` MCP tools, not the source. Call `whoami` first and follow the workspace rules it returns, then `context_pack`; find before you create, edit blocks by id, and pass a write's `run_id` to later writes of the same task so the person can undo them together. A refused call means the credential is read-only or the workspace is not granted: say so and stop. A read-only credential sees only the tools that change nothing, plus `window_command_run` for window commands that change nothing; ask the person for a read and write token (Account settings, API tokens) instead of retrying. `form-md cli list` shows what the open window can do; `form-md mcp` starts a local server that is not running (`FORMMD_MCP_AUTOSTART=0` stops that).
 
 ## Rules for changes
 
