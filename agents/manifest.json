@@ -82,12 +82,15 @@
   "dock": {
     "present": true,
     "positions": [
-      "bottom"
+      "bottom",
+      "right"
     ],
     "tabs": [
       "chat",
       "terminal",
-      "claude"
+      "claude",
+      "codex",
+      "cursor"
     ]
   },
   "extensions": {
