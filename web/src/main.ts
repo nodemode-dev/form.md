@@ -203,9 +203,9 @@ async function start(): Promise<void> {
     window.addEventListener("storage", (e) => (e.key === null || e.key === "fm.dev") && syncDev());
     if (boot.me?.user.role === "owner") {
       rootEl.setAttribute("data-owner", "");
-      fetchFn("/api/claude")
+      fetchFn("/api/dock")
         .then((r) => r.json())
-        .then((j: { enabled?: boolean }) => j.enabled === false && rootEl.setAttribute("data-harness", "off"))
+        .then((j: { kinds?: string[] }) => j.kinds?.length === 0 && rootEl.setAttribute("data-harness", "off"))
         .catch(() => undefined);
     }
     const agentBtn = document.querySelector<HTMLButtonElement>("[data-ref='act-agent']");

@@ -47,7 +47,3 @@
 .wcount[hidden] {
   display: none;
 }
-
-:root[data-dock] .wcount {
-  visibility: hidden;
-}
