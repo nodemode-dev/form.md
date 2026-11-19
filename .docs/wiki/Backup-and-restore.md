@@ -110,7 +110,7 @@ To restore, stop the container and run `restore` in a one-off container on the s
 
 ```sh
 docker stop form-md
-docker run --rm -v form-md-data:/data -v /srv/form-md-backups:/backups ghcr.io/nodemode-ai/form.md:vX.Y.Z restore /backups/FILE.tgz
+docker run --rm -v form-md-data:/data -v /srv/form-md-backups:/backups ghcr.io/nodemode-dev/form.md:vX.Y.Z restore /backups/FILE.tgz
 docker start form-md
 ```
 

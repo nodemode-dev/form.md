@@ -114,13 +114,13 @@ With no command the binary runs `serve`. `form-md help` prints every command and
 
 ## Docker
 
-The `Dockerfile` builds the client with Node 22, the server with Go (`CGO_ENABLED=0`), and copies the binary into `gcr.io/distroless/static-debian12:nonroot`. The image sets `FORMMD_DATA=/data` and `FORMMD_ADDR=0.0.0.0:8750`, declares `/data` as a volume, exposes 8750, runs as user 65532, and its command is `serve`. formcompiler pushes `ghcr.io/nodemode-ai/form.md:vX.Y.Z` and `:latest` for `linux/amd64` and `linux/arm64`.
+The `Dockerfile` builds the client with Node 22, the server with Go (`CGO_ENABLED=0`), and copies the binary into `gcr.io/distroless/static-debian12:nonroot`. The image sets `FORMMD_DATA=/data` and `FORMMD_ADDR=0.0.0.0:8750`, declares `/data` as a volume, exposes 8750, runs as user 65532, and its command is `serve`. formcompiler pushes `ghcr.io/nodemode-dev/form.md:vX.Y.Z` and `:latest` for `linux/amd64` and `linux/arm64`.
 
 ```sh
 docker run -d --name form-md --restart unless-stopped \
   -p 127.0.0.1:8750:8750 \
   -v form-md-data:/data \
-  ghcr.io/nodemode-ai/form.md:vX.Y.Z
+  ghcr.io/nodemode-dev/form.md:vX.Y.Z
 ```
 
 Build the image yourself from a checkout:

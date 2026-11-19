@@ -1,6 +1,6 @@
 [Unit]
 Description=form.md
-Documentation=https://github.com/nodemode-ai/form.md/wiki
+Documentation=https://github.com/nodemode-dev/form.md/wiki
 After=network-online.target
 Wants=network-online.target
 

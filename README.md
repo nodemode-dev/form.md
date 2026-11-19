@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Workspace; documents, databases and realtime editing for people and agents.</b><br>
-  Pages, seven database views, comments, sharing and publishing,<br>
+  Pages, database views, comments, sharing and publishing,<br>
   in one Go binary with one SQLite file. Self-hosted, no account elsewhere.
 </p>
 
@@ -21,7 +21,7 @@
 
 <p align="center">
   <a href="https://formmd.formai.studio/"><b>Download form.md on formai.studio</b></a> ·
-  <a href="https://github.com/nodemode-dev/formcompiler/releases/tag/form.md-v0.47.7">Latest release</a> ·
+  <a href="https://github.com/nodemode-dev/formcompiler/releases?q=form.md-v&expanded=true">Latest release</a> ·
   <a href="#run-it-from-source">Run it from source</a>
 </p>
 
@@ -43,7 +43,7 @@
   <tr>
     <td width="25%" valign="top"><h3>One binary</h3>A static Go binary with the web client embedded and one SQLite file beside it. No database server.</td>
     <td width="25%" valign="top"><h3>Server-held documents</h3>Every page is a CRDT the server applies itself, so an API edit merges into what a person is typing.</td>
-    <td width="25%" valign="top"><h3>Rows are pages</h3>Seven database views on one query engine, with relations, rollups and formulas.</td>
+    <td width="25%" valign="top"><h3>Rows are pages</h3>Many database views on one query engine, with relations, rollups and formulas.</td>
     <td width="25%" valign="top"><h3>Agent-ready</h3>An MCP server with OAuth, a REST API and a command line drive the same workspace.</td>
   </tr>
 </table>
@@ -57,7 +57,7 @@
     <td width="50%" valign="top">
       <img src="docs/images/form.md-database-table.png" alt="The Trail survey database as a table with zone, status, length, condition, surveyed and volunteers columns" width="100%">
       <br><sub>The same rows, as a table with typed columns.</sub>
-      <h3>Seven database views</h3>Every row is a page. Switch one query between table, board, list, gallery, calendar, timeline and form.
+      <h3>Database views</h3>Every row is a page. Switch one query between table, board, list, gallery, calendar, timeline and form, or see it as a chart, dashboard, heatmap, graph, map or feed.
     </td>
     <td width="50%" valign="top">
       <img src="docs/images/form.md-database-board.png" alt="The Trail survey database as a board grouped by status: Open, Needs repair and Closed" width="100%">
@@ -99,6 +99,8 @@ The window's commands, the REST API and the MCP server all act on the same pages
 
 `.mcp.json` and `.cursor/mcp.json` are already wired in this repo. The server also answers MCP over HTTP at `/mcp` and publishes its REST reference at `/api/docs`. See [`AGENTS.md`](AGENTS.md).
 
+form.md is a server you sign in to, so what an agent may do is set by its credential, not by a question in the window. A personal API token or an OAuth grant is either read and write or read only, and can be limited to chosen workspaces; a read-only credential sees the tools that change nothing and is refused anything that changes the workspace. `./form-md agents install` registers form.md with Claude Code without putting the token on a command line: the setting it writes names `${FORMMD_MCP_TOKEN}`, which Claude Code reads from its own environment when it connects, so keep that variable exported where you start `claude`. `agents/manifest.json` lists every MCP tool, which ones are read-only, the skills and the transports; `./form-md agents manifest` rewrites it and `./form-md agents manifest --check` says when it is out of date.
+
 ## Extensions
 
 form.md loads Form extensions (Form Extension Contract, API 1): install them with FormPortal, or run a folder from form.ext. They appear under Extensions in the sidebar (and the desktop menu bar), in the Extensions panel on the right and in Find a Command; each runs in a sandboxed frame and changes the page only through form.md's own `doc.*` commands, as one undo step, after you allow it. Agents reach them with the MCP tools `extensions_list` and `extension_command`, or `./form-md cli extensions`. The API for extension authors is [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md); the wiki page is Extensions.
@@ -108,7 +110,8 @@ form.md loads Form extensions (Form Extension Contract, API 1): install them wit
 - **Go server:** pure-Go SQLite, a Yjs-compatible CRDT in Go, one writer connection and a query-only reader pool.
 - **Web client:** vanilla TypeScript and Vite with ProseMirror and Yjs, no UI framework, embedded into the binary.
 - **Encrypted at rest:** an XTS-AES-256 SQLite VFS and AES-256-GCM uploads, with a key kept outside the data directory.
-- **Tested:** 38 Go tests across the server, plus a TypeScript check (`./form-md check`).
+- **Tested:** Go tests beside the code they cover (`go test ./...`), plus a TypeScript check (`./form-md check`).
+- **Themes:** dark and light profiles with accent, density and high contrast in Preferences, including AMOLED Black, a true-black dark theme for OLED screens.
 
 ## Download
 

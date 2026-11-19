@@ -65,7 +65,7 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 The source of truth for this wiki is the `.docs/wiki/` folder in the main repository. Edit pages there on a `docs/*` branch, merge the pull request into `main`, then publish:
 
 ```sh
-git clone https://github.com/nodemode-ai/form.md.wiki.git
+git clone https://github.com/nodemode-dev/form.md.wiki.git
 cp form.md/.docs/wiki/*.md form.md.wiki/
 cd form.md.wiki
 git add -A
