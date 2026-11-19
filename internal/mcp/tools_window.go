@@ -45,7 +45,7 @@ func (s *Server) registerWindow() {
 			}
 			return c, "", nil
 		}})
-	s.add(&Tool{Name: "window_command_run", Title: "Run a window command",
+	s.add(&Tool{Name: "window_command_run", Title: "Run a window command", Acts: true, Destructive: true,
 		Description: "Runs one command in the form.md window this account has open, exactly as if the person chose it, and returns its result. The person sees it happen. Commands that change the workspace need a write credential; risky ones (marked risky) cannot be undone.",
 		Props:       map[string]any{"id": str("Command id from window_commands"), "params": obj(map[string]any{})}, Required: []string{"id"},
 		Run: func(ctx context.Context, x *exec, raw json.RawMessage) (any, string, error) {
@@ -79,7 +79,7 @@ func (s *Server) registerWindow() {
 			}
 			return v, "", nil
 		}})
-	s.add(&Tool{Name: "extension_command", Title: "Run an extension command",
+	s.add(&Tool{Name: "extension_command", Title: "Run an extension command", Write: true, Destructive: true,
 		Description: "Runs a command an extension contributes, in the open form.md window, exactly as if the person chose it from the Extensions menu. The window asks the person to allow the extension first when this version has not been allowed yet; a refusal fails the call. Returns what the command reports when it finishes.",
 		Props:       map[string]any{"id": str("Extension id from extensions_list"), "command": str("Command id from the extension's commands"), "args": obj(map[string]any{})}, Required: []string{"id", "command"},
 		Run: func(ctx context.Context, x *exec, raw json.RawMessage) (any, string, error) {

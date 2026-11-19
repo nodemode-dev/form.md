@@ -2413,3 +2413,16 @@ Validation is strict and runs after the read check, so a refusal says nothing ab
 `within` is now `withinSpan`, a pure function of the option, the viewer's day start and the week-start preference (asked only for `this_week`), so validation and tests use the same table. Three options are added: `today` (the viewer's day), `past_7_days` and `past_30_days` (rolling whole days ending today: today and the 6 or 29 days before). They differ from the existing `past_week` and `past_month`, which start 7 days or a calendar month before today and so cover 8 days or a month and a day. Days are computed in the viewer's time zone (`users.time_zone`, else the server's), as the existing relative filters are.
 
 Tests: `internal/collection/daterange_test.go` (the three spans in a non-UTC zone, and `compile` for date and non-date properties and every malformed shape) and `internal/server/daterange_test.go` (rows and a count chart for each option and a custom range, the range ANDed with a saved view filter on both routes, and every malformed range refused on both routes). The owner asked for tests with this change.
+
+## Phase 25 · batch 3 security pass {#p25-batch3}
+
+### internal/mcp · window tools announce what they can do
+- refers-to: internal/mcp/tools.go :: `Tool.Acts`, `Tool.describe`; internal/mcp/tools_window.go :: `window_command_run`, `extension_command`; internal/server/mcp_window_test.go
+- kind: fix
+- logged: v0.54.0 · 2026-11-19
+
+`window_command_run` and `extension_command` were announced with `readOnlyHint: true` although they run window commands that change the workspace and, for commands marked risky, cannot be undone. `extension_command` always runs `extensions.run`, which the window marks `mutates`, so it is now a write tool: a read-only credential no longer sees it in `tools/list` and is refused if it calls it by name (the server's `t.Write && !CanWrite()` checks). `window_command_run` stays listed to read-only credentials, because the window also offers commands that change nothing (opening a page, switching a view) and `Service.RunCommand` already refuses a command whose catalogue entry says `mutates` when the credential is read-only. The new `Acts` flag gives it `readOnlyHint: false` and the write annotations without the write gate. Both are `destructiveHint: true` because the window's risky commands cannot be undone.
+
+Measured on a desktop-mode server with a read-only token and a catalogue holding one mutating and one plain command: before, 18 tools listed with both announced read-only; after, 17 listed, `window_command_run` announced `readOnlyHint: false, destructiveHint: true`, the mutating command refused, `extension_command` refused as an unknown tool. A write token still sees all 36.
+
+The same session swept every non-GET route registered in the code (177) on a desktop-mode server. With no credential, 165 answered 401 and the remaining 12 are the sign-in, sign-up, setup, invite, public form, share unlock and OAuth endpoints, each of which needs its own secret or is closed by default (sign-up answers `signup_closed`). With a read-only token all 177 answered `403 read_only` from `Middleware`. Nothing needed changing there.
