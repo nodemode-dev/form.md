@@ -86,6 +86,7 @@ type Server struct {
 	Crew     *agent.Service
 	Flows    *automation.Service
 	Tunnel   *tunnel.Service
+	Harness  *claudecode.Service
 }
 
 func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.Store, dist, skill fs.FS, notices, instanceID string) (*Server, error) {
@@ -245,6 +246,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, st *store.S
 
 	s := &Server{Auth: authSvc, Settings: set, Gate: gate, Audit: al, Work: ws, Mail: mailer, Admin: adm, Hub: hub, Pages: pages, Files: fsvc, Docs: docs, Cols: cols, Comments: comments, Inbox: notes, Views: views, Hooks: hooks, Runs: runs, OAuth: grants, AI: brain, Crew: crew, Flows: flows}
 	s.Tunnel = tunnel.New(set, log, cfg.DataDir)
+	s.Harness = harness
 	s.Deps = &app.Deps{
 		Config: cfg, Store: st, Log: log, Dist: dist, Notices: notices, InstanceID: instanceID,
 		Middleware: []httpx.Middleware{s.Tunnel.Middleware, sites.Host, prov.Middleware, authSvc.Middleware},
@@ -409,6 +411,7 @@ func (s *Server) renderDocument(r *http.Request) (static.Document, error) {
 			return static.Document{}, err
 		}
 		boot["me"] = me
+		boot["dock"] = s.Harness.Available(r, p)
 		if u, ok := me["user"].(*auth.User); ok {
 			userLang = u.Prefs.Lang
 			slots["user-name"], slots["user-initials"], slots["user-color"] = u.Name, Initials(u.Name), u.Color
