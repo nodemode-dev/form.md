@@ -132,6 +132,7 @@ export default defineConfig({
       "/sync": {
         target: BACKEND,
         ws: true,
+        changeOrigin: true,
         configure: (proxy) => {
           proxy.on("proxyReqWs", (req) => req.setHeader("origin", BACKEND));
         },

@@ -2349,3 +2349,13 @@ The flag: `OLED_THEMES` in prefs.ts; `paintLook` sets `data-oled` on the root wh
 True-black exceptions hang on `data-oled`, never on the theme id. Found by listing every element over 12,000 px2 with a non-black fill on a page with a code block and on Home: the sidebar and the code block (both `--surface`) and Home's template panel (`--surface` under the accent wash) now take `--sheet`. Cards on Home and template previews keep `#141414`, as fields do. The document follows the other dark themes: the editor has no fill of its own and sits on the page.
 
 Checked with the engine from source and the Vite dev server, headless Chrome 1440 by 900, 4x CPU, 150 ms and 1.6 Mbit/s, cache off, on a page with a code block: cold load 89 frames and hard reload 86 frames in the 12 s after the request, 30 samples per frame (corners and centre of the window, sidebar, main area, editor, code block and its text area), all `#000000`. Live switch from Dark to AMOLED Black and back through the stored look: 1,020 elements, none removed, none moved, `data-oled` on and off. Translations of the label fall back to English.
+
+## Unreleased · the editor's live sync connects through the dev server {#dev-sync-origin}
+
+- refers-to: vite.config.ts :: `server.proxy["/sync"]`
+- kind: fix
+- logged: v0.54.0 · 2026-11-18
+
+Through the Vite dev server the editor's `/sync` socket was refused (403 from the engine) on every try, so a page opened in development never went live. The entry rewrote `Origin` to the backend address but left `Host` as the dev server's, and the engine's same-origin check on `/sync` compares the two. `changeOrigin: true` makes `Host` the backend's too, as the `/api/terminal` entry already does. Development only: the desktop window and a served build do not go through this proxy.
+
+Checked with headless Chrome against the engine from source and the dev server (a scratch config outside the repo that imports this file and moves only the ports): before, five `/sync` attempts from an opened page, each 403 in the engine log; after, the editor's socket upgraded (101) and stayed open. The terminal still attaches and echoes through the dev server and from the engine's own origin.
