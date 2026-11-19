@@ -321,7 +321,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		if sess == nil {
 			return httpx.Fail(http.StatusNotFound, "not_found", "no such terminal")
 		}
-		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"127.0.0.1:*", "localhost:*", "[::1]:*", "tauri.localhost"}})
+		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"tauri.localhost"}})
 		if err != nil {
 			return nil
 		}
