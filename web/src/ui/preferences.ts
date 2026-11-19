@@ -24,6 +24,7 @@ const DARK_LABEL: Record<string, () => string> = {
   ocean: () => t("Ocean"),
   rose: () => t("Rose"),
   terminal: () => t("Terminal"),
+  amoled: () => t("AMOLED Black"),
   contrast: () => t("High contrast"),
 };
 

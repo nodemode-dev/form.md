@@ -278,6 +278,10 @@
   border-radius: var(--radius);
 }
 
+:root[data-theme="dark"][data-oled] .code {
+  background: var(--sheet);
+}
+
 .code__bar {
   display: flex;
   align-items: center;

@@ -1,5 +1,5 @@
 import type { Engine, Me, Prefs, ThemePref } from "../engine";
-import { accentTone, type KeyValueStore, type Look, normalizeServerLook, PREF_KEYS, readLook, writeLook } from "../engine/prefs";
+import { accentTone, type KeyValueStore, type Look, normalizeServerLook, OLED_THEMES, PREF_KEYS, readLook, writeLook } from "../engine/prefs";
 import { State } from "../engine/state";
 import { setAttr } from "./dom";
 
@@ -57,6 +57,7 @@ export function mountTheme(engine: Engine): void {
     const l = looks.get("look");
     still();
     setAttr(root, "data-dark-theme", l.dark);
+    setAttr(root, "data-oled", OLED_THEMES.includes(l.dark) ? "" : null);
     setAttr(root, "data-light-theme", l.light);
     setAttr(root, "data-density", l.density);
     setAttr(root, "data-contrast-pref", l.contrast);

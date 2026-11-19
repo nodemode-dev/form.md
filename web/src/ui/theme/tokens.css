@@ -315,6 +315,24 @@
   --text-faint: #3c5f3c;
 }
 
+:root[data-theme="dark"][data-dark-theme="amoled"],
+.theme-swatch[data-dark="amoled"] {
+  --ground: #000000;
+  --sheet: #000000;
+  --surface: #141414;
+  --surface-2: #1f1f1f;
+  --border: #262626;
+  --border-strong: #3a3a3a;
+  --text: #ededed;
+  --text-muted: #a6a6a6;
+  --text-faint: #858585;
+}
+
+:root[data-theme="dark"][data-oled] {
+  --hover: rgba(255, 255, 255, 0.1);
+  --active: rgba(255, 255, 255, 0.16);
+}
+
 :root[data-theme="dark"][data-dark-theme="contrast"],
 .theme-swatch[data-dark="contrast"] {
   --ground: #000000;

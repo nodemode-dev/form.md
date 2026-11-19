@@ -2335,3 +2335,17 @@ Every request a view makes for its rows or aggregates carries it: the session's 
 The service worker treats `date_range` like the other shaped keys: such an answer is cached under its exact body only and never read from or written to the per-view fallback, so offline a ranged view never shows the whole view's rows.
 
 The filter panel's Is within list gains Today, Last 7 days and Last 30 days, the same three options the server adds.
+
+## Unreleased · AMOLED Black, a true-black dark theme for OLED screens {#amoled}
+
+- refers-to: src/engine/prefs.ts :: `DARK_THEMES`, `OLED_THEMES`; src/ui/theme.ts :: `paintLook`; src/ui/preferences.ts :: `DARK_LABEL`; index.html (the theme boot script); src/ui/theme/tokens.css :: `[data-dark-theme="amoled"]`, `:root[data-theme="dark"][data-oled]`; src/styles/shell.css :: `.sidebar`; src/styles/editor.css :: `.code`; src/styles/home.css :: `.home-feature`
+- kind: feature
+- logged: v0.54.0 · 2026-11-19
+
+The owner's request of 2026-11-18, the family's AMOLED Black (FormTxt's is the reference), in form.md's own token names, as a dark theme profile: `amoled`, labelled AMOLED Black, after Terminal and before High contrast. A black pixel is off on an OLED screen, so `--ground` and `--sheet` (page and panels) are `#000000` and panels are told apart by their borders. `--surface` is `#141414`, because inputs, menus, cards and selected fills use it as their only fill and would vanish at black; `--surface-2` is `#1f1f1f`, one step above it, as formcut's hover step. `--border` `#262626`, `--border-strong` `#3a3a3a`, text `#ededed`, `#a6a6a6`, `#858585` (17.9, 8.6 and 5.7 to 1 on black). The accent is form.md's own, unchanged, and the accent picker still applies.
+
+The flag: `OLED_THEMES` in prefs.ts; `paintLook` sets `data-oled` on the root when the dark profile is one of them and removes it otherwise, through `setAttr`, which writes only on a change. The boot script in index.html sets `data-oled` beside `data-dark-theme` from its own one-row table and the theme-color meta to black, so a reload never paints another profile first. The attribute follows the chosen dark profile even while the light theme shows; every rule that uses it also requires `data-theme="dark"`, so the light theme is untouched. `--hover` and `--active` go to 10% and 16% white under `data-oled`, because 5% and 8.5% are too close to black to read.
+
+True-black exceptions hang on `data-oled`, never on the theme id. Found by listing every element over 12,000 px2 with a non-black fill on a page with a code block and on Home: the sidebar and the code block (both `--surface`) and Home's template panel (`--surface` under the accent wash) now take `--sheet`. Cards on Home and template previews keep `#141414`, as fields do. The document follows the other dark themes: the editor has no fill of its own and sits on the page.
+
+Checked with the engine from source and the Vite dev server, headless Chrome 1440 by 900, 4x CPU, 150 ms and 1.6 Mbit/s, cache off, on a page with a code block: cold load 89 frames and hard reload 86 frames in the 12 s after the request, 30 samples per frame (corners and centre of the window, sidebar, main area, editor, code block and its text area), all `#000000`. Live switch from Dark to AMOLED Black and back through the stored look: 1,020 elements, none removed, none moved, `data-oled` on and off. Translations of the label fall back to English.
