@@ -2426,3 +2426,12 @@ Tests: `internal/collection/daterange_test.go` (the three spans in a non-UTC zon
 Measured on a desktop-mode server with a read-only token and a catalogue holding one mutating and one plain command: before, 18 tools listed with both announced read-only; after, 17 listed, `window_command_run` announced `readOnlyHint: false, destructiveHint: true`, the mutating command refused, `extension_command` refused as an unknown tool. A write token still sees all 36.
 
 The same session swept every non-GET route registered in the code (177) on a desktop-mode server. With no credential, 165 answered 401 and the remaining 12 are the sign-in, sign-up, setup, invite, public form, share unlock and OAuth endpoints, each of which needs its own secret or is closed by default (sign-up answers `signup_closed`). With a read-only token all 177 answered `403 read_only` from `Middleware`. Nothing needed changing there.
+
+### form-md · agents install keeps the token off the command line
+- refers-to: form-md :: `usage` (agents install line), `agents` case
+- kind: fix
+- logged: v0.54.0 · 2026-11-19
+
+The repo has no HASHOUT_LOG at the root, so the boot script's entry is here. `./form-md agents install` passed the expanded token to `claude mcp add --header`, where it was part of that process's arguments. It now passes the literal text `Authorization: Bearer ${FORMMD_MCP_TOKEN}` in single quotes. Claude Code's MCP documentation (code.claude.com/docs/en/mcp, read 2026-11-19) says `${VAR}` in `headers` is expanded for user-scope entries in `~/.claude.json` as well as `.mcp.json`, and that only a fixed set of credential names (ANTHROPIC_API_KEY and similar) is read as empty; `FORMMD_MCP_TOKEN` is not one of them. So Claude Code needs `FORMMD_MCP_TOKEN` in its own environment when it starts, and the script says so. The check that the variable is set stays, so a user is not left with an entry that cannot connect. Codex and Cursor were never written by the script, only pointed at `examples/agents/`, whose configs already name the variable instead of the value, so they are unchanged; the help line now says that instead of claiming all three are registered.
+
+Run with a stand-in `claude` on PATH that recorded its arguments and the process list: the arguments hold `${FORMMD_MCP_TOKEN}` and no token; before the change they held the token. A real Claude Code was not run here, so the expansion at connect time rests on the documentation.
