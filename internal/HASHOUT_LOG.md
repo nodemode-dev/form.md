@@ -2459,3 +2459,10 @@ Fields: `app` is `form.md`, the name of formcompiler's apps/form.md.json. `mcp.t
 `dock` is the one declared value, in the test: present, `bottom` only (web/src/styles/dock.css, `.dock` fixed to the bottom edge with a height grip, web/src/ui/agent-dock.ts), tabs `chat` (the fixed Chat tab) then the terminal tabs, `terminal` and `claude` (`info.kind`). Change it there when the dock changes.
 
 Run: write mode, then formadaptor's `scripts/manifest.py check agents/manifest.json --app form.md` (accepted), then `--check` exit 0; in a copy of the repo outside the tree, `list_runs` renamed in internal/mcp/tools_read.go made `--check` exit 1 and name the file.
+
+### internal/server · tests for the attach origin and the AMOLED profile name
+- refers-to: internal/server/terminal_origin_test.go :: `TestTerminalAttachesOnlyFromTheServersOwnPage`; internal/server/appearance_test.go :: `TestAmoledThemeIsStoredAsTheDarkProfile`
+- kind: test
+- logged: v0.54.0 · 2026-11-18
+
+Both behaviours were run first on an engine from source. Attach: a WebSocket upgrade to `/api/terminal/{id}/attach` with the owner's session answered 101 for the server's own origin and 403 for `http://127.0.0.1:1`, `http://localhost:<same port>`, `http://[::1]:<same port>` and `https://md.example.test`; the test makes the same five dials against the harness server. With the batch 3 patterns put back in a copy of the repo, the test fails on the other port and on `localhost`. `tauri.localhost` is not in the test: no desktop window could be run here. Appearance: `PATCH /api/me` with `dark: "amoled"` answered 200 and `GET /api/me` returned it; `amoled-black` answered 400 `bad_appearance` (the `lookName` rule in internal/auth/appearance.go). The test does the same.
