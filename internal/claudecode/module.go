@@ -3,6 +3,7 @@ package claudecode
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -36,6 +37,8 @@ type attachment struct {
 }
 
 func New(a *auth.Service, hub Sender, addr, dataDir string) *Service {
+	_, _ = a.SweepTabTokens(context.Background())
+	SweepTabConfigs(dataDir)
 	return &Service{Auth: a, Bridge: NewBridge(hub), Terms: newTerminals(), Chats: newChats(), addr: addr, dataDir: dataDir, attached: map[*attachment]bool{}}
 }
 
@@ -103,21 +106,12 @@ func (s *Service) gate(r *http.Request, p *policy.Principal) error {
 
 func (s *Service) env() []string { return childEnv(EngineURL(s.addr)) }
 
-func (s *Service) claudeArgv(ctx context.Context, p *policy.Principal, extra ...string) ([]string, error) {
-	info := Detect(s.env(), false)
-	if !info.Installed {
-		return nil, httpx.Fail(http.StatusBadRequest, "claude_missing", Install)
-	}
-	token, err := s.Auth.AppToken(ctx, p.UserID)
+func (s *Service) tabToken(ctx context.Context, p *policy.Principal, title string) (string, string, func(), error) {
+	token, id, err := s.Auth.TabToken(ctx, p.UserID, title+" tab in form.md")
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
-	cfg, err := MCPConfigFile(s.dataDir, p.UserID, EngineURL(s.addr), token)
-	if err != nil {
-		return nil, err
-	}
-	argv := []string{info.Path, "--mcp-config", cfg, "--allowedTools", ToolPrefix, "--append-system-prompt", Note}
-	return Launch(append(argv, extra...)), nil
+	return token, id, func() { _ = s.Auth.RevokeTabToken(context.Background(), id) }, nil
 }
 
 func (s *Service) openClaude(ctx context.Context, p *policy.Principal, prompt, resume, cwd string, cols, rows int) (*Session, error) {
@@ -129,18 +123,81 @@ func (s *Service) openClaude(ctx context.Context, p *policy.Principal, prompt, r
 	} else if prompt != "" {
 		extra = append(extra, prompt)
 	}
-	argv, err := s.claudeArgv(ctx, p, extra...)
+	info := Detect(s.env(), false)
+	if !info.Installed {
+		return nil, httpx.Fail(http.StatusBadRequest, "claude_missing", Install)
+	}
+	token, id, revoke, err := s.tabToken(ctx, p, "Claude Code")
 	if err != nil {
 		return nil, err
 	}
+	cfg, err := TabConfigFile(s.dataDir, id, EngineURL(s.addr), token)
+	if err != nil {
+		revoke()
+		return nil, err
+	}
+	end := func() {
+		revoke()
+		_ = os.Remove(cfg)
+	}
+	argv := Launch(append([]string{info.Path, "--mcp-config", cfg, "--allowedTools", ToolPrefix, "--append-system-prompt", Note}, extra...))
 	if cwd == "" {
 		cwd = agentDir(s.dataDir)
 	}
 	sess, err := s.Terms.Open(p.UserID, title, "claude", cwd, argv, s.env(), cols, rows)
 	if err != nil {
+		end()
 		return nil, httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
 	}
+	sess.OnClose(end)
 	return sess, nil
+}
+
+func (s *Service) openAgent(ctx context.Context, p *policy.Principal, prog Program, cwd string, cols, rows int) (*Session, error) {
+	path := findProgram(s.env(), prog.Bin)
+	if path == "" {
+		return nil, httpx.Fail(http.StatusBadRequest, "agent_missing", prog.Title+" is not installed on the computer form.md runs on").With("install", prog.Install)
+	}
+	if cwd == "" {
+		cwd = agentDir(s.dataDir)
+	}
+	argv := []string{path}
+	if prog.Kind == "codex" {
+		argv = append(argv, codexArgs(EngineURL(s.addr))...)
+	}
+	if prog.Kind == "cursor" {
+		_, _ = CursorConfig(cwd)
+	}
+	token, _, revoke, err := s.tabToken(ctx, p, prog.Title)
+	if err != nil {
+		return nil, err
+	}
+	sess, err := s.Terms.Open(p.UserID, prog.Title, prog.Kind, cwd, Launch(argv), append(s.env(), TabTokenVar+"="+token), cols, rows)
+	if err != nil {
+		revoke()
+		return nil, httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
+	}
+	sess.OnClose(revoke)
+	return sess, nil
+}
+
+func (s *Service) Available(r *http.Request, p *policy.Principal) bool {
+	kinds, _, _ := s.kinds(r, p)
+	return len(kinds) > 0
+}
+
+func (s *Service) kinds(r *http.Request, p *policy.Principal) ([]string, string, string) {
+	if err := s.gate(r, p); err != nil {
+		var fail *httpx.APIError
+		if errors.As(err, &fail) {
+			return []string{}, fail.Code, fail.Message
+		}
+		return []string{}, "refused", err.Error()
+	}
+	if runtimeWindows() {
+		return []string{"chat"}, "", ""
+	}
+	return []string{"shell", "claude", "codex", "cursor", "chat"}, "", ""
 }
 
 func (s *Service) terminalOf(p *policy.Principal, id string) (*Session, error) {
@@ -156,13 +213,29 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 	a := s.Auth
 	r.HandleFunc("GET /api/claude", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
 		on := s.enabled() && p.IsOwner() && (s.forced() || Direct(r))
-		out := map[string]any{"enabled": on, "windows": runtimeWindows(), "folder": agentDir(s.dataDir), "engine_url": EngineURL(s.addr)}
+		out := map[string]any{"enabled": on, "windows": runtimeWindows(), "folder": agentDir(s.dataDir), "engine_url": EngineURL(s.addr), "contract": DockContract}
 		if on {
 			out["claude"] = Detect(s.env(), r.URL.Query().Get("fresh") == "1")
 			out["terminal"] = nil
 			if running := s.Terms.RunningClaude(p.UserID); running != nil {
 				out["terminal"] = running.Snapshot()
 			}
+		}
+		httpx.JSON(w, http.StatusOK, out)
+		return nil
+	}))
+	r.HandleFunc("GET /api/dock", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		kinds, code, reason := s.kinds(r, p)
+		httpx.JSON(w, http.StatusOK, map[string]any{"contract": DockContract, "kinds": kinds, "code": code, "reason": reason, "consent": "credential"})
+		return nil
+	}))
+	r.HandleFunc("GET /api/dock/agents", a.RequireSession(func(w http.ResponseWriter, r *http.Request, p *policy.Principal) error {
+		if err := s.gate(r, p); err != nil {
+			return err
+		}
+		out := map[string]any{"contract": DockContract}
+		for kind, info := range AgentStatus(s.env(), r.URL.Query().Get("fresh") == "1") {
+			out[kind] = info
 		}
 		httpx.JSON(w, http.StatusOK, out)
 		return nil
@@ -197,6 +270,14 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 			httpx.JSON(w, http.StatusCreated, sess.Snapshot())
 			return nil
 		}
+		if prog, ok := programOf(in.Kind); ok {
+			sess, err := s.openAgent(r.Context(), p, prog, in.Cwd, in.Cols, in.Rows)
+			if err != nil {
+				return err
+			}
+			httpx.JSON(w, http.StatusCreated, sess.Snapshot())
+			return nil
+		}
 		sess, err := s.Terms.Open(p.UserID, "", "shell", in.Cwd, nil, s.env(), in.Cols, in.Rows)
 		if err != nil {
 			return httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
@@ -212,6 +293,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 			Prompt string `json:"prompt"`
 			Fresh  bool   `json:"fresh"`
 			Resume string `json:"resume"`
+			Tab    string `json:"tab"`
 			Cols   int    `json:"cols"`
 			Rows   int    `json:"rows"`
 		}
@@ -219,7 +301,11 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 			return err
 		}
 		prompt := strings.TrimSpace(in.Prompt)
-		if running := s.Terms.RunningClaude(p.UserID); running != nil && !in.Fresh && in.Resume == "" {
+		running := s.Terms.RunningClaude(p.UserID)
+		if named := s.Terms.Get(p.UserID, in.Tab); named != nil && named.Kind == "claude" && named.Snapshot().Alive {
+			running = named
+		}
+		if running != nil && !in.Fresh && in.Resume == "" {
 			if prompt != "" {
 				running.Write([]byte(prompt + "\r"))
 			}
@@ -321,7 +407,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		if sess == nil {
 			return httpx.Fail(http.StatusNotFound, "not_found", "no such terminal")
 		}
-		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"127.0.0.1:*", "localhost:*", "[::1]:*", "tauri.localhost"}})
+		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"tauri.localhost"}})
 		if err != nil {
 			return nil
 		}

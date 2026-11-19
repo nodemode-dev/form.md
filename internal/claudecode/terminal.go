@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,20 @@ type Session struct {
 	gen   int
 	cols  uint16
 	rows  uint16
+
+	closed  bool
+	onClose []func()
+}
+
+func (s *Session) OnClose(fn func()) {
+	s.mu.Lock()
+	if !s.closed {
+		s.onClose = append(s.onClose, fn)
+		s.mu.Unlock()
+		return
+	}
+	s.mu.Unlock()
+	fn()
 }
 
 type Terminals struct {
@@ -201,7 +216,16 @@ func (s *Session) Resize(cols, rows int) {
 	}
 }
 
-func (s *Session) stop() { s.halt(true) }
+func (s *Session) stop() {
+	s.halt(true)
+	s.mu.Lock()
+	hooks := s.onClose
+	s.closed, s.onClose = true, nil
+	s.mu.Unlock()
+	for _, fn := range hooks {
+		fn()
+	}
+}
 
 func (s *Session) halt(dropSubs bool) {
 	s.mu.Lock()
@@ -263,17 +287,18 @@ func (s *Session) Scrollback() []byte {
 func (t *Terminals) RunningClaude(owner string) *Session {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	var newest *Session
 	for _, s := range t.sessions {
 		if s.owner == owner && s.Kind == "claude" {
 			s.mu.Lock()
 			alive := s.Alive
 			s.mu.Unlock()
-			if alive {
-				return s
+			if alive && (newest == nil || s.Created > newest.Created || (s.Created == newest.Created && s.ID > newest.ID)) {
+				newest = s
 			}
 		}
 	}
-	return nil
+	return newest
 }
 
 var errNoTerminal = errors.New("no such terminal")
@@ -297,6 +322,12 @@ func (t *Terminals) List(owner string) []Session {
 			out = append(out, s.Snapshot())
 		}
 	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Created != out[j].Created {
+			return out[i].Created < out[j].Created
+		}
+		return out[i].ID < out[j].ID
+	})
 	return out
 }
 

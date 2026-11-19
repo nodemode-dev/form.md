@@ -40,13 +40,14 @@ Examples: `feature/offline-start`, `fix/web-dev-proxy-origin`, `docs/wiki-operat
 
 ## Releases and tagging
 
-A release is one version bump commit on `main` plus a `compile_vX.Y.Z` branch cut from main's head. This repository builds nothing: formcompiler (`nodemode-ai/formcompiler`) builds and drafts every form* release.
+A release is one version bump commit on `main` plus a `compile_vX.Y.Z` branch cut from main's head. This repository builds nothing: formcompiler (`nodemode-dev/formcompiler`) builds and drafts every form* release.
 
 1. On a `chore/release-vX.Y.Z` branch, bump the version everywhere it is written:
    - `VERSION := vX.Y.Z` in `Makefile`
    - `var Version = "vX.Y.Z"` in `internal/app/version.go`
    - `"version"` in `web/package.json` and `web/package-lock.json`
    - the version badge in `README.md`
+   - the "latest release" row of the supported-versions table in `SECURITY.md`
 2. Commit it as `chore(release): vX.Y.Z (x.y.z)` and merge it into `main`.
 3. Push a compile branch from main's head:
 
@@ -55,7 +56,7 @@ A release is one version bump commit on `main` plus a `compile_vX.Y.Z` branch cu
    git push origin main:refs/heads/compile_vX.Y.Z
    ```
 
-4. CI runs on the branch. formcompiler picks it up on its next 8-hourly watch run, or at once when its watch is run by hand. It checks that the branch's version equals `VERSION` in the `Makefile`, runs `make check` and `make release`, builds the desktop app with `./build_app --yes` (`build_app.bat` on Windows), and drafts the release `form.md-vX.Y.Z` on its own release page with the five binaries, `SHA256SUMS`, `install.sh`, `form-md.service` and the desktop bundles. It also builds the container image for `linux/amd64` and `linux/arm64` (`ghcr.io/nodemode-ai/form.md:vX.Y.Z` and `:latest`) and keeps `form.md-updates/latest.json` current for the update check. The steps the old workflows ran are quoted in `src-tauri/HASHOUT_LOG.md`.
+4. CI runs on the branch. formcompiler picks it up on its next 8-hourly watch run, or at once when its watch is run by hand. It checks that the branch's version equals `VERSION` in the `Makefile`, runs `make check` and `make release`, builds the desktop app with `./build_app --yes` (`build_app.bat` on Windows), and drafts the release `form.md-vX.Y.Z` on its own release page with the five binaries, `SHA256SUMS`, `install.sh`, `form-md.service` and the desktop bundles. It also builds the container image for `linux/amd64` and `linux/arm64` (`ghcr.io/nodemode-dev/form.md:vX.Y.Z` and `:latest`) and keeps `form.md-updates/latest.json` current for the update check. The steps the old workflows ran are quoted in `src-tauri/HASHOUT_LOG.md`.
 5. Check the draft, publish it, and run the installer against it (`sh install.sh --version=vX.Y.Z`) on a scratch machine.
 
 ## Versioning

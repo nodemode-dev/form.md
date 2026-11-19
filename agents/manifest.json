@@ -1,0 +1,96 @@
+{
+  "format": "form-agent-manifest",
+  "version": 1,
+  "app": "form.md",
+  "mcp": {
+    "tools": [
+      "whoami",
+      "search",
+      "list_pages",
+      "get_page",
+      "get_database",
+      "query_database",
+      "list_comments",
+      "list_runs",
+      "context_pack",
+      "knowledge_search",
+      "knowledge_review",
+      "knowledge_record",
+      "knowledge_confirm",
+      "window_commands",
+      "window_command_describe",
+      "window_command_run",
+      "extensions_list",
+      "extension_command",
+      "family_list",
+      "family_route",
+      "create_page",
+      "update_page",
+      "move_page",
+      "trash_page",
+      "insert_blocks",
+      "replace_block",
+      "delete_blocks",
+      "move_block",
+      "replace_page_content",
+      "create_database",
+      "update_database_properties",
+      "add_rows",
+      "update_rows",
+      "add_comment",
+      "undo_run",
+      "propose_rules"
+    ],
+    "read_only": [
+      "whoami",
+      "search",
+      "list_pages",
+      "get_page",
+      "get_database",
+      "query_database",
+      "list_comments",
+      "list_runs",
+      "context_pack",
+      "knowledge_search",
+      "knowledge_review",
+      "window_commands",
+      "window_command_describe",
+      "extensions_list",
+      "family_list",
+      "family_route"
+    ],
+    "approval_gated": [],
+    "transports": [
+      "http",
+      "stdio"
+    ]
+  },
+  "skills": [
+    {
+      "name": "contextual-compression",
+      "sub_skills": [
+        "compression-formats",
+        "context-packing",
+        "family-routing",
+        "handoff",
+        "knowledge-bank",
+        "memory-hygiene",
+        "relevance-ranking"
+      ]
+    }
+  ],
+  "dock": {
+    "present": true,
+    "positions": [
+      "bottom"
+    ],
+    "tabs": [
+      "chat",
+      "terminal",
+      "claude"
+    ]
+  },
+  "extensions": {
+    "host_api": "1"
+  }
+}

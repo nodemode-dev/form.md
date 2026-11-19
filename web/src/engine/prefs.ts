@@ -17,8 +17,9 @@ export interface ServerLook extends Look {
   mode: ThemePref;
 }
 
-export const DARK_THEMES = ["dark", "studio", "night", "graphite", "midnight", "forest", "ember", "violet", "slate", "mono", "ocean", "rose", "terminal", "contrast"] as const;
-export const LIGHT_THEMES = ["light", "paper", "sand", "sage", "mist", "contrast"] as const;
+export const DARK_THEMES = ["dark", "studio", "night", "graphite", "midnight", "forest", "ember", "violet", "slate", "mono", "ocean", "rose", "terminal", "amoled", "contrast"] as const;
+export const OLED_THEMES: readonly string[] = ["amoled"];
+export const LIGHT_THEMES =["light", "paper", "sand", "sage", "mist", "contrast"] as const;
 export const ACCENTS = ["#f97316", "#ef4444", "#ec4899", "#a855f7", "#6366f1", "#3b82f6", "#14b8a6", "#22c55e", "#eab308"] as const;
 export const DENSITIES: readonly Density[] = ["compact", "standard", "comfortable"];
 export const CONTRASTS: readonly ContrastPref[] = ["auto", "standard", "high"];

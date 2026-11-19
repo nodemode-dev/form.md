@@ -307,6 +307,10 @@
   border-radius: 16px;
 }
 
+:root[data-theme="dark"][data-oled] .home-feature {
+  background-color: var(--sheet);
+}
+
 .home-feature__title {
   font-size: 21px;
   font-weight: var(--weight-semibold);

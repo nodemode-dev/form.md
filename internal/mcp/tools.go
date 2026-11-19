@@ -22,6 +22,7 @@ type Tool struct {
 	Required    []string
 	Output      map[string]any
 	Write       bool
+	Acts        bool
 	Destructive bool
 	Idempotent  bool
 	Brief       bool
@@ -55,8 +56,8 @@ func (t *Tool) describe() map[string]any {
 	if len(t.Required) > 0 {
 		in["required"] = t.Required
 	}
-	ann := map[string]any{"title": t.Title, "readOnlyHint": !t.Write, "openWorldHint": false}
-	if t.Write {
+	ann := map[string]any{"title": t.Title, "readOnlyHint": !t.Write && !t.Acts, "openWorldHint": false}
+	if t.Write || t.Acts {
 		ann["destructiveHint"] = t.Destructive
 		ann["idempotentHint"] = t.Idempotent
 	}

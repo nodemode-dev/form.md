@@ -28,6 +28,10 @@
   transition: visibility 0s linear 0s;
 }
 
+:root[data-theme="dark"][data-oled] .sidebar {
+  background: var(--sheet);
+}
+
 :root[data-sidebar="collapsed"] .sidebar {
   visibility: hidden;
   transition-delay: var(--dur);
