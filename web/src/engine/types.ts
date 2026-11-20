@@ -85,6 +85,7 @@ export interface SSOProvider {
 
 export interface Boot {
   setup?: boolean;
+  dock?: boolean;
   me?: Me;
   sso?: SSOProvider[];
   signup?: "open" | "closed";

@@ -2,7 +2,7 @@ import type { Engine } from "../../engine";
 import { request } from "../../engine/api";
 import { t } from "../../engine/i18n";
 import type { Unsubscribe } from "../../engine/state";
-import type { AgentDock } from "../../ui/agent-dock";
+import type { AgentDock } from "../../dock-adapter";
 import type { Extension } from "../registry";
 
 const GROUP = () => t("Agents");
@@ -12,7 +12,7 @@ function setup(engine: Engine): void {
   const { commands, keymap, state } = engine;
   let job: Promise<AgentDock> | null = null;
   const dock = () => {
-    job ??= import("../../ui/agent-dock").then((m) => m.mountAgentDock(engine));
+    job ??= import("../../dock-adapter").then((m) => m.mountDock(engine));
     job.catch(() => (job = null));
     return job;
   };
@@ -27,13 +27,14 @@ function setup(engine: Engine): void {
     }, 400);
   };
   commands.onChange = mirror;
+  if (document.documentElement.getAttribute("data-ft-dock") === "open") void dock().catch(() => undefined);
 
   teardown = [
     commands.register({
       id: "dock.toggle",
       label: () => t("Show or hide the terminal"),
       group: GROUP,
-      description: "Shows or hides the bottom panel with terminals, Claude Code and the Claude Code chat.",
+      description: "Shows or hides the panel with terminals, Claude Code and the Claude Code chat, at the bottom or the right of the window.",
       mutates: false,
       run: () => void dock().then((d) => d.toggle(), fail),
     }),
@@ -61,6 +62,14 @@ function setup(engine: Engine): void {
       description: "Opens the Claude Code chat tab: Claude Code answers through form.md's tools, with each tool call shown as it runs.",
       mutates: true,
       run: () => dock().then((d) => d.chat()),
+    }),
+    commands.register({
+      id: "agent.adopt",
+      label: () => t("From Claude Code"),
+      group: GROUP,
+      description: "Brings a conversation from a Claude Code terminal tab into the Chat tab, chosen from a menu.",
+      mutates: true,
+      run: () => dock().then((d) => d.adopt()),
     }),
     keymap.register({ id: "dock.toggle", command: "dock.toggle", chords: ["mod+j"], scope: "global", whileTyping: true }),
     keymap.register({ id: "agent.claude", command: "agent.claude", chords: ["mod+alt+j"], scope: "global", whileTyping: true }),

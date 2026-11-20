@@ -19,7 +19,7 @@ type manifestDock struct {
 	Tabs      []string `json:"tabs"`
 }
 
-var dock = manifestDock{Present: true, Positions: []string{"bottom"}, Tabs: []string{"chat", "terminal", "claude"}}
+var dock = manifestDock{Present: true, Positions: []string{"bottom", "right"}, Tabs: []string{"chat", "terminal", "claude", "codex", "cursor"}}
 
 type manifestSkill struct {
 	Name      string   `json:"name"`
@@ -100,6 +100,7 @@ func shippedSkills(t *testing.T, root string) []manifestSkill {
 
 func TestAgentManifest(t *testing.T) {
 	root := filepath.Join("..", "..")
+	checkDockFolder(t, root)
 	e := newEnv(t, "")
 	owner := e.setupOwner()
 	m := agentManifest{

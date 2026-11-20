@@ -1,6 +1,6 @@
 # Terminal and Claude Code
 
-Since v0.14.0 form.md has a bottom panel with terminals, Claude Code and a Claude Code chat, the same harness formvis and formlit ship.
+Since v0.14.0 form.md has a panel with terminals, Claude Code and a Claude Code chat. Since v0.55.0 it is the terminal panel every Form app shares: it sits at the bottom or the right of the window, in a row or a column of its own, so it does not cover the page.
 
 ## Who can use it
 
@@ -14,13 +14,15 @@ The instance owner, signed in, on a form.md that listens on this computer (`127.
 | `Mod+Alt+J` | Claude Code in a new tab |
 | `Mod+Alt+K` | the Claude Code chat |
 
-Terminal tabs keep running when the panel is hidden or the page reloads; reopening replays the last 256 KiB. Double-click a tab to restart its process, the x closes it. Drag the top edge to resize the panel.
+Terminal tabs keep running when the panel is hidden or the page reloads; reopening replays the last 256 KiB. The Restart button in the panel's head restarts the tab in front, the x closes a tab. Drag the panel's inner edge to resize it. The side button moves the panel between the bottom and the right; the right needs a window at least 768 px wide. The panel remembers its side, its size and the tab in front, and the first time it opens a short guide points at its parts.
+
+The More agents menu opens Codex and Cursor's agent in a tab each when the program is installed, and shows the command that installs it when it is not. Its Connected apps entry opens Account settings.
 
 ## Claude Code
 
 Claude Code must be installed and signed in once (`claude` in any terminal). form.md finds it on the PATH, in the usual install folders, through your login shell, or at `FORMMD_CLAUDE_BIN`. Each tab starts in the data directory's `agent/` folder with this form.md's MCP endpoint attached through a token of its own, listed as "Claude Code tab in form.md" in your account's API tokens while the tab is open. Closing the tab ends its token, and revoking it there cuts that tab off. Chat uses one token named "Claude Code in form.md"; revoke it and the next chat turn gets a new token of the same name.
 
-The chat runs the same Claude Code non-interactively and shows its answer, every form.md tool it calls and the memory it uses. **Open in Claude Code** continues the conversation in a terminal tab; **From Claude Code** brings a tab's conversation into the chat.
+The chat runs the same Claude Code non-interactively and shows its answer, every form.md tool it calls and the memory it uses. **Open in Claude Code** continues the conversation in a terminal tab; the **From Claude Code** command, in Find a command, brings a tab's conversation into the chat.
 
 Outside the app, `./form-md claude` starts Claude Code in your own terminal with form.md's tools, and `./form-md agents install` registers form.md with Claude Code for every project; both need `FORMMD_MCP_TOKEN` set to a personal API token. `agents install` does not put the token on a command line: it registers the header `Authorization: Bearer ${FORMMD_MCP_TOKEN}` and Claude Code reads the variable from its environment when it connects, so keep `FORMMD_MCP_TOKEN` exported in the shell where you start `claude`. For Codex and Cursor the command only prints where to copy the configs from `examples/agents/`.
 
