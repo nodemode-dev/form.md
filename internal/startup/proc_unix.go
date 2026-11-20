@@ -7,12 +7,13 @@ import (
 	"context"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 )
 
 const ticksPerSecond = 100
@@ -37,7 +38,7 @@ func ended(pid int) bool {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), endWait)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, "ps", "-o", "stat=", "-p", strconv.Itoa(pid)).Output()
+	out, err := nowindow.CommandContext(ctx, "ps", "-o", "stat=", "-p", strconv.Itoa(pid)).Output()
 	if err != nil {
 		return false
 	}
@@ -105,7 +106,7 @@ func Created(pid int) float64 {
 			return boot + ticks/ticksPerSecond
 		}
 	}
-	out, err := exec.Command("ps", "-o", "etime=", "-p", strconv.Itoa(pid)).Output()
+	out, err := nowindow.Command("ps", "-o", "etime=", "-p", strconv.Itoa(pid)).Output()
 	if err != nil {
 		return 0
 	}

@@ -15,6 +15,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/nodemode-ai/form.md/internal/ids"
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 )
 
 const scrollback = 256 * 1024
@@ -120,7 +121,7 @@ func clamp(v, lo, hi, def int) uint16 {
 }
 
 func (s *Session) spawn() error {
-	cmd := exec.Command(s.argv[0], s.argv[1:]...)
+	cmd := nowindow.Command(s.argv[0], s.argv[1:]...)
 	cmd.Dir = s.Cwd
 	cmd.Env = s.env
 	f, err := pty.StartWithSize(cmd, &pty.Winsize{Cols: s.cols, Rows: s.rows})
