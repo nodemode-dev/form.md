@@ -163,13 +163,15 @@ fn open_main(handle: &AppHandle, port: u16, key: &str) -> tauri::Result<()> {
 }
 
 fn fail(handle: &AppHandle, text: &str) {
-    close_splash(handle);
     let quit = handle.clone();
     handle
         .dialog()
         .message(text)
         .title("form.md")
-        .show(move |_| quit.exit(1));
+        .show(move |_| {
+            close_splash(&quit);
+            quit.exit(1);
+        });
 }
 
 fn start(handle: AppHandle) {
@@ -187,6 +189,7 @@ fn start(handle: AppHandle) {
                 .env("FORMMD_DESKTOP_KEY", &key)
                 .env("FORMMD_DATA", dir.as_os_str())
                 .env("FORMMD_ADDR", PREFERRED_ADDR)
+                .env("FORMMD_SHELL_PID", std::process::id().to_string())
                 .spawn()
         });
     let (mut rx, child) = match spawned {

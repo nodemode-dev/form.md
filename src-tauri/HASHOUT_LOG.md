@@ -149,3 +149,17 @@ The launch punch list (2026-11-03): the About of a downloaded app says NodeAgent
 - logged: v0.50.0 · 2026-11-07
 
 A top-level Extensions menu between View and Window, per the Form Extension Contract (section 8): Extension Commands... (`extensions.menu`, which opens the window's own Extensions menu listing every contributed command), Extensions Panel, Reload Extensions and Manage in FormPortal. The native bar is built once at start, so the per-extension command items live in the window's menu and the command palette instead of the native menu; rebuilding the native submenu from the window would need a Tauri command and a remote IPC permission, left for later. Not built here (no WebKitGTK in this environment); the items use the same `item` helper and `cmd:` ids as the rest of the bar.
+
+## src/main.rs · a failed start is said before the last window goes, and the server is told who started it {#windows-start}
+
+- refers-to: src/main.rs :: `fail`, `start`
+- kind: fix
+- logged: after v0.56.0 · 2026-11-19
+
+`fail` closed the loading window and then asked for the dialog. When the start fails there is no main window yet, so the loading window is the last one, and closing it first can end the app before the dialog is seen: a silent exit. The dialog is now asked for first, and the loading window is closed and the app exits only in the dialog's own callback, after the person has answered it.
+
+`start` gives the server `FORMMD_SHELL_PID`, this process's id. The server (internal/startup, see internal/HASHOUT_LOG.md #p29-windows-start) writes it into its lock record and stops when that process is gone. This is beside what was already there and is kept: the server stops when its standard input closes, and the app closes that pipe when it quits (`stop_server` drops the child).
+
+Not done, and why. No job object: the family's `win_job.rs` takes a `std::process::Child`, and this app starts its server through tauri-plugin-shell, which gives none; holding the server in a job needs either the start moved to `std::process::Command` or a version of that file that opens the process by its id, and neither was written or type-checked. `engine_start.rs` (the last lines of the server's output in the dialog, a limit on the wait for the address) was not brought in: the dialog still shows the last line the server logged at level ERROR, which for a second start is the sentence "form.md is already running on [folder] (engine process N)." inside the server's log line. The wait for the address has no limit of its own; it ends when the server exits.
+
+Not built and not run: this crate cannot be compiled here (no WebKitGTK), and nothing ran on Windows or macOS. The two edits were read against the types in use in the same file: `Command::env` already takes a `&String` and an `&OsStr` three lines above, and `close_splash` takes `&AppHandle`, which the callback owns as `quit`.
