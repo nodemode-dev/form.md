@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version v0.55.0" src="https://img.shields.io/badge/version-v0.55.0-eef0f4?style=flat-square">
+  <img alt="version v0.56.0" src="https://img.shields.io/badge/version-v0.56.0-eef0f4?style=flat-square">
   <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=flat-square&logo=go&logoColor=white">
   <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -94,7 +94,7 @@ The window's commands, the REST API and the MCP server all act on the same pages
 ```sh
 ./form-md cli list              # every command in the open window
 ./form-md cli describe ID       # one command with its typed parameters
-./form-md mcp                   # MCP server on stdio for Claude Code, Codex and Cursor
+./form-md mcp                   # MCP server on stdio for Claude Code, Codex, Cursor and Antigravity
 ```
 
 `.mcp.json` and `.cursor/mcp.json` are already wired in this repo. The server also answers MCP over HTTP at `/mcp` and publishes its REST reference at `/api/docs`. See [`AGENTS.md`](AGENTS.md).

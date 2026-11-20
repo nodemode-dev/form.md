@@ -11,7 +11,8 @@ import { type MenuEntry, openMenu } from "./ui/menu";
 
 export const DOCK_KEY = "formmd.dock";
 const OLD_HEIGHT_KEY = "formmd.dock.h";
-const KINDS: DockKind[] = ["shell", "claude", "codex", "cursor", "chat"];
+type Fourth = "antigravity";
+const KINDS: Array<DockKind | Fourth> = ["shell", "claude", "codex", "cursor", "antigravity", "chat"];
 const OFF = "The terminal and Claude Code run only on a form.md on this computer, for the instance owner. Set FORMMD_TERMINAL=on to allow them on a server.";
 
 interface TermInfo { id: string; title: string; kind: string; alive: boolean; cwd?: string }
@@ -44,8 +45,8 @@ function monoFamily(): string {
   return getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() || "JetBrains Mono, monospace";
 }
 
-function record(info: TermInfo): DockTerminal {
-  const kind = info.kind === "claude" || info.kind === "codex" || info.kind === "cursor" ? info.kind : "shell";
+function record(info: TermInfo): DockTerminal<Fourth> {
+  const kind = info.kind === "claude" || info.kind === "codex" || info.kind === "cursor" || info.kind === "antigravity" ? info.kind : "shell";
   return { id: info.id, title: kind === "claude" ? t("Claude Code") : info.title, alive: info.alive, kind, ...(info.cwd ? { tip: info.cwd } : {}) };
 }
 
@@ -175,19 +176,21 @@ export async function mountDock(engine: Engine): Promise<AgentDock> {
   const host = document.getElementById("app");
   if (!host) throw new Error("form.md: no #app");
 
-  let dock: Dock | null = null;
+  let dock: Dock<Fourth> | null = null;
   let fonts: Promise<unknown> | null = null;
   const ready = (): Promise<unknown> => {
     fonts ??= document.fonts.load(`13px ${monoFamily()}`).catch(() => []);
     return fonts;
   };
-  const programs = async (): Promise<DockAgentStatus | null> => {
+  const programs = async (): Promise<DockAgentStatus<Fourth> | null> => {
     try {
-      const r = await request<Partial<Record<"claude" | "codex" | "cursor", DockProgramStatus>>>(fetchFn, "GET", "/api/dock/agents");
-      const out: DockAgentStatus = {};
-      for (const name of ["claude", "codex", "cursor"] as const) {
+      const r = await request<Partial<Record<"claude" | "codex" | "cursor" | Fourth, DockProgramStatus & { finding?: string; said?: string }>>>(fetchFn, "GET", "/api/dock/agents");
+      const out: DockAgentStatus<Fourth> = {};
+      for (const name of ["claude", "codex", "cursor", "antigravity"] as const) {
         const p = r[name];
-        if (p && kinds.includes(name)) out[name] = { installed: p.installed === true, version: p.version ?? null, install: p.install ?? "", signedIn: p.signedIn ?? null };
+        if (p && kinds.includes(name)) {
+          out[name] = { installed: p.installed === true, version: p.version ?? null, install: p.install ?? "", signedIn: p.signedIn ?? null, ...(p.said && p.finding !== "runs" ? { note: p.said } : {}) };
+        }
       }
       return out;
     } catch {
@@ -386,7 +389,7 @@ export async function mountDock(engine: Engine): Promise<AgentDock> {
     },
   };
 
-  const adapter: DockAdapter = {
+  const adapter: DockAdapter<Fourth> = {
     words: { app: "form.md", noun: "page", lead: "Ask Claude Code about this workspace.", example: "add a table of this week's tasks" },
     strings: {
       terminal: "Terminal and Claude Code",

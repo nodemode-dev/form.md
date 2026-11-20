@@ -104,7 +104,9 @@ func (s *Service) gate(r *http.Request, p *policy.Principal) error {
 	return nil
 }
 
-func (s *Service) env() []string { return childEnv(EngineURL(s.addr)) }
+func (s *Service) env() []string { return s.envFor("") }
+
+func (s *Service) envFor(path string) []string { return childEnv(EngineURL(s.addr), path) }
 
 func (s *Service) tabToken(ctx context.Context, p *policy.Principal, title string) (string, string, func(), error) {
 	token, id, err := s.Auth.TabToken(ctx, p.UserID, title+" tab in form.md")
@@ -123,9 +125,9 @@ func (s *Service) openClaude(ctx context.Context, p *policy.Principal, prompt, r
 	} else if prompt != "" {
 		extra = append(extra, prompt)
 	}
-	info := Detect(s.env(), false)
-	if !info.Installed {
-		return nil, httpx.Fail(http.StatusBadRequest, "claude_missing", Install)
+	info := findProgram(EngineURL(s.addr), "claude")
+	if info.State != "runs" {
+		return nil, httpx.Fail(http.StatusBadRequest, "claude_missing", said(info))
 	}
 	token, id, revoke, err := s.tabToken(ctx, p, "Claude Code")
 	if err != nil {
@@ -144,7 +146,7 @@ func (s *Service) openClaude(ctx context.Context, p *policy.Principal, prompt, r
 	if cwd == "" {
 		cwd = agentDir(s.dataDir)
 	}
-	sess, err := s.Terms.Open(p.UserID, title, "claude", cwd, argv, s.env(), cols, rows)
+	sess, err := s.Terms.Open(p.UserID, title, "claude", cwd, argv, s.envFor(info.Path), cols, rows)
 	if err != nil {
 		end()
 		return nil, httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
@@ -154,14 +156,14 @@ func (s *Service) openClaude(ctx context.Context, p *policy.Principal, prompt, r
 }
 
 func (s *Service) openAgent(ctx context.Context, p *policy.Principal, prog Program, cwd string, cols, rows int) (*Session, error) {
-	path := findProgram(s.env(), prog.Bin)
-	if path == "" {
-		return nil, httpx.Fail(http.StatusBadRequest, "agent_missing", prog.Title+" is not installed on the computer form.md runs on").With("install", prog.Install)
+	found := findProgram(EngineURL(s.addr), prog.Kind)
+	if found.State != "runs" {
+		return nil, httpx.Fail(http.StatusBadRequest, "agent_missing", said(found)).With("install", prog.Install)
 	}
 	if cwd == "" {
 		cwd = agentDir(s.dataDir)
 	}
-	argv := []string{path}
+	argv := []string{found.Path}
 	if prog.Kind == "codex" {
 		argv = append(argv, codexArgs(EngineURL(s.addr))...)
 	}
@@ -172,12 +174,23 @@ func (s *Service) openAgent(ctx context.Context, p *policy.Principal, prog Progr
 	if err != nil {
 		return nil, err
 	}
-	sess, err := s.Terms.Open(p.UserID, prog.Title, prog.Kind, cwd, Launch(argv), append(s.env(), TabTokenVar+"="+token), cols, rows)
+	end := revoke
+	if prog.Kind == "antigravity" {
+		if _, err := AntigravityConfig(cwd, EngineURL(s.addr), token); err != nil {
+			revoke()
+			return nil, httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
+		}
+		end = func() {
+			revoke()
+			AntigravityForget(cwd, token)
+		}
+	}
+	sess, err := s.Terms.Open(p.UserID, prog.Title, prog.Kind, cwd, Launch(argv), append(s.envFor(found.Path), TabTokenVar+"="+token), cols, rows)
 	if err != nil {
-		revoke()
+		end()
 		return nil, httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
 	}
-	sess.OnClose(revoke)
+	sess.OnClose(end)
 	return sess, nil
 }
 
@@ -197,7 +210,7 @@ func (s *Service) kinds(r *http.Request, p *policy.Principal) ([]string, string,
 	if runtimeWindows() {
 		return []string{"chat"}, "", ""
 	}
-	return []string{"shell", "claude", "codex", "cursor", "chat"}, "", ""
+	return []string{"shell", "claude", "codex", "cursor", "antigravity", "chat"}, "", ""
 }
 
 func (s *Service) terminalOf(p *policy.Principal, id string) (*Session, error) {
@@ -215,7 +228,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		on := s.enabled() && p.IsOwner() && (s.forced() || Direct(r))
 		out := map[string]any{"enabled": on, "windows": runtimeWindows(), "folder": agentDir(s.dataDir), "engine_url": EngineURL(s.addr), "contract": DockContract}
 		if on {
-			out["claude"] = Detect(s.env(), r.URL.Query().Get("fresh") == "1")
+			out["claude"] = Detect(EngineURL(s.addr), r.URL.Query().Get("fresh") == "1")
 			out["terminal"] = nil
 			if running := s.Terms.RunningClaude(p.UserID); running != nil {
 				out["terminal"] = running.Snapshot()
@@ -234,7 +247,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 			return err
 		}
 		out := map[string]any{"contract": DockContract}
-		for kind, info := range AgentStatus(s.env(), r.URL.Query().Get("fresh") == "1") {
+		for kind, info := range AgentStatus(EngineURL(s.addr), r.URL.Query().Get("fresh") == "1") {
 			out[kind] = info
 		}
 		httpx.JSON(w, http.StatusOK, out)
@@ -449,9 +462,9 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		if busy {
 			return httpx.Fail(http.StatusConflict, "busy", "Claude is still answering; wait or press Stop")
 		}
-		info := Detect(s.env(), true)
+		info := Detect(EngineURL(s.addr), true)
 		if !info.Installed {
-			return httpx.Fail(http.StatusBadRequest, "claude_missing", Install)
+			return httpx.Fail(http.StatusBadRequest, "claude_missing", info.Said)
 		}
 		token, err := s.Auth.AppToken(r.Context(), p.UserID)
 		if err != nil {
@@ -499,7 +512,7 @@ func (m module) Mount(r *httpx.Router, d *app.Deps) error {
 		send("start", map[string]any{"text": shown, "note": strings.TrimSpace(in.Note)})
 		done := make(chan struct{})
 		go func() {
-			ch.run(chatArgv(info.Path, prompt, session, mcpFile), agentDir(s.dataDir), s.env(), send)
+			ch.run(chatArgv(info.Path, prompt, session, mcpFile), agentDir(s.dataDir), s.envFor(info.Path), send)
 			close(done)
 		}()
 		select {

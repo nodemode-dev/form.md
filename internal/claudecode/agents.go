@@ -1,15 +1,14 @@
 package claudecode
 
 import (
-	"context"
 	"encoding/json"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/nodemode-ai/form.md/internal/agentlookup"
 )
 
 const DockContract = "2.0.1"
@@ -22,38 +21,28 @@ const MCPURLVar = "FORMMD_MCP_URL"
 
 type Program struct {
 	Kind    string
-	Bin     string
 	Title   string
 	Install string
 }
 
-var Programs = []Program{
-	{Kind: "codex", Bin: "codex", Title: "Codex", Install: "npm install -g @openai/codex"},
-	{Kind: "cursor", Bin: "cursor-agent", Title: "Cursor", Install: "curl https://cursor.com/install -fsS | bash"},
-}
+var Tabs = []string{"codex", "cursor", "antigravity"}
 
-func ClaudeInstall() string {
-	if runtime.GOOS == "windows" {
-		return "irm https://claude.ai/install.ps1 | iex"
-	}
-	return "curl -fsSL https://claude.ai/install.sh | bash"
-}
+func ClaudeInstall() string { return agentlookup.Install("claude", "") }
 
 func programOf(kind string) (Program, bool) {
-	for _, p := range Programs {
-		if p.Kind == kind {
-			return p, true
+	for _, k := range Tabs {
+		if k == kind {
+			return Program{Kind: kind, Title: agentlookup.Programs[kind].Title, Install: agentlookup.Install(kind, "")}, true
 		}
 	}
 	return Program{}, false
 }
 
 type AgentInfo struct {
-	Title     string  `json:"title"`
-	Installed bool    `json:"installed"`
-	Version   *string `json:"version"`
-	Install   string  `json:"install"`
-	SignedIn  *bool   `json:"signedIn"`
+	Title string `json:"title"`
+	agentlookup.Status
+	Install  string `json:"install"`
+	SignedIn *bool  `json:"signedIn"`
 }
 
 var agentCache struct {
@@ -62,48 +51,12 @@ var agentCache struct {
 	out map[string]AgentInfo
 }
 
-func findProgram(env []string, bin string) string {
-	if p, err := exec.LookPath(bin); err == nil {
-		if abs, err := filepath.Abs(p); err == nil {
-			return abs
-		}
-		return p
+func findProgram(engineURL, kind string) agentlookup.Found {
+	found := located(engineURL, kind, false)
+	if found.State != "runs" {
+		found = located(engineURL, kind, true)
 	}
-	if runtime.GOOS == "windows" {
-		return ""
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	sh := loginShell()
-	cmd := exec.CommandContext(ctx, sh[0], append(sh[1:], "-c", "command -v '"+strings.ReplaceAll(bin, "'", `'\''`)+"'")...)
-	cmd.Env = env
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	last := strings.TrimSpace(lines[len(lines)-1])
-	if filepath.IsAbs(last) && runnable(last) {
-		return last
-	}
-	return ""
-}
-
-func programVersion(env []string, path string) *string {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, path, "--version")
-	cmd.Env = env
-	out, err := cmd.Output()
-	if err != nil {
-		return nil
-	}
-	for _, word := range strings.Fields(string(out)) {
-		if word[0] >= '0' && word[0] <= '9' {
-			return &word
-		}
-	}
-	return nil
+	return found
 }
 
 func claudeSignedIn(env []string, path string) *bool {
@@ -111,44 +64,31 @@ func claudeSignedIn(env []string, path string) *bool {
 	if os.Getenv("ANTHROPIC_API_KEY") != "" || os.Getenv("CLAUDE_CODE_OAUTH_TOKEN") != "" {
 		return &yes
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, path, "auth", "status")
-	cmd.Env = env
-	out, _ := cmd.Output()
+	res, _ := agentlookup.Run([]string{path, "auth", "status"}, env, 15*time.Second, "")
 	var data struct {
 		LoggedIn *bool `json:"loggedIn"`
 	}
-	if json.Unmarshal(out, &data) != nil {
+	if json.Unmarshal([]byte(res.Stdout), &data) != nil {
 		return nil
 	}
 	return data.LoggedIn
 }
 
-func AgentStatus(env []string, fresh bool) map[string]AgentInfo {
-	claude := Detect(env, fresh)
+func AgentStatus(engineURL string, fresh bool) map[string]AgentInfo {
 	agentCache.Lock()
 	defer agentCache.Unlock()
 	if !fresh && agentCache.out != nil && time.Since(agentCache.at) < time.Minute {
 		return agentCache.out
 	}
 	out := map[string]AgentInfo{}
-	info := AgentInfo{Title: "Claude Code", Installed: claude.Installed, Install: ClaudeInstall()}
-	if claude.Installed {
-		if claude.Version != "" {
-			v := claude.Version
-			info.Version = &v
+	for _, kind := range agentlookup.Order {
+		found := located(engineURL, kind, fresh)
+		install := agentlookup.Install(kind, "")
+		a := AgentInfo{Title: found.Title, Status: agentlookup.Answer(found, install, Otherwise), Install: install}
+		if kind == "claude" && a.Installed {
+			a.SignedIn = claudeSignedIn(childEnv(engineURL, found.Path), found.Path)
 		}
-		info.SignedIn = claudeSignedIn(env, claude.Path)
-	}
-	out["claude"] = info
-	for _, p := range Programs {
-		a := AgentInfo{Title: p.Title, Install: p.Install}
-		if path := findProgram(env, p.Bin); path != "" {
-			a.Installed = true
-			a.Version = programVersion(env, path)
-		}
-		out[p.Kind] = a
+		out[kind] = a
 	}
 	agentCache.at, agentCache.out = time.Now(), out
 	return out
