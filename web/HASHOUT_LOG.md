@@ -2382,3 +2382,17 @@ Why each choice:
 - **Wording.** The module's sentences pass through `t` by their English text, so those form.md already had in its catalogs stay translated and the rest show in English; no catalog was touched. Sentences that were untrue here (helper panel, this computer, Outside agents) are overridden in the adapter.
 
 Lost for now, each because the module has no place for it: double-click on a tab to restart it; the tooltip layer (`data-tip`) on the panel's buttons, which have native titles; "[process ended: restart or close this tab]" printed in the terminal (the tab is struck through with a tooltip instead); a rebound chord shows in the Hide tooltip only after a reload.
+
+## Unreleased · the shared panel at module 2.2.0, and Antigravity as the fourth agent tab {#family-dock-2-2}
+
+- refers-to: web/src/dock (all 16 entries, copied); web/src/dock-adapter.ts (`Fourth`, `KINDS`, `record`, `programs`, `adapter`); internal/server/dock_files_test.go (`dockModule`); internal/server/agents_manifest_test.go (`dock`); agents/manifest.json
+- kind: feat
+- logged: unreleased · 2026-11-19
+
+`web/src/dock` is FormVis's `frontend/src/dock` at commit ddc893ae, byte for byte: 15 files and MANIFEST.json, module 2.2.0 (`agents.ts` is new). Nothing in that folder is edited here; `TestDockFolder` holds each file to the manifest's hash and the module to 2.2.0.
+
+The adapter is typed `DockAdapter<"antigravity">`. `antigravity` is in `KINDS`, so it is in `tabs().builtin` when the engine's `GET /api/dock` lists it; `record` keeps the kind of an Antigravity tab; `programs` reads the fourth key from `GET /api/dock/agents`. A program that is not running gives the engine's own sentence (`said`) as `note`, so a row says where the engine looked or why the program does not start. `terminal.open` already passed the kind through to `POST /api/terminal`.
+
+agents/manifest.json, written by `./form-md agents manifest`: the dock's tabs list `antigravity`.
+
+Checked: `tsc --noEmit -p web/tsconfig.json` is clean with the copied folder and the adapter change; `TestDockFolder` and `TestAgentManifest` pass. Not looked at in a browser, so the fourth button, its row in the More agents menu and the guide line are not seen here; the engine side (status, tab, banner, the folder file) is in internal/HASHOUT_LOG.md #p28-agent-finder.

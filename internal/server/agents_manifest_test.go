@@ -19,7 +19,7 @@ type manifestDock struct {
 	Tabs      []string `json:"tabs"`
 }
 
-var dock = manifestDock{Present: true, Positions: []string{"bottom", "right"}, Tabs: []string{"chat", "terminal", "claude", "codex", "cursor"}}
+var dock = manifestDock{Present: true, Positions: []string{"bottom", "right"}, Tabs: []string{"chat", "terminal", "claude", "codex", "cursor", "antigravity"}}
 
 type manifestSkill struct {
 	Name      string   `json:"name"`
