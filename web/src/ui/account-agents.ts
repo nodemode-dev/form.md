@@ -19,6 +19,7 @@ function snippets(url: string): [string, string][] {
     ["Claude Code", `claude mcp add --transport http form-md ${url}`],
     ["Codex (~/.codex/config.toml)", `[mcp_servers.form-md]\ncommand = "form-md"\nargs = ["mcp", "--url", "${url.replace(/\/mcp$/, "")}"]\nenv = { FORMMD_MCP_TOKEN = "fmd_..." }`],
     ["Cursor (.cursor/mcp.json), VS Code and others", JSON.stringify({ mcpServers: { "form-md": { url } } }, null, 2)],
+    ["Antigravity (~/.gemini/config/mcp_config.json)", JSON.stringify({ mcpServers: { "form-md": { command: "form-md", args: ["mcp", "--url", url.replace(/\/mcp$/, "")], env: { FORMMD_MCP_TOKEN: "fmd_..." } } } }, null, 2)],
     [t("Any MCP client"), url],
   ];
 }

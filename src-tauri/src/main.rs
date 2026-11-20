@@ -1,7 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod engine_start;
 mod menu;
 mod reveal;
+#[cfg(windows)]
+mod win_job;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -26,6 +29,22 @@ struct Server {
     child: Mutex<Option<CommandChild>>,
     stopped: Arc<AtomicBool>,
     quitting: AtomicBool,
+}
+
+enum Late {
+    Closed,
+    Address,
+    Exit,
+}
+
+type ServerStep = Result<CommandEvent, Late>;
+
+fn start_limit(late: &tauri::async_runtime::Sender<ServerStep>, limit: Duration, what: Late) {
+    let late = late.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(limit);
+        let _ = late.blocking_send(Err(what));
+    });
 }
 
 fn desktop_key() -> String {
@@ -174,6 +193,16 @@ fn fail(handle: &AppHandle, text: &str) {
         });
 }
 
+fn fail_start(handle: &AppHandle, failure: engine_start::Failure, tail: &engine_start::Tail) {
+    let lines = tail.lines();
+    let log = handle
+        .path()
+        .app_log_dir()
+        .ok()
+        .and_then(|folder| engine_start::keep(&folder, &lines));
+    fail(handle, &engine_start::message(&failure, &lines, log.as_deref()));
+}
+
 fn start(handle: AppHandle) {
     let dir = data_dir(&handle);
     if let Err(err) = std::fs::create_dir_all(&dir) {
@@ -189,60 +218,90 @@ fn start(handle: AppHandle) {
                 .env("FORMMD_DESKTOP_KEY", &key)
                 .env("FORMMD_DATA", dir.as_os_str())
                 .env("FORMMD_ADDR", PREFERRED_ADDR)
-                .env("FORMMD_SHELL_PID", std::process::id().to_string())
+                .env(engine_start::SHELL_ENV, std::process::id().to_string())
                 .spawn()
         });
     let (mut rx, child) = match spawned {
         Ok(Ok(pair)) => pair,
         Ok(Err(err)) | Err(err) => {
-            fail(&handle, &format!("The form.md server could not start: {err}"));
+            fail_start(&handle, engine_start::Failure::NotStarted(err.to_string()), &engine_start::Tail::default());
             return;
         }
     };
+    #[cfg(windows)]
+    win_job::hold_pid(child.pid());
     let server = handle.state::<Server>();
     server.child.lock().unwrap().replace(child);
     let stopped = server.stopped.clone();
     tauri::async_runtime::spawn(async move {
-        let mut port: Option<u16> = None;
-        let mut errors: Vec<String> = Vec::new();
-        while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Stdout(bytes) if port.is_none() => {
-                    let line = String::from_utf8_lossy(&bytes);
-                    if let Some(rest) = line.trim().strip_prefix(READY) {
-                        if let Ok(found) = rest.trim_end_matches('/').parse::<u16>() {
-                            port = Some(found);
-                            match open_main(&handle, found, &key) {
-                                Ok(()) => {}
-                                Err(err) => {
-                                    fail(&handle, &format!("form.md could not open its window: {err}"));
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-                CommandEvent::Stderr(bytes) if port.is_none() => {
-                    let line = String::from_utf8_lossy(&bytes).trim().to_string();
-                    if line.contains("level=ERROR") {
-                        errors.push(line);
-                    }
-                }
-                CommandEvent::Terminated(_) => {
+        let (tx, mut steps) = tauri::async_runtime::channel::<ServerStep>(64);
+        let late = tx.clone();
+        tauri::async_runtime::spawn(async move {
+            while let Some(event) = rx.recv().await {
+                if matches!(event, CommandEvent::Terminated(_)) {
                     stopped.store(true, Ordering::SeqCst);
+                }
+                let _ = tx.send(Ok(event)).await;
+            }
+            let _ = tx.send(Err(Late::Closed)).await;
+        });
+        start_limit(&late, engine_start::ADDRESS_WAIT, Late::Address);
+        let mut port: Option<u16> = None;
+        let mut tail = engine_start::Tail::default();
+        let mut ended: Option<engine_start::Failure> = None;
+        while let Some(step) = steps.recv().await {
+            let text = match step {
+                Ok(CommandEvent::Stdout(bytes)) | Ok(CommandEvent::Stderr(bytes)) => String::from_utf8_lossy(&bytes).into_owned(),
+                Ok(CommandEvent::Terminated(exit)) => {
                     if handle.state::<Server>().quitting.load(Ordering::SeqCst) {
                         return;
                     }
-                    let detail = errors.last().cloned().unwrap_or_default();
-                    let text = if port.is_none() {
-                        format!("The form.md server stopped before it was ready.\n\n{detail}")
-                    } else {
-                        "The form.md server stopped unexpectedly. Open form.md again to continue; your work is saved.".to_string()
-                    };
-                    fail(&handle, text.trim());
+                    if port.is_some() {
+                        fail(
+                            &handle,
+                            "The form.md server stopped unexpectedly. Open form.md again to continue; your work is saved.",
+                        );
+                        return;
+                    }
+                    ended = Some(engine_start::Failure::Stopped(exit.code));
+                    start_limit(&late, engine_start::EXIT_WAIT, Late::Exit);
+                    continue;
+                }
+                Ok(_) => continue,
+                Err(Late::Address) if port.is_some() || ended.is_some() => continue,
+                Err(Late::Address) => {
+                    if handle.state::<Server>().quitting.load(Ordering::SeqCst) {
+                        return;
+                    }
+                    fail_start(&handle, engine_start::Failure::TimedOut, &tail);
                     return;
                 }
-                _ => {}
+                Err(Late::Closed) | Err(Late::Exit) => {
+                    if port.is_some() || handle.state::<Server>().quitting.load(Ordering::SeqCst) {
+                        return;
+                    }
+                    fail_start(&handle, ended.take().unwrap_or(engine_start::Failure::Stopped(None)), &tail);
+                    return;
+                }
+            };
+            for line in text.lines() {
+                if port.is_none() {
+                    tail.push(line);
+                }
+                if port.is_some() || ended.is_some() {
+                    continue;
+                }
+                let Some(rest) = line.trim().strip_prefix(READY) else {
+                    continue;
+                };
+                let Ok(found) = rest.trim_end_matches('/').parse::<u16>() else {
+                    continue;
+                };
+                port = Some(found);
+                if let Err(err) = open_main(&handle, found, &key) {
+                    fail_start(&handle, engine_start::Failure::Window(err.to_string()), &engine_start::Tail::default());
+                    return;
+                }
             }
         }
     });
@@ -261,6 +320,8 @@ fn stop_server(handle: &AppHandle) {
         std::thread::sleep(Duration::from_millis(50));
     }
     if !server.stopped.load(Ordering::SeqCst) {
+        #[cfg(windows)]
+        win_job::end();
         #[cfg(unix)]
         let _ = std::process::Command::new("kill").args(["-KILL", &pid.to_string()]).status();
         #[cfg(windows)]

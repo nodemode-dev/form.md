@@ -44,6 +44,8 @@ func run(args []string) int {
 		return bridge(args[1:])
 	case "cli":
 		return cli(args[1:])
+	case "where":
+		return where(args[1:])
 	case "help", "--help", "-h":
 		usage(os.Stdout)
 		return 0
@@ -157,6 +159,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "  encrypt               encrypt a plain data directory with FORMMD_KEY_FILE (server stopped)")
 	fmt.Fprintln(w, "  mcp                   bridge MCP between standard input and output and a form.md server, for Codex and other clients that start a command; a server on this computer that is not running is started")
 	fmt.Fprintln(w, "  cli list|describe|run  the command catalogue of the open window: list [text], describe ID, run ID key=value ...")
+	fmt.Fprintln(w, "  where PROGRAM         print where Claude Code, Codex, Cursor or Antigravity is (claude, codex, cursor, antigravity), found the way the server finds it")
 	fmt.Fprintln(w, "  version               print the version")
 	fmt.Fprintln(w, "  help                  show this help")
 	fmt.Fprintln(w, "\nEnvironment:")

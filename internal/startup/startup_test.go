@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -31,6 +32,24 @@ func standIn(t *testing.T) *exec.Cmd {
 func finish(cmd *exec.Cmd) {
 	_ = cmd.Process.Kill()
 	_, _ = cmd.Process.Wait()
+}
+
+func stopped(t *testing.T, pid int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		state := ""
+		if fields := stat(pid); len(fields) > 0 {
+			state = fields[0]
+		} else if out, err := exec.Command("ps", "-o", "stat=", "-p", strconv.Itoa(pid)).Output(); err == nil {
+			state = strings.TrimSpace(string(out))
+		}
+		if strings.HasPrefix(state, "T") {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("the stand-in %d did not stop", pid)
 }
 
 func write(t *testing.T, dir string, rec Record) {
@@ -64,6 +83,32 @@ func TestAProcessIsAliveUntilItEndsAndItsCreationTimeIsRead(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	if Alive(cmd.Process.Pid) {
 		t.Errorf("a process that ended and was not yet collected counts as alive")
+	}
+}
+
+func TestWhereThereIsNoProcFolderAnEndedProcessNotYetCollectedCountsAsGone(t *testing.T) {
+	real := procDir
+	procDir = filepath.Join(t.TempDir(), "no-proc-here")
+	t.Cleanup(func() { procDir = real })
+	cmd := standIn(t)
+	pid := cmd.Process.Pid
+	if !Alive(pid) || !Alive(os.Getpid()) {
+		t.Fatalf("a running process must count as alive where there is no proc folder")
+	}
+	now := float64(time.Now().UnixNano()) / 1e9
+	if at := Created(pid); at < now-10 || at > now+10 {
+		t.Errorf("the stand-in was created at %v, now is %v", at, now)
+	}
+	_ = cmd.Process.Kill()
+	time.Sleep(100 * time.Millisecond)
+	if err := syscall.Kill(pid, 0); err != nil {
+		t.Fatalf("the ended stand-in no longer answers a signal, so this proves nothing: %v", err)
+	}
+	if Alive(pid) {
+		t.Errorf("a process that ended and was not yet collected counts as alive where there is no proc folder")
+	}
+	if !gone(pid, time.Second) {
+		t.Errorf("the wait for an ended process ran out")
 	}
 }
 
@@ -135,6 +180,7 @@ func TestAStoppedEngineWhoseShellIsGoneIsKilledAfterTheWait(t *testing.T) {
 	write(t, dir, Record{PID: engine.Process.Pid, Born: Created(engine.Process.Pid), Shell: shell.Process.Pid, ShellBorn: Created(shell.Process.Pid)})
 	finish(shell)
 	_ = engine.Process.Signal(syscall.SIGSTOP)
+	stopped(t, engine.Process.Pid)
 	began := time.Now()
 	_, replaced, err := Claim(dir, 0)
 	if err != nil || replaced != engine.Process.Pid {

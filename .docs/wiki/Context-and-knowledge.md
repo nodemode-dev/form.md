@@ -13,7 +13,7 @@ Agents do their best work when they start a task with exactly the context it nee
 | `internal/mcp/tools_context.go` | The `context_pack` and `knowledge_*` tools, the skill as MCP prompts and resources |
 | `cmd/form-md/bridge.go` | `form-md mcp`, the stdio bridge for clients that start a command |
 | `tools/skillcheck/` | `make check` step: `policy.json` parses and passes its rules, frontmatter and routing are right |
-| `examples/agents/` | Configs to copy for Claude Code, Codex and Cursor |
+| `examples/agents/` | Configs to copy for Claude Code, Codex, Cursor and Antigravity |
 
 ## The tools
 

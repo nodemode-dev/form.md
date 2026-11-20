@@ -1044,7 +1044,7 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 
 [[package]]
 name = "form-md-desktop"
-version = "0.57.0"
+version = "0.58.0"
 dependencies = [
  "getrandom 0.3.4",
  "objc2",
@@ -1055,6 +1055,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-shell",
  "tauri-plugin-single-instance",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

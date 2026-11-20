@@ -85,7 +85,7 @@ For Cursor, VS Code and other clients that read an `mcp.json`:
 
 The first call opens a page in form.md asking which workspaces the agent may use and whether it may read only or read and edit. A personal API token also works as a Bearer token on `/mcp`.
 
-`./form-md agents install` adds the same server to Claude Code for every project. It needs a personal API token in `FORMMD_MCP_TOKEN`, but it does not put the token on a command line or in Claude Code's saved settings: the header it registers is `Authorization: Bearer ${FORMMD_MCP_TOKEN}`, and Claude Code fills it in from its own environment each time it connects. Keep `FORMMD_MCP_TOKEN` exported in the shell where you start `claude`. For Codex and Cursor the command only prints where to copy the ready-made configs from `examples/agents/`.
+`./form-md agents install` adds the same server to Claude Code for every project. It needs a personal API token in `FORMMD_MCP_TOKEN`, but it does not put the token on a command line or in Claude Code's saved settings: the header it registers is `Authorization: Bearer ${FORMMD_MCP_TOKEN}`, and Claude Code fills it in from its own environment each time it connects. Keep `FORMMD_MCP_TOKEN` exported in the shell where you start `claude`. For Codex, Cursor and Antigravity the command only prints where to copy the ready-made configs from `examples/agents/`.
 
 ### What a read-only credential can do
 
