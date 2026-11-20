@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nodemode-ai/form.md/internal/agentlookup"
 )
 
 func dockStandIns(t *testing.T) (string, string) {
@@ -24,17 +26,17 @@ func dockStandIns(t *testing.T) (string, string) {
 	claude := write("claude", `case "$1" in --version) echo "9.9.9 (stand-in)"; exit 0;; auth) echo '{"loggedIn": true}'; exit 0;; esac
 prev=""; for a in "$@"; do if [ "$prev" = "--mcp-config" ]; then printf '%s' "$a" > '`+out+`/claude.cfg'; fi; prev="$a"; done
 echo started; read line`)
-	for _, name := range []string{"codex", "cursor-agent"} {
+	for _, name := range []string{"codex", "cursor-agent", "agy"} {
 		write(name, `case "$1" in --version) echo "1.2.3"; exit 0;; esac
 printf '%s\n' "$*" > '`+out+`/`+name+`.args'
 printf '%s' "$FORMMD_TAB_TOKEN" > '`+out+`/`+name+`.token'
-echo started; read line`)
+echo "`+name+` stand-in started"; read line`)
 	}
 	t.Setenv("FORMMD_TERMINAL", "")
 	t.Setenv("FORMMD_CLAUDE_BIN", claude)
 	t.Setenv("FORMMD_AGENT_DIR", "")
-	t.Setenv("SHELL", "/bin/sh")
 	t.Setenv("HOME", t.TempDir())
+	agentlookup.Forget()
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+"/usr/bin"+string(os.PathListSeparator)+"/bin")
 	return bin, out
 }
@@ -59,17 +61,25 @@ func TestAgentTabsGetTheirOwnTokenWhichEndsWithTheTab(t *testing.T) {
 	e := newEnv(t, "")
 	owner := e.setupOwner()
 	dock := owner.mustJSON("GET", "/api/dock", nil, http.StatusOK)
-	if dock["contract"] != "2.0.1" || dock["consent"] != "credential" || len(dock["kinds"].([]any)) != 5 {
+	if dock["contract"] != "2.0.1" || dock["consent"] != "credential" || len(dock["kinds"].([]any)) != 6 {
 		t.Fatalf("availability: %v", dock)
 	}
 	status := owner.mustJSON("GET", "/api/dock/agents", nil, http.StatusOK)
-	for _, kind := range []string{"claude", "codex", "cursor"} {
-		if a, _ := status[kind].(map[string]any); a == nil || a["installed"] != true || a["version"] == nil || a["install"] == "" {
+	for _, kind := range []string{"claude", "codex", "cursor", "antigravity"} {
+		if a, _ := status[kind].(map[string]any); a == nil || a["installed"] != true || a["version"] == nil || a["install"] == "" || a["finding"] != "runs" || a["said"] == "" {
 			t.Errorf("status of %s: %v", kind, status[kind])
 		}
 	}
+	folder, _ := owner.mustJSON("GET", "/api/claude", nil, http.StatusOK)["folder"].(string)
+	shared := filepath.Join(folder, ".agents", "mcp_config.json")
+	if err := os.MkdirAll(filepath.Dir(shared), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(shared, []byte(`{"mcpServers":{"mine":{"serverUrl":"https://example.test/mcp"}},"other":1}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	ids := map[string]string{}
-	for _, kind := range []string{"shell", "claude", "codex", "cursor"} {
+	for _, kind := range []string{"shell", "claude", "codex", "cursor", "antigravity"} {
 		tab := owner.mustJSON("POST", "/api/terminal", map[string]any{"kind": kind, "cols": 80, "rows": 24}, http.StatusCreated)
 		if tab["kind"] != kind {
 			t.Fatalf("asked for %s, got %v", kind, tab)
@@ -94,7 +104,7 @@ func TestAgentTabsGetTheirOwnTokenWhichEndsWithTheTab(t *testing.T) {
 	for _, tab := range listed.Terminals {
 		order = append(order, tab.Kind)
 	}
-	if strings.Join(order, " ") != "shell claude codex cursor" {
+	if strings.Join(order, " ") != "shell claude codex cursor antigravity" {
 		t.Errorf("the list is not oldest first: %v", order)
 	}
 	cfg := waitFile(t, filepath.Join(out, "claude.cfg"))
@@ -118,6 +128,32 @@ func TestAgentTabsGetTheirOwnTokenWhichEndsWithTheTab(t *testing.T) {
 		"claude": strings.TrimPrefix(held.Servers["form-md"].Headers["Authorization"], "Bearer "),
 		"codex":  waitFile(t, filepath.Join(out, "codex.token")),
 		"cursor": waitFile(t, filepath.Join(out, "cursor-agent.token")),
+	}
+	tokens["antigravity"] = waitFile(t, filepath.Join(out, "agy.token"))
+	var entries struct {
+		Servers map[string]struct {
+			URL     string            `json:"serverUrl"`
+			Headers map[string]string `json:"headers"`
+		} `json:"mcpServers"`
+		Other int `json:"other"`
+	}
+	raw, _ = os.ReadFile(shared)
+	if err := json.Unmarshal(raw, &entries); err != nil {
+		t.Fatal(err)
+	}
+	if tab := entries.Servers["formmd_tab"]; !strings.HasSuffix(tab.URL, "/mcp") || tab.Headers["Authorization"] != "Bearer "+tokens["antigravity"] {
+		t.Errorf("the Antigravity tab's entry: %s", raw)
+	}
+	if entries.Servers["mine"].URL != "https://example.test/mcp" || entries.Other != 1 {
+		t.Errorf("the folder's own entries were not kept: %s", raw)
+	}
+	banner := ""
+	for i := 0; i < 100 && !strings.Contains(banner, "agy stand-in started"); i++ {
+		time.Sleep(50 * time.Millisecond)
+		banner, _ = owner.do("GET", "/api/terminal/"+ids["antigravity"]+"/read", nil).JSON(t)["text"].(string)
+	}
+	if !strings.Contains(banner, "agy stand-in started") {
+		t.Errorf("the Antigravity tab shows %q, want the stand-in's banner", banner)
 	}
 	list := map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
 	for kind, token := range tokens {
@@ -156,6 +192,10 @@ func TestAgentTabsGetTheirOwnTokenWhichEndsWithTheTab(t *testing.T) {
 	}
 	if _, err := os.Stat(cfg); !os.IsNotExist(err) {
 		t.Errorf("the closed Claude Code tab's config is still on disk")
+	}
+	raw, _ = os.ReadFile(shared)
+	if strings.Contains(string(raw), "formmd_tab") || strings.Contains(string(raw), "fmd_tab_") || !strings.Contains(string(raw), `"mine"`) || !strings.Contains(string(raw), `"other": 1`) {
+		t.Errorf("after the Antigravity tab closed the folder's file holds: %s", raw)
 	}
 }
 

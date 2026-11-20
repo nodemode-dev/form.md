@@ -26,14 +26,13 @@ func TestAgentStatusNamesEachProgramWithItsVersionAndInstallLine(t *testing.T) {
 	claude := standIn(t, bin, "claude", `case "$1" in --version) echo "9.9.9 (stand-in)";; auth) echo '{"loggedIn": true}';; esac`)
 	standIn(t, bin, "codex", `echo "codex-cli 0.99.0"`)
 	standIn(t, bin, "cursor-agent", `echo "2026.11.01-standin"`)
-	noShell := standIn(t, empty, "nosh", "exit 1")
+	standIn(t, bin, "agy", `echo "agy 0.7.1"`)
 	t.Setenv("FORMMD_CLAUDE_BIN", claude)
 	t.Setenv("ANTHROPIC_API_KEY", "")
 	t.Setenv("CLAUDE_CODE_OAUTH_TOKEN", "")
-	t.Setenv("SHELL", noShell)
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+"/usr/bin"+string(os.PathListSeparator)+"/bin")
-	found := AgentStatus(os.Environ(), true)
-	for kind, version := range map[string]string{"claude": "9.9.9", "codex": "0.99.0", "cursor": "2026.11.01-standin"} {
+	found := AgentStatus("http://127.0.0.1:8750", true)
+	for kind, version := range map[string]string{"claude": "9.9.9", "codex": "0.99.0", "cursor": "2026.11.01-standin", "antigravity": "0.7.1"} {
 		a := found[kind]
 		if !a.Installed || a.Version == nil || *a.Version != version {
 			t.Errorf("%s: %+v, want installed at version %s", kind, a, version)
@@ -49,10 +48,10 @@ func TestAgentStatusNamesEachProgramWithItsVersionAndInstallLine(t *testing.T) {
 		t.Errorf("codex and cursor: signed in must be unknown")
 	}
 	t.Setenv("PATH", empty)
-	missing := AgentStatus(os.Environ(), true)
-	for _, kind := range []string{"codex", "cursor"} {
+	missing := AgentStatus("http://127.0.0.1:8750", true)
+	for _, kind := range []string{"codex", "cursor", "antigravity"} {
 		a := missing[kind]
-		if a.Installed || a.Version != nil || a.Install == "" {
+		if a.Installed || a.Version != nil || a.Install == "" || a.Finding != "missing" || !strings.Contains(a.Said, "was not found. Looked in: PATH (") {
 			t.Errorf("%s without the program: %+v", kind, a)
 		}
 	}
