@@ -94,7 +94,7 @@ The window's commands, the REST API and the MCP server all act on the same pages
 ```sh
 ./form-md cli list              # every command in the open window
 ./form-md cli describe ID       # one command with its typed parameters
-./form-md mcp                   # MCP server on stdio for Claude Code, Codex and Cursor
+./form-md mcp                   # MCP server on stdio for Claude Code, Codex, Cursor and Antigravity
 ```
 
 `.mcp.json` and `.cursor/mcp.json` are already wired in this repo. The server also answers MCP over HTTP at `/mcp` and publishes its REST reference at `/api/docs`. See [`AGENTS.md`](AGENTS.md).

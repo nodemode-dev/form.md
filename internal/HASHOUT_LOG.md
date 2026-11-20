@@ -2513,6 +2513,8 @@ Antigravity tab. `POST /api/terminal` accepts `kind: "antigravity"` and `GET /ap
 
 Tests never start a real program. `internal/agentlookup/testguard` gives a test binary a made-up home, a stand-in shell, a PATH of stand-ins that record each start, no system folders and none of the package manager variables; `TestMain` in `internal/agentlookup`, `internal/claudecode` and `internal/server` runs under it and prints how many times a stand-in was started.
 
+The variable table. `config.Vars` in internal/config/config.go lists `CODEX_BIN`, `CURSOR_BIN` and `ANTIGRAVITY_BIN` beside `CLAUDE_BIN`, so `form-md help` and the wiki check (tools/wikicheck takes the known variables from that table) know the three new override variables.
+
 Changed tests, and why: `TestAgentStatusNamesEachProgramWithItsVersionAndInstallLine` no longer sets a shell that always fails, because every start now goes through the shell; `dockStandIns` no longer sets `SHELL=/bin/sh`, whose login start reads this machine's own profile; the dock contract test expects six kinds and opens an Antigravity tab.
 
 Seen through the engine's own handlers in the test harness with stand-ins only: four programs in the status, an Antigravity tab showing the stand-in's banner, its entry in the folder file while open and gone after close with another entry and another key kept. Not run: Windows (the registry read and `cmd.exe /c` only compile, `GOOS=windows go vet`), macOS, a fish shell, any real agent program.
