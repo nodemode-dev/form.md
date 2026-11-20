@@ -2576,3 +2576,10 @@ Antigravity had no line in `agents install`: it now prints where its entry goes 
 `web/src/dock/` is FormVis's folder at 23b01889, every file copied unchanged (module 2.2.1: the guide's two sentences for a computer with Claude Code now say Codex, Cursor and Antigravity each get a button when they are installed). form.md carries no translations of the panel's sentences, so no table changed; `TestDockFolder` expects 2.2.1.
 
 Ran: `go test ./cmd/form-md -run Where` (2 passed), and `./form-md agents install` with a stand-in `claude` named in `FORMMD_CLAUDE_BIN` and a scratch HOME: the stand-in got the two removes and the add, and the four lines were printed. No real agent program was run.
+
+### internal/startup · the stopped stand-in is seen stopped before the claim
+- refers-to: internal/startup/startup_test.go (stopped, TestAStoppedEngineWhoseShellIsGoneIsKilledAfterTheWait)
+- kind: fix
+- logged: v0.58.0 · 2026-11-20
+
+On a loaded build machine `TestAStoppedEngineWhoseShellIsGoneIsKilledAfterTheWait` failed once: the stand-in ended by SIGTERM after 54 ms. The test sent SIGSTOP and called `Claim` at once; a stop signal takes effect only when the process next runs, so a SIGTERM that arrives first ends it, and the test then measured a process that was never stopped. The test now waits (up to five seconds) until the stand-in's state is `T`, read from `/proc` or from `ps` where there is none, before it calls `Claim`. What it checks is unchanged: the claim waits `endWait` and the process ends by SIGKILL.
