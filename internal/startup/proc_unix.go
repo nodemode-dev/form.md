@@ -4,9 +4,11 @@ package startup
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -15,8 +17,10 @@ import (
 
 const ticksPerSecond = 100
 
+var procDir = "/proc"
+
 func stat(pid int) []string {
-	raw, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
+	raw, err := os.ReadFile(filepath.Join(procDir, strconv.Itoa(pid), "stat"))
 	if err != nil {
 		return nil
 	}
@@ -27,6 +31,19 @@ func stat(pid int) []string {
 	return strings.Fields(string(raw[i+1:]))
 }
 
+func ended(pid int) bool {
+	if _, err := os.Stat(procDir); err == nil {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), endWait)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "ps", "-o", "stat=", "-p", strconv.Itoa(pid)).Output()
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(strings.TrimSpace(string(out)), "Z")
+}
+
 func Alive(pid int) bool {
 	if pid <= 0 {
 		return false
@@ -34,14 +51,14 @@ func Alive(pid int) bool {
 	if err := syscall.Kill(pid, 0); err != nil && !errors.Is(err, syscall.EPERM) {
 		return false
 	}
-	if fields := stat(pid); len(fields) > 0 && fields[0] == "Z" {
-		return false
+	if fields := stat(pid); len(fields) > 0 {
+		return fields[0] != "Z"
 	}
-	return true
+	return !ended(pid)
 }
 
 func bootTime() float64 {
-	raw, err := os.ReadFile("/proc/stat")
+	raw, err := os.ReadFile(filepath.Join(procDir, "stat"))
 	if err != nil {
 		return 0
 	}

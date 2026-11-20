@@ -67,6 +67,32 @@ func TestAProcessIsAliveUntilItEndsAndItsCreationTimeIsRead(t *testing.T) {
 	}
 }
 
+func TestWhereThereIsNoProcFolderAnEndedProcessNotYetCollectedCountsAsGone(t *testing.T) {
+	real := procDir
+	procDir = filepath.Join(t.TempDir(), "no-proc-here")
+	t.Cleanup(func() { procDir = real })
+	cmd := standIn(t)
+	pid := cmd.Process.Pid
+	if !Alive(pid) || !Alive(os.Getpid()) {
+		t.Fatalf("a running process must count as alive where there is no proc folder")
+	}
+	now := float64(time.Now().UnixNano()) / 1e9
+	if at := Created(pid); at < now-10 || at > now+10 {
+		t.Errorf("the stand-in was created at %v, now is %v", at, now)
+	}
+	_ = cmd.Process.Kill()
+	time.Sleep(100 * time.Millisecond)
+	if err := syscall.Kill(pid, 0); err != nil {
+		t.Fatalf("the ended stand-in no longer answers a signal, so this proves nothing: %v", err)
+	}
+	if Alive(pid) {
+		t.Errorf("a process that ended and was not yet collected counts as alive where there is no proc folder")
+	}
+	if !gone(pid, time.Second) {
+		t.Errorf("the wait for an ended process ran out")
+	}
+}
+
 func TestAMissingOrDamagedLockIsTaken(t *testing.T) {
 	for _, body := range []string{"", "not json at all", "[1, 2]", `{"pid": "x"}`, `{"pid": 999999999, "born": 5}`} {
 		dir := t.TempDir()
