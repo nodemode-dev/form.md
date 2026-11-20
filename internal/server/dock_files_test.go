@@ -12,7 +12,7 @@ import (
 )
 
 const dockFolder = "web/src/dock"
-const dockModule = "2.2.0"
+const dockModule = "2.2.1"
 
 var dockImport = regexp.MustCompile(`(?m)(?:^|\s)(?:import|export)\s[^;]*?from\s+['"]([^'"]+)['"]|(?:^|\s)import\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)`)
 

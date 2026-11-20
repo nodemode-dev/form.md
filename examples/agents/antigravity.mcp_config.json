@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "form-md": {
+      "command": "form-md",
+      "args": ["mcp"],
+      "env": {
+        "FORMMD_MCP_URL": "https://notes.example.com",
+        "FORMMD_MCP_TOKEN": "fmd_replace_with_your_token"
+      }
+    }
+  }
+}

@@ -24,7 +24,7 @@ Claude Code must be installed and signed in once (`claude` in any terminal). for
 
 The chat runs the same Claude Code non-interactively and shows its answer, every form.md tool it calls and the memory it uses. **Open in Claude Code** continues the conversation in a terminal tab; the **From Claude Code** command, in Find a command, brings a tab's conversation into the chat.
 
-Outside the app, `./form-md claude` starts Claude Code in your own terminal with form.md's tools, and `./form-md agents install` registers form.md with Claude Code for every project; both need `FORMMD_MCP_TOKEN` set to a personal API token. `agents install` does not put the token on a command line: it registers the header `Authorization: Bearer ${FORMMD_MCP_TOKEN}` and Claude Code reads the variable from its environment when it connects, so keep `FORMMD_MCP_TOKEN` exported in the shell where you start `claude`. For Codex and Cursor the command only prints where to copy the configs from `examples/agents/`.
+Outside the app, `./form-md claude` starts Claude Code in your own terminal with form.md's tools, and `./form-md agents install` registers form.md with Claude Code for every project; both need `FORMMD_MCP_TOKEN` set to a personal API token. `agents install` does not put the token on a command line: it registers the header `Authorization: Bearer ${FORMMD_MCP_TOKEN}` and Claude Code reads the variable from its environment when it connects, so keep `FORMMD_MCP_TOKEN` exported in the shell where you start `claude`. Both find Claude Code the way the server does, so a copy the terminal panel finds is the one they use. For Codex, Cursor and Antigravity the command only prints where to copy the configs from `examples/agents/`.
 
 ## Driving the window
 
