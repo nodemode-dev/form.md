@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -18,6 +19,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/ops"
 	"github.com/nodemode-ai/form.md/internal/server"
 	"github.com/nodemode-ai/form.md/internal/settings"
+	"github.com/nodemode-ai/form.md/internal/startup"
 	"github.com/nodemode-ai/form.md/internal/store"
 )
 
@@ -77,11 +79,31 @@ func serve() int {
 			stop()
 		}()
 	}
+	if shell := startup.ShellPID(); shell > 0 {
+		startup.Watch(ctx, shell, func() {
+			log.Info("the desktop app's process is gone; stopping", "pid", shell)
+			stop()
+		})
+	}
 
 	key, err := crypt.Load(cfg.DataDir, crypt.KeyPath(cfg.KeyFile), store.HasData(cfg.DataDir))
 	if err != nil {
 		log.Error("encryption", "err", err)
 		return 2
+	}
+	release, replaced, err := startup.Claim(cfg.DataDir, startup.ShellPID())
+	if err != nil {
+		var held *startup.Busy
+		if errors.As(err, &held) {
+			log.Error(held.Error())
+			return 2
+		}
+		log.Error("data directory", "err", err)
+		return 1
+	}
+	defer release()
+	if replaced > 0 {
+		log.Info("an engine left running by an earlier start was stopped", "pid", replaced)
 	}
 	unlock, err := ops.Lock(cfg.DataDir)
 	if err != nil {
