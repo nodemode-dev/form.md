@@ -2,6 +2,7 @@ package claudecode
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -22,14 +23,26 @@ func antigravityServers(path string) (map[string]any, map[string]any, error) {
 	}
 	if err == nil {
 		if err := json.Unmarshal(raw, &current); err != nil {
-			return nil, nil, err
+			return nil, nil, unreadable(path)
 		}
 	}
-	servers, _ := current["mcpServers"].(map[string]any)
+	servers, isMap := current["mcpServers"].(map[string]any)
+	if _, held := current["mcpServers"]; held && !isMap {
+		return nil, nil, unreadable(path)
+	}
 	if servers == nil {
 		servers = map[string]any{}
 	}
 	return current, servers, nil
+}
+
+func unreadable(path string) error {
+	return fmt.Errorf("%s is not an MCP servers file form.md can read, so it was left alone and the Antigravity tab was not opened", path)
+}
+
+func AntigravityFolder(dataDir, tab string) (string, error) {
+	folder := filepath.Join(dataDir, "agent-tabs", "antigravity", tab)
+	return folder, os.MkdirAll(folder, 0o700)
 }
 
 func AntigravityConfig(folder, engineURL, token string) (string, error) {
@@ -63,6 +76,12 @@ func AntigravityForget(folder, token string) {
 		return
 	}
 	delete(servers, TabServer)
+	if len(servers) == 0 && len(current) == 1 {
+		_ = os.Remove(path)
+		_ = os.Remove(filepath.Dir(path))
+		_ = os.Remove(folder)
+		return
+	}
 	current["mcpServers"] = servers
 	raw, err := json.MarshalIndent(current, "", "  ")
 	if err != nil {

@@ -2518,3 +2518,18 @@ The variable table. `config.Vars` in internal/config/config.go lists `CODEX_BIN`
 Changed tests, and why: `TestAgentStatusNamesEachProgramWithItsVersionAndInstallLine` no longer sets a shell that always fails, because every start now goes through the shell; `dockStandIns` no longer sets `SHELL=/bin/sh`, whose login start reads this machine's own profile; the dock contract test expects six kinds and opens an Antigravity tab.
 
 Seen through the engine's own handlers in the test harness with stand-ins only: four programs in the status, an Antigravity tab showing the stand-in's banner, its entry in the folder file while open and gone after close with another entry and another key kept. Not run: Windows (the registry read and `cmd.exe /c` only compile, `GOOS=windows go vet`), macOS, a fish shell, any real agent program.
+
+---
+
+## Phase 29 · starting and stopping cleanly {#p29-windows-start}
+
+### internal/claudecode · each Antigravity tab has a folder of its own
+- refers-to: internal/claudecode/antigravity.go (AntigravityFolder, antigravityServers, unreadable, AntigravityForget); internal/claudecode/module.go (openAgent); internal/server/antigravity_tabs_test.go; internal/claudecode/antigravity_test.go; internal/server/dock_contract_test.go
+- kind: fix
+- logged: v0.57.0 · 2026-11-19
+
+Until now every Antigravity tab wrote its entry `formmd_tab` into the one shared folder (`<data>/agent/.agents/mcp_config.json`), so a second tab replaced the first tab's token there and the first tab's program lost its access, and the file in the person's own agent folder held a token. Now each Antigravity tab gets `<data>/agent-tabs/antigravity/<tab token id>/`, made mode 0700; the entry is written there, `agy` is started there (a folder sent by the page is not used for this kind, as in FormVis), and at close the entry is taken out only if it still holds that tab's token. When nothing else is left in the file, the file, its `.agents` folder and the tab's folder are removed; `os.Remove` refuses a folder that holds anything else, so whatever the program wrote there is kept. The shared agent folder's own `.agents/mcp_config.json` is never read or written by a tab any more.
+
+A file that is not a JSON object, or whose `mcpServers` is not an object, is left as it is and the refusal is a sentence that names the file (`... is not an MCP servers file form.md can read, so it was left alone and the Antigravity tab was not opened`), answered as 400 `terminal_failed`. Before, the JSON decoder's own words were the message. A tab folder that cannot be made is refused the same way, with the system's reason, and the tab's token is revoked.
+
+Seen through the engine's handlers in the test harness, stand-in `agy` only: two tabs open at once have two folders, two entries and two tokens that both answer `tools/list`; closing the first removes its folder, its token answers 401, the other's file is byte for byte what it was and its token still answers; after the second closes no folder is left; a file placed in the shared agent folder is unchanged throughout. Changed test, and why: the dock contract test looked for the entry in the shared folder's file and now looks in the tab's own folder and checks the shared file is untouched.

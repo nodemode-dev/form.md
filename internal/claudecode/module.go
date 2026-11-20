@@ -170,19 +170,25 @@ func (s *Service) openAgent(ctx context.Context, p *policy.Principal, prog Progr
 	if prog.Kind == "cursor" {
 		_, _ = CursorConfig(cwd)
 	}
-	token, _, revoke, err := s.tabToken(ctx, p, prog.Title)
+	token, id, revoke, err := s.tabToken(ctx, p, prog.Title)
 	if err != nil {
 		return nil, err
 	}
 	end := revoke
 	if prog.Kind == "antigravity" {
-		if _, err := AntigravityConfig(cwd, EngineURL(s.addr), token); err != nil {
+		own, err := AntigravityFolder(s.dataDir, id)
+		if err == nil {
+			_, err = AntigravityConfig(own, EngineURL(s.addr), token)
+		}
+		if err != nil {
 			revoke()
+			_ = os.Remove(own)
 			return nil, httpx.Fail(http.StatusBadRequest, "terminal_failed", err.Error())
 		}
+		cwd = own
 		end = func() {
 			revoke()
-			AntigravityForget(cwd, token)
+			AntigravityForget(own, token)
 		}
 	}
 	sess, err := s.Terms.Open(p.UserID, prog.Title, prog.Kind, cwd, Launch(argv), append(s.envFor(found.Path), TabTokenVar+"="+token), cols, rows)

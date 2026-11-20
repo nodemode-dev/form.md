@@ -137,15 +137,19 @@ func TestAgentTabsGetTheirOwnTokenWhichEndsWithTheTab(t *testing.T) {
 		} `json:"mcpServers"`
 		Other int `json:"other"`
 	}
-	raw, _ = os.ReadFile(shared)
+	own, _ := filepath.Glob(filepath.Join(filepath.Dir(folder), "agent-tabs", "antigravity", "*", ".agents", "mcp_config.json"))
+	if len(own) != 1 {
+		t.Fatalf("the Antigravity tab's own folder file: %v", own)
+	}
+	raw, _ = os.ReadFile(own[0])
 	if err := json.Unmarshal(raw, &entries); err != nil {
 		t.Fatal(err)
 	}
 	if tab := entries.Servers["formmd_tab"]; !strings.HasSuffix(tab.URL, "/mcp") || tab.Headers["Authorization"] != "Bearer "+tokens["antigravity"] {
 		t.Errorf("the Antigravity tab's entry: %s", raw)
 	}
-	if entries.Servers["mine"].URL != "https://example.test/mcp" || entries.Other != 1 {
-		t.Errorf("the folder's own entries were not kept: %s", raw)
+	if kept, _ := os.ReadFile(shared); string(kept) != `{"mcpServers":{"mine":{"serverUrl":"https://example.test/mcp"}},"other":1}` {
+		t.Errorf("the shared folder's file was changed: %s", kept)
 	}
 	banner := ""
 	for i := 0; i < 100 && !strings.Contains(banner, "agy stand-in started"); i++ {
@@ -194,8 +198,11 @@ func TestAgentTabsGetTheirOwnTokenWhichEndsWithTheTab(t *testing.T) {
 		t.Errorf("the closed Claude Code tab's config is still on disk")
 	}
 	raw, _ = os.ReadFile(shared)
-	if strings.Contains(string(raw), "formmd_tab") || strings.Contains(string(raw), "fmd_tab_") || !strings.Contains(string(raw), `"mine"`) || !strings.Contains(string(raw), `"other": 1`) {
-		t.Errorf("after the Antigravity tab closed the folder's file holds: %s", raw)
+	if string(raw) != `{"mcpServers":{"mine":{"serverUrl":"https://example.test/mcp"}},"other":1}` {
+		t.Errorf("after the Antigravity tab closed the shared folder's file holds: %s", raw)
+	}
+	if _, err := os.Stat(filepath.Dir(filepath.Dir(own[0]))); !os.IsNotExist(err) {
+		t.Errorf("the closed Antigravity tab's own folder is still on disk")
 	}
 }
 
