@@ -2,8 +2,8 @@
 
 Living log of explainers, rationale and removed code for the desktop app in `src-tauri/` and its build scripts (`build_app`, `build_app.bat`, `tools/build_desktop`; `.github/workflows/desktop.yml` until v0.46.0). Source files stay comment-free per dev-rules `hashout-log`; what they would have said lives here. Paths are relative to the repo root.
 
-Current build version: v0.56.0
-Last updated: 2026-11-19 · v0.56.0 no shell change (the version only); 2026-11-19 · v0.55.0 no shell change (the version only); 2026-11-19 · v0.54.0 no shell change (the version only); 2026-11-13 · v0.53.0 no shell change (the version only); 2026-11-09 · v0.52.2 no shell change (the version only); 2026-11-09 · v0.52.1 no shell change (the version only); 2026-11-09 · v0.52.0 no shell change (the version only); 2026-11-09 · v0.51.0 the native Help menu lists the three demos (cmd:demo.editor, cmd:demo.views, cmd:demo.publish through __formmdRun; see web/HASHOUT_LOG.md #src-ui-demos-ts); 2026-11-03 · v0.47.8 the bundle names the publisher and the licence; 2026-10-22 · v0.46.1: desktop.yml and release.yml removed, formcompiler builds the app; v0.46.0: version only (Home's Templates side panel); v0.45.3: icons/* and the splash icon from the approved icon with the clean edge; v0.45.2: icons/* and the splash icon rebuilt without the light rim; v0.45.1: the owner's app icon in icons/* and on the splash; v0.45.0: version only; v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
+Current build version: v0.57.0
+Last updated: 2026-11-19 · v0.57.0 a failed start shows its dialog before the loading window closes, and the server is given the app's process id (#windows-start); 2026-11-19 · v0.56.0 no shell change (the version only); 2026-11-19 · v0.55.0 no shell change (the version only); 2026-11-19 · v0.54.0 no shell change (the version only); 2026-11-13 · v0.53.0 no shell change (the version only); 2026-11-09 · v0.52.2 no shell change (the version only); 2026-11-09 · v0.52.1 no shell change (the version only); 2026-11-09 · v0.52.0 no shell change (the version only); 2026-11-09 · v0.51.0 the native Help menu lists the three demos (cmd:demo.editor, cmd:demo.views, cmd:demo.publish through __formmdRun; see web/HASHOUT_LOG.md #src-ui-demos-ts); 2026-11-03 · v0.47.8 the bundle names the publisher and the licence; 2026-10-22 · v0.46.1: desktop.yml and release.yml removed, formcompiler builds the app; v0.46.0: version only (Home's Templates side panel); v0.45.3: icons/* and the splash icon from the approved icon with the clean edge; v0.45.2: icons/* and the splash icon rebuilt without the light rim; v0.45.1: the owner's app icon in icons/* and on the splash; v0.45.0: version only; v0.44.0: version only (the menubar's route.home, templates.open and transfer.import commands now exist in the client); Phase 18: the desktop app
 
 ---
 
@@ -154,7 +154,7 @@ A top-level Extensions menu between View and Window, per the Form Extension Cont
 
 - refers-to: src/main.rs :: `fail`, `start`
 - kind: fix
-- logged: after v0.56.0 · 2026-11-19
+- logged: v0.57.0 · 2026-11-19
 
 `fail` closed the loading window and then asked for the dialog. When the start fails there is no main window yet, so the loading window is the last one, and closing it first can end the app before the dialog is seen: a silent exit. The dialog is now asked for first, and the loading window is closed and the app exits only in the dialog's own callback, after the person has answered it.
 
