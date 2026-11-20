@@ -11,12 +11,12 @@
 </p>
 
 <p align="center">
-  <img alt="version v0.58.0" src="https://img.shields.io/badge/version-v0.58.0-eef0f4?style=flat-square">
+  <img alt="version v0.59.0" src="https://img.shields.io/badge/version-v0.59.0-eef0f4?style=flat-square">
   <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=flat-square&logo=go&logoColor=white">
   <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
   <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-3a3a3a?style=flat-square">
-  <img alt="Status: active" src="https://img.shields.io/badge/status-active-d69e2e?style=flat-square">
+  <img alt="Status: released" src="https://img.shields.io/badge/status-released-d69e2e?style=flat-square">
 </p>
 
 <p align="center">
@@ -152,7 +152,7 @@ cd form.md
 | `FORMMD_DATA` | Data directory for the database and uploads, default `./data` |
 
 > [!IMPORTANT]
-> **Status:** active development. Instance-wide settings such as mail and single sign-on live in the app's Instance settings, and the wiki in `.docs/wiki` covers install, TLS, backups and operations.
+> **Status:** released. form.md is built and bundled for macOS, Windows and Linux and has been tested on all three. Instance-wide settings such as mail and single sign-on live in the app's Instance settings, and the wiki in `.docs/wiki` covers install, TLS, backups and operations.
 
 **Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`BRANCHING.md`](BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
 
