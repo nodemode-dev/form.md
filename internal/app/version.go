@@ -1,5 +1,5 @@
 package app
 
-var Version = "v0.56.0"
+var Version = "v0.57.0"
 
 const Product = "form.md"
