@@ -43,7 +43,7 @@ Requirements: Go 1.26 or newer, Node.js 22 or newer.
 
 `./form-md` starts `tools/boot_backend` (`go run ./cmd/form-md serve` with `FORMMD_ADDR=127.0.0.1:8750` and `FORMMD_DATA=./data` unless you set them) and `web/boot_frontend` (`npm run dev`), and stops both on exit. Open `http://127.0.0.1:5750`: Vite serves the client with hot reload and proxies `/api`, `/healthz`, `/notices`, `/events`, `/mcp`, `/files`, `/oauth`, `/.well-known` and the `/sync` WebSocket to the backend, rewriting the `Origin` header so sign-in and the sync socket accept it. Port 8750 alone answers pages with "the web client is not built" until you run `make build`.
 
-Windows has `form-md_oc_install.bat` and `form-md.bat`; they have not been run on a Windows host yet.
+Windows has `form-md_oc_install.bat` and `form-md.bat`, the same two steps for a Windows terminal. form.md is built, bundled and tested on macOS, Windows and Linux.
 
 Before pushing:
 

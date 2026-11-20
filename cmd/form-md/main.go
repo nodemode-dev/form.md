@@ -16,6 +16,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/config"
 	"github.com/nodemode-ai/form.md/internal/crypt"
 	"github.com/nodemode-ai/form.md/internal/i18n"
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 	"github.com/nodemode-ai/form.md/internal/ops"
 	"github.com/nodemode-ai/form.md/internal/server"
 	"github.com/nodemode-ai/form.md/internal/settings"
@@ -57,6 +58,7 @@ func run(args []string) int {
 }
 
 func serve() int {
+	nowindow.OpenConsole()
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	cfg, err := config.Load()

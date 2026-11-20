@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 )
 
 const Version = "1.0.1"
@@ -477,7 +479,7 @@ func askShell(sh string, flags []string, env []string, timeout time.Duration) []
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, sh, append(append([]string{}, flags...), "-c", script)...)
+	cmd := nowindow.CommandContext(ctx, sh, append(append([]string{}, flags...), "-c", script)...)
 	cmd.Env = env
 	ownSession(cmd)
 	cmd.WaitDelay = 2 * time.Second
@@ -690,7 +692,7 @@ func Run(cmd []string, env []string, timeout time.Duration, platform string) (Re
 	argv := StartArgv(cmd, env, platform)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	c := exec.CommandContext(ctx, argv[0], argv[1:]...)
+	c := nowindow.CommandContext(ctx, argv[0], argv[1:]...)
 	c.Env = env
 	var stdout, stderr strings.Builder
 	c.Stdout, c.Stderr = &stdout, &stderr

@@ -59,3 +59,7 @@ The app embeds this build and opens it in a sandboxed frame from Home, Help and 
 ## Rebuild
 
 From `demos/publish`: `node ../../web/node_modules/vite/bin/vite.js build --config ./vite.config.mjs`. The config imports `web/` by relative path and never writes outside `demos/publish`.
+
+## v0.60.0 · rebuilt from the current sources
+
+Rebuilt by the command above from the tip after 0.59.0. `assets/style.css` carries the app's current styles, the family names of 0.59.0 among them, and `assets/publish.js` the current web sources (the bundler's short names moved; 35 of its lines differ). Opened from file:// in headless Chromium: the page draws, 0 console errors, 0 warnings.

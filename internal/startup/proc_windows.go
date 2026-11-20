@@ -4,9 +4,10 @@ package startup
 
 import (
 	"errors"
-	"os/exec"
 	"strconv"
 	"syscall"
+
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 )
 
 const queryLimited = 0x1000
@@ -41,6 +42,6 @@ func Created(pid int) float64 {
 }
 
 func end(pid int) bool {
-	_ = exec.Command("taskkill", "/PID", strconv.Itoa(pid), "/T", "/F").Run()
+	_ = nowindow.Command("taskkill", "/PID", strconv.Itoa(pid), "/T", "/F").Run()
 	return gone(pid, endWait)
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/nodemode-ai/form.md/internal/app"
 	"github.com/nodemode-ai/form.md/internal/auth"
 	"github.com/nodemode-ai/form.md/internal/httpx"
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 	"github.com/nodemode-ai/form.md/internal/policy"
 	"github.com/nodemode-ai/form.md/internal/settings"
 )
@@ -159,7 +160,7 @@ func (s *Service) supervise(ctx context.Context, bin, mode string, done chan str
 		} else {
 			args = append(args, "--url", "unix:"+s.socket)
 		}
-		cmd := exec.CommandContext(ctx, bin, args...)
+		cmd := nowindow.CommandContext(ctx, bin, args...)
 		cmd.Env = env
 		cmd.WaitDelay = 5 * time.Second
 		stderr, err := cmd.StderrPipe()

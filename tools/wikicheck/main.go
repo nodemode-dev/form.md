@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/nodemode-ai/form.md/internal/config"
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 	"github.com/nodemode-ai/form.md/internal/settings"
 )
 
@@ -33,6 +34,7 @@ func main() {
 			known[d.Env] = true
 		}
 	}
+	known[nowindow.Env] = true
 	install, _ := os.ReadFile("install.sh")
 	for _, m := range envRef.FindAllString(string(install), -1) {
 		known[m] = true

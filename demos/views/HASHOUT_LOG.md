@@ -60,3 +60,7 @@ From `demos/views`: `node ../../web/node_modules/vite/bin/vite.js build --config
 The demo mounts the real `mountDatabase`, so the toolbar's Date range tool appears here too. `server.ts` ports the server's handling: `today`, `past_7_days` and `past_30_days` in `within`, and `date_range` on query and chart turned into one `within` or `between` leaf applied after the view's filter. The demo clock is 20 July 1969, so Today and the rolling ranges count back from that day.
 
 The evaluator's `now` was `Date.now()`, which the demo clock does not shift (only no-argument construction is), so every relative filter counted from the real day and Today or Last 30 days found nothing in 1969. It is now `new Date().getTime()`, the shifted clock.
+
+## v0.60.0 · rebuilt from the current styles
+
+Rebuilt by "Rebuild" in README.md from the tip after 0.59.0. Only `assets/style.css` changed: it now carries the app's current styles, the family names of 0.59.0 among them. `views.js` came out byte-identical. Opened from file:// in headless Chromium: the page draws, 0 console errors, 0 warnings.

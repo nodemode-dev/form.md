@@ -12,13 +12,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/nodemode-ai/form.md/internal/claudecode"
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 )
 
 const (
@@ -91,7 +91,7 @@ func launchServer(endpoint string) bool {
 	}
 	defer logFile.Close()
 	fmt.Fprintf(os.Stderr, "form-md mcp: starting the server (form-md serve); its log: %s\n", logFile.Name())
-	cmd := exec.Command(exe, "serve")
+	cmd := nowindow.Command(exe, "serve")
 	cmd.Env = append(os.Environ(), "FORMMD_ADDR="+u.Host)
 	cmd.Stdout, cmd.Stderr = logFile, logFile
 	detach(cmd)

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nodemode-ai/form.md/internal/nowindow"
 )
 
 const chatNote = Note + " You are answering in form.md's Claude Code chat, shown as Markdown in a side panel: write short paragraphs, " +
@@ -187,7 +189,7 @@ func (c *chat) run(argv []string, dir string, env []string, send emit) {
 	var tail []string
 	var result map[string]any
 	doneOut, callOut := 0, 0
-	cmd := exec.Command(argv[0], argv[1:]...)
+	cmd := nowindow.Command(argv[0], argv[1:]...)
 	cmd.Dir, cmd.Env = dir, env
 	stdout, err := cmd.StdoutPipe()
 	var stderr *bufio.Scanner
