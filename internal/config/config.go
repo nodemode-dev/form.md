@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -59,7 +61,7 @@ var Vars = []Var{
 	{"UPDATE_URL", "", "where the daily update check reads the latest release (GitHub's API when unset); point it at a mirror on a closed network"},
 	{"FAMILY", "", "where the other form family apps run on this computer, as product=url pairs separated by commas (formlit=http://127.0.0.1:8390,formvis=http://127.0.0.1:8190 are assumed); loopback addresses only; off stops the lookups"},
 	{"FETCH_PRIVATE", "", "set to 1 to let link previews and media imports reach private network addresses such as intranet sites; off by default"},
-	{"DESKTOP_KEY", "", "set by the desktop app for the server it starts: the key its own window signs the owner in with; keeps the server on this computer. Leave unset"},
+	{"DESKTOP", "", "set to 1 by the desktop app for the server it starts: the server makes a key at start and gives it once to the app's window, and stays on this computer. Leave unset"},
 }
 
 func Load() (Config, error) {
@@ -79,8 +81,9 @@ func Load() (Config, error) {
 		FetchPrivate: get("FETCH_PRIVATE") == "1" || get("FETCH_PRIVATE") == "true",
 
 		Family: get("FAMILY"),
-
-		DesktopKey: get("DESKTOP_KEY"),
+	}
+	if get("DESKTOP") == "1" {
+		c.DesktopKey = windowKey()
 	}
 	for _, d := range strings.Split(get("ACME_DOMAINS"), ",") {
 		if d = strings.ToLower(strings.TrimSpace(d)); d != "" {
@@ -96,10 +99,7 @@ func Load() (Config, error) {
 	}
 	if c.DesktopKey != "" {
 		if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() || c.TLS() {
-			return c, errors.New(EnvPrefix + "DESKTOP_KEY needs a loopback " + EnvPrefix + "ADDR without TLS")
-		}
-		if len(c.DesktopKey) < 32 {
-			return c, errors.New(EnvPrefix + "DESKTOP_KEY must be at least 32 characters")
+			return c, errors.New(EnvPrefix + "DESKTOP needs a loopback " + EnvPrefix + "ADDR without TLS")
 		}
 	}
 	if (c.TLSCert == "") != (c.TLSKey == "") {
@@ -123,6 +123,16 @@ func (c Config) ACME() bool {
 
 func (c Config) Desktop() bool {
 	return c.DesktopKey != ""
+}
+
+const WindowKeyLine = "form-md-window-key: "
+
+func windowKey() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return base64.RawURLEncoding.EncodeToString(b)
 }
 
 func get(name string) string {

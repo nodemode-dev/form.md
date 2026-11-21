@@ -197,11 +197,18 @@ func TestDesktopEntrySignsTheOwnerIn(t *testing.T) {
 	if u, _ := me["user"].(map[string]any); u == nil || u["role"] != "owner" {
 		t.Fatalf("the desktop key did not sign in the owner: %v", me)
 	}
+	if r := c.do("GET", "/desktop/enter?key="+desktopKey, nil); r.Status != http.StatusSeeOther {
+		t.Fatalf("the signed-in window entering again: %d %s", r.Status, r.Body)
+	}
 	again := e.client()
-	again.do("GET", "/desktop/enter?key="+desktopKey, nil)
-	me2 := again.mustJSON("GET", "/api/me", nil, http.StatusOK)
-	if me["user"].(map[string]any)["id"] != me2["user"].(map[string]any)["id"] {
-		t.Fatal("a second window entry made a second owner")
+	if r := again.do("GET", "/desktop/enter?key="+desktopKey, nil); r.Status != http.StatusConflict {
+		t.Fatalf("a second claim of the key: %d %s, want 409", r.Status, r.Body)
+	}
+	if r := again.do("GET", "/api/me", nil); r.Status != http.StatusUnauthorized {
+		t.Fatalf("a refused second claim signed in: /api/me answers %d", r.Status)
+	}
+	if r := again.do("POST", "/api/pages", map[string]string{"title": "from outside", "kind": "doc"}); r.Status != http.StatusUnauthorized {
+		t.Fatalf("after a refused second claim a page could be made: %d", r.Status)
 	}
 	stranger := e.client()
 	if r := stranger.do("GET", "/api/me", nil); r.Status != http.StatusUnauthorized {

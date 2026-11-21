@@ -4,7 +4,9 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -16,8 +18,9 @@ REPO = WINDOW_DIR.parents[2]
 APP_ID = "form.md"
 ENGINE_DIR = REPO
 ENGINE_CMD = [os.environ.get("FORMMD_TEST_BIN", str(REPO / "bin" / "form-md"))]
-DESKTOP_KEY = "window-smoke-desktop-key-0123456789abcdef"
-ENGINE_ENV = {"FORMMD_DATA": "{data}", "FORMMD_ADDR": "127.0.0.1:{port}", "FORMMD_DESKTOP_KEY": DESKTOP_KEY, "FORMMD_FAMILY": "off", "FORMMD_UPDATE_URL": "http://127.0.0.1:1/none"}
+KEY_LINE = "form-md-window-key: "
+WINDOW = {"key": "", "cookies": None}
+ENGINE_ENV = {"FORMMD_DATA": "{data}", "FORMMD_ADDR": "127.0.0.1:{port}", "FORMMD_DESKTOP": "1", "FORMMD_FAMILY": "off", "FORMMD_UPDATE_URL": "http://127.0.0.1:1/none"}
 CLEAR_ENV_PREFIX = "FORMMD_"
 DIST = REPO / "web" / "dist"
 HEALTH_PATH = "/healthz"
@@ -67,19 +70,25 @@ def engine():
     env.update({k: v.format(**values) for k, v in ENGINE_ENV.items()})
     env["HOME"] = str(sandbox / "home")
     proc = subprocess.Popen([a.format(**values) for a in ENGINE_CMD], cwd=ENGINE_DIR, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    said = []
+    reader = threading.Thread(target=lambda: said.extend(line.decode("utf-8", "replace") for line in proc.stdout), daemon=True)
+    reader.start()
     base = f"http://127.0.0.1:{port}"
     deadline = time.monotonic() + 90
     while time.monotonic() < deadline and proc.poll() is None:
+        WINDOW["key"] = next((line.strip()[len(KEY_LINE):] for line in list(said) if line.startswith(KEY_LINE)), "")
         try:
             with urllib.request.urlopen(base + HEALTH_PATH, timeout=2) as r:
-                if r.status == 200:
+                if r.status == 200 and WINDOW["key"]:
                     break
         except OSError:
-            time.sleep(0.25)
+            pass
+        time.sleep(0.25)
     else:
         proc.kill()
-        out = proc.communicate(timeout=5)[0].decode("utf-8", "replace")
-        raise RuntimeError(f"engine did not answer {HEALTH_PATH}:\n{out[-4000:]}")
+        reader.join(timeout=5)
+        out = "".join(line for line in said if not line.startswith(KEY_LINE))
+        raise RuntimeError(f"engine did not answer {HEALTH_PATH} and give the window key:\n{out[-4000:]}")
     yield base
     proc.terminate()
     try:
@@ -94,8 +103,20 @@ def ignored(url):
 
 
 def sign_in_and_seed(context, base):
-    entered = context.request.get(f"{base}/desktop/enter?key={DESKTOP_KEY}")
-    assert entered.ok, f"the desktop entry did not sign the owner in: {entered.status}"
+    if WINDOW["cookies"] is None:
+        entered = context.request.get(f"{base}/desktop/enter?key={WINDOW['key']}")
+        assert entered.ok, f"the desktop entry did not sign the owner in: {entered.status}"
+        WINDOW["cookies"] = context.cookies()
+        again = context.request.get(f"{base}/desktop/enter?key={WINDOW['key']}")
+        assert again.ok, f"the signed-in window could not enter again: {again.status}"
+        try:
+            with urllib.request.urlopen(f"{base}/desktop/enter?key={WINDOW['key']}", timeout=10) as r:
+                second = r.status
+        except urllib.error.HTTPError as e:
+            second = e.code
+        assert second == 409, f"a second claim of the window key from another program answered {second}, want 409"
+    else:
+        context.add_cookies(WINDOW["cookies"])
     boot = context.request.get(f"{base}/api/me").json()
     ws = boot.get("workspace") or (boot.get("workspaces") or [{}])[0]
     made = context.request.post(f"{base}/api/pages", data={"workspace_id": ws.get("id", ""), "title": "Window smoke", "kind": "doc"})
