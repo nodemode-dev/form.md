@@ -74,11 +74,18 @@ func (s *Service) handleDesktopEnter(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return err
 	}
+	s.claimMu.Lock()
+	defer s.claimMu.Unlock()
 	if p, err := s.fromSession(ctx, r); err != nil || p == nil || p.UserID != id {
+		if s.desktopClaimed {
+			s.authFailure(r, "desktop_second_claim")
+			return httpx.Fail(http.StatusConflict, "already_claimed", "the desktop window has already signed in; open form.md again to start a new window")
+		}
 		if err := s.StartSession(ctx, w, r, id); err != nil {
 			return err
 		}
 	}
+	s.desktopClaimed = true
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Cache-Control", "no-store")
 	http.Redirect(w, r, "/home?start=1", http.StatusSeeOther)

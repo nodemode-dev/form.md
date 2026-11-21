@@ -124,6 +124,7 @@ func Run(ctx context.Context, d *Deps, modules []Module) error {
 		"version", Version,
 		"data", d.Config.DataDir)
 	if d.Config.Desktop() {
+		fmt.Printf("%s%s\n", config.WindowKeyLine, d.Config.DesktopKey)
 		fmt.Printf("form-md desktop ready http://%s\n", ln.Addr())
 	}
 

@@ -64,7 +64,7 @@ func TestDesktopEnterOnlyFromLoopback(t *testing.T) {
 		}
 	}
 	for _, remote := range []string{"127.0.0.1:50000", "[::1]:50000"} {
-		if rec := desktopEnter(e, remote, desktopKey, nil); rec.Code != http.StatusSeeOther {
+		if rec := desktopEnter(newEnv(t, desktopKey), remote, desktopKey, nil); rec.Code != http.StatusSeeOther {
 			t.Errorf("loopback peer %s: status %d, want 303", remote, rec.Code)
 		}
 	}
