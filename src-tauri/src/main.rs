@@ -19,6 +19,7 @@ use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
 const READY: &str = "form-md desktop ready http://127.0.0.1:";
+const KEY_LINE: &str = "form-md-window-key: ";
 const PREFERRED_ADDR: &str = "127.0.0.1:8750";
 const FALLBACK_LOGICAL: (f64, f64) = (1280.0, 840.0);
 const MIN_LOGICAL: (f64, f64) = (980.0, 640.0);
@@ -47,10 +48,10 @@ fn start_limit(late: &tauri::async_runtime::Sender<ServerStep>, limit: Duration,
     });
 }
 
-fn desktop_key() -> String {
-    let mut bytes = [0u8; 32];
-    getrandom::fill(&mut bytes).expect("the system random source failed");
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+fn window_key(line: &str) -> Option<String> {
+    let key = line.trim().strip_prefix(KEY_LINE)?;
+    let ok = key.len() >= 32 && key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
+    ok.then(|| key.to_string())
 }
 
 fn data_dir(handle: &AppHandle) -> PathBuf {
@@ -209,13 +210,12 @@ fn start(handle: AppHandle) {
         fail(&handle, &format!("form.md could not create its data folder {}: {err}", dir.display()));
         return;
     }
-    let key = desktop_key();
     let spawned = handle
         .shell()
         .sidecar("form-md-server")
         .map(|cmd| {
             cmd.args(["serve"])
-                .env("FORMMD_DESKTOP_KEY", &key)
+                .env("FORMMD_DESKTOP", "1")
                 .env("FORMMD_DATA", dir.as_os_str())
                 .env("FORMMD_ADDR", PREFERRED_ADDR)
                 .env(engine_start::SHELL_ENV, std::process::id().to_string())
@@ -247,6 +247,7 @@ fn start(handle: AppHandle) {
         });
         start_limit(&late, engine_start::ADDRESS_WAIT, Late::Address);
         let mut port: Option<u16> = None;
+        let mut key: Option<String> = None;
         let mut tail = engine_start::Tail::default();
         let mut ended: Option<engine_start::Failure> = None;
         while let Some(step) = steps.recv().await {
@@ -286,6 +287,12 @@ fn start(handle: AppHandle) {
             };
             for line in text.lines() {
                 if port.is_none() {
+                    if let Some(found) = window_key(line) {
+                        if key.is_none() {
+                            key = Some(found);
+                        }
+                        continue;
+                    }
                     tail.push(line);
                 }
                 if port.is_some() || ended.is_some() {
@@ -298,7 +305,11 @@ fn start(handle: AppHandle) {
                     continue;
                 };
                 port = Some(found);
-                if let Err(err) = open_main(&handle, found, &key) {
+                let Some(key) = key.as_deref() else {
+                    fail_start(&handle, engine_start::Failure::Window("the server gave no key for its window".to_string()), &tail);
+                    return;
+                };
+                if let Err(err) = open_main(&handle, found, key) {
                     fail_start(&handle, engine_start::Failure::Window(err.to_string()), &engine_start::Tail::default());
                     return;
                 }

@@ -177,3 +177,13 @@ This closes what the entry above left out. The server is still started through t
 `SHELL_ENV` names `FORMMD_SHELL_PID`, the variable internal/startup watches. `windows-sys` 0.61.2 (Windows only) is the version 22 packages in the lock already use; the one line in the lock was added by hand.
 
 Proved: the lock hand edit by `cargo update --workspace --offline` on a copy of `Cargo.toml` and the old lock with stub sources (its lock and ours do not differ); `win_job.rs` and `engine_start.rs` in the scratch crate with `cargo check --target x86_64-pc-windows-msvc`, and the five tests of `engine_start.rs` with `cargo test`. Not proved: `main.rs` itself, which cannot be compiled here (no WebKitGTK); it was read against FormVis's `main.rs` for every name and type it uses. Nothing ran on Windows.
+
+## src/main.rs · the window's key comes from the server, once, over the server's own output {#window-key}
+
+- refers-to: src/main.rs :: `KEY_LINE`, `window_key`, `start`, `open_main`
+- kind: fix
+- logged: v0.61.0 · 2026-11-20
+
+The app no longer makes the key its window signs in with and no longer hands it to the server in `FORMMD_DESKTOP_KEY`: the environment of a running program can be read by other programs of the same user. It starts the server with `FORMMD_DESKTOP=1` (no secret), and the server makes the key itself and prints one line, `form-md-window-key: <key>`, on its standard output before the ready line. That output is the pipe tauri-plugin-shell gives this app only. `window_key` takes the line when the key is at least 32 characters of `A-Z a-z 0-9 - _`; the line is not put in the `Tail`, so a failure dialog and `form-md-server.log` never carry it. The window opens at `/desktop/enter?key=...` as before, and the server accepts that key once per start. A ready line with no key before it fails the start with "the server gave no key for its window". The entry at the top of this file (the start of the server) still describes the old key; this entry replaces that part. `getrandom` is now unused here and stays in `Cargo.toml` until a build can prove the lock without it.
+
+Not proved: the shell cannot be compiled here (no WebKitGTK, and this session has no cargo lane); the orchestrator type checks it for Windows and macOS. The server's side ran: see internal/HASHOUT_LOG.md, Phase 32.
