@@ -2600,3 +2600,12 @@ What was missing is what the server starts: Claude Code and the other agents (ch
 Ran (Linux): `go build ./cmd/form-md` for windows/amd64, darwin/arm64 and linux/amd64, 3 of 3; `GOOS=windows go vet ./cmd/... ./internal/...` and `GOOS=darwin go vet` of the touched packages clean; `walk_test.go` passed, then failed with one call in tunnel.go put back to `exec.CommandContext` (it named that file and line), then passed again. Nothing ran on Windows: no console window, its absence, or `OpenConsole` has been seen there.
 
 `tools/wikicheck` adds `nowindow.Env` to the variables it knows, since it lives in this package and not in `config.Vars` or `cmd/form-md`; without it the wiki's Home page, which names the variable, was reported as naming one nothing reads.
+
+## Phase 32 · the last leftovers {#p32-leftovers}
+
+### tools/notices · the demo media and the extension kit rows come from the tool
+- refers-to: tools/notices/main.go :: `listed`, the table loop in `main`; NOTICES.md
+- kind: fix
+- logged: v0.60.1 · 2026-11-20
+
+`NOTICES.md` says it is generated and not edited by hand, yet four rows were added to it by hand in v0.49.3 and v0.50.0: the media of the three in-app demos (each credited in its own `CREDITS.md`) and the Form Extension Contract kit. `make build` dropped them every time it ran, and the committed file in turn kept three web packages at versions the lock file no longer installs (argparse 3.0.2, dompurify 3.4.16, markdown-it 15.0.2; the lock has 3.0.4, 3.4.17 and 15.0.3). Both sides were partly right. The rows are true (vite.config.ts copies `demo`, `demos/views` and `demos/publish` into `web/dist`, which the binary embeds, and the kit's code is in the client and the server), so they are now the tool's input: `listed` holds them as they were written, and they are printed after the Go standard library row, where they stood, as table rows only, because their terms are in the demos' `CREDITS.md` and in `LICENSE`. The versions are the generator's. `make build` now writes the committed file byte for byte.

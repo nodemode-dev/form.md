@@ -54,7 +54,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | Inter (font files from @fontsource-variable/inter) | 5.3.0 | OFL-1.1 |
 | JetBrains Mono (font files from @fontsource-variable/jetbrains-mono) | 5.3.0 | OFL-1.1 |
 | Natural Earth 1:110m countries (map view basemap, via world-atlas) | 4.1.0 / 2.0.2 | Public domain data; ISC packaging |
-| argparse | 3.0.2 | PSF-2.0 |
+| argparse | 3.0.4 | PSF-2.0 |
 | commander | 15.0.0 | MIT |
 | commander | 7.2.0 | MIT |
 | cose-base | 1.0.3 | MIT |
@@ -100,7 +100,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | dagre-d3-es | 7.0.14 | MIT |
 | dayjs | 1.11.23 | MIT |
 | delaunator | 5.1.0 | ISC |
-| dompurify | 3.4.16 | (MPL-2.0 OR Apache-2.0) |
+| dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) |
 | entities | 8.1.0 | BSD-2-Clause |
 | es-toolkit | 1.52.0 | MIT |
 | fastdom | 1.0.12 | MIT |
@@ -139,7 +139,7 @@ form.md is licensed under Apache-2.0 (see `LICENSE`). The binary and the embedde
 | lib0 | 0.2.119 | MIT |
 | linkify-it | 6.1.0 | MIT |
 | lodash-es | 4.18.1 | MIT |
-| markdown-it | 15.0.2 | MIT |
+| markdown-it | 15.0.3 | MIT |
 | marked | 16.4.2 | MIT |
 | mdurl | 2.1.0 | MIT |
 | mermaid | 11.17.2 | MIT |
@@ -1706,7 +1706,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-## argparse 3.0.2
+## argparse 3.0.4
 
 ```text
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
@@ -2748,7 +2748,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-## dompurify 3.4.16
+## dompurify 3.4.17
 
 ```text
 Apache License
@@ -4707,7 +4707,7 @@ licenses; we recommend you read them, as their terms may differ from the
 terms above.
 ```
 
-## markdown-it 15.0.2
+## markdown-it 15.0.3
 
 ```text
 Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin.
