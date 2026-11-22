@@ -4,7 +4,13 @@ Since v0.14.0 form.md has a panel with terminals, Claude Code and a Claude Code 
 
 ## Who can use it
 
-The instance owner, signed in, on a form.md that listens on this computer (`127.0.0.1`, the default for `./form-md` and the desktop case). A terminal is a shell as the user the server runs as, so on a server it is off unless you set `FORMMD_TERMINAL=on`; `FORMMD_TERMINAL=off` turns it off even locally. Agent tokens never reach it. A terminal also attaches only from a page the server itself served (the page's origin must be the request's own host, or `tauri.localhost` for the desktop window), so a page served from another port on the same computer is refused. A terminal tab is attached through the browser session that opened it: signing that session out (here, from another device in **Account settings, Sessions**, or by an admin) detaches it at once, while the shell keeps running for your other sessions. Windows servers report that the terminal needs macOS or Linux.
+The instance owner, signed in, on a form.md that listens on this computer (`127.0.0.1`, the default for `./form-md` and the desktop case).
+
+- **On a server it is off.** A terminal is a shell as the user the server runs as, so on a server it is off unless you set `FORMMD_TERMINAL=on`; `FORMMD_TERMINAL=off` turns it off even locally.
+- **Agents cannot reach it.** Agent tokens never reach it.
+- **Only from the app's own page.** A terminal also attaches only from a page the server itself served (the page's origin must be the request's own host, or `tauri.localhost` for the desktop window), so a page served from another port on the same computer is refused.
+- **Tied to your session.** A terminal tab is attached through the browser session that opened it: signing that session out (here, from another device in **Account settings, Sessions**, or by an admin) detaches it at once, while the shell keeps running for your other sessions.
+- **Not on Windows servers.** Windows servers report that the terminal needs macOS or Linux.
 
 ## The panel
 
@@ -20,7 +26,22 @@ The More agents menu opens Codex, Cursor's agent and Antigravity (Google's `agy`
 
 ## Claude Code
 
-Claude Code must be installed and signed in once (`claude` in any terminal). form.md looks for each of the four programs (Claude Code, Codex, Cursor and Antigravity) in the same order: at its override variable (`FORMMD_CLAUDE_BIN`, `FORMMD_CODEX_BIN`, `FORMMD_CURSOR_BIN`, `FORMMD_ANTIGRAVITY_BIN`), on the PATH form.md was started with, in the usual install folders, then on your shell's own PATH, which it reads once. A program that is found but does not start is reported with the error it printed, and one that is not found with the places that were looked in. Each tab starts in the data directory's `agent/` folder with this form.md's MCP endpoint attached through a token of its own, listed as "Claude Code tab in form.md" in your account's API tokens while the tab is open. Closing the tab ends its token, and revoking it there cuts that tab off. Chat uses one token named "Claude Code in form.md"; revoke it and the next chat turn gets a new token of the same name.
+Claude Code must be installed and signed in once (`claude` in any terminal).
+
+**How form.md finds the programs.** form.md looks for each of the four programs (Claude Code, Codex, Cursor and Antigravity) in the same order:
+
+1. at its override variable (`FORMMD_CLAUDE_BIN`, `FORMMD_CODEX_BIN`, `FORMMD_CURSOR_BIN`, `FORMMD_ANTIGRAVITY_BIN`),
+2. on the PATH form.md was started with,
+3. in the usual install folders,
+4. then on your shell's own PATH, which it reads once.
+
+A program that is found but does not start is reported with the error it printed, and one that is not found with the places that were looked in.
+
+**Tokens.**
+
+- Each tab starts in the data directory's `agent/` folder with this form.md's MCP endpoint attached through a token of its own, listed as "Claude Code tab in form.md" in your account's API tokens while the tab is open.
+- Closing the tab ends its token, and revoking it there cuts that tab off.
+- Chat uses one token named "Claude Code in form.md"; revoke it and the next chat turn gets a new token of the same name.
 
 The chat runs the same Claude Code non-interactively and shows its answer, every form.md tool it calls and the memory it uses. **Open in Claude Code** continues the conversation in a terminal tab; the **From Claude Code** command, in Find a command, brings a tab's conversation into the chat.
 
