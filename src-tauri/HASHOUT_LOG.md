@@ -140,7 +140,7 @@ The meeting recorder (`web/src/extensions/blocks/meeting.ts`, MediaRecorder) run
 - kind: decision
 - logged: v0.47.8 · 2026-11-03
 
-The launch punch list (2026-11-03): the About of a downloaded app says NodeAgentc, Inc., not nodemode-ai, and lists the licence. The window's About is the admin dialog's About tab (`web/src/ui/admin.ts`); the macOS application menu's About panel reads the bundle's copyright, and Tauri's default About metadata takes its authors from `bundle.publisher`. The bundle now names the publisher, carries the SPDX id in its copyright line as formMCP and formskills already did, and sets `license` and `licenseFile` (`../LICENSE` from `src-tauri`); `authors` is the company, which is the .deb's Maintainer, and tauri-build writes `CompanyName` from `bundle.publisher` into the Windows version resource. Checked here: the JSON parses; no desktop build was run.
+Owner request of 2026-11-03: the About of a downloaded app says NodeAgentc, Inc., not nodemode-ai, and lists the licence. The window's About is the admin dialog's About tab (`web/src/ui/admin.ts`); the macOS application menu's About panel reads the bundle's copyright, and Tauri's default About metadata takes its authors from `bundle.publisher`. The bundle now names the publisher, carries the SPDX id in its copyright line as formMCP and formskills already did, and sets `license` and `licenseFile` (`../LICENSE` from `src-tauri`); `authors` is the company, which is the .deb's Maintainer, and tauri-build writes `CompanyName` from `bundle.publisher` into the Windows version resource. Checked here: the JSON parses; no desktop build was run.
 
 ## src/menu.rs · Extensions menu {#menu-extensions}
 
