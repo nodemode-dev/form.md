@@ -155,6 +155,14 @@
   display: block;
 }
 
+.auth__alt--desktop {
+  display: none;
+}
+
+:root[data-desktop-server="true"] .auth__alt--desktop {
+  display: block;
+}
+
 :root[data-sso~="saml"] .auth__sso-btn[data-sso-id="saml"],
 :root[data-sso~="google"] .auth__sso-btn[data-sso-id="google"],
 :root[data-sso~="microsoft"] .auth__sso-btn[data-sso-id="microsoft"],

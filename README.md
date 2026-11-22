@@ -123,6 +123,8 @@ form.md loads Form extensions (Form Extension Contract, API 1): install them wit
 
 All form.md builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
 
+The desktop app signs you in as the owner by itself, with no password. To open the same workspace in a browser at http://127.0.0.1:8750, first set a password in the app under Settings, Profile (no current password is asked the first time), then sign in with the email shown there, `owner@localhost` until you change it.
+
 ## Demo
 
 Three offline browser demos, each a double click on its `index.html`, on real public-domain and freely licensed material or your own files. No server, no network.

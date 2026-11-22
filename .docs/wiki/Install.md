@@ -8,6 +8,8 @@ Since v0.43.0 each release also carries the desktop app: `form.md_X.Y.Z_aarch64.
 
 The app is a window around the same `form-md` binary. It starts the server on this computer when it opens and stops it when you quit, signs you in as the owner without a password screen, and keeps your data in `~/form.md` (start the app with `FORMMD_DATA` set to use another folder). The server listens on `127.0.0.1:8750` so agents and `form-md mcp` find it at the usual address, or on another free port when 8750 is taken. It never listens beyond this computer; to share a workspace with other people, run the server on its own as below.
 
+The owner the app creates has the name of your operating system account, the email `owner@localhost` and no password: the window is signed in by the app itself. A browser opened at `http://127.0.0.1:8750` is not signed in and asks for an email and password, and there is no initial password to type. Set one in the app first: Settings, Profile, Password, where the Current password box reads "No password set yet" and is not asked for the first time. Then sign in from the browser with `owner@localhost` (or the address you changed it to) and that password. Changing the email asks for the password, so set the password first. Since v0.61.1; in earlier versions the first password could not be set from the app. There, close the app and run the server binary's `form-md admin reset-owner` with `FORMMD_DATA` set to the app's data folder: it prints a new password for the owner ([[Operations]]).
+
 A macOS build downloaded from a release is unsigned unless formcompiler, which builds the releases, signed it with the Apple identity it holds: allow it once under System Settings, Privacy and Security, Open Anyway.
 
 ## Layout

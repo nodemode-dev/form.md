@@ -390,10 +390,15 @@ func (s *Service) Me(ctx context.Context, p *policy.Principal) (map[string]any, 
 	if err != nil {
 		return nil, err
 	}
+	has, err := s.hasPassword(ctx, p.UserID)
+	if err != nil {
+		return nil, err
+	}
 	out := map[string]any{
-		"user":       u,
-		"credential": map[string]any{"kind": p.Kind, "scope": p.Scope},
-		"instance":   map[string]any{"name": s.settings.Get("instance.name"), "desktop": s.Desktop()},
+		"user":         u,
+		"has_password": has,
+		"credential":   map[string]any{"kind": p.Kind, "scope": p.Scope},
+		"instance":     map[string]any{"name": s.settings.Get("instance.name"), "desktop": s.Desktop()},
 	}
 	if s.meExtras != nil {
 		extra, err := s.meExtras(ctx, p)
@@ -495,6 +500,14 @@ type passwordChange struct {
 	Next    string `json:"next"`
 }
 
+func (s *Service) hasPassword(ctx context.Context, userID string) (bool, error) {
+	var hash string
+	if err := s.st.R.QueryRowContext(ctx, "SELECT password_hash FROM users WHERE id = ?", userID).Scan(&hash); err != nil {
+		return false, err
+	}
+	return hash != "" && !strings.HasPrefix(hash, "!"), nil
+}
+
 func (s *Service) checkCurrentPassword(ctx context.Context, userID, password string) error {
 	var hash string
 	if err := s.st.R.QueryRowContext(ctx, "SELECT password_hash FROM users WHERE id = ?", userID).Scan(&hash); err != nil {
@@ -518,8 +531,14 @@ func (s *Service) handlePassword(w http.ResponseWriter, r *http.Request, p *poli
 	if err := httpx.Decode(r, &in); err != nil {
 		return err
 	}
-	if err := s.checkCurrentPassword(r.Context(), p.UserID, in.Current); err != nil {
+	has, err := s.hasPassword(r.Context(), p.UserID)
+	if err != nil {
 		return err
+	}
+	if has {
+		if err := s.checkCurrentPassword(r.Context(), p.UserID, in.Current); err != nil {
+			return err
+		}
 	}
 	if !ValidPassword(in.Next) {
 		return errPassword

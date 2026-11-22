@@ -2622,3 +2622,21 @@ Now `FORMMD_DESKTOP=1` (no secret) puts the server in desktop mode, `Load` makes
 The window check reads the key from the server's output as the desktop app does, claims it once, gives the session to each test's browser context, and asserts that a second claim from a cookie-less client gets 409.
 
 Ran: `TestDesktopEntrySignsTheOwnerIn` failed on the old handler (the second claim answered 303) and passes now; the config tests pass. Requests against the built server: with `FORMMD_DESKTOP=1` the key is 43 characters on standard output before the ready line and not in `/proc/<pid>/environ` or the command line; the window enters (303), reads `/api/me` (200) and makes a page (201); a second client with the same key and no cookie gets 409 and then 401 on `/api/me` and on minting a token; a wrong key 404. From a terminal (no `FORMMD_DESKTOP`) and on `0.0.0.0`: no key line, `/desktop/enter` 404, setup 200, a second setup 409, sign-in 200, a page 201, no session 401.
+
+## Phase 33 · the first password, and hosting it yourself {#p33-first-password}
+
+### internal/auth, internal/server · an account without a password sets its first one from its session
+- refers-to: internal/auth/users.go :: `hasPassword`, `handlePassword`, `Me`; internal/server/server.go :: `authAttrs`; web/index.html (`auth__alt--desktop`); see web/HASHOUT_LOG.md #first-password
+- kind: fix
+- logged: v0.61.1 · 2026-11-22
+- issue: nodemode-dev/form.md #21, "What is initial password?"
+
+The report: the Windows desktop app (v0.57.0) opens signed in as `owner@localhost`, a browser at `http://127.0.0.1:8750` asks for an email and password, and Settings, Profile asks for a current password that does not exist. The entry of 2026-10-20 (decision 1a) says the desktop owner has no usable password "until the owner sets one in account settings", but `handlePassword` always called `checkCurrentPassword`, which verifies against the dummy hash when the stored hash starts with `!` and so always answers `bad_password`. The owner could never set the first password, and so could never sign in from a browser. The same held for an account made by single sign-on.
+
+Now `handlePassword` asks `hasPassword` first and checks the current password only when one exists. The route was already session-only (`RequireSession`), so an API token or OAuth grant still cannot reach it; an account with no password has no other secret to ask for. Once a password exists the current one is required again. `handleEmail` is unchanged: changing the address still needs the password, so the order is password first, then email. Under `auth.saml_only` a password set this way does not open password sign-in for anyone but the owner, as `VerifyLogin` already refuses it.
+
+`Me` carries `has_password` so the client can say so instead of asking for something that is not there. `authAttrs` adds `desktop-server="true"` when the server runs for the desktop app (`data-desktop-server` on the root; the name `data-desktop` is taken by the signed-in shell), and the signed-out sign-in page shows one sentence saying where the password is set. The sentence is in the markup and shown by the attribute, so it is in the first frame.
+
+Not done on purpose: no default or printed password for the desktop owner (a known default on a local port is worse than none), and no password-free email change.
+
+Ran against the built server with `FORMMD_DESKTOP=1` on an empty data folder: the window enters (303), `/api/me` reads `owner@localhost`, `has_password` false; an email change with no password 403; a first password of 5 characters 400 `weak_password`; a first password with an empty current 204, then `has_password` true; a second change with an empty or a wrong current 403; the signed-out `/login` carries `data-desktop-server="true"` and the sentence; sign-in with `owner@localhost` and the new password 200; an email change with the password 200; a change with the right current 204. `go build ./...`, `gofmt -l`, `go vet` on both packages clean. `go test ./internal/server/... ./internal/config/...` pass (`internal/auth` has no test files). No test was added: the cases above are written up for TEST_PLAN.md in the planning sidecar.

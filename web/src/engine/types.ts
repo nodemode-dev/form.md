@@ -71,6 +71,7 @@ export interface PageStyle {
 
 export interface Me {
   user: User;
+  has_password?: boolean;
   credential: { kind: "session" | "token" | "oauth"; scope: "read" | "write" };
   instance: { name: string };
   workspaces: Workspace[];
