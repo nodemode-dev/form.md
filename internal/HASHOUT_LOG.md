@@ -2640,3 +2640,21 @@ Now `handlePassword` asks `hasPassword` first and checks the current password on
 Not done on purpose: no default or printed password for the desktop owner (a known default on a local port is worse than none), and no password-free email change.
 
 Ran against the built server with `FORMMD_DESKTOP=1` on an empty data folder: the window enters (303), `/api/me` reads `owner@localhost`, `has_password` false; an email change with no password 403; a first password of 5 characters 400 `weak_password`; a first password with an empty current 204, then `has_password` true; a second change with an empty or a wrong current 403; the signed-out `/login` carries `data-desktop-server="true"` and the sentence; sign-in with `owner@localhost` and the new password 200; an email change with the password 200; a change with the right current 204. `go build ./...`, `gofmt -l`, `go vet` on both packages clean. `go test ./internal/server/... ./internal/config/...` pass (`internal/auth` has no test files). No test was added: the cases above are written up for TEST_PLAN.md in the planning sidecar.
+
+### deploy/gcp · the scripts that put formai.monster up, for any domain
+- refers-to: deploy/gcp/provision, deploy/gcp/ship, deploy/gcp/install, deploy/gcp/instance.env; .docs/SELF_HOSTING.md; .docs/wiki/Self-hosting.md; .docs/wiki/Auth0.md
+- kind: deploy, docs
+- logged: v0.61.1 · 2026-11-22
+
+Owner request of 2026-11-22: a guide for taking one's own copy of form.md to one's own domain the way formpunchlist went to formai.monster, to be shared on formai.studio, plus wiki pages. The three scripts are formpunchlist's `deploy/gcp` (its internal/HASHOUT_LOG.md, "deploy/gcp · one VM for formai.monster", v0.48.0, and "the bundle budget warns instead of stopping a deploy", v0.49.0) with these differences and no others:
+
+- `provision`: `DOMAIN` is required instead of defaulting to formai.monster; the VM name defaults to `form-md` and the network tag to `form-md-web` (`VM_TAG`); the printed DNS records name the given host, mark www and CAA as optional, and say there is no AAAA record.
+- `ship`: the staging folder is `form-md-deploy`, and the env file is `instance.env`.
+- `install`: stops before touching the system when no `/etc/form-md/env` exists yet and `instance.env` still names `example.com`; reads the host name for its last line from `FORMMD_ACME_DOMAINS` in the installed env file; that last line says the set-up screen answers whoever opens it first. formpunchlist closed that window with its email allowlist, which form.md does not have, so the guide says to create the owner at once.
+- `instance.env`: `FORMMD_ADDR`, `FORMMD_HTTP_ADDR`, `FORMMD_ACME_DOMAINS`, `FORMMD_TERMINAL=off`, `FORMMD_FAMILY=off`. Left out because form.md does not read them: the allowlist, the punch list variables, and the instance name and public address from the environment (set in Instance settings instead). `FORMMD_UPDATE_CHECK=false` is left out because the update feed is form.md's own.
+
+Not ported from formpunchlist, by decision of scope and not of merit: the allowlist (`internal/auth/allowlist.go`, 40 lines and seven call sites), `FORMMD_INSTANCE_NAME` and `FORMMD_PUBLIC_URL`. The wiki page names them under "What formpunchlist adds on top".
+
+The Auth0 page is derived from `internal/auth/oidc.go` and Auth0's documentation, with no Auth0 tenant involved. What the code settles: the issuer check uses the discovery document's own `issuer`, so Auth0's trailing slash is fine; only RS256 and ES256 verify; the client secret goes in the token request body; an existing account links only when both sides hold the email verified; a new account needs `SignupAllowed`; a provider sign-in starts a session without the form.md two-factor step. What it does not settle: `prompt=select_account` is sent to every provider, and Auth0 documents only `none` and `login` for it.
+
+Ran: `bash -n` on the three scripts; the `example.com` guard and the host-name line of `install` on a copy of the env file; `go run ./tools/wikicheck` (22 pages agree). Not run: `provision`, `ship` and `install` against Google Cloud or any host.
