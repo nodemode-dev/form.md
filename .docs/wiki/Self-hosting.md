@@ -1,6 +1,6 @@
 # Self-hosting
 
-How to put your own form.md on your own domain for a small team: one virtual machine, the server's own HTTPS certificate, an encrypted data directory, accounts by invitation. It is the set-up that runs formai.monster (the form.md maintainers' own instance, built from a fork called formpunchlist), with that fork's private additions left out. The scripts are in `deploy/gcp`; the same steps work on any Linux host with systemd.
+How to put your own form.md on your own domain for a small team: one virtual machine, the server's own HTTPS certificate, an encrypted data directory, accounts by invitation. The scripts are in `deploy/gcp`; the same steps work on any Linux host with systemd.
 
 The long, step-by-step version of this page, written for people who have never run a server, is `.docs/SELF_HOSTING.md`.
 
@@ -101,16 +101,6 @@ If you cannot open ports 80 and 443, use a tunnel instead ([[Tunnel]]).
 
 Out of the box: passwords hashed with argon2id, two-factor sign-in per account, invitation-only registration and a sign-in rate limit, with a fail2ban filter in `deploy/fail2ban` ([[Operations]]). To put an identity provider in front, set up single sign-on in Instance settings, Sign-in: Google, Microsoft, any OpenID Connect provider, or SAML 2.0. [[Auth0]] walks through Auth0.
 
-## What formpunchlist adds on top
-
-formai.monster runs a fork with three additions that are not in form.md, listed here so nobody looks for them in this repository:
-
-- An email allowlist enforced on every sign-in, account, invitation and share. The closest thing here is registration **By invitation only** or **Email domain allowed**.
-- The instance name and public address seeded from the environment. Here they are set in Instance settings, General (step 6).
-- A launch board template the server builds once and a table it refreshes from the GitHub API.
-
-Everything else on that instance is form.md as documented in this wiki.
-
 ## Operations
 
 - Logs: `sudo journalctl -u form-md -n 50` on the VM.
@@ -127,7 +117,7 @@ Everything else on that instance is form.md as documented in this wiki.
 - The terminal and Claude Code panel are off on a hosted instance (`FORMMD_TERMINAL=off` in the env file): it would be a shell on the VM for the owner. Leave it off unless you want exactly that ([[Terminal-and-Claude-Code]]).
 - `ship` warns, and carries on, when the start-up bundle measures over the development budget on your machine; `make build` and CI keep the hard limit.
 - On another machine type or zone, pass the same `VM_NAME`, `GCP_REGION` and `GCP_ZONE` to `ship` that you passed to `provision`.
-- The scripts in `deploy/gcp` are the ones that deployed formai.monster with the names made into variables. The originals ran for real; this generalised copy has been syntax-checked only.
+- The scripts in `deploy/gcp` have been syntax-checked only in this form; run `provision` on a scratch project first.
 
 ## Related
 

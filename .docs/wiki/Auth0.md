@@ -2,7 +2,7 @@
 
 How to let people sign in to a hosted form.md through Auth0. form.md needs no Auth0-specific code for this: Auth0 is an OpenID Connect provider, and form.md already signs people in through any provider that publishes OpenID Connect discovery (Instance settings, Sign-in, **Other single sign-on (OpenID Connect)**).
 
-**Status: not yet tried against a real Auth0 tenant.** formai.monster does not use it yet. Everything below was worked out from form.md's sign-in code and Auth0's documentation, and the one point that could not be settled from either is called out under Open points. Treat the first sign-in as the test.
+**Status: not yet tried against a real Auth0 tenant.** Everything below was worked out from form.md's sign-in code and Auth0's documentation, and the one point that could not be settled from either is called out under Open points. Treat the first sign-in as the test.
 
 ## Layout
 
