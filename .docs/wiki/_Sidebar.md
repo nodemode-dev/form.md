@@ -3,6 +3,7 @@
 - [[Home]]
 - [[Install]]
 - [[Configuration]]
+- [[Releases]]
 
 **Running an instance**
 

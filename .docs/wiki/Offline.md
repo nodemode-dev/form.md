@@ -1,6 +1,10 @@
 # Offline
 
-form.md opens without a connection to the server. A service worker keeps the built client and a copy of the signed-in app shell, and page bodies live in the browser's IndexedDB as the same CRDT documents the server holds, so pages saved on the device open, show their text and accept typing while the server is unreachable, including after the browser was closed and reopened offline (the device remembers whether you may edit each page). Text edits merge into the server's copy when the connection comes back. Databases opened or kept on the device open with up to 1000 rows in every view, the row pages among them open with their properties and body, and rows added, edited or deleted offline are queued in the browser and sent when the server is back. Everything else (schema and view changes, ad-hoc filters and further rows, search, comments, the inbox, uploads, AI and settings) needs the server.
+form.md opens without a connection to the server.
+
+- **Pages.** A service worker keeps the built client and a copy of the signed-in app shell, and page bodies live in the browser's IndexedDB as the same CRDT documents the server holds, so pages saved on the device open, show their text and accept typing while the server is unreachable, including after the browser was closed and reopened offline (the device remembers whether you may edit each page). Text edits merge into the server's copy when the connection comes back.
+- **Databases.** Databases opened or kept on the device open with up to 1000 rows in every view, the row pages among them open with their properties and body, and rows added, edited or deleted offline are queued in the browser and sent when the server is back.
+- **What still needs the server.** Everything else (schema and view changes, ad-hoc filters and further rows, search, comments, the inbox, uploads, AI and settings) needs the server.
 
 ## Layout
 
@@ -27,13 +31,23 @@ form.md opens without a connection to the server. A service worker keeps the bui
 
 ## Keeping pages on the device
 
-Every page you open is kept in IndexedDB on that device, and every database you open while the service worker controls the tab is kept in the worker's API cache (`formmd-api`: the reads `GET /api/pages/<id>`, `GET /api/collections/<id>` and `GET /api/rows/<id>`). To keep pages you have not opened, use the page menu item **Available offline** (shown for document and database pages you can view, not for database rows, in browsers with service workers). It keeps that page and all of its subpages synced into IndexedDB, the first view of each database among them in the API cache together with the row pages in its first window (their details and bodies), and the pictures and files those pages show in the file cache, now, shows how many were saved, and re-syncs them about 30 seconds after each start while online. Choosing it again stops keeping them.
+- **What you open is kept.** Every page you open is kept in IndexedDB on that device, and every database you open while the service worker controls the tab is kept in the worker's API cache (`formmd-api`: the reads `GET /api/pages/<id>`, `GET /api/collections/<id>` and `GET /api/rows/<id>`).
+- **Keeping pages you have not opened.** To keep pages you have not opened, use the page menu item **Available offline** (shown for document and database pages you can view, not for database rows, in browsers with service workers).
+- **What Available offline keeps.** It keeps that page and all of its subpages synced into IndexedDB, the first view of each database among them in the API cache together with the row pages in its first window (their details and bodies), and the pictures and files those pages show in the file cache, now, shows how many were saved, and re-syncs them about 30 seconds after each start while online.
+- **Turning it off.** Choosing it again stops keeping them.
 
 A kept database keeps up to 1000 rows: the worker caches `GET /api/collections/<id>?view=<view>&rows=1000` for every table and list view, answers an offline read of that database from that copy first, and the row pages of the first 1000 rows are synced. Without any marking, the 20 pages and databases this account opened most recently (on any device, from `GET /api/recent`) are kept the same way at each start. The command **Keep recent pages offline** (`offline.recent`) turns that off or on again for this browser.
 
-Other views ask the server with `POST /api/collections/<id>/query`, `/chart` or `/feed`, which the browser cache cannot hold as such. The worker keeps each successful first-page answer (no search text, offset 0) under a key made from the collection path and a SHA-256 of the request body, and answers the same request from it only when the network fails. A canonical `/query` answer (no group or lane paging, tree, ad-hoc filter, row ids, sort override or date range) is also kept under a key for its view, and any plain request for that view (one without group or lane paging, tree, ad-hoc filter or row ids) falls back to it when its exact request was never made (another calendar month, say); `/chart` and `/feed` answers are only ever served for the exact request, so a dashboard widget never gets another widget's numbers and clicking a chart mark offline never shows the chart's totals as its rows.
+Other views ask the server with `POST /api/collections/<id>/query`, `/chart` or `/feed`, which the browser cache cannot hold as such.
 
-The keeper asks the worker to fetch these itself (the `offline-query` message, like the row and page reads), so it works even before the worker controls the page, and the worker claims open pages when it activates. For kept and recent databases at the keeper's pass, and for any database opened while online (about two seconds after opening, once per session, unless **Keep recent pages offline** is off), it keeps the database and asks once for every board, gallery, calendar, timeline, map, graph, chart and feed view and every dashboard widget (with its sparkline). A heatmap's request depends on the day and is kept when the heatmap is opened online. The map's land outline (`/maps/world-110m.json`) is in `/offline.json` and cached with the built assets.
+- **Exact answers.** The worker keeps each successful first-page answer (no search text, offset 0) under a key made from the collection path and a SHA-256 of the request body, and answers the same request from it only when the network fails.
+- **A fallback per view.** A canonical `/query` answer (no group or lane paging, tree, ad-hoc filter, row ids, sort override or date range) is also kept under a key for its view, and any plain request for that view (one without group or lane paging, tree, ad-hoc filter or row ids) falls back to it when its exact request was never made (another calendar month, say);
+- **Charts and feeds never borrow.** `/chart` and `/feed` answers are only ever served for the exact request, so a dashboard widget never gets another widget's numbers and clicking a chart mark offline never shows the chart's totals as its rows.
+
+- **Who fetches.** The keeper asks the worker to fetch these itself (the `offline-query` message, like the row and page reads), so it works even before the worker controls the page, and the worker claims open pages when it activates.
+- **Which views.** For kept and recent databases at the keeper's pass, and for any database opened while online (about two seconds after opening, once per session, unless **Keep recent pages offline** is off), it keeps the database and asks once for every board, gallery, calendar, timeline, map, graph, chart and feed view and every dashboard widget (with its sparkline).
+- **Heatmaps.** A heatmap's request depends on the day and is kept when the heatmap is opened online.
+- **The map.** The map's land outline (`/maps/world-110m.json`) is in `/offline.json` and cached with the built assets.
 
 Queued database changes are sent when the browser comes back online, when the app's live connection to the server is re-established (a server restart or a dropped link, where the browser itself never went offline), and at start.
 
@@ -64,7 +78,11 @@ In the installed window, a **Sync now** button appears in the top bar. It reconn
 
 ## Sign-out
 
-Signing out deletes the cached shell, the API cache, the file cache and every IndexedDB document database the app created (names starting `formmd-doc-`), so the next person on that browser starts clean. Database changes still queued are kept in `localStorage` under the account's id, so they are never sent under anyone else's session and are sent when that account signs in again on this browser. When a different account starts the app than the one that last used it, the app deletes the same caches and databases before it loads. When the server answers that the session has ended (expired or revoked), the app deletes the shell, API and file caches before it goes to the sign-in page. The asset cache holds only the public client build and is kept.
+- **What is deleted.** Signing out deletes the cached shell, the API cache, the file cache and every IndexedDB document database the app created (names starting `formmd-doc-`), so the next person on that browser starts clean.
+- **Changes not yet sent.** Database changes still queued are kept in `localStorage` under the account's id, so they are never sent under anyone else's session and are sent when that account signs in again on this browser.
+- **Another account on the same browser.** When a different account starts the app than the one that last used it, the app deletes the same caches and databases before it loads.
+- **A session that ended.** When the server answers that the session has ended (expired or revoked), the app deletes the shell, API and file caches before it goes to the sign-in page.
+- **What is kept.** The asset cache holds only the public client build and is kept.
 
 ## For operators
 

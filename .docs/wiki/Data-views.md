@@ -65,7 +65,9 @@ Rows are nodes and relation properties are links. Settings: colour by a select o
 
 ## Dashboards
 
-Widgets sit on a four-column grid and are small (one column), medium (two) or full width; on narrow screens they stack. With rights to change the view's design, drag a widget by its grip to move it, or focus the grip and press the left and right (or up and down) arrow keys; focus stays on the grip and a screen reader hears the new position. Move earlier and Move later are also in each widget's menu then. **Add a KPI** adds a number widget with a trend: pick a date property and day, week or month, and the card shows the value, a sparkline of the last 24 buckets and the change of the last bucket against the one before.
+- **Sizes.** Widgets sit on a four-column grid and are small (one column), medium (two) or full width; on narrow screens they stack.
+- **Moving a widget.** With rights to change the view's design, drag a widget by its grip to move it, or focus the grip and press the left and right (or up and down) arrow keys; focus stays on the grip and a screen reader hears the new position. Move earlier and Move later are also in each widget's menu then.
+- **KPI cards.** **Add a KPI** adds a number widget with a trend: pick a date property and day, week or month, and the card shows the value, a sparkline of the last 24 buckets and the change of the last bucket against the one before.
 
 ## Boards
 
@@ -91,7 +93,16 @@ The table renders only the rows near the viewport and asks the server for each w
 
 `POST /api/collections/{id}/chart` takes `{"chart": {...}, "view_id": "...", "search": "...", "pick": {"x": "...", "series": "..."}, "date_range": {...}}`. The chart object has `kind`, `x` and `series` groupings (`prop`, `by`, `step`), `fn`, `prop`, `target`, `window`, `scale`, `filter`, `limit` and the style flags. A `pick` answers with `picked`, the ids of up to 500 rows behind that mark, instead of values. A `dots` chart answers with `points` (`id`, `title`, `group`, `value`). Calendar charts return up to 1,100 days.
 
-`date_range`, on `POST /api/collections/{id}/query` and `/chart`, narrows the answer to rows whose date falls in a range: `{"prop": "<date property id>", "within": "today"}` with any Is within option (`today`, `past_7_days` and `past_30_days` are rolling whole days ending today, in the viewer's time zone), or `{"prop": "...", "from": "YYYY-MM-DD", "to": "YYYY-MM-DD"}` with both days included. It is ANDed with the view's filter, so it can only narrow what the view shows. The property must be a date, created time or edited time property of that database, `within` and `from`/`to` cannot be mixed, the days must be real dates and `from` must not be after `to`; anything else answers `400 bad_date_range`. The database toolbar's Date range control keeps each viewer's choice per view in the browser (`formmd.daterange.<view id>`) and sends it with every rows and chart request of that view.
+`date_range`, on `POST /api/collections/{id}/query` and `/chart`, narrows the answer to rows whose date falls in a range:
+
+- `{"prop": "<date property id>", "within": "today"}` with any Is within option (`today`, `past_7_days` and `past_30_days` are rolling whole days ending today, in the viewer's time zone), or
+- `{"prop": "...", "from": "YYYY-MM-DD", "to": "YYYY-MM-DD"}` with both days included.
+
+It is ANDed with the view's filter, so it can only narrow what the view shows.
+
+**Rules.** The property must be a date, created time or edited time property of that database, `within` and `from`/`to` cannot be mixed, the days must be real dates and `from` must not be after `to`; anything else answers `400 bad_date_range`.
+
+**In the window.** The database toolbar's Date range control keeps each viewer's choice per view in the browser (`formmd.daterange.<view id>`) and sends it with every rows and chart request of that view.
 
 ## The contract
 
@@ -101,11 +112,21 @@ The table renders only the rows near the viewport and asks the server for each w
 
 ## Templates that show every view
 
-Since v0.45.0 Home leads with **Data & charts**: 15 featured templates (Sales dashboard, Website analytics, Project portfolio, Finance overview, Survey results, Inventory and stock levels, Team capacity, Customer map, Fitness tracker, Habit heatmap, Knowledge graph, Formula and rollup playground, Content library, Quarterly report, Diagram gallery) that between them use all 13 chart kinds and all 13 views, with real rows dated relative to the day they are added so calendars, heatmaps and timelines are never empty. **Example projects** follows: 14 projects, each a home page with inline dashboards, sub-pages and related databases. Both are built by `internal/templates/build.go`, which creates the page tree first and then fills `{{db:KEY}}` and `{{page:KEY}}` placeholders, relations given by row title, and relative dates. The catalogue is checked when the server starts, so a template that points at a missing database or option does not ship.
+- **Data & charts.** Since v0.45.0 Home leads with **Data & charts**: 15 featured templates (Sales dashboard, Website analytics, Project portfolio, Finance overview, Survey results, Inventory and stock levels, Team capacity, Customer map, Fitness tracker, Habit heatmap, Knowledge graph, Formula and rollup playground, Content library, Quarterly report, Diagram gallery) that between them use all 13 chart kinds and all 13 views, with real rows dated relative to the day they are added so calendars, heatmaps and timelines are never empty.
+- **Example projects.** **Example projects** follows: 14 projects, each a home page with inline dashboards, sub-pages and related databases.
+- **How they are built.** Both are built by `internal/templates/build.go`, which creates the page tree first and then fills `{{db:KEY}}` and `{{page:KEY}}` placeholders, relations given by row title, and relative dates.
+- **Checked at start.** The catalogue is checked when the server starts, so a template that points at a missing database or option does not ship.
 
 ## Forms and responses
 
-A form view (and its public link) lists questions, each bound to one property of the database. `internal/collection/forms.go` validates a submission exactly as before: required questions, per-type normalising, select options and conditional questions. Since v0.47.0 the validated answers are stored as one response record on the new row (`collection_rows.response`: form id, form version, answers by question id, submitted time) and the row's own `vals` stay empty. The answer columns are computed from the record when a row is read (`effectiveVals` in `internal/collection/response.go`, applied where the snapshot is built and where the write paths read values), so views, filters, sorts, formulas, exports, the API and search see the same values as before. A cell a person edits is kept in the row's own `vals` as an override and wins over the computed value; clearing a computed cell keeps a null override. Rows made before v0.47.0 keep their stored values and need no migration. The page title still names the row from the title answer.
+A form view (and its public link) lists questions, each bound to one property of the database.
+
+- **Checking a submission.** `internal/collection/forms.go` validates a submission exactly as before: required questions, per-type normalising, select options and conditional questions.
+- **Where the answers go.** Since v0.47.0 the validated answers are stored as one response record on the new row (`collection_rows.response`: form id, form version, answers by question id, submitted time) and the row's own `vals` stay empty.
+- **How they show up as columns.** The answer columns are computed from the record when a row is read (`effectiveVals` in `internal/collection/response.go`, applied where the snapshot is built and where the write paths read values), so views, filters, sorts, formulas, exports, the API and search see the same values as before.
+- **When a person edits a cell.** A cell a person edits is kept in the row's own `vals` as an override and wins over the computed value; clearing a computed cell keeps a null override.
+- **Older rows.** Rows made before v0.47.0 keep their stored values and need no migration.
+- **The row's title.** The page title still names the row from the title answer.
 
 Automations on a form use their own trigger, **When a response is received**. The event carries the response record, and the trigger's condition is judged against the answers as submitted, not against stored properties. A **When a page is added** automation on a database with a form view was carried over to this trigger by migration 0031, with **Also when a page is added by hand** ticked so it keeps running for rows added by hand. Rows made by a form do not raise the plain row-added event for automations.
 
