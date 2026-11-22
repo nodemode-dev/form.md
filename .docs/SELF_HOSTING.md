@@ -2,7 +2,7 @@
 
 A step-by-step guide to running form.md on your own domain, as a private workspace for yourself, a small team or an organisation: pages, databases, boards and realtime editing, on a server you control, with the data in one encrypted folder.
 
-This is how the form.md maintainers run their own instance. Greg and Mackin took a copy of form.md, called it formpunchlist, and put it on formai.monster as the punch list for the FormAI launch. This guide is that deployment with the names taken out, so it works for any domain.
+This is how the form.md maintainers run their own instance. [@nodemode-ai](https://github.com/nodemode-ai) and [@gbarnai](https://github.com/gbarnai), part of the team behind FormAI, took a copy of form.md, called it formpunchlist, and put it on formai.monster as the punch list for the FormAI launch. This guide is that deployment with the names taken out, so it works for any domain.
 
 Reference versions of the same material live in the wiki: `.docs/wiki/Self-hosting.md` and `.docs/wiki/Auth0.md`.
 
@@ -195,7 +195,7 @@ Try a restore once, on a scratch machine, before you need one.
 
 ## Making it yours
 
-This is the part where your copy starts to differ from everyone else's. What Greg and Mackin changed for formai.monster is a fair picture of the range:
+This is the part where your copy starts to differ from everyone else's. What @nodemode-ai and @gbarnai changed for formai.monster is a fair picture of the range:
 
 | Change | Where it lives | Code |
 |---|---|---|
