@@ -40,7 +40,7 @@ form.md is a self-hosted workspace where people and AI agents write documents, r
 | Automatic HTTPS from Instance settings, browser backup download, update check | Working since v0.11.0 · see [[TLS-and-ACME]], [[Backup-and-restore]], [[Operations]] |
 | `install.sh`, systemd unit, container image, releases through formcompiler | Written and tried locally (the image built and answered `/healthz`), **not yet exercised by a formcompiler release** · see [[Install]] |
 | SAML and SCIM | Tested against a local identity provider only, not yet against Okta, Entra or Google Workspace |
-| Hosting on Google Cloud with `deploy/gcp`, Auth0 through OpenID Connect | The scripts are formai.monster's with the names made into variables, syntax-checked, **not yet run** on a new project; Auth0 **not yet tried** against a tenant · see [[Self-hosting]] and [[Auth0]] |
+| Hosting on Google Cloud with `deploy/gcp`, Auth0 through OpenID Connect | The scripts are syntax-checked, **not yet run** on a new project; Auth0 **not yet tried** against a tenant · see [[Self-hosting]] and [[Auth0]] |
 | The first password of an account that has none (the desktop owner, accounts made by single sign-on) | Working since v0.61.1; checked against the built server, the Profile tab not yet looked at in a browser · see [[Install]] |
 | AI providers | Verified against a local stand-in, not yet against live provider keys |
 | Windows scripts (`*.bat`) | Written, **not yet run** on a Windows host |

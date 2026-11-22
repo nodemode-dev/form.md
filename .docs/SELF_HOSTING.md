@@ -2,7 +2,7 @@
 
 A step-by-step guide to running form.md on your own domain, as a private workspace for yourself, a small team or an organisation: pages, databases, boards and realtime editing, on a server you control, with the data in one encrypted folder.
 
-This is how the form.md maintainers run their own instance. [@nodemode-ai](https://github.com/nodemode-ai) and [@gbarnai](https://github.com/gbarnai), part of the team behind FormAI, took a copy of form.md, called it formpunchlist, and put it on formai.monster as the punch list for the FormAI launch. This guide is that deployment with the names taken out, so it works for any domain.
+It is written by [@nodemode-ai](https://github.com/nodemode-ai) and [@gbarnai](https://github.com/gbarnai), part of the team behind FormAI, and works for any domain.
 
 Reference versions of the same material live in the wiki: `.docs/wiki/Self-hosting.md` and `.docs/wiki/Auth0.md`.
 
@@ -27,7 +27,7 @@ Reference versions of the same material live in the wiki: `.docs/wiki/Self-hosti
 
 form.md is one binary. It serves the web app, the API and the live editing socket from one port, and keeps everything in one data folder: a SQLite database, the uploaded files and a few keys.
 
-That shape decides the hosting. SQLite in write-ahead-log mode needs every process that touches the database to be on the same machine, and it does not work over a network filesystem ([SQLite, Write-Ahead Logging](https://www.sqlite.org/wal.html)). So form.md wants one machine with a real local disk and exactly one server process: a virtual machine, not a platform that starts and stops copies of your container. That is why formai.monster is a Compute Engine VM and not Cloud Run.
+That shape decides the hosting. SQLite in write-ahead-log mode needs every process that touches the database to be on the same machine, and it does not work over a network filesystem ([SQLite, Write-Ahead Logging](https://www.sqlite.org/wal.html)). So form.md wants one machine with a real local disk and exactly one server process: a virtual machine, not a platform that starts and stops copies of your container. That is why this guide uses a Compute Engine VM and not Cloud Run.
 
 Everything a reverse proxy would normally do, form.md does itself: it terminates TLS, gets its own certificate, redirects port 80 to HTTPS and sets the security headers.
 
@@ -195,16 +195,16 @@ Try a restore once, on a scratch machine, before you need one.
 
 ## Making it yours
 
-This is the part where your copy starts to differ from everyone else's. What @nodemode-ai and @gbarnai changed for formai.monster is a fair picture of the range:
+This is the part where your copy starts to differ from everyone else's. The range runs from settings to code:
 
 | Change | Where it lives | Code |
 |---|---|---|
 | The name on the sign-in page and in mail | Instance settings, General | None |
 | Themes, accent colour, fonts, page styles | Preferences and Workspace settings | None |
-| Their own starting content: a launch board with a punch list, a board by owner and a dashboard | A template in `internal/templates/`, built once into the team workspace by a small package of their own | Go |
-| A table kept current from the GitHub API every few minutes | A new package beside the others in `internal/`, with its settings in the admin screen | Go and TypeScript |
-| An email allowlist: only two addresses may ever hold an account, be invited or be shared with | One 40-line file in `internal/auth/` and a check at each place an address enters the system | Go |
-| The deploy scripts in this guide | `deploy/gcp/` | Shell, now part of form.md |
+| Your own starting content, for example a project board with a task list, a board by owner and a dashboard | A page saved as a template, or a template in `internal/templates/` that a small package of your own builds once into the team workspace | None, or Go |
+| A table kept current from an outside service, for example the state of your repositories read from an API every few minutes | A new package beside the others in `internal/`, with its settings in the admin screen | Go and TypeScript |
+| A stricter door than invitations, for example a fixed list of email addresses that alone may hold an account, be invited or be shared with | One small file in `internal/auth/` and a check at each place an address enters the system | Go |
+| Your own deploy settings | `deploy/gcp/` | Shell |
 
 Most teams never need the code-level rows. Templates, sharing and the registration setting cover "our workspace, our people". When you do change code:
 
@@ -224,7 +224,7 @@ Most teams never need the code-level rows. Templates, sharing and the registrati
 
 Out of the box, sign-in is email and password (hashed with argon2id), optional two-factor per account, a rate limit on attempts and invitation-only registration. That is sound for a small team. Putting an identity provider in front adds central control: one place to add and remove people, your company's login rules and multi-factor policy.
 
-**Where this stands.** formai.monster does not use Auth0 yet; it is planned. form.md already signs people in through any OpenID Connect provider, and Auth0 is one, so no code is needed. But this exact pairing has not been tried against a real Auth0 tenant, so treat your first sign-in as the test, and read "Open points" in the wiki page Auth0 first.
+**Where this stands.** form.md already signs people in through any OpenID Connect provider, and Auth0 is one, so no code is needed. But this exact pairing has not been tried against a real Auth0 tenant, so treat your first sign-in as the test, and read "Open points" in the wiki page Auth0 first.
 
 In Auth0:
 
@@ -287,8 +287,7 @@ If you cannot open those ports at all, the wiki page Tunnel covers a Cloudflare 
 
 ## What has and has not been run
 
-- The deployment itself (VM, DNS, certificate, encrypted data, snapshots) is what serves formai.monster today, built from the formpunchlist copy.
-- The scripts in `deploy/gcp/` here are those scripts with the names turned into variables. That edit has been syntax-checked, not run against a new project.
+- The scripts in `deploy/gcp/` have been syntax-checked in this form, not run against a new project. Run `provision` on a scratch project first.
 - The Auth0 section is worked out from form.md's sign-in code and Auth0's documentation, and has not been run against an Auth0 tenant.
 
 ## Sources

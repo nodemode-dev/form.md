@@ -2397,7 +2397,7 @@ Integration pass: Go's `ServeMux` answers a path with `..`, `.` or `//` with a 3
 - kind: feature
 - logged: v0.48.0 · 2026-11-03
 
-Owner request of 2026-11-03 (first made for formpunchlist, brought back to form.md): the page header (icon, the cover, description and comment adders, title, description, tags) sits on the left by default, with a per-page choice of left, center or right. A sixth page style key, `header`, with `left` as the default, so it follows the same path as the other five: saved per page, inherited from the workspace default, kept in saved styles, and written as `data-style-header` on the root by `renderDocument` for the first frame. `left` is skipped there and in `Attrs`, like `start` and `sans`, so a default page carries no attribute. Published sites receive `data-style-header` on `.site-main` through `Attrs`, but the site stylesheet has no rule for it yet, so published pages keep their own header layout.
+Owner request of 2026-11-03: the page header (icon, the cover, description and comment adders, title, description, tags) sits on the left by default, with a per-page choice of left, center or right. A sixth page style key, `header`, with `left` as the default, so it follows the same path as the other five: saved per page, inherited from the workspace default, kept in saved styles, and written as `data-style-header` on the root by `renderDocument` for the first frame. `left` is skipped there and in `Attrs`, like `start` and `sans`, so a default page carries no attribute. Published sites receive `data-style-header` on `.site-main` through `Attrs`, but the site stylesheet has no rule for it yet, so published pages keep their own header layout.
 
 ## Phase 24 · date range on database views {#p24-date-range}
 
@@ -2641,19 +2641,17 @@ Not done on purpose: no default or printed password for the desktop owner (a kno
 
 Ran against the built server with `FORMMD_DESKTOP=1` on an empty data folder: the window enters (303), `/api/me` reads `owner@localhost`, `has_password` false; an email change with no password 403; a first password of 5 characters 400 `weak_password`; a first password with an empty current 204, then `has_password` true; a second change with an empty or a wrong current 403; the signed-out `/login` carries `data-desktop-server="true"` and the sentence; sign-in with `owner@localhost` and the new password 200; an email change with the password 200; a change with the right current 204. `go build ./...`, `gofmt -l`, `go vet` on both packages clean. `go test ./internal/server/... ./internal/config/...` pass (`internal/auth` has no test files). No test was added: the cases above are written up for TEST_PLAN.md in the planning sidecar.
 
-### deploy/gcp · the scripts that put formai.monster up, for any domain
+### deploy/gcp · one VM on Google Cloud, for any domain
 - refers-to: deploy/gcp/provision, deploy/gcp/ship, deploy/gcp/install, deploy/gcp/instance.env; .docs/SELF_HOSTING.md; .docs/wiki/Self-hosting.md; .docs/wiki/Auth0.md
 - kind: deploy, docs
 - logged: v0.61.1 · 2026-11-22
 
-Owner request of 2026-11-22: a guide for taking one's own copy of form.md to one's own domain the way formpunchlist went to formai.monster, to be shared on formai.studio, plus wiki pages. The three scripts are formpunchlist's `deploy/gcp` (its internal/HASHOUT_LOG.md, "deploy/gcp · one VM for formai.monster", v0.48.0, and "the bundle budget warns instead of stopping a deploy", v0.49.0) with these differences and no others:
+Owner request of 2026-11-22: a guide for taking one's own copy of form.md to one's own domain, to be shared on formai.studio, plus wiki pages. The three scripts:
 
-- `provision`: `DOMAIN` is required instead of defaulting to formai.monster; the VM name defaults to `form-md` and the network tag to `form-md-web` (`VM_TAG`); the printed DNS records name the given host, mark www and CAA as optional, and say there is no AAAA record.
+- `provision`: `DOMAIN` is required; the VM name defaults to `form-md` and the network tag to `form-md-web` (`VM_TAG`); the printed DNS records name the given host, mark www and CAA as optional, and say there is no AAAA record.
 - `ship`: the staging folder is `form-md-deploy`, and the env file is `instance.env`.
-- `install`: stops before touching the system when no `/etc/form-md/env` exists yet and `instance.env` still names `example.com`; reads the host name for its last line from `FORMMD_ACME_DOMAINS` in the installed env file; that last line says the set-up screen answers whoever opens it first. formpunchlist closed that window with its email allowlist, which form.md does not have, so the guide says to create the owner at once.
-- `instance.env`: `FORMMD_ADDR`, `FORMMD_HTTP_ADDR`, `FORMMD_ACME_DOMAINS`, `FORMMD_TERMINAL=off`, `FORMMD_FAMILY=off`. Left out because form.md does not read them: the allowlist, the punch list variables, and the instance name and public address from the environment (set in Instance settings instead). `FORMMD_UPDATE_CHECK=false` is left out because the update feed is form.md's own.
-
-Not ported from formpunchlist, by decision of scope and not of merit: the allowlist (`internal/auth/allowlist.go`, 40 lines and seven call sites), `FORMMD_INSTANCE_NAME` and `FORMMD_PUBLIC_URL`. The wiki page names them under "What formpunchlist adds on top".
+- `install`: stops before touching the system when no `/etc/form-md/env` exists yet and `instance.env` still names `example.com`; reads the host name for its last line from `FORMMD_ACME_DOMAINS` in the installed env file; that last line says the set-up screen answers whoever opens it first, so the guide says to create the owner at once.
+- `instance.env`: `FORMMD_ADDR`, `FORMMD_HTTP_ADDR`, `FORMMD_ACME_DOMAINS`, `FORMMD_TERMINAL=off`, `FORMMD_FAMILY=off`. The instance name and public address are set in Instance settings.
 
 The Auth0 page is derived from `internal/auth/oidc.go` and Auth0's documentation, with no Auth0 tenant involved. What the code settles: the issuer check uses the discovery document's own `issuer`, so Auth0's trailing slash is fine; only RS256 and ES256 verify; the client secret goes in the token request body; an existing account links only when both sides hold the email verified; a new account needs `SignupAllowed`; a provider sign-in starts a session without the form.md two-factor step. What it does not settle: `prompt=select_account` is sent to every provider, and Auth0 documents only `none` and `login` for it.
 
