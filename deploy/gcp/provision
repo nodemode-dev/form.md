@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="${GCP_PROJECT:?set GCP_PROJECT to the Google Cloud project id}"
+DOMAIN="${DOMAIN:?set DOMAIN to the host name people will open, for example notes.example.com}"
+REGION="${GCP_REGION:-us-central1}"
+ZONE="${GCP_ZONE:-${REGION}-a}"
+NAME="${VM_NAME:-form-md}"
+MACHINE="${VM_MACHINE:-e2-small}"
+DISK_GB="${VM_DISK_GB:-20}"
+TAG="${VM_TAG:-form-md-web}"
+
+g() { gcloud --project="$PROJECT" "$@"; }
+
+echo "provision: project=$PROJECT region=$REGION zone=$ZONE vm=$NAME ($MACHINE, ${DISK_GB}GB) domain=$DOMAIN"
+g services enable compute.googleapis.com
+
+if ! g compute addresses describe "$NAME-ip" --region="$REGION" >/dev/null 2>&1; then
+  g compute addresses create "$NAME-ip" --region="$REGION" --network-tier=PREMIUM
+fi
+IP="$(g compute addresses describe "$NAME-ip" --region="$REGION" --format='value(address)')"
+
+if ! g compute firewall-rules describe "$NAME-web" >/dev/null 2>&1; then
+  g compute firewall-rules create "$NAME-web" --network=default --direction=INGRESS --action=ALLOW \
+    --rules=tcp:80,tcp:443 --source-ranges=0.0.0.0/0 --target-tags="$TAG"
+fi
+
+if ! g compute resource-policies describe "$NAME-daily" --region="$REGION" >/dev/null 2>&1; then
+  g compute resource-policies create snapshot-schedule "$NAME-daily" --region="$REGION" \
+    --daily-schedule --start-time=08:00 --max-retention-days=14 --on-source-disk-delete=keep-auto-snapshots
+fi
+
+if ! g compute instances describe "$NAME" --zone="$ZONE" >/dev/null 2>&1; then
+  g compute instances create "$NAME" --zone="$ZONE" --machine-type="$MACHINE" \
+    --image-family=debian-12 --image-project=debian-cloud \
+    --boot-disk-size="${DISK_GB}GB" --boot-disk-type=pd-balanced \
+    --address="$IP" --network-tier=PREMIUM --tags="$TAG" \
+    --shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring \
+    --metadata=enable-oslogin=TRUE
+  g compute disks add-resource-policies "$NAME" --zone="$ZONE" --resource-policies="$NAME-daily"
+fi
+
+cat <<EOF
+
+provision: done. Static address: $IP
+
+DNS records at the registrar or DNS host of $DOMAIN (TTL 300):
+  A     $DOMAIN        $IP
+  A     www.$DOMAIN    $IP     (only if you list www in deploy/gcp/instance.env)
+  CAA   $DOMAIN        0 issue "letsencrypt.org"     (optional)
+
+No AAAA record: the VM has no IPv6 address.
+If the zone is on Cloudflare, set the A records to DNS only (grey cloud).
+Check before installing:  dig +short $DOMAIN   (must print $IP)
+
+Next: put the same name in deploy/gcp/instance.env, then run deploy/gcp/ship
+EOF

@@ -375,6 +375,9 @@ func (s *Server) authAttrs() map[string]string {
 	if s.Auth.SAMLOnly() {
 		out["saml-only"] = "true"
 	}
+	if s.Auth.Desktop() {
+		out["desktop-server"] = "true"
+	}
 	return out
 }
 

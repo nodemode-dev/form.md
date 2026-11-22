@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version v0.61.0" src="https://img.shields.io/badge/version-v0.61.0-eef0f4?style=flat-square">
+  <img alt="version v0.61.1" src="https://img.shields.io/badge/version-v0.61.1-eef0f4?style=flat-square">
   <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=flat-square&logo=go&logoColor=white">
   <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -123,6 +123,8 @@ form.md loads Form extensions (Form Extension Contract, API 1): install them wit
 
 All form.md builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
 
+The desktop app signs you in as the owner by itself, with no password. To open the same workspace in a browser at http://127.0.0.1:8750, first set a password in the app under Settings, Profile (no current password is asked the first time), then sign in with the email shown there, `owner@localhost` until you change it.
+
 ## Demo
 
 Three offline browser demos, each a double click on its `index.html`, on real public-domain and freely licensed material or your own files. No server, no network.
@@ -153,6 +155,8 @@ cd form.md
 
 > [!IMPORTANT]
 > **Status:** released. form.md is built and bundled for macOS, Windows and Linux and has been tested on all three. Instance-wide settings such as mail and single sign-on live in the app's Instance settings, and the wiki in `.docs/wiki` covers install, TLS, backups and operations.
+
+**Host it yourself:** [`.docs/SELF_HOSTING.md`](.docs/SELF_HOSTING.md) takes your own copy of form.md to your own domain for a small team, step by step: one VM, automatic HTTPS, encrypted data, accounts by invitation, with the scripts in `deploy/gcp`. It is how the maintainers' own instance runs.
 
 **Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`BRANCHING.md`](BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
 

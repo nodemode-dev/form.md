@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "install: run as root (sudo bash install BINARY)" >&2
+  exit 1
+fi
+BIN="${1:?usage: install BINARY}"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+DATA=/var/lib/form-md
+CONF=/etc/form-md
+
+"$BIN" version >/dev/null
+
+if [ ! -f "$CONF/env" ] && grep -q 'example\.com' "$HERE/instance.env"; then
+  echo "install: deploy/gcp/instance.env still names example.com. Put your own host name in it, then run deploy/gcp/ship again." >&2
+  exit 1
+fi
+
+id form-md >/dev/null 2>&1 || useradd --system --home-dir "$DATA" --shell /usr/sbin/nologin form-md
+install -d -o form-md -g form-md -m 0700 "$DATA"
+install -d -m 0755 "$CONF"
+install -m 0755 "$BIN" /usr/local/bin/form-md
+
+if [ ! -s "$CONF/form-md.key" ]; then
+  (umask 077; /usr/local/bin/form-md keygen > "$CONF/form-md.key")
+  NEWKEY=1
+fi
+if [ ! -f "$CONF/env" ]; then
+  install -m 0640 -g form-md "$HERE/instance.env" "$CONF/env"
+fi
+
+install -m 0644 "$HERE/form-md.service" /etc/systemd/system/form-md.service
+install -d -m 0755 /etc/systemd/system/form-md.service.d
+cat > /etc/systemd/system/form-md.service.d/key.conf <<EOF
+[Service]
+LoadCredential=form-md.key:$CONF/form-md.key
+EOF
+
+systemctl daemon-reload
+systemctl enable form-md.service >/dev/null
+systemctl restart form-md.service
+sleep 3
+if ! systemctl is-active --quiet form-md.service; then
+  journalctl -u form-md -n 40 --no-pager
+  echo "install: the service did not start" >&2
+  exit 1
+fi
+journalctl -u form-md -n 8 --no-pager
+
+HOST="$(sed -n 's/^FORMMD_ACME_DOMAINS=\([^,]*\).*/\1/p' "$CONF/env")"
+echo
+echo "install: form-md $(/usr/local/bin/form-md version) is running."
+if [ "${NEWKEY:-0}" = 1 ]; then
+  echo "install: a new encryption key is in $CONF/form-md.key. Copy it somewhere safe now:"
+  echo "         sudo cat $CONF/form-md.key"
+  echo "         A backup or snapshot is unreadable without it."
+fi
+echo "install: open https://${HOST:-your host name} now and create the owner. Until you do, the set-up screen answers whoever opens it first."

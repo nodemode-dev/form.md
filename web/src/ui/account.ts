@@ -164,6 +164,15 @@ function profileTab(engine: Engine): Tab {
       const again = input({ type: "password", name: "confirm-password", autocomplete: "new-password" });
       const pwStatus = status();
       const pwSave = button(t("Change password"), "default", undefined, "submit");
+      const paintPassword = () => {
+        const none = me(engine).has_password === false;
+        for (const el of [current, emailPassword]) el.disabled = none;
+        current.placeholder = none ? t("No password set yet") : "";
+        emailPassword.placeholder = none ? t("Set a password below first") : "";
+        emailSave.disabled = none;
+        setText(pwSave.lastElementChild!, none ? t("Set password") : t("Change password"));
+      };
+      paintPassword();
       const pwForm = h(
         "form",
         { class: "form-grid", attrs: { novalidate: "" } },
@@ -182,6 +191,8 @@ function profileTab(engine: Engine): Tab {
         try {
           await busy(pwSave, () => engine.api.me.password(current.value, next.value));
           for (const el of [current, next, again]) el.value = "";
+          engine.setMe(await engine.api.me.get());
+          paintPassword();
           toast({ message: t("Password changed. Every other session was signed out."), tone: "success" });
         } catch (err) {
           pwStatus.error(err);
@@ -198,6 +209,7 @@ function profileTab(engine: Engine): Tab {
       panel.append(identity, email, password);
       return () => {
         paintEmail();
+        paintPassword();
         updateAvatar(preview, me(engine).user.name, me(engine).user.color);
       };
     },

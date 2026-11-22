@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="${GCP_PROJECT:?set GCP_PROJECT to the Google Cloud project id}"
+REGION="${GCP_REGION:-us-central1}"
+ZONE="${GCP_ZONE:-${REGION}-a}"
+NAME="${VM_NAME:-form-md}"
+ARCH="${VM_ARCH:-amd64}"
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT"
+VERSION="$(sed -n 's/^VERSION := //p' Makefile)"
+OUT="bin/form-md_${VERSION}_linux_${ARCH}"
+
+echo "ship: building $VERSION for linux/$ARCH"
+[ -d web/node_modules ] || ./web/oc_install
+(cd web && npm run build)
+go run ./tools/bundlecheck || echo "ship: the start-up bundle is over the development budget; shipping anyway"
+go run ./tools/notices
+CGO_ENABLED=0 GOOS=linux GOARCH="$ARCH" go build -trimpath \
+  -ldflags "-s -w -X github.com/nodemode-ai/form.md/internal/app.Version=$VERSION" \
+  -o "$OUT" ./cmd/form-md
+
+STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE"' EXIT
+mkdir -p "$STAGE/form-md-deploy"
+cp "$OUT" "$STAGE/form-md-deploy/form-md"
+cp deploy/gcp/install deploy/gcp/instance.env deploy/form-md.service "$STAGE/form-md-deploy/"
+
+g() { gcloud --project="$PROJECT" "$@"; }
+g compute scp --zone="$ZONE" --recurse "$STAGE/form-md-deploy" "$NAME":~/
+g compute ssh "$NAME" --zone="$ZONE" --command='sudo bash ~/form-md-deploy/install ~/form-md-deploy/form-md'
