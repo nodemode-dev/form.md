@@ -1559,7 +1559,7 @@ The manifest makes the app installable (standalone, dark background, the SVG mar
 - kind: decision
 - logged: v0.47.8 · 2026-11-03
 
-The launch punch list (2026-11-03): the About of a downloaded app says NodeAgentc, Inc., not nodemode-ai, and lists the licence. The row under the form.md name now reads "Copyright 2026 NodeAgentc, Inc." (still `translate="no"`) with a link after it, "Apache License 2.0", to the LICENSE file on GitHub (`nodemode-dev/form.md/blob/main/LICENSE`), opened in a new tab like the Open-source licences button beside it. The desktop shell's bundle names the publisher and the licence too (see `src-tauri/HASHOUT_LOG.md`).
+Owner request of 2026-11-03: the About of a downloaded app says NodeAgentc, Inc., not nodemode-ai, and lists the licence. The row under the form.md name now reads "Copyright 2026 NodeAgentc, Inc." (still `translate="no"`) with a link after it, "Apache License 2.0", to the LICENSE file on GitHub (`nodemode-dev/form.md/blob/main/LICENSE`), opened in a new tab like the Open-source licences button beside it. The desktop shell's bundle names the publisher and the licence too (see `src-tauri/HASHOUT_LOG.md`).
 
 ### src/ui/admin.ts · tunnel, mail accounts, HTTPS, backup and updates
 - refers-to: src/ui/admin.ts :: `generalTab` (tunnel status and buttons, `https.domain`, `https.auto`, `net.trust_proxy`), `emailTab` (Gmail and Graph connect), `aboutTab` (backup download, latest version); src/ui/status.ts :: `data-update`
