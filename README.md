@@ -156,6 +156,8 @@ cd form.md
 > [!IMPORTANT]
 > **Status:** released. form.md is built and bundled for macOS, Windows and Linux and has been tested on all three. Instance-wide settings such as mail and single sign-on live in the app's Instance settings, and the wiki in `.docs/wiki` covers install, TLS, backups and operations.
 
+**Host it yourself:** [`.docs/SELF_HOSTING.md`](.docs/SELF_HOSTING.md) takes your own copy of form.md to your own domain for a small team, step by step: one VM, automatic HTTPS, encrypted data, accounts by invitation, with the scripts in `deploy/gcp`. It is how the maintainers' own instance runs.
+
 **Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`BRANCHING.md`](BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
 
 ## Repository

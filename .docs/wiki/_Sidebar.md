@@ -6,6 +6,8 @@
 
 **Running an instance**
 
+- [[Self-hosting]]
+- [[Auth0]]
 - [[Encryption]]
 - [[TLS-and-ACME]]
 - [[Tunnel]]
