@@ -6,9 +6,10 @@ This wiki is for the people who install and run an instance and for the people w
 
 ## At a glance
 
+**Current version:** v0.61.1 · every version is on [[Releases]]
+
 | | |
 |---|---|
-| **Current version** | v0.61.1 · every version is on [[Releases]] |
 | **What it is** | One static Go binary (`form-md`) with the TypeScript web client embedded |
 | **Where your data lives** | One data directory: a SQLite database (`form-md.db`), the uploaded files and a few small key files. There is no separate database server, cache or object store |
 | **People and agents together** | The server holds the collaborative document itself, so an agent writing through MCP or the REST API merges with what a person is typing |
